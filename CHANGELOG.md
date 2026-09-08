@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remember the last location per account/guest and room on this browser, saving during play and when leaving. Rejoin on foot near the previous chair or vehicle; table invitation links retain their destination.
+
 - Added a free mamak menu with eight dishes and drinks, shared table visuals, Eat/Drink actions, and server-enforced per-diner orders.
 
 - Added account-only editable public profiles (bio, hometown, interests, languages and mamak order), saved in Supabase account metadata and fetched on demand for profile cards. Guests retain name-only cards.

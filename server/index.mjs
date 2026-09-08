@@ -174,6 +174,10 @@ webSocketServer.on('connection', ws => {
         mic: false, speaker: false,
         updatedAt: Date.now(),
       };
+      const resume=message.resume;
+      if(resume && [resume.x,resume.z,resume.yaw].every(Number.isFinite) && Math.abs(resume.x)<=151 && Math.abs(resume.z)<=151){
+        player.x=resume.x;player.z=resume.z;player.yaw=finiteNumber(resume.yaw,Math.PI,-Math.PI*4,Math.PI*4);
+      }
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
       tableSocial.join(player);

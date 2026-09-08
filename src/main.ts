@@ -1,3 +1,4 @@
+import {locationKey, readLocation, writeLocation} from './location-save';
 import mamakMenu from '../shared/mamak-menu.json';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
 import { setupTableSocial, type TableState, type Receipt } from './table-social';
@@ -192,7 +193,7 @@ async function init() {
   }
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
-  const invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
+  let invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
   const tableSocial = setupTableSocial(message => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify(message)); return true;
@@ -472,6 +473,7 @@ async function init() {
     networkSocket.send(JSON.stringify(message)); return true;
   });
   function disconnectMultiplayer() {
+    saveLocation();
     seatedChairId = null; seated = false;
     tableSocial.close(); tableSocial.offline(); roomTables = [];
     voice.connected(false);
@@ -496,6 +498,15 @@ async function init() {
     if (!started || !multiplayerEndpoint || networkReconnectTimer !== null) return;
     networkReconnectTimer = window.setTimeout(() => { networkReconnectTimer = null; connectMultiplayer(); }, 2500);
   }
+  let activeLocationKey='', locationSavedAt=0;
+  function saveLocation(){
+    if(!started||!networkConnected||!activeLocationKey)return;
+    const chair=seatedChairId?chairLocations.find(c=>c.id===seatedChairId):null;
+    const table=chair?tableLocations.find(t=>t.id===chair.tableId):null;
+    const x=table?table.arrivalX:pos.x+(riding?Math.cos(yaw)*2.4:0);
+    const z=table?table.arrivalZ:pos.z-(riding?Math.sin(yaw)*2.4:0);
+    writeLocation(activeLocationKey,{x,z,yaw});
+  }
   async function connectMultiplayer() {
     if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); return; }
     setNetworkStatus('CONNECTING…', 'connecting', 1);
@@ -506,13 +517,14 @@ async function init() {
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
-        socket.send(JSON.stringify({ type: 'join', room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
+        activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
+        socket.send(JSON.stringify({ type: 'join', resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
         let message: { profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; if (invitedTableId) { const self = message.players?.find(p=>p.id===message.id); if(self)pos.set(self.x,.12,self.z); } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
+        if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
@@ -542,6 +554,7 @@ async function init() {
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
+    if(Date.now()-locationSavedAt>1000){saveLocation();locationSavedAt=Date.now();}
     if (!networkConnected || !networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
     networkSendTimer += dt; networkIdleTimer += dt;
     if (networkSendTimer < .05) return;
@@ -608,6 +621,7 @@ async function init() {
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
+    saveLocation();
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
@@ -748,9 +762,10 @@ async function init() {
     keys.add(event.code);
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
+  window.addEventListener('pagehide', saveLocation);
   window.addEventListener('beforeunload', disconnectMultiplayer);
   window.addEventListener('blur', () => { keys.clear(); resetStick(); dragging = false; });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); resetStick(); dragging = false; } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocation(); keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');
   const profile = $<HTMLDialogElement>('player-profile');
   let selectedName = '', selectedProfileId = '';
