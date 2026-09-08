@@ -291,6 +291,54 @@ export interface TrafficCar { group: THREE.Group; x: number; z: number; speed: n
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
 export interface World { chairs: { x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }
 
+export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese') {
+  const g = new THREE.Group(); g.name = kind;
+  const width = kind === 'mosque' ? 36 : 18, depth = 20;
+  box(g, 0, .12, 3, width + 2, .24, 28, '#ded3b8');
+  const wall = kind === 'mosque' ? '#f1e9d4' : kind === 'hindu' ? '#edc5a5' : '#decba6';
+  box(g, 0, 3, 0, kind === 'mosque' ? 25 : 15, 6, 15, wall);
+  for (const x of [-5, 0, 5]) {
+    box(g, x, 1.8, 7.56, 2.5, 3.6, .1, kind === 'chinese' ? '#762f2d' : '#376e66');
+    const arch = ball(g, x, 3.65, 7.55, 1.25, kind === 'chinese' ? '#762f2d' : '#376e66'); arch.scale.z = .08;
+  }
+  if (kind === 'mosque') {
+    tube(g, 0, 6.3, 0, 5.4, .6, '#d7bd75');
+    const dome = ball(g, 0, 6.8, 0, 5.4, '#438d7b'); dome.scale.y = .8;
+    tube(g, 0, 11.4, 0, .1, 1.4, '#dbb956');
+    const crescent = new THREE.Mesh(new THREE.TorusGeometry(.5, .085, 8, 24, Math.PI * 1.5), material('#edca69')); crescent.position.set(0, 12.2, 0); crescent.rotation.z = Math.PI / 4; g.add(crescent);
+    for (const x of [-15, 15]) {
+      tube(g, x, 6, 0, 1.25, 12, '#efe6cc');
+      for (const y of [3, 8, 11.5]) tube(g, x, y, 0, 1.55, .35, '#d5bc76');
+      const cap = ball(g, x, 12.2, 0, 1.5, '#438d7b'); cap.scale.y = .8;
+      tube(g, x, 14, 0, .08, 1.4, '#dbb956');
+    }
+    sign(g, 'MASJID LEPAK', 0, 5.25, 7.7, 12, .8, '#438d7b');
+  } else if (kind === 'hindu') {
+    box(g, 0, 6.2, 0, 16.5, .5, 16.5, '#ad667c');
+    for (let tier = 0; tier < 6; tier++) {
+      const w = 8 - tier * .85, y = 6.5 + tier * 1.05;
+      box(g, 0, y, 4, w, 1, Math.max(2.8, w * .6), ['#69aca6', '#d98991', '#cfb066'][tier % 3]);
+      box(g, 0, y + .5, 4, w + .5, .18, Math.max(3, w * .6 + .5), '#efdbab');
+      for (let x = -w / 2 + .65; x < w / 2; x += 1.2) { tube(g, x, y + .15, 4 + w * .3, .18, .5, '#efcf7d'); ball(g, x, y + .47, 4 + w * .3, .22, '#edc366'); }
+    }
+    for (const x of [-1.5, 0, 1.5]) { tube(g, x, 12.7, 4, .12, .7, '#dcb75a'); ball(g, x, 13.1, 4, .28, '#edc366'); }
+    for (const x of [-7, 7]) { tube(g, x, 2.5, 8, .3, 5, '#bd6776'); tube(g, x, 4.7, 8, .5, .25, '#e4c17c'); }
+    sign(g, 'KUIL SERI HARMONI', 0, 5.2, 8, 12, .8, '#955563');
+  } else {
+    for (const x of [-6.5, 6.5]) for (const z of [-6.5, 7.5]) tube(g, x, 3, z, .35, 6, '#af3e33');
+    for (let tier = 0; tier < 2; tier++) {
+      const w = 18 - tier * 4, y = 6.2 + tier * 2.4;
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(w / Math.SQRT2, 2.8, 4), material('#526c61')); roof.rotation.y = Math.PI / 4; roof.position.y = y + 1; roof.castShadow = true; g.add(roof);
+      for (const side of [-1, 1]) { const eave = box(g, side * (w / 2 - .5), y, 0, 1.8, .2, w, '#ae4939'); eave.rotation.z = side * .25; }
+      box(g, 0, y + 2.5, 0, w * .65, .22, .3, '#d7b368');
+    }
+    for (const x of [-5, 5]) { tube(g, x, 4.6, 8, .045, 1, '#d5af55'); const lantern = ball(g, x, 3.9, 8, .58, '#da5341'); lantern.scale.y = 1.2; tube(g, x, 3.15, 8, .045, .5, '#e0bd69'); }
+    sign(g, 'TOKONG HARMONI', 0, 5.1, 8, 11, .8, '#8d352f', '#f2d38e');
+    tube(g, 0, .65, 11, .8, 1.1, '#997956'); tube(g, 0, 1.25, 11, 1, .18, '#be9a62');
+  }
+  return {group: g, width, depth};
+}
+
 export function createWorld(scene: THREE.Scene): World {
   const chairs: World['chairs'] = [];
   const group = new THREE.Group(); const solids: Solid[] = []; const mapBuildings: World['mapBuildings'] = [];
@@ -448,12 +496,19 @@ export function createWorld(scene: THREE.Scene): World {
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
+    if (x > 0 && (z === -37 || z === 37)) continue;
     const height = 14 + rand() * 29, w = 13 + rand() * 5, d = 17;
     block(x, z, w, height, d, ['#aab7ad', '#c9bfa5', '#b4bdb6', '#d6c6aa'][Math.floor(rand() * 4)]);
     box(group, x, height + .25, z, w + .5, .5, d + .5, '#cbd0b7');
     for (let y = 3; y < height - 1; y += 3.4) {
       for (let wx = -w / 2 + 2; wx < w / 2 - 1; wx += 3.3) box(group, x + wx, y, z + d / 2 + .015, 1.8, 1.7, .04, '#728e88');
     }
+  }
+  // Dedicated worship sites replace skyline lots, clear of the roads.
+  for (const [kind, x, z] of [['mosque', 117, -37], ['hindu', 105, 37], ['chinese', 129, 37]] as const) {
+    const landmark = createWorshipLandmark(kind); landmark.group.position.set(x, 0, z); group.add(landmark.group);
+    solid(x, z, landmark.width, 16);
+    mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'mosque' ? '#438d7b' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
   }
   // A distant communications tower complements the twin towers.
   tube(group, -104, 42, -145, 1.3, 84, '#c5c6ae');
