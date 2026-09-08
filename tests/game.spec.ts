@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
@@ -14,6 +14,12 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await page.mouse.move(640, 400); await page.mouse.down(); await page.mouse.move(680, 400); await page.mouse.up();
   expect((await state(page)).punchCount).toBe(1);
   await page.keyboard.press('c');
+  const profilePoint = (await state(page)).profileScreen;
+  await page.mouse.click(profilePoint.x, profilePoint.y, { button: 'right' });
+  await page.getByRole('menuitem', { name: 'View profile' }).click();
+  await expect(page.locator('#profile-name')).not.toBeEmpty();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#player-profile')).not.toBeVisible();
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Know your streets.' })).toBeVisible();
   const mapTime = (await state(page)).simTime;
@@ -88,6 +94,15 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await expect(page.locator('#touch-controls')).toBeVisible();
   await page.touchscreen.tap(195, 420);
+  expect((await state(page)).punchCount).toBe(1);
+  const touchProfile = (await state(page)).profileScreen;
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touchProfile] });
+  await page.waitForTimeout(600);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.getByRole('menuitem', { name: 'View profile' }).tap();
+  await expect(page.locator('#profile-name')).not.toBeEmpty();
+  await page.getByRole('button', { name: 'Close', exact: true }).tap();
   expect((await state(page)).punchCount).toBe(1);
   await page.getByRole('button', { name: 'Open city map' }).tap();
   await expect(page.locator('#city-map')).toBeVisible();

@@ -31,6 +31,8 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike and delivery route"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; ◆ Job &nbsp; <span class="map-bike-key">● Bike</span></span><span>M / Esc to close · City stays live</span></footer></dialog>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
+  <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
@@ -179,6 +181,7 @@ async function init() {
   }
   function makeRemotePlayer(player: NetworkPlayer) {
     const group = new THREE.Group();
+    group.userData.profileName = player.name;
     const person = createPerson(player.color || '#72c8ba');
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
@@ -310,7 +313,7 @@ async function init() {
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
   }
   function leaveCity() {
-    cityMap.close();
+    cityMap.close(); profile.close(); closeOptions();
     started = false; paused = false; keys.clear(); disconnectMultiplayer(); backgroundMusic.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
@@ -357,6 +360,7 @@ async function init() {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
+    if (profile.open) return;
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
     if (cityMap.open) { if (event.code === 'Escape') { event.preventDefault(); setMap(false); } return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
@@ -380,9 +384,42 @@ async function init() {
   window.addEventListener('beforeunload', disconnectMultiplayer);
   window.addEventListener('blur', () => { keys.clear(); dragging = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); dragging = false; } });
-  let pointerId: number | null = null, pointerX = 0, pointerY = 0, pointerAt = 0, pointerMoved = false;
+  const options = $('player-options');
+  const profile = $<HTMLDialogElement>('player-profile');
+  let selectedName = '';
+  function closeOptions() { options.hidden = true; }
+  function openPlayerOptions(x: number, y: number) {
+    closeOptions();
+    if (!started || paused || cityMap.open || profile.open) return;
+    const rect = canvas.getBoundingClientRect();
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
+    const own = riding ? bike.rider : player.group;
+    own.userData.profileName = displayName();
+    if (localName) localName.userData.profileName = displayName();
+    const targets = [own, ...Array.from(remotePlayers.values(), p => p.group), ...(localName ? [localName] : [])];
+    const hit = ray.intersectObjects(targets, true)[0];
+    if (!hit) return;
+    let object: THREE.Object3D | null = hit.object;
+    while (object && typeof object.userData.profileName !== 'string') object = object.parent;
+    if (!object) return;
+    selectedName = object.userData.profileName;
+    keys.clear(); dragging = false;
+    options.hidden = false;
+    options.style.left = `${Math.max(8, Math.min(x, innerWidth - options.offsetWidth - 8))}px`;
+    options.style.top = `${Math.max(8, Math.min(y, innerHeight - options.offsetHeight - 8))}px`;
+    $('view-profile').focus();
+  }
+  $('view-profile').onclick = () => { closeOptions(); $('profile-name').textContent = selectedName; profile.showModal(); $('close-profile').focus(); };
+  $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
+  profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });
+  document.addEventListener('pointerdown', event => { if (!options.contains(event.target as Node)) closeOptions(); });
+  options.addEventListener('keydown', event => { if (event.key === 'Escape' || event.key === 'Tab') { closeOptions(); canvas.focus(); event.preventDefault(); event.stopPropagation(); } });
+  canvas.addEventListener('contextmenu', event => { event.preventDefault(); openPlayerOptions(event.clientX, event.clientY); });
+  let pointerId: number | null = null, pointerX = 0, pointerY = 0, pointerAt = 0, pointerMoved = false, touchPointer = false;
   canvas.addEventListener('pointerdown', event => {
     if (!started || paused || cityMap.open || !event.isPrimary || event.button !== 0) return;
+    touchPointer = event.pointerType === 'touch';
     canvas.focus(); dragging = true; pointerId = event.pointerId; pointerX = lastX = event.clientX; pointerY = lastY = event.clientY; pointerAt = performance.now(); pointerMoved = false; canvas.setPointerCapture(event.pointerId);
   });
   canvas.addEventListener('pointermove', event => {
@@ -393,7 +430,9 @@ async function init() {
   canvas.addEventListener('pointerup', event => {
     if (event.pointerId !== pointerId) return;
     const tap = dragging && !pointerMoved && Math.hypot(event.clientX - pointerX, event.clientY - pointerY) <= 10 && performance.now() - pointerAt < 350;
+    const longPress = dragging && touchPointer && !pointerMoved && performance.now() - pointerAt >= 500;
     dragging = false; pointerId = null;
+    if (longPress) openPlayerOptions(event.clientX, event.clientY);
     if (tap) punch();
   });
   const endDrag = () => { dragging = false; pointerId = null; };
@@ -620,7 +659,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, jumpHeight, punchCount, position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, jumpHeight, punchCount, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);

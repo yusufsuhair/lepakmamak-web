@@ -197,3 +197,10 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 }
 
 @media (max-width: 600px) { #mission-card { width: min(218px, calc(100vw - 170px)); } }
+
+#player-options { position: fixed; z-index: 30; padding: 5px; border: 1px solid #b4cd9a; border-radius: 8px; background: #173c32; box-shadow: 0 8px 24px #0005; }
+#view-profile, #close-profile { background: #ddf69a; color: #173c32; border: 0; border-radius: 5px; padding: 12px 18px; font: inherit; cursor: pointer; }
+#player-profile { width: min(330px, calc(100vw - 32px)); border: 1px solid #b4cd9a; border-radius: 12px; padding: 24px; background: #173c32; color: #fff8e7; }
+#player-profile::backdrop { background: #081e1988; }
+#profile-title { font: 600 30px 'Barlow Condensed'; margin: 0; }
+#profile-name { font-size: 20px; overflow-wrap: anywhere; }
