@@ -10,7 +10,7 @@ import {masjidVolume,nearestMasjidDistance} from './masjid';
 import {createStallWorld,setupStalls} from './stalls';
 import {locationKey, readLocation, writeLocation} from './location-save';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
-import { setupTableSocial, type TableState, type Receipt } from './table-social';
+import { setupTableSocial, type TableState } from './table-social';
 import tableLocations from '../shared/tables.json';
 import chairLocations from '../shared/chairs.json';
 import './style.css';
@@ -595,7 +595,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
+        let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
@@ -606,11 +606,9 @@ async function init() {
         if(message.type==='pickleball-swing'&&message.id){if(message.id===networkPlayerId)punchUntil=simTime+.38;else{const remote=remotePlayers.get(message.id);if(remote)remote.punchUntil=simTime+.38;}}
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
-        if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if(message.type==='wall-new'&&message.post)wall.receive(message.post);
-        if (message.type === 'table-round') toast('Teh tarik sampai!', `${message.from || 'A friend'} belanja ${message.count || 1} cup${message.count === 1 ? '' : 's'}. Jom cheers!`);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
           const remote = remotePlayers.get(message.id);
@@ -1242,9 +1240,6 @@ async function init() {
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
-    const cheeringIds = new Set(roomTables.filter(t=>t.cheersUntil>Date.now()).flatMap(t=>t.occupants.map(p=>p.id)));
-    if(seated&&cheeringIds.has(networkPlayerId)) player.rightArm.rotation.x=-1.7;
-    for(const remote of remotePlayers.values()) if(remote.seated&&cheeringIds.has(remote.id))remote.person.rightArm.rotation.x=-1.7;
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     renderer.render(scene, camera);

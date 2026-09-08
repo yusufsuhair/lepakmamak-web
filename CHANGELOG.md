@@ -1,5 +1,7 @@
 # Changelog
 
+- Simplified tables to games and current seating only, with fixed Meja 1–6 names; removed renaming, cheers, receipts and invitation controls and disabled legacy server actions.
+
 - Added Basket Lepak court, shared basketball possession, dribbling, timed shots, rebounds and server-owned player scores; find it at map location 22.
 
 - Added Pickleball Lepak court and map location, automatic paddles on entry, shared arcade rallies, serve/hit controls and first-to-11 scoring.

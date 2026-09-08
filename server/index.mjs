@@ -207,7 +207,6 @@ webSocketServer.on('connection', ws => {
       }
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
-      tableSocial.join(player);
       currentRoom = room;
       room.players.set(id, player);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
@@ -377,7 +376,7 @@ webSocketServer.on('connection', ws => {
       if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
       if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
-      lastRecallAt = now; tableSocial.recall(player);
+      lastRecallAt = now;
       broadcast(currentRoom.players, { type: 'recall', id: player.id });
       return;
     }
