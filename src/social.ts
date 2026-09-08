@@ -114,6 +114,12 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   return {
     open() { expand(); input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
+    history(history: {name:string;text:string;sentAt?:string}[]) {
+      messages.replaceChildren(); unread = 0;
+      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt);
+      unread = 0;
+      render(); messages.scrollTop = messages.scrollHeight;
+    },
     append(name: string, text: string, sentAt?: string) {
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();

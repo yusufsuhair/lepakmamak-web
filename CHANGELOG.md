@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Persisted room chat in Supabase and restore the latest 50 messages with their original timestamps when players join or refresh. Database writes remain server-only.
+
 - Added Stop dance to the self context menu; cancellation stops the animation and nearby music for all players.
 
 - Reworked Dance from the supplied video into a five-second step/hand/chest sequence with bent elbows and upper-body rolls, repeated over ten seconds. Reduced dance music gain by 35%.

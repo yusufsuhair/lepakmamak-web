@@ -1,5 +1,6 @@
 import {createStalls} from './stalls.mjs';
 const handleStall=createStalls(send);
+import { createChatHistory } from './chat-history.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
@@ -28,6 +29,7 @@ setInterval(() => {
 }, 50).unref();
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
+const chatHistory = createChatHistory();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
@@ -159,6 +161,9 @@ webSocketServer.on('connection', ws => {
         previous.remove();
         room = roomFor(message.room);
       }
+      let recentChat = [];
+      try { recentChat = await chatHistory.recent(room.name); }
+      catch { /* Joining remains available if chat storage is temporarily unavailable. */ }
       const id = crypto.randomUUID();
       const number = room.players.size;
       player = {
@@ -187,6 +192,7 @@ webSocketServer.on('connection', ws => {
       room.players.set(id, player);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
+      send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       return;
@@ -281,7 +287,11 @@ webSocketServer.on('connection', ws => {
       if (!text) return;
       if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
       lastChatAt = Date.now();
-      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filterChat(text), sentAt: new Date().toISOString() });
+      const filtered = filterChat(text), sentAt = new Date().toISOString();
+      try { await chatHistory.save(currentRoom.name, player, filtered, sentAt); }
+      catch { send(ws, { type: 'notice', message: 'Message sent live, but chat history could not save it.' }); }
+      if (!player || !currentRoom || ws.readyState !== 1) return;
+      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt });
       return;
     }
     if (message.type === 'state') {
