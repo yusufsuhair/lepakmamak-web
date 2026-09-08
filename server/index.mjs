@@ -68,6 +68,7 @@ webSocketServer.on('connection', ws => {
   let player = null;
   let lastStateAt = 0;
   let lastRecallAt = 0;
+  let lastPunchAt = 0;
   let joining = false;
   let lastChatAt = 0;
   let expiresAt = 0;
@@ -152,6 +153,12 @@ webSocketServer.on('connection', ws => {
       player.updatedAt = now;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
+    }
+    if (message.type === 'punch') {
+      const now = Date.now();
+      if (player.riding || now - lastPunchAt < 350) return;
+      lastPunchAt = now;
+      broadcast(currentRoom.players, { type: 'punch', id: player.id }); return;
     }
     if (message.type === 'recall') {
       const now = Date.now();

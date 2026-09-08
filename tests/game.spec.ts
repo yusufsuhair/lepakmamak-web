@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
@@ -9,6 +9,11 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await expect(page.locator('#loading')).toBeHidden();
   await page.screenshot({ path: 'test-results/title-screen.png' });
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#world').click({ position: { x: 640, y: 400 } });
+  expect((await state(page)).punchCount).toBe(1);
+  await page.mouse.move(640, 400); await page.mouse.down(); await page.mouse.move(680, 400); await page.mouse.up();
+  expect((await state(page)).punchCount).toBe(1);
+  await page.keyboard.press('c');
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Know your streets.' })).toBeVisible();
   const mapTime = (await state(page)).simTime;
@@ -82,6 +87,8 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await expect(page.locator('#touch-controls')).toBeVisible();
+  await page.touchscreen.tap(195, 420);
+  expect((await state(page)).punchCount).toBe(1);
   await page.getByRole('button', { name: 'Open city map' }).tap();
   await expect(page.locator('#city-map')).toBeVisible();
   const mapBounds = await page.locator('#city-map').boundingBox();
