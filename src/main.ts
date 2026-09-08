@@ -25,6 +25,7 @@ import { auth, session, guestName, clearGuest, displayName, setupAuth } from './
 import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
+import { setupWall, type WallPost } from './wall';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -66,7 +67,7 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -247,6 +248,8 @@ async function init() {
     networkSocket.send(JSON.stringify(message)); return true;
   }, roomName, () => { keys.clear(); resetStick(); dragging = false; });
   const streetStalls=setupStalls($('hud'),message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},()=>{keys.clear();resetStick();dragging=false;});
+  const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
+  $('open-wall').onclick=()=>wall.open();
   const tableCups = chairLocations.map(chair => {
     const table = tableLocations.find(t=>t.id===chair.tableId)!;
     const cup = new THREE.Mesh(new THREE.CylinderGeometry(.11, .08, .26, 8), new THREE.MeshStandardMaterial({color:'#c58a4c'}));
@@ -537,6 +540,7 @@ async function init() {
     saveLocation();
     seatedChairId = null; seated = false;
     tableSocial.close(); tableSocial.offline(); roomTables = [];
+    wall.close();
     voice.connected(false);
     if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
     clearSpeechBubbles();
@@ -585,7 +589,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
+        let message: { post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
@@ -593,6 +597,7 @@ async function init() {
         if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
+        if(message.type==='wall-new'&&message.post)wall.receive(message.post);
         if (message.type === 'table-round') toast('Teh tarik sampai!', `${message.from || 'A friend'} belanja ${message.count || 1} cup${message.count === 1 ? '' : 's'}. Jom cheers!`);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
@@ -813,6 +818,7 @@ async function init() {
     if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
+    if(wall.opened){if(event.code==='Escape'){event.preventDefault();wall.close();}return;}
     if (profile.open || tableSocial.opened || streetStalls.opened) return;
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
@@ -849,7 +855,7 @@ async function init() {
   }
   function openPlayerOptions(x: number, y: number) {
     closeOptions();
-    if (!started || paused || cityMap.open || profile.open) return;
+    if (!started || paused || cityMap.open || profile.open || wall.opened) return;
     const rect = canvas.getBoundingClientRect();
     const ray = new THREE.Raycaster();
     ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
@@ -884,7 +890,7 @@ async function init() {
   canvas.addEventListener('contextmenu', event => { event.preventDefault(); openPlayerOptions(event.clientX, event.clientY); });
   let pointerId: number | null = null, pointerX = 0, pointerY = 0, pointerAt = 0, pointerMoved = false, touchPointer = false;
   canvas.addEventListener('pointerdown', event => {
-    if (!started || paused || cityMap.open || dragging || event.button !== 0) return;
+    if (!started || paused || cityMap.open || wall.opened || dragging || event.button !== 0) return;
     touchPointer = event.pointerType === 'touch';
     canvas.focus(); dragging = true; pointerId = event.pointerId; pointerX = lastX = event.clientX; pointerY = lastY = event.clientY; pointerAt = performance.now(); pointerMoved = false; canvas.setPointerCapture(event.pointerId);
   });
@@ -1160,7 +1166,7 @@ async function init() {
     camera.updateMatrixWorld();
     const actionButton = $<HTMLButtonElement>('interaction');
     const action = objectAction();
-    actionButton.hidden = !started || paused || cityMap.open || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
+    actionButton.hidden = !started || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
     if (action && !actionButton.hidden) {
       const anchor = new THREE.Vector3(action.point.x, action.height, action.point.z).project(camera);
       actionButton.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
@@ -1170,7 +1176,7 @@ async function init() {
       $('interaction-text').textContent = action.label;
     }
     const voicePanel = $('voice-panel');
-    voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open || onlinePlayersDialog.open;
+    voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
     if (localName && !voicePanel.hidden) {
       const anchor = localName.position.clone().add(new THREE.Vector3(0, .35, 0)).project(camera);
       voicePanel.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
@@ -1179,7 +1185,7 @@ async function init() {
     }
 
     camera.updateMatrixWorld();
-    streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!tableSocial.opened&&!riding&&!seated);
+    streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!wall.opened&&!tableSocial.opened&&!riding&&!seated);
     setAfkBubble('self', started ? afkNote : '');
     for (const {cup,dish,food,drink,chairId,tableId} of tableCups) {
       const table=roomTables.find(t=>t.id===tableId);
@@ -1192,7 +1198,7 @@ async function init() {
     }
     for(const {table,button} of tableLabels){
       const state=roomTables.find(t=>t.id===table.id);
-      button.hidden=!started||paused||cityMap.open||tableSocial.opened||distanceTo(table)>8;
+      button.hidden=!started||paused||cityMap.open||wall.opened||tableSocial.opened||distanceTo(table)>8;
       if(!button.hidden){const p=new THREE.Vector3(table.x,2.1,table.z).project(camera);button.hidden=p.z< -1||p.z>1||Math.abs(p.x)>.9||Math.abs(p.y)>.9;button.style.left=`${(p.x+1)*innerWidth/2}px`;button.style.top=`${(1-p.y)*innerHeight/2}px`;const name=state?.name||table.name;const label=`${name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} · OPEN`;if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-label',`Open Meja Kita at ${name}`);}
     }
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];

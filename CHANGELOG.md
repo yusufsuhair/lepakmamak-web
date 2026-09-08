@@ -1,5 +1,7 @@
 # Changelog
 
+- Added Lepak Wall: a responsive live social feed with account-only text, photo and 30-second voice-note posts, public member profiles, server-owned identity, content filtering, post deletion, unread notifications and persistent Supabase storage.
+
 - Added a responsive loading experience with branded animation, accessible progress, startup phases, account-button feedback and an online-entry state that clears on welcome or recovers from connection failure.
 
 - Removed the permanent Meja Kita button from the top-left HUD; nearby tables now show a clear floating Open action for table features on desktop and mobile.

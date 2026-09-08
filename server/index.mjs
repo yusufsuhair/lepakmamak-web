@@ -9,6 +9,7 @@ import http from 'node:http';
 import { isGameMaster } from './roles.mjs';
 import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
+import {createWall} from './wall.mjs';
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
 const { version } = packageInfo;
@@ -31,6 +32,7 @@ const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
 const chatHistory = createChatHistory();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
+const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
 const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -95,6 +97,7 @@ function broadcast(players, message) {
 
 const server = http.createServer(async (request, response) => {
   if (await shop.handle(request, response)) return;
+  if (await wall.handle(request,response)) return;
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     response.end(JSON.stringify({ ok: true, version, service: 'lepak-city-realtime', rooms: rooms.size, players: [...rooms.values()].reduce((total, players) => total + players.size, 0) }));
