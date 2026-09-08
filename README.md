@@ -20,9 +20,19 @@ The realtime server is optional for local development. Persistent storage can be
 
 ## Multiplayer preview
 
-Multiplayer is now enabled in production. The Cloudflare frontend connects to `wss://lepak-city-realtime-production.up.railway.app/ws` and places players in the shared `kampung` room. The HUD shows `CITY ONLINE` and the player count when the connection is healthy; remote players appear as moving avatars in the same streets. Press `R`, or tap `RECALL` on a phone, to send the four-beat `bzz bzz bzz bzzz` recall emote to everyone in the room.
+Multiplayer is enabled in production. The Cloudflare frontend connects to `wss://lepak-city-realtime-production.up.railway.app/ws` and places signed-in players in the shared `kampung` room. The HUD shows `CITY ONLINE` only after the server verifies the account. Players have display names above their avatars. Open City chat to talk to everyone in the room. An optional `?room=my-friends` URL puts players using that same link in a separate room (room names are not access controls). Press `R`, or tap `RECALL` on a phone, to send the recall emote; nearby players hear the buzz.
 
-The realtime service has a `/health` endpoint and uses temporary in-memory state. A Railway restart clears the room, which is expected until accounts or persistent world state are added. The browser does not send earnings or personal information to the service.
+The realtime service has a `/health` endpoint and uses temporary in-memory state. A Railway restart clears the room; chat is not stored. The browser sends its Supabase access token for join verification; the server broadcasts display names and movement, never emails or tokens. Earnings remain local.
+
+## Accounts
+
+Supabase project `LepakCity` (`sbzvvhzibqpozqvojzhe`) stores accounts. Registration asks for a display name, email, and password (minimum 8 characters). Supabase handles passwords and sessions. Railway verifies access tokens through Supabase Auth before joining; it derives the display name from the verified user, not the join payload. Display names are cosmetic and are not unique identity or authorization markers. Log out is in the pause menu.
+
+Email confirmation is disabled for the initial friends MVP, so email ownership is unverified. Custom SMTP is not configured: password-reset delivery through Supabase's default mail service is limited and is not production-ready. Configure SMTP and test recovery before relying on email recovery or enabling confirmation. No application tables or RLS policies are needed for this release; auth records remain managed by Supabase.
+
+Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. `ALLOW_GUESTS=true` is an explicit local-development alternative. Never place a secret or service-role key in frontend settings.
+
+`node tests/online-smoke.mjs` tests production-built UI served on port 4173 against real services. `TEST_BASE_URL=https://lepak-city.pages.dev node tests/online-smoke.mjs` tests the live UI. It uses the authenticated Supabase CLI to delete only its temporary accounts and uses an isolated test room. It checks signup, login/logout, incorrect passwords, session restoration, desktop/mobile chat, and unauthenticated rejection.
 
 To redeploy the realtime service from this repository, run `npm run deploy:realtime` while authenticated with Railway. The service listens on Railway's `PORT` and exposes WebSockets at `/ws`.
 
@@ -85,6 +95,6 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 
 ## Current limits and next steps
 
-This is the first playable slice, not a full GTA-scale game. Traffic follows simple routes, pedestrians are ambient, and the bike uses arcade movement rather than rigid-body physics. Rain is visual. Sound is a synthesised engine, delivery chimes, background music, and recall buzzes. Multiplayer currently synchronises temporary room movement and recall emotes; missions, earnings, and collisions remain local to each browser. There is no combat, police pursuit, moderation, authentication, or persistent account system. Mobile UI is tested in browser emulation; performance on physical phones still needs validation.
+This is the first playable slice, not a full GTA-scale game. Traffic follows simple routes, pedestrians are ambient, and the bike uses arcade movement rather than rigid-body physics. Multiplayer synchronises movement, text chat, and recall emotes; missions, earnings, and collisions remain local to each browser. There is no combat, police pursuit, moderation, or persistent world state. Accounts persist in Supabase. Mobile UI is tested in browser emulation; performance on physical phones still needs validation.
 
 Next: improve the player/bike animations and street detail, replace selected procedural models with Blender-exported GLB assets, then expand the mission variety. Keep the first delivery playable as assets improve.

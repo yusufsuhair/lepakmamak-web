@@ -9,6 +9,26 @@
 :root { font-family: 'DM Sans', sans-serif; color: #fff8e7; background: #243d35; font-synthesis: none; --lime: #ddf69a; --ink: #193d33; --cream: #fff8e7; --orange: #f6a16c; }
 * { box-sizing: border-box; }
 body { margin: 0; overflow: hidden; }
+#auth-panel { position: absolute; inset: 0; z-index: 20; background: #122e26cc; backdrop-filter: blur(8px); display: grid; place-items: center; padding: 18px; }
+.auth-card { width: min(400px, 100%); max-height: calc(100dvh - 36px); overflow: auto; border-radius: 12px; background: #f5efdb; color: #254b3b; padding: 28px; }
+.auth-card h2 { font: 700 44px/1 'Barlow Condensed'; margin: 12px 0; }
+.auth-card p { font-size: 12px; line-height: 1.6; }
+.auth-card label { display: grid; gap: 6px; margin: 13px 0; font-size: 12px; font-weight: 600; }
+.auth-card input { width: 100%; border: 1px solid #a5b59b; border-radius: 5px; padding: 11px; font: inherit; font-size: 16px; background: #fffbed; color: #193d33; }
+.auth-card .primary { width: 100%; justify-content: center; background: #294e3d; color: #fff8e7; }
+.auth-card button:disabled { opacity: .6; cursor: wait; }
+#auth-message { min-height: 20px; }
+#city-chat { position: absolute; right: 24px; top: 90px; width: min(300px, calc(100% - 36px)); pointer-events: auto; text-shadow: none; }
+#chat-toggle { display: block; margin-left: auto; border: 1px solid #dafa8e66; padding: 12px 16px; border-radius: 6px; background: #173c32ed; color: #ddf69a; font-size: 12px; }
+#chat-body { background: #173c32f2; padding: 12px; border-radius: 6px; margin-top: 6px; }
+#chat-messages { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
+#chat-messages p { margin: 0 0 9px; line-height: 1.5; }
+#chat-messages strong { color: #ddf69a; }
+#chat-form { display: flex; gap: 6px; }
+#chat-input { min-width: 0; flex: 1; padding: 9px; font-size: 16px; border: 1px solid #99ad89; border-radius: 4px; }
+#chat-form button { background: #ddf69a; color: #193d33; border: 0; border-radius: 4px; }
+#chat-status { display: block; font-size: 10px; line-height: 1.4; margin-top: 7px; color: #d4dbc9; }
+@media(max-width: 600px) { #city-chat { top: auto; bottom: 100px; right: 18px; } #chat-messages { max-height: 140px; } }
 button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button:focus-visible { outline: 3px solid var(--lime); outline-offset: 5px; }
 button, a { touch-action: manipulation; }

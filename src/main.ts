@@ -4,6 +4,8 @@ import { createWorld, createPerson, createBike } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { DeliveryMission, PICKUP, DELIVERY } from './mission';
+import { auth, session, displayName, setupAuth } from './auth';
+import { nameTag, setupChat } from './social';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
@@ -68,6 +70,11 @@ async function init() {
   type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number };
   type RemotePlayer = { group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; recallUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
+  let localName: THREE.Sprite | null = null;
+  const chat = setupChat(text => {
+    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
+    networkSocket.send(JSON.stringify({ type: 'chat', text })); return true;
+  }, () => keys.clear());
   let networkSocket: WebSocket | null = null;
   let networkPlayerId = '';
   let networkConnected = false;
@@ -75,6 +82,7 @@ async function init() {
   let networkReconnectTimer: number | null = null;
   let recallUntil = 0;
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
+  const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
   const keys = new Set<string>();
   const touch = matchMedia('(pointer: coarse)').matches;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -122,6 +130,7 @@ async function init() {
   }
   function save() { try { localStorage.setItem('lepak-city-save', JSON.stringify(mission.save())); } catch { toast('Delivery saved for this session', 'Browser storage is unavailable, so earnings may not survive a reload.'); } }
   function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
+    chat.status(state === 'online');
     const status = $('multiplayer-status'); status.dataset.state = state;
     $('multiplayer-status-text').textContent = label;
     $('player-count').textContent = `${count} / 24`;
@@ -132,7 +141,7 @@ async function init() {
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 8), new THREE.MeshBasicMaterial({ color: '#f4f0d7' })); dot.position.y = 2.28; group.add(dot);
+    group.add(nameTag(player.name));
     group.position.set(player.x, .12, player.z); scene.add(group);
     return { group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, recallUntil: 0 };
   }
@@ -147,46 +156,59 @@ async function init() {
     }
     for (const [id, entity] of remotePlayers) {
       if (visibleIds.has(id)) continue;
-      entity.group.removeFromParent(); remotePlayers.delete(id);
+      disposeRemote(entity); remotePlayers.delete(id);
     }
     setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
   }
   function disconnectMultiplayer() {
     if (networkReconnectTimer !== null) { window.clearTimeout(networkReconnectTimer); networkReconnectTimer = null; }
-    if (networkSocket) { networkSocket.close(1000, 'Leaving the city'); networkSocket = null; }
+    const oldSocket = networkSocket; networkSocket = null;
+    oldSocket?.close(1000, 'Leaving the city');
     networkConnected = false; networkPlayerId = '';
-    for (const entity of remotePlayers.values()) entity.group.removeFromParent();
+    for (const entity of remotePlayers.values()) disposeRemote(entity);
     remotePlayers.clear();
+  }
+  function disposeRemote(entity: RemotePlayer) {
+    entity.group.traverse(object => { if (object instanceof THREE.Sprite) { object.material.map?.dispose(); object.material.dispose(); } });
+    entity.group.removeFromParent();
   }
   function retryMultiplayer() {
     if (!started || !multiplayerEndpoint || networkReconnectTimer !== null) return;
     networkReconnectTimer = window.setTimeout(() => { networkReconnectTimer = null; connectMultiplayer(); }, 2500);
   }
-  function connectMultiplayer() {
+  async function connectMultiplayer() {
     if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); return; }
     setNetworkStatus('CONNECTING…', 'connecting', 1);
     try {
+      const accessToken = auth ? (await auth.auth.getSession()).data.session?.access_token : undefined;
+      if (!started) return;
       const endpoint = multiplayerEndpoint.startsWith('ws') ? multiplayerEndpoint : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${multiplayerEndpoint}`;
-      networkSocket = new WebSocket(`${endpoint}/ws`);
-      networkSocket.addEventListener('open', () => {
-        networkConnected = true;
-        networkSocket?.send(JSON.stringify({ type: 'join', room: 'kampung' }));
-        setNetworkStatus('CITY ONLINE', 'online', remotePlayers.size + 1);
+      const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
+      socket.addEventListener('open', () => {
+        if (socket !== networkSocket) return;
+        socket.send(JSON.stringify({ type: 'join', room: roomName, accessToken }));
       });
-      networkSocket.addEventListener('message', event => {
-        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string };
+      socket.addEventListener('message', event => {
+        if (socket !== networkSocket) return;
+        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) networkPlayerId = message.id;
+        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
-        if (message.type === 'error') setNetworkStatus('CITY FULL', 'offline', remotePlayers.size + 1);
+        if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') chat.append(message.name, message.text);
+        if (message.type === 'notice') chat.append('City', message.message || 'Please try again.');
+        if (message.type === 'error') {
+          setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');
+          toast('Could not join', message.message || 'Please try again.');
+          if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
+        }
       });
-      networkSocket.addEventListener('close', () => { networkConnected = false; setNetworkStatus('RECONNECTING…', 'connecting', remotePlayers.size + 1); retryMultiplayer(); });
-      networkSocket.addEventListener('error', () => { networkConnected = false; setNetworkStatus('OFFLINE · SOLO', 'offline', 1); });
+      socket.addEventListener('close', () => { if (socket !== networkSocket) return; networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('error', () => { if (socket !== networkSocket) return; networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
-    if (!networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
+    if (!networkConnected || !networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
     networkSendTimer += dt;
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
@@ -209,8 +231,10 @@ async function init() {
   function triggerRecall(remoteId?: string) {
     if (remoteId) {
       const remote = remotePlayers.get(remoteId); if (remote) remote.recallUntil = simTime + .82;
+      if (remote && !paused && remote.target.distanceTo(pos) < 25) recallSound();
       return;
     }
+    if (!started || paused) return;
     recallUntil = simTime + .82; recallSound();
     for (const id of ['desktop-recall', 'touch-recall']) {
       const button = $(id); button.classList.remove('recall-active'); void button.offsetWidth; button.classList.add('recall-active');
@@ -226,9 +250,20 @@ async function init() {
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
   function start() {
+    if (auth && !session) return;
     if (started) return; started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
+    if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
   }
+  function leaveCity() {
+    started = false; paused = false; keys.clear(); disconnectMultiplayer(); backgroundMusic.pause();
+    $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
+    if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
+  }
+  const requestEntry = await setupAuth(start, leaveCity);
+  const signout = document.createElement('button'); signout.className = 'secondary'; signout.textContent = 'Log out'; signout.hidden = !auth;
+  signout.onclick = async () => { if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
+  document.querySelector('.pause-panel')!.append(signout);
   function reset() {
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
     bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
@@ -251,7 +286,7 @@ async function init() {
     }
     if (distanceTo(bike.group.position) < 3.8) { riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
-  $('start').onclick = start; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
     rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
     const color = rainEnabled ? '#adbeb8' : '#d6decd'; scene.background = new THREE.Color(color); (scene.fog as THREE.Fog).color.set(color);
@@ -262,7 +297,9 @@ async function init() {
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
   const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyE', 'KeyC', 'KeyR']);
   window.addEventListener('keydown', event => {
-    if (event.code === 'Enter' && !started) { event.preventDefault(); start(); return; }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (!$('auth-panel').hidden) return;
+    if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
     if (paused && event.code === 'Tab') {
       const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button, input'));
@@ -460,6 +497,7 @@ async function init() {
       $('destination-label').hidden = !visible || paused;
       if (visible) { $('destination-label').style.left = `${THREE.MathUtils.clamp(screenX, 85, innerWidth - 85)}px`; $('destination-label').style.top = `${screenY}px`; $('destination-label').style.transform = 'translate(-50%, -100%)'; }
     }
+    if (localName) localName.position.set(pos.x, 3.1, pos.z);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

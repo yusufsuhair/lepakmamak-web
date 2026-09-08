@@ -6,6 +6,21 @@ const port = Number(process.env.PORT || 8080);
 const maxPlayers = 24;
 const rooms = new Map();
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
+const authUrl = process.env.SUPABASE_URL;
+const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Error('Supabase configuration is required. ALLOW_GUESTS=true is for local development only.');
+
+async function identify(token) {
+  if (!authUrl || !authKey) return { name: 'Local guest', expiresAt: Date.now() + 3600000 };
+  if (typeof token !== 'string' || token.length > 3500) throw new Error('Log in to join the city.');
+  const result = await fetch(`${authUrl}/auth/v1/user`, { headers: { apikey: authKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
+  if (!result.ok) throw new Error('Your session expired. Please log in again.');
+  const user = await result.json();
+  if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
+  const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+  if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
+  return { name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+}
 
 function roomFor(name) {
   const roomName = String(name || 'kampung').slice(0, 24) || 'kampung';
@@ -53,15 +68,26 @@ webSocketServer.on('connection', ws => {
   let player = null;
   let lastStateAt = 0;
   let lastRecallAt = 0;
+  let joining = false;
+  let lastChatAt = 0;
+  let expiresAt = 0;
+  const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
 
-  ws.on('message', raw => {
+  ws.on('message', async raw => {
     if (raw.length > 4096) return;
     let message;
     try { message = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Send JSON messages only.' }); return; }
     if (!message || typeof message.type !== 'string') return;
 
     if (message.type === 'join') {
-      if (player) return;
+      if (player || joining) return;
+      joining = true;
+      let identity;
+      try { identity = await identify(message.accessToken); }
+      catch { send(ws, { type: 'error', code: 'AUTH_REQUIRED', message: 'Please log in again to join the city.' }); ws.close(1008, 'Authentication required'); return; }
+      if (ws.readyState !== 1) return;
+      expiresAt = identity.expiresAt;
+      clearTimeout(joinTimeout);
       const room = roomFor(message.room);
       if (room.players.size >= maxPlayers) { send(ws, { type: 'error', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
       const id = crypto.randomUUID();
@@ -69,7 +95,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: typeof message.name === 'string' && message.name.trim() ? message.name.trim().slice(0, 18) : `Guest ${number + 1}`,
+        name: identity.name,
         color: palette[number % palette.length],
         x: -18,
         z: 52,
@@ -86,6 +112,16 @@ webSocketServer.on('connection', ws => {
     }
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
+    if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (message.type === 'chat') {
+      if (typeof message.text !== 'string') return;
+      const text = message.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200);
+      if (!text) return;
+      if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
+      lastChatAt = Date.now();
+      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text });
+      return;
+    }
     if (message.type === 'state') {
       const now = Date.now();
       if (now - lastStateAt < 35) return;
@@ -110,6 +146,7 @@ webSocketServer.on('connection', ws => {
   });
 
   ws.on('close', () => {
+    clearTimeout(joinTimeout);
     if (!player || !currentRoom) return;
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
