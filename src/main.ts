@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
-import { auth, session, displayName, setupAuth } from './auth';
+import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
 import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
@@ -439,13 +439,13 @@ async function init() {
     if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); return; }
     setNetworkStatus('CONNECTING…', 'connecting', 1);
     try {
-      const accessToken = auth ? (await auth.auth.getSession()).data.session?.access_token : undefined;
+      const accessToken = auth && !guestName ? (await auth.auth.getSession()).data.session?.access_token : undefined;
       if (!started) return;
       const endpoint = multiplayerEndpoint.startsWith('ws') ? multiplayerEndpoint : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${multiplayerEndpoint}`;
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
-        socket.send(JSON.stringify({ type: 'join', room: roomName, accessToken }));
+        socket.send(JSON.stringify({ type: 'join', room: roomName, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
@@ -520,20 +520,21 @@ async function init() {
   }
   function setAccessories(items: string[]) { for(const model of [player.group,bike.rider,car.driver]) applyAccessories(model,items); }
   const itemShop = setupShop(setAccessories);
-  $('open-shop').onclick = () => itemShop.open();
+  $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
-    if (auth && !session) return;
+    if (auth && !session && !guestName) return;
     if (started) return;
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
-    void itemShop.enter();
+    $('open-shop').hidden = !!guestName;
+    if (!guestName) void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
     setMap(false); profile.close(); closeOptions();
-    itemShop.close();
+    itemShop.close(); clearGuest();
     onlinePlayersDialog.close();
     started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
@@ -541,7 +542,7 @@ async function init() {
   }
   const requestEntry = await setupAuth(start, leaveCity);
   const signout = document.createElement('button'); signout.className = 'secondary'; signout.textContent = 'Log out'; signout.hidden = !auth;
-  signout.onclick = async () => { if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
+  signout.onclick = async () => { if (guestName) { leaveCity(); return; } if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
     if (passengerOf && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'passenger-leave', reset: true })); setPause(false); return; }

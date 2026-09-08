@@ -21,7 +21,13 @@ const authUrl = process.env.SUPABASE_URL;
 const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Error('Supabase configuration is required. ALLOW_GUESTS=true is for local development only.');
 
-async function identify(token) {
+async function identify(token, guest = false, guestName) {
+  if (guest === true && !token) {
+    if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
+    const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
+    if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');
+    return { name, guest: true, gameMaster: false, accessories: [], expiresAt: Date.now() + 86400000 };
+  }
   if (!authUrl || !authKey) return { name: 'Local guest', expiresAt: Date.now() + 3600000 };
   if (typeof token !== 'string' || token.length > 3500) throw new Error('Log in to join the city.');
   const result = await fetch(`${authUrl}/auth/v1/user`, { headers: { apikey: authKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
@@ -120,8 +126,8 @@ webSocketServer.on('connection', ws => {
       if (player || joining) return;
       joining = true;
       let identity;
-      try { identity = await identify(message.accessToken); }
-      catch { send(ws, { type: 'error', code: 'AUTH_REQUIRED', message: 'Please log in again to join the city.' }); ws.close(1008, 'Authentication required'); return; }
+      try { identity = await identify(message.accessToken, message.guest, message.name); }
+      catch { send(ws, { type: 'error', code: 'AUTH_REQUIRED', message: message.guest ? 'Choose a different guest name and try again.' : 'Please log in again to join the city.' }); ws.close(1008, 'Authentication required'); return; }
       if (ws.readyState !== 1) return;
       expiresAt = identity.expiresAt;
       clearTimeout(joinTimeout);
@@ -140,7 +146,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: identity.name, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
+        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
         appearance: cleanAppearance(identity.appearance),
         color: palette[number % palette.length],
         x: -18,

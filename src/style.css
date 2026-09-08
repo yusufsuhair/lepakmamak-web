@@ -318,3 +318,7 @@ html, body, #app { touch-action: manipulation; }
 
 #interaction { position: fixed; bottom: auto; right: auto; transform: translate(-50%, -100%); z-index: 6; pointer-events: auto; touch-action: manipulation; min-width: 76px; min-height: 44px; padding: 10px 18px; border: 1px solid #efffd09c; border-radius: 24px; background: #ddf69aee; color: #193e32; font: 700 14px "DM Sans", sans-serif; box-shadow: 0 3px 12px #102a3440; }
 #interaction:disabled { opacity: .65; cursor: default; }
+
+#guest-entry { width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 12px; background: #f5efdb; color: #254b3b; }
+#guest-entry::backdrop { background: #102c28aa; }
+#guest-entry .auth-card { width: 100%; max-height: 85dvh; overflow-y: auto; }
