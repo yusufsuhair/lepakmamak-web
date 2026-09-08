@@ -32,3 +32,25 @@ for(const width of [390,1280])test(`table UI exports a receipt at ${width}px`,as
  await page.locator('#get-receipt').click();await expect(page.locator('#receipt-view')).toBeVisible();const download=page.waitForEvent('download');await page.locator('#download-receipt').click();expect((await download).suggestedFilename()).toBe('resit-lepak.png');
  await page.screenshot({path:`test-results/table-receipt-${width}.png`});
 });
+
+test('mamak orders require a seat, validate dishes, belong to each diner and clear on leaving',()=>{
+ const messages:any[]=[];const social=createTableSocial((_ws:any,m:any)=>messages.push(m));
+ const a={id:'a',ws:{},name:'Alice',chairId:'chair-0',x:-38,z:46};const b={id:'b',ws:{},name:'Bob',chairId:'chair-1',x:-38,z:46};const guest={id:'g',ws:{},name:'Guest',chairId:null,x:0,z:0};const players=new Map([['a',a],['b',b],['g',guest]]);social.sync(players,true);
+ const order=(id:string)=>messages.filter(m=>m.type==='tables').at(-1).tables[0].occupants.find((p:any)=>p.id===id)?.order;
+ social.handle(players,guest,{type:'table-order',itemId:'roti-canai'});expect(order('a')).toBeNull();
+ social.handle(players,a,{type:'table-order',itemId:'fake'});expect(order('a')).toBeNull();
+ social.handle(players,a,{type:'table-order',itemId:'roti-canai'});expect(order('a')).toBe('roti-canai');
+ social.handle(players,a,{type:'table-order',itemId:'nasi-lemak'});expect(order('a')).toBe('roti-canai');
+ social.handle(players,b,{type:'table-consume',playerId:'a'});expect(order('a')).toBe('roti-canai');
+ social.handle(players,b,{type:'table-order',itemId:'milo-ais'});expect(order('b')).toBe('milo-ais');
+ social.handle(players,a,{type:'table-consume'});expect(order('a')).toBeNull();
+ social.handle(players,a,{type:'table-order',itemId:'nasi-lemak'});expect(order('a')).toBeNull();
+ players.delete('b');social.sync(players);players.set('b',b);social.sync(players);expect(order('b')).toBeNull();
+});
+
+test('mobile mamak menu orders, shows served food and consumes it',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.route('**/food-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css">'}));await page.goto('/food-harness');
+ await page.evaluate(async()=>{const {setupTableSocial}=await import('/src/table-social.ts');const diner={id:'self',name:'Diner',chairId:'chair-0',hasCup:false,order:null as string|null};const table={id:'meja-1',name:'Meja 1',hostId:'self',capacity:3,cheersUntil:0,occupants:[diner]};const ui=setupTableSocial((m:any)=>{if(m.type==='table-order')diner.order=m.itemId;if(m.type==='table-consume')diner.order=null;ui.state([table],'self',true);return true;},'food',()=>{});ui.state([table],'self',true);ui.open();});
+ await page.getByRole('button',{name:'🫓 Roti canai',exact:true}).click();await expect(page.locator('#mamak-order-status')).toContainText('Roti canai is served');await expect(page.getByRole('button',{name:'🍚 Nasi lemak',exact:true})).toBeDisabled();await page.locator('#mamak-consume').click();await expect(page.getByRole('button',{name:'🧋 Milo ais',exact:true})).toBeEnabled();await page.getByRole('button',{name:'🧋 Milo ais',exact:true}).click();await expect(page.locator('#mamak-consume')).toHaveText('Drink · Habiskan');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

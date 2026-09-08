@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a free mamak menu with eight dishes and drinks, shared table visuals, Eat/Drink actions, and server-enforced per-diner orders.
+
 - Added account-only editable public profiles (bio, hometown, interests, languages and mamak order), saved in Supabase account metadata and fetched on demand for profile cards. Guests retain name-only cards.
 
 - Added Meja Kita: live table hosts/names, same-room table invitations, free teh tarik rounds and shared cheers. Added downloadable/shareable Resit Lepak images from server-counted session statistics. Saved the social growth roadmap in docs.

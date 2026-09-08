@@ -1,3 +1,4 @@
+import mamakMenu from '../shared/mamak-menu.json';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
 import { setupTableSocial, type TableState, type Receipt } from './table-social';
 import tableLocations from '../shared/tables.json';
@@ -201,7 +202,11 @@ async function init() {
     const table = tableLocations.find(t=>t.id===chair.tableId)!;
     const cup = new THREE.Mesh(new THREE.CylinderGeometry(.11, .08, .26, 8), new THREE.MeshStandardMaterial({color:'#c58a4c'}));
     cup.position.set(table.x+(chair.x-table.x)*.42,1.27,table.z+(chair.z-table.z)*.42);cup.visible=false;scene.add(cup);
-    return { cup, chairId: chair.id, tableId: table.id };
+    const dish=new THREE.Group();dish.position.set(table.x+(chair.x-table.x)*.34,1.18,table.z+(chair.z-table.z)*.34);
+    const plate=new THREE.Mesh(new THREE.CylinderGeometry(.28,.25,.035,16),new THREE.MeshStandardMaterial({color:'#f6f1e6'}));dish.add(plate);
+    const food=new THREE.Mesh(new THREE.SphereGeometry(.21,12,6),new THREE.MeshStandardMaterial({color:'#dca65a'}));food.scale.y=.3;food.position.y=.05;dish.add(food);dish.visible=false;scene.add(dish);
+    const drink=cup.clone();drink.material=cup.material.clone();drink.position.copy(dish.position);drink.position.y=1.27;drink.visible=false;scene.add(drink);
+    return { cup, dish, food, drink, chairId: chair.id, tableId: table.id };
   });
   const tableLabels = tableLocations.map(table=>{
     const button=document.createElement('button');button.className='table-label';button.hidden=true;button.onclick=()=>tableSocial.open(table.id);$('hud').append(button);return {table,button};
@@ -1052,8 +1057,12 @@ async function init() {
 
     camera.updateMatrixWorld();
     setAfkBubble('self', started ? afkNote : '');
-    for (const {cup,chairId,tableId} of tableCups) {
+    for (const {cup,dish,food,drink,chairId,tableId} of tableCups) {
       const table=roomTables.find(t=>t.id===tableId);
+      const occupant=table?.occupants.find(p=>p.chairId===chairId);
+      const item=mamakMenu.find(item=>item.id===occupant?.order);
+      dish.visible=item?.kind==='food';drink.visible=item?.kind==='drink';
+      if(item){food.material.color.set(item.color);drink.material.color.set(item.color);}
       cup.visible=!!table?.occupants.some(p=>p.chairId===chairId&&p.hasCup);
       cup.position.y=1.27+(table && table.cheersUntil>Date.now()? Math.sin((table.cheersUntil-Date.now())*.009)*.07+.22:0);
     }
