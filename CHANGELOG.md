@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Chat messages containing common English or Malay profanity are replaced with `***` server-side, including speech bubbles.
+
 - Added an account accessory shop: spectacles and cap at RM5 each, live Stripe Checkout, verified permanent ownership, equipping and multiplayer appearance sync.
 
 - CITY ONLINE now opens a live list of players in the current room, with a marker for your own account.

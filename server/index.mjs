@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
@@ -179,7 +180,7 @@ webSocketServer.on('connection', ws => {
       if (!text) return;
       if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
       lastChatAt = Date.now();
-      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text });
+      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filterChat(text) });
       return;
     }
     if (message.type === 'state') {
