@@ -1,3 +1,4 @@
+import {createStallWorld,setupStalls} from './stalls';
 import {locationKey, readLocation, writeLocation} from './location-save';
 import mamakMenu from '../shared/mamak-menu.json';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
@@ -91,6 +92,7 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  createStallWorld(scene,world.solids);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
   const streetAnimals = createStreetAnimals(scene, world.solids);
@@ -133,7 +135,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   let afkNote = '';
@@ -183,7 +185,7 @@ async function init() {
   let networkReconnectTimer: number | null = null;
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || tableSocial.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
+    if (!started || paused || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
     punchUntil = simTime + .38; punchCount++; punchSound();
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'punch' }));
   }
@@ -198,6 +200,7 @@ async function init() {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   }, roomName, () => { keys.clear(); resetStick(); dragging = false; });
+  const streetStalls=setupStalls($('hud'),message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},()=>{keys.clear();resetStick();dragging=false;});
   $('open-tables').onclick = () => tableSocial.open();
   const tableCups = chairLocations.map(chair => {
     const table = tableLocations.find(t=>t.id===chair.tableId)!;
@@ -426,6 +429,7 @@ async function init() {
     return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
+    streetStalls.state(players.find(p=>p.id===networkPlayerId)?.snack||null,networkConnected);
     roomPlayers = players;
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
@@ -528,6 +532,7 @@ async function init() {
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
+        if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
         if (message.type === 'table-round') toast('Teh tarik sampai!', `${message.from || 'A friend'} belanja ${message.count || 1} cup${message.count === 1 ? '' : 's'}. Jom cheers!`);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
@@ -549,7 +554,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; streetStalls.state(null,false);streetStalls.close();tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -622,6 +627,7 @@ async function init() {
   }
   function leaveCity() {
     saveLocation();
+    streetStalls.close();streetStalls.state(null,false);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
@@ -662,7 +668,7 @@ async function init() {
     return null;
   }
   function interact() {
-    if (!started || paused || tableSocial.opened) return;
+    if (!started || paused || tableSocial.opened || streetStalls.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
@@ -742,7 +748,7 @@ async function init() {
     if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
-    if (profile.open || tableSocial.opened) return;
+    if (profile.open || tableSocial.opened || streetStalls.opened) return;
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
@@ -1071,6 +1077,7 @@ async function init() {
     }
 
     camera.updateMatrixWorld();
+    streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!tableSocial.opened&&!riding&&!seated);
     setAfkBubble('self', started ? afkNote : '');
     for (const {cup,dish,food,drink,chairId,tableId} of tableCups) {
       const table=roomTables.find(t=>t.id===tableId);

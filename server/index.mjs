@@ -1,3 +1,5 @@
+import {createStalls} from './stalls.mjs';
+const handleStall=createStalls(send);
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
@@ -192,6 +194,7 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if(handleStall(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if (message.type === 'profile-view') {
       if (Date.now() - lastProfileViewAt < 250) return;
       lastProfileViewAt = Date.now();

@@ -1,0 +1,4 @@
+[
+ {"id":"air-balang","name":"Air Balang Pak Din","x":-16,"z":60,"color":"#239a81","items":[{"id":"sirap-bandung","name":"Sirap bandung","color":"#ec91aa","kind":"drink"},{"id":"air-jagung","name":"Air jagung","color":"#edcf5f","kind":"drink"},{"id":"asam-boi","name":"Limau asam boi","color":"#adc46b","kind":"drink"}]},
+ {"id":"pisang-goreng","name":"Pisang Goreng Mak Cik","x":-25,"z":65,"color":"#dc983e","items":[{"id":"pisang-goreng","name":"Pisang goreng panas","color":"#e5ad47","kind":"food"},{"id":"keledek-goreng","name":"Keledek goreng","color":"#dd8b3d","kind":"food"},{"id":"cucur","name":"Cucur bawang","color":"#c89c4b","kind":"food"}]}
+]
