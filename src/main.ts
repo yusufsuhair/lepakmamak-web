@@ -62,7 +62,7 @@ $('app').innerHTML = `
 
 $('reload').onclick = () => location.reload();
 const backgroundMusic = $<HTMLAudioElement>('background-music');
-backgroundMusic.volume = .22;
+backgroundMusic.volume = .06;
 backgroundMusic.loop = true;
 function fail(message: string) { $('loading').hidden = true; $('error-message').textContent = message; $('error').hidden = false; }
 
