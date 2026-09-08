@@ -65,7 +65,7 @@ try {
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();
   await expect.poll(async () => { if (!remoteJumpSeen) await pages[0].keyboard.press('Space'); return remoteJumpSeen; }, { timeout: 10000, intervals: [1000] }).toBe(true);
-  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await page.locator('#chat-toggle').click(); }
+  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await expect(page.locator('#chat-body')).toBeVisible(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await expect(pages[1].locator('#chat-messages')).toContainText('Smoke Player 0: <img src=x onerror=alert(1)> Hello friend');

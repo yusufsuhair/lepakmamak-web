@@ -14,14 +14,11 @@ export function nameTag(name: string) {
 
 export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button id="chat-toggle" type="button" aria-expanded="false">City chat</button><div id="chat-body" hidden><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<div id="chat-heading">City chat <span>Enter to type</span></div><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const input = panel.querySelector<HTMLInputElement>('input')!;
-  const toggle = panel.querySelector<HTMLButtonElement>('#chat-toggle')!;
-  const body = panel.querySelector<HTMLElement>('#chat-body')!;
   const messages = panel.querySelector<HTMLElement>('#chat-messages')!;
   const status = panel.querySelector<HTMLElement>('#chat-status')!;
-  toggle.onclick = () => { body.hidden = !body.hidden; toggle.setAttribute('aria-expanded', String(!body.hidden)); toggle.textContent = 'City chat'; if (!body.hidden) input.focus(); };
   input.onfocus = focus;
   input.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') input.blur(); };
   panel.querySelector('form')!.onsubmit = e => {
@@ -30,14 +27,13 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
     else status.textContent = 'Reconnecting — your message was not sent. Try again when online.';
   };
   return {
-    open() { body.hidden = false; toggle.setAttribute('aria-expanded', 'true'); toggle.textContent = 'City chat'; input.focus(); },
+    open() { input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
     append(name: string, text: string) {
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
       row.append(author, document.createTextNode(text)); messages.append(row);
       while (messages.children.length > 50) messages.firstElementChild!.remove();
       messages.scrollTop = messages.scrollHeight;
-      if (body.hidden) toggle.textContent = 'City chat • New';
     },
   };
 }
