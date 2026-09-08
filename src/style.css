@@ -408,3 +408,5 @@ html, body, #app { touch-action: manipulation; }
 #street-snack { pointer-events:auto; }
 
 .map-place-picker{display:flex;flex-direction:column;gap:6px;font-size:12px}.map-place-picker select{font:16px sans-serif;padding:10px;border-radius:8px;width:100%;color:#173c32;background:#fff8df;}#map-place-info{font-size:12px;line-height:1.5;}
+#dance-action {background:#e6be77;color:#173c32;border:0;border-radius:5px;padding:12px 18px;font:inherit;cursor:pointer;min-height:44px;}
+#player-options button {display:block;width:100%;text-align:left;}#player-options button+button{margin-top:4px;}#player-options button[hidden]{display:none;}#dance-action:disabled{opacity:.5;cursor:default;}

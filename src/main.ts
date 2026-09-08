@@ -1,3 +1,4 @@
+import {dancePose,createDanceAudio} from './dance';
 import mapPlaces from '../shared/places.json';
 import {createBuskers,buskingSpot,buskingVolume} from './busking';
 import {createStallWorld,setupStalls} from './stalls';
@@ -63,7 +64,7 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><label class="map-place-picker" for="map-place">Cari kedai / tempat lepak<select id="map-place"><option value="">Semua lokasi</option></select></label><p id="map-place-info">Nombor pada peta sepadan dengan senarai lokasi.</p><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -138,8 +139,10 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { danceUntil?:number; snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  const danceAudio=createDanceAudio();
+  const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   const remotePlayers = new Map<string, RemotePlayer>();
   let afkNote = '';
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -188,7 +191,7 @@ async function init() {
   let networkReconnectTimer: number | null = null;
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
+    if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
     punchUntil = simTime + .38; punchCount++; punchSound();
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'punch' }));
   }
@@ -597,6 +600,7 @@ async function init() {
       return;
     }
     if (!started || paused || riding || passengerOf) return;
+    if(isDancing())return;
     recallUntil = simTime + .82; recallSound();
     for (const id of ['desktop-recall', 'touch-recall']) {
       const button = $(id); button.classList.remove('recall-active'); void button.offsetWidth; button.classList.add('recall-active');
@@ -633,7 +637,7 @@ async function init() {
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
-    saveLocation();
+    saveLocation();danceAudio.stop();
     streetStalls.close();streetStalls.state(null,false);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
@@ -675,7 +679,7 @@ async function init() {
     return null;
   }
   function interact() {
-    if (!started || paused || tableSocial.opened || streetStalls.opened) return;
+    if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
@@ -710,7 +714,7 @@ async function init() {
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
     if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
     if (renderer.shadowMap.enabled === enabled) return;
     renderer.shadowMap.enabled = enabled;
@@ -798,6 +802,8 @@ async function init() {
     let object: THREE.Object3D | null = hit.object;
     while (object && typeof object.userData.profileName !== 'string') object = object.parent;
     if (!object) return;
+    $('dance-action').hidden=object.userData.profileId!==networkPlayerId;
+    $<HTMLButtonElement>('dance-action').disabled=riding||seated||jumpHeight>0||isDancing()||!networkConnected;
     selectedName = object.userData.profileName; selectedProfileId = object.userData.profileId || '';
     keys.clear(); resetStick(); dragging = false;
     options.hidden = false;
@@ -805,6 +811,7 @@ async function init() {
     options.style.top = `${Math.max(8, Math.min(y, innerHeight - options.offsetHeight - 8))}px`;
     $('view-profile').focus();
   }
+  $('dance-action').onclick=()=>{closeOptions();if(riding||seated||jumpHeight>0||isDancing())return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
   $('view-profile').onclick = () => { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } profile.showModal(); $('close-profile').focus(); };
   $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
   profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });
@@ -960,8 +967,8 @@ async function init() {
       }
     }
     if (active) {
-      const forward = THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
-      const turn = THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
+      const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
+      const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       const dynamicSolids: Solid[] = world.traffic.map(car => ({ x: car.x, z: car.z, hx: car.axis === 'z' ? 1 : 1.9, hz: car.axis === 'z' ? 1.9 : 1 }));
       const solids = [...world.solids, ...dynamicSolids];
       if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
@@ -1062,6 +1069,11 @@ async function init() {
     }
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
+    const danceNow=Date.now();
+    const selfDance=roomPlayers.find(p=>p.id===networkPlayerId)?.danceUntil||0;
+    dancePose(player,selfDance-danceNow,10-(selfDance-danceNow)/1000,reducedMotion);
+    for(const remote of remotePlayers.values()){const until=roomPlayers.find(p=>p.id===remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
+    danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     buskers.update(elapsed,reducedMotion);
     if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z)):0,audioContext.currentTime,.2);
     if (iceCreamGain && audioContext) {

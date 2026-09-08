@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a self-only Dance context action: ten-second hand/chest dance, synchronized to other players, with supplied audio fading out at 18 metres.
+
 - Added four Malaysian retail fronts, two sheltered hangouts with six usable seats, and a numbered map directory with location selection, distance and direction.
 
 - Added animated roadside guitar/cajon buskers and the supplied looping song, with smooth proximity audio fading to silence at 22 metres and City sounds mute support.

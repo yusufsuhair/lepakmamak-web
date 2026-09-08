@@ -214,6 +214,7 @@ webSocketServer.on('connection', ws => {
     }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
+      if((player.danceUntil||0)>Date.now())return;
       const driver = currentRoom.players.get(message.driverId);
       const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
       const seatIndex = driver ? vehicleSeats[driver.vehicle].findIndex((_, i) => !occupied.some(p => p.seatIndex === i)) : -1;
@@ -230,6 +231,7 @@ webSocketServer.on('connection', ws => {
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'chair-sit') {
+      if((player.danceUntil||0)>Date.now())return;
       const chair = chairs.find(c => c.id === message.chairId);
       const occupied = [...currentRoom.players.values()].some(p => p.chairId === message.chairId);
       if (!chair || occupied || player.riding || player.seated || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
@@ -286,7 +288,7 @@ webSocketServer.on('connection', ws => {
       const now = Date.now();
       if (now - lastStateAt < 35) return;
       lastStateAt = now;
-      if (player.passengerOf || player.chairId) return;
+      if (player.passengerOf || player.chairId || (player.danceUntil||0)>Date.now()) return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
@@ -311,13 +313,19 @@ webSocketServer.on('connection', ws => {
       }
       return;
     }
+    if(message.type==='dance'){
+      const now=Date.now();if(player.riding||player.seated||player.passengerOf||player.jumpHeight>0||(player.danceUntil||0)>now)return;
+      player.danceUntil=now+10000;player.speed=0;dirtyRooms.add(currentRoom.players);return;
+    }
     if (message.type === 'punch') {
+      if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
       if (player.riding || player.seated || now - lastPunchAt < 350) return;
       lastPunchAt = now;
       broadcast(currentRoom.players, { type: 'punch', id: player.id }); return;
     }
     if (message.type === 'recall') {
+      if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
       if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
       lastRecallAt = now; tableSocial.recall(player);
