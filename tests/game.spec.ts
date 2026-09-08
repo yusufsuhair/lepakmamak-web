@@ -1,0 +1,75 @@
+import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+interface GameState { started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
+
+test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.locator('#loading')).toBeHidden();
+  await page.screenshot({ path: 'test-results/title-screen.png' });
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await expect(page.locator('#interaction-text')).toHaveText('Collect the order');
+  await page.keyboard.press('e');
+  await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
+  await page.keyboard.down('d');
+  await expect.poll(async () => (await state(page)).position.x, { timeout: 15000 }).toBeGreaterThan(-9.6);
+  await page.keyboard.up('d');
+  await page.keyboard.press('e');
+  await expect.poll(async () => (await state(page)).riding).toBe(true);
+  await page.keyboard.down('w');
+  await expect.poll(async () => (await state(page)).position.z, { timeout: 45000 }).toBeLessThan(-82);
+  await page.keyboard.up('w');
+  await page.keyboard.down('Space');
+  await expect.poll(async () => Math.abs((await state(page)).speed)).toBeLessThan(.4);
+  await page.keyboard.up('Space');
+  await page.keyboard.press('e');
+  await expect.poll(async () => (await state(page)).riding).toBe(false);
+  await page.keyboard.down('d');
+  await expect.poll(async () => (await state(page)).position.x, { timeout: 12000 }).toBeGreaterThan(-2.2);
+  await page.keyboard.up('d');
+  // Adjust a possible frame/poll overshoot through normal walking input.
+  const current = await state(page);
+  if (current.position.z < -88) {
+    await page.keyboard.down('s');
+    await expect.poll(async () => (await state(page)).position.z).toBeGreaterThan(-87);
+    await page.keyboard.up('s');
+  }
+  await expect(page.locator('#interaction-text')).toHaveText('Deliver the order');
+  await page.keyboard.press('e');
+  await expect(page.locator('#money')).toHaveText('RM 25');
+  await expect(page.locator('#mission-title')).toHaveText('The city is yours');
+  await page.screenshot({ path: 'test-results/delivery-complete.png' });
+  await page.keyboard.press('Escape');
+  const pausedAt = (await state(page)).simTime;
+  await page.getByLabel('Rain over KL').check();
+  await page.keyboard.press('w');
+  expect((await state(page)).simTime).toBe(pausedAt);
+  expect((await state(page)).rain).toBe(true);
+  await page.getByRole('button', { name: 'Back to the streets' }).click();
+  await expect.poll(async () => (await state(page)).paused).toBe(false);
+  await page.reload();
+  await expect(page.locator('#loading')).toBeHidden();
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await expect(page.locator('#money')).toHaveText('RM 25');
+  expect(errors).toEqual([]);
+});
+
+test('mobile layout exposes usable touch controls and pause recovery', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page.locator('#loading')).toBeHidden();
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await expect(page.locator('#touch-controls')).toBeVisible();
+  await page.getByRole('button', { name: 'PICK UP', exact: true }).click();
+  await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
+  await page.getByRole('button', { name: 'Pause and settings' }).click();
+  await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
+  await expect(page.locator('#pause')).toBeHidden();
+  expect((await state(page)).mission).toBe('delivering');
+  expect((await state(page)).money).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/mobile-game.png' });
+  await context.close();
+});

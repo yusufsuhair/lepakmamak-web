@@ -1,0 +1,340 @@
+import './style.css';
+import * as THREE from 'three';
+import { createWorld, createPerson, createBike } from './world';
+import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
+import type { Solid } from './physics';
+import { DeliveryMission, PICKUP, DELIVERY } from './mission';
+
+const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+$('app').innerHTML = `
+  <div id="loading"><strong>LEPAK CITY</strong><p>Setting the tables. Warming up the kapcai.</p></div>
+  <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
+  <section id="intro" aria-label="Welcome to Lepak City">
+    <div class="intro-top"><div class="brand"><span class="brand-mark">L</span> LEPAK CITY</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
+    <div class="intro-copy"><div class="eyebrow intro-kicker">Your city. Your cerita.</div><h1>LEPAK<span>CITY.</span></h1><p class="tagline">A little chaos. A lot of Malaysia.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><div class="intro-hint"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</div></div>
+    <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
+  </section>
+  <section id="hud" aria-label="Game information" hidden>
+    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>CITY.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Pause and settings"><span></span><span></span></button></div></div>
+    <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
+    <div id="minimap-wrap"><div class="map-frame"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑</span></div><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
+    <div id="interaction" hidden><kbd>E</kbd><span id="interaction-text"></span></div>
+    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Pause</span></div></div>
+    <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
+    <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
+    <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button></div></div>
+  </section>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>Your city will be right here.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Bike & delivery sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Pause or resume</span></div></div></section>
+  <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
+`;
+
+$('reload').onclick = () => location.reload();
+function fail(message: string) { $('loading').hidden = true; $('error-message').textContent = message; $('error').hidden = false; }
+
+async function init() {
+  await document.fonts.ready;
+  const canvas = $<HTMLCanvasElement>('world');
+  let renderer: THREE.WebGLRenderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+  catch { fail('This game needs WebGL. Try a recent browser with hardware acceleration enabled.'); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
+  canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Your earned money is saved.'); });
+  const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
+  scene.add(new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8));
+  const sun = new THREE.DirectionalLight('#ffdfa3', 2.7); sun.position.set(-70, 110, 60); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
+  sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
+  const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
+  const world = createWorld(scene);
+  const player = createPerson(); scene.add(player.group);
+  const bike = createBike(); scene.add(bike.group);
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
+  const mission = new DeliveryMission(saved);
+  const pos = new THREE.Vector3(-18, .12, 52); let yaw = Math.PI;
+  let bikeYaw = Math.PI; bike.group.position.set(-6.5, .09, 54); bike.group.rotation.y = bikeYaw;
+  let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
+  let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
+  let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
+  let audioEnabled = true, rainEnabled = false;
+  const keys = new Set<string>();
+  const touch = matchMedia('(pointer: coarse)').matches;
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('touch-controls').hidden = !touch;
+  if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Touch controls included · landscape recommended'; }
+  player.group.position.copy(pos); player.group.rotation.y = yaw;
+
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.7, 48), new THREE.MeshBasicMaterial({ color: '#d9f993', side: THREE.DoubleSide, transparent: true, opacity: .92, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = .15; scene.add(ring);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 5, 32, 1, true), new THREE.MeshBasicMaterial({ color: '#d9f993', transparent: true, opacity: .11, side: THREE.DoubleSide, depthWrite: false })); scene.add(beam);
+  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(.44), new THREE.MeshStandardMaterial({ color: '#dafa8e', emissive: '#94bd4a', emissiveIntensity: .45 })); scene.add(diamond);
+  const rainCount = 1100;
+  const rainPositions = new Float32Array(rainCount * 6);
+  for (let i = 0; i < rainCount; i++) { const j = i * 6; rainPositions[j] = (Math.random() - .5) * 85; rainPositions[j + 1] = Math.random() * 45; rainPositions[j + 2] = (Math.random() - .5) * 85; }
+  const rainGeometry = new THREE.BufferGeometry(); rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+  const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: '#d7e5de', transparent: true, opacity: .45 })); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
+
+  let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
+  function ensureAudio() {
+    if (!audioEnabled) return;
+    try {
+      if (!audioContext) {
+        audioContext = new AudioContext(); engine = audioContext.createOscillator(); engine.type = 'triangle';
+        engineGain = audioContext.createGain(); engineGain.gain.value = 0; engine.connect(engineGain); engineGain.connect(audioContext.destination); engine.start();
+      }
+      if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
+    } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
+  }
+  function chime(success = false) {
+    ensureAudio(); if (!audioContext || !audioEnabled) return;
+    for (let i = 0; i < (success ? 3 : 1); i++) {
+      const o = audioContext.createOscillator(), gain = audioContext.createGain(); o.connect(gain); gain.connect(audioContext.destination);
+      const time = audioContext.currentTime + i * .12; o.frequency.value = [523, 659, 784][i]; gain.gain.setValueAtTime(.035, time); gain.gain.exponentialRampToValueAtTime(.001, time + .23); o.start(time); o.stop(time + .25);
+    }
+  }
+  function toast(title: string, body: string, seconds = 4) {
+    $('toast').replaceChildren(); const strong = document.createElement('strong'); strong.textContent = title; $('toast').append(strong, document.createTextNode(body)); $('toast').hidden = false; toastRemaining = seconds;
+  }
+  function save() { try { localStorage.setItem('lepak-city-save', JSON.stringify(mission.save())); } catch { toast('Delivery saved for this session', 'Browser storage is unavailable, so earnings may not survive a reload.'); } }
+  function setPause(value: boolean) {
+    if (!started) return;
+    paused = value; $('pause').hidden = !value; keys.clear(); dragging = false;
+    if (value) { $('resume').focus(); if (engineGain && audioContext) engineGain.gain.setTargetAtTime(0, audioContext.currentTime, .03); }
+    else { ensureAudio(); canvas.focus(); }
+  }
+  function start() {
+    if (started) return; started = true; $('intro').hidden = true; $('hud').hidden = false;
+    ensureAudio(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
+  }
+  function reset() {
+    riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
+    bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
+    camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', mission.stage === 'delivering' ? 'Your order is still with you. KLCC is north of here.' : 'A fresh start. Your earnings are safe.');
+  }
+  function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
+  function interact() {
+    if (!started || paused) return;
+    if (riding) {
+      if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
+      const exit = safeDismount(pos, yaw, world.solids);
+      if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
+      riding = false; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; return;
+    }
+    if (distanceTo(mission.destination) <= 4) {
+      const result = mission.interact(distanceTo(mission.destination), riding);
+      if (result === 'pickup') { chime(); toast('“Hantar ke KLCC, ya!”', 'Two roti canai and a teh tarik. Your kapcai is parked by the road.', 5); }
+      if (result === 'delivered') { save(); chime(true); toast('Terima kasih! + RM 25', 'Delivery complete. Explore the city, or head back to Mamak Maju for another order.', 7); }
+      updateHud(); return;
+    }
+    if (distanceTo(bike.group.position) < 3.8) { riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
+  }
+  $('start').onclick = start; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact;
+  $<HTMLInputElement>('rain-toggle').onchange = event => {
+    rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
+    const color = rainEnabled ? '#adbeb8' : '#d6decd'; scene.background = new THREE.Color(color); (scene.fog as THREE.Fog).color.set(color);
+    sun.intensity = rainEnabled ? 1.25 : 2.7;
+    $('weather-label').textContent = rainEnabled ? '17:42 · Hujan sekejap' : '17:42 · Golden hour';
+  };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) ensureAudio(); };
+  $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
+  const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyE', 'KeyC']);
+  window.addEventListener('keydown', event => {
+    if (event.code === 'Enter' && !started) { event.preventDefault(); start(); return; }
+    if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
+    if (paused && event.code === 'Tab') {
+      const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button, input'));
+      const index = focusable.indexOf(document.activeElement as HTMLElement);
+      if (event.shiftKey && index <= 0) { event.preventDefault(); focusable.at(-1)!.focus(); }
+      else if (!event.shiftKey && index === focusable.length - 1) { event.preventDefault(); focusable[0].focus(); }
+      return;
+    }
+    if (!started || paused || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (gameKeys.has(event.code)) event.preventDefault();
+    if (event.code === 'KeyE' && !event.repeat) interact();
+    if (event.code === 'KeyC') { orbit = 0; cameraPitch = .35; }
+    keys.add(event.code);
+  });
+  window.addEventListener('keyup', event => keys.delete(event.code));
+  window.addEventListener('blur', () => { keys.clear(); if (started) setPause(true); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && started) setPause(true); });
+  canvas.addEventListener('pointerdown', event => { if (!started || paused) return; dragging = true; lastX = event.clientX; lastY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+  canvas.addEventListener('pointermove', event => {
+    if (!dragging) return; orbit -= (event.clientX - lastX) * .005; cameraPitch = THREE.MathUtils.clamp(cameraPitch + (event.clientY - lastY) * .004, -.15, .95); lastX = event.clientX; lastY = event.clientY;
+  });
+  const endDrag = () => { dragging = false; }; canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('wheel', event => { if (!started || paused) return; event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom + event.deltaY * .01, 5, 17); }, { passive: false });
+  document.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(button => {
+    button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); keys.add(button.dataset.key!); });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key!));
+  });
+  window.addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+  const map = $<HTMLCanvasElement>('minimap'); const ctx = map.getContext('2d')!;
+  function drawMap() {
+    const w = map.width, h = map.height, scale = 1.06;
+    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);
+    ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
+    ctx.fillStyle = '#82907a';
+    for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
+    for (const z of [-64, 8, 78]) ctx.fillRect(-157, z - 8.5, 314, 17);
+    for (const b of world.mapBuildings) { ctx.fillStyle = '#4d6c56'; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
+    ctx.strokeStyle = '#d6f28d'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath();
+    ctx.moveTo(pos.x, pos.z);
+    if (mission.stage === 'delivering') { ctx.lineTo(-3, pos.z); ctx.lineTo(-3, DELIVERY.z); ctx.lineTo(DELIVERY.x, DELIVERY.z); }
+    else ctx.lineTo(PICKUP.x, PICKUP.z);
+    ctx.stroke(); ctx.setLineDash([]);
+    for (const [point, color] of [[PICKUP, '#e4b87b'], [DELIVERY, '#a4b79a']] as const) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(point.x, point.z, 3, 0, Math.PI * 2); ctx.fill(); }
+    const d = mission.destination; ctx.fillStyle = '#e5ff9f'; ctx.save(); ctx.translate(d.x, d.z); ctx.rotate(Math.PI / 4); ctx.fillRect(-3.8, -3.8, 7.6, 7.6); ctx.restore();
+    if (!riding) { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-5, -5); ctx.lineTo(0, -2); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = '#d3dfba'; ctx.font = '600 9px "DM Sans"'; ctx.textAlign = 'center'; ctx.fillText('KLCC', 0, -138);
+    ctx.restore();
+  }
+  function updateHud() {
+    $('money').textContent = `RM ${mission.money.toLocaleString()}`;
+    const delivery = mission.stage === 'delivering', complete = mission.stage === 'complete';
+    $('mission-status').textContent = delivery ? 'ORDER ON BOARD' : complete ? 'NICELY DONE' : 'YOUR FIRST JOB';
+    $('mission-title').textContent = delivery ? 'Roti to the towers' : complete ? 'The city is yours' : 'Mamak run';
+    $('mission-description').textContent = delivery ? 'Take the order to the KLCC entrance. Park up and deliver it on foot.' : complete ? 'RM 25 earned. Go explore, or return to the mamak for another delivery.' : 'Uncle has an order ready. Collect it at Mamak Maju, then find your kapcai.';
+    $('mission-step').textContent = delivery ? '02 / DELIVER' : complete ? 'FREE ROAM / NEXT JOB' : '01 / PICK UP';
+    $('mission-distance').textContent = `${Math.round(distanceTo(mission.destination))} m away`;
+    $('beacon-text').textContent = delivery ? 'KLCC · DROP OFF' : 'MAMAK MAJU';
+    const area = pos.z < -74 ? 'KLCC Park' : pos.z < 9 ? 'Jalan Lepak' : 'Kampung Maju';
+    $('district').textContent = area; $('map-area').textContent = area.toUpperCase();
+    $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
+    const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
+    $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
+    $('vehicle-label').textContent = riding ? 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
+    let hint = '';
+    if (riding) hint = Math.abs(speed) < 1.5 ? 'Get off your kapcai' : '';
+    else if (distanceTo(mission.destination) < 4) hint = delivery ? 'Deliver the order' : complete ? 'Pick up another order' : 'Collect the order';
+    else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
+    $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
+    $('touch-interact').textContent = riding ? 'GET OFF' : distanceTo(mission.destination) < 4 ? delivery ? 'DELIVER' : 'PICK UP' : 'RIDE';
+    drawMap();
+  }
+
+  const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3(); const projected = new THREE.Vector3();
+  let hudTimer = 0, lastTime = performance.now();
+  function frame(time: number) {
+    const dt = Math.min((time - lastTime) / 1000, .04); lastTime = time; elapsed += dt;
+    const active = started && !paused;
+    if (!paused) {
+      simTime += dt;
+      for (const car of world.traffic) {
+        const coordinate = car.axis; const old = car[coordinate];
+        const ahead = new THREE.Vector3(car.x, 0, car.z); ahead[coordinate] += car.direction * 5;
+        const nearPlayer = started && Math.hypot(ahead.x - pos.x, ahead.z - pos.z) < 3.6;
+        // Stagger crossing traffic and stop before entering the player's space.
+        const crossing = car.axis === 'x' && Math.abs(car.x) < 13 && Math.abs(car.x) > 8 && Math.sin(simTime * .2) < 0;
+        if (!nearPlayer && !crossing) car[coordinate] += car.speed * car.direction * dt;
+        if (car[coordinate] > 150) car[coordinate] = -150; if (car[coordinate] < -150) car[coordinate] = 150;
+        if (started && Math.hypot(car.x - pos.x, car.z - pos.z) < 2.5) car[coordinate] = old;
+        car.group.position.set(car.x, 0, car.z);
+      }
+      for (const ped of world.pedestrians) {
+        const t = simTime * .12 + ped.phase;
+        const offset = Math.sin(t) * ped.range;
+        ped.person.group.position.set(ped.startX + (ped.axis === 'x' ? offset : 0), .1, ped.startZ + (ped.axis === 'z' ? offset : 0));
+        ped.person.group.rotation.y = ped.axis === 'x' ? Math.cos(t) > 0 ? Math.PI / 2 : -Math.PI / 2 : Math.cos(t) > 0 ? 0 : Math.PI;
+        ped.person.leftLeg.rotation.x = Math.sin(simTime * 6 + ped.phase) * .35; ped.person.rightLeg.rotation.x = -ped.person.leftLeg.rotation.x;
+        ped.person.leftArm.rotation.x = -ped.person.leftLeg.rotation.x * .65; ped.person.rightArm.rotation.x = ped.person.leftLeg.rotation.x * .65;
+      }
+    }
+    if (active) {
+      const forward = Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown'));
+      const turn = Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight'));
+      const dynamicSolids: Solid[] = world.traffic.map(car => ({ x: car.x, z: car.z, hx: car.axis === 'z' ? 1 : 1.9, hz: car.axis === 'z' ? 1.9 : 1 }));
+      const solids = [...world.solids, ...dynamicSolids];
+      if (riding) {
+        if (keys.has('Space')) speed = THREE.MathUtils.damp(speed, 0, 6, dt);
+        else if (forward) speed += forward * (forward * speed < 0 ? 15 : 6.7) * dt;
+        else speed = THREE.MathUtils.damp(speed, 0, 1.1, dt);
+        speed = THREE.MathUtils.clamp(speed, -5, 20);
+        if (Math.abs(speed) < .025) speed = 0;
+        const steering = Math.min(1, Math.abs(speed) / 3) * (1.65 - Math.min(1, Math.abs(speed) / 23) * .65);
+        yaw += turn * steering * dt * Math.sign(speed);
+        const hit = moveWithCollisions(pos, Math.sin(yaw) * speed * dt, Math.cos(yaw) * speed * dt, .83, solids);
+        if (hit) speed *= Math.exp(-9 * dt);
+        bikeYaw = yaw; bike.group.position.copy(pos); bike.group.rotation.y = yaw; bike.group.rotation.z = THREE.MathUtils.damp(bike.group.rotation.z, -turn * Math.min(.17, Math.abs(speed) * .012), 6, dt);
+        bike.wheels.forEach(wheel => wheel.rotation.x += speed * dt / .4);
+        walkSpeed = 0;
+      } else {
+        const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
+        const running = keys.has('ShiftLeft') || keys.has('ShiftRight'); const maxSpeed = running ? 7 : 3.7;
+        walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
+        if (input.length()) {
+          const reference = cameraHeading + orbit;
+          const dx = Math.sin(reference) * input.y - Math.cos(reference) * input.x;
+          const dz = Math.cos(reference) * input.y + Math.sin(reference) * input.x;
+          yaw = dampAngle(yaw, Math.atan2(dx, dz), 1 - Math.exp(-14 * dt));
+          moveWithCollisions(pos, dx * walkSpeed * dt, dz * walkSpeed * dt, .46, solids);
+        }
+        player.group.position.copy(pos); player.group.rotation.y = yaw;
+        const stride = Math.sin(simTime * (running ? 13 : 9)) * Math.min(.7, walkSpeed * .12);
+        player.leftLeg.rotation.x = stride; player.rightLeg.rotation.x = -stride; player.leftArm.rotation.x = -stride * .7; player.rightArm.rotation.x = stride * .7;
+        player.group.position.y = .12 + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
+      }
+      if (mission.stage === 'delivering') mission.elapsed += dt;
+      if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
+      if (riding) cameraHeading = dampAngle(cameraHeading, yaw, 1 - Math.exp(-3 * dt));
+      const heading = cameraHeading + orbit;
+      const distance = zoom + (riding ? Math.abs(speed) * .07 : 0);
+      let cameraDistance = distance;
+      // Shorten the camera arm when a building would obscure the player.
+      for (let step = 1.5; step < distance; step += .65) {
+        const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
+        if (world.solids.some(s => overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
+      }
+      target.set(pos.x, riding ? 2 : 1.6, pos.z);
+      desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * cameraPitch), pos.z - Math.cos(heading) * cameraDistance);
+      camera.position.lerp(desiredCamera, 1 - Math.exp(-9 * dt)); camera.lookAt(target);
+      sun.position.set(pos.x - 70, 110, pos.z + 60); sun.target.position.set(pos.x, 0, pos.z);
+      if (rainEnabled) {
+        rain.position.set(pos.x, 0, pos.z);
+        for (let i = 0; i < rainCount; i++) {
+          const j = i * 6; rainPositions[j + 1] -= dt * 23;
+          if (rainPositions[j + 1] < 0) rainPositions[j + 1] = 45;
+          rainPositions[j + 3] = rainPositions[j] + .2; rainPositions[j + 4] = rainPositions[j + 1] - .85; rainPositions[j + 5] = rainPositions[j + 2] + .12;
+        }
+        rainGeometry.attributes.position.needsUpdate = true;
+      }
+    }
+    if (!started) {
+      const drift = reducedMotion ? 0 : Math.sin(elapsed * .055) * 3;
+      camera.position.set(43 + drift, 29, 108); camera.lookAt(-10, 22, -45);
+    }
+    const destination = mission.destination;
+    ring.position.x = beam.position.x = diamond.position.x = destination.x;
+    ring.position.z = beam.position.z = diamond.position.z = destination.z;
+    beam.position.y = 2.55; diamond.position.y = 3.4 + (reducedMotion ? 0 : Math.sin(simTime * 2) * .18); diamond.rotation.y = simTime * .6;
+    if (engineGain && engine && audioContext) {
+      engineGain.gain.setTargetAtTime(audioEnabled && active && riding ? .013 + Math.abs(speed) * .0007 : 0, audioContext.currentTime, .1);
+      engine.frequency.setTargetAtTime(48 + Math.abs(speed) * 6, audioContext.currentTime, .1);
+    }
+    hudTimer += dt;
+    if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
+    if (started) {
+      projected.set(destination.x, 5, destination.z).project(camera);
+      const screenX = (projected.x * .5 + .5) * innerWidth;
+      const screenY = (-projected.y * .5 + .5) * innerHeight;
+      const visible = projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < .94 && screenY > 110 && screenY < innerHeight - 90;
+      $('destination-label').hidden = !visible || paused;
+      if (visible) { $('destination-label').style.left = `${THREE.MathUtils.clamp(screenX, 85, innerWidth - 85)}px`; $('destination-label').style.top = `${screenY}px`; $('destination-label').style.transform = 'translate(-50%, -100%)'; }
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  // Read-only diagnostics support browser smoke tests without modifying gameplay state.
+  if (import.meta.env.DEV) {
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+  }
+  $('loading').hidden = true;
+  requestAnimationFrame(frame);
+}
+void init().catch(error => { console.error(error); fail('The city could not finish loading. Please reload and try again.'); });
