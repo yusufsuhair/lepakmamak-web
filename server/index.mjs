@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { isGameMaster } from './roles.mjs';
 import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
@@ -29,7 +30,7 @@ async function identify(token) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { userId: user.id, accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+  return { userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
 }
 
 function roomFor(name) {
@@ -139,7 +140,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: identity.name, userId: identity.userId, accessories: identity.accessories || [],
+        name: identity.name, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
         appearance: cleanAppearance(identity.appearance),
         color: palette[number % palette.length],
         x: -18,

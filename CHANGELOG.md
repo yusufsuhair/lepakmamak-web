@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an exclusive gold, shimmering GAME MASTER name banner for the verified owner account, visible to all players.
+
 - Removed legacy corner positioning and visible voice status text; mic and speaker controls appear only as icons above the character.
 
 - Only one active game connection per account across rooms; a new connection replaces the old one, releases vehicle seats and stops the old client reconnecting.

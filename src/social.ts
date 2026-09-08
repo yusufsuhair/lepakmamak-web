@@ -7,10 +7,26 @@ export function nameTag(name: string, interactiveVoice = false) {
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
   label.scale.set(3.8, 1.22, 1); label.position.y = 3.15;
   label.userData.drawVoice = (mic: boolean, speaker: boolean) => {
+    label.userData.mic = mic; label.userData.speaker = speaker;
     ctx.clearRect(0, 0, 512, 164);
     ctx.fillStyle = '#173c32ed'; ctx.beginPath(); ctx.roundRect(8, 76, 496, 80, 24); ctx.fill();
     ctx.font = '600 36px "DM Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ddf69a';
-    ctx.fillText(name.slice(0, 18), 256, 117, 460);
+    if (label.userData.gameMaster) {
+      ctx.save();
+      ctx.shadowColor = '#ffc94a'; ctx.shadowBlur = 14;
+      ctx.fillStyle = '#30200ff5'; ctx.strokeStyle = '#ffd978'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(8, 76, 496, 80, 24); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillStyle = '#ffe8a3';
+      ctx.fillText('✦  GAME MASTER  ✦', 256, 94);
+      ctx.font = '700 30px "DM Sans", sans-serif'; ctx.fillStyle = '#fff5d1';
+      ctx.fillText(name.slice(0, 18), 256, 128, 440);
+      ctx.beginPath(); ctx.roundRect(10, 78, 492, 76, 22); ctx.clip();
+      const x = (label.userData.shine || 0) * 650 - 100;
+      const shine = ctx.createLinearGradient(x - 70, 76, x + 70, 156);
+      shine.addColorStop(0, '#ffffff00'); shine.addColorStop(.5, '#fff4ba66'); shine.addColorStop(1, '#ffffff00');
+      ctx.fillStyle = shine; ctx.fillRect(8, 76, 496, 80); ctx.restore();
+    } else ctx.fillText(name.slice(0, 18), 256, 117, 460);
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;
       ctx.save(); ctx.translate(x, 35);
@@ -39,6 +55,15 @@ export function updateNameTagVoice(label: THREE.Sprite, mic: boolean, speaker: b
   if (label.userData.voiceState === state) return;
   label.userData.voiceState = state;
   label.userData.drawVoice(mic, speaker);
+}
+
+export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time: number, reducedMotion = false) {
+  const frame = reducedMotion ? 0 : Math.floor(time * 10);
+  if (label.userData.gameMaster === enabled && (!enabled || label.userData.shineFrame === frame)) return;
+  label.userData.gameMaster = enabled; label.userData.shineFrame = frame;
+  label.userData.shine = reducedMotion ? .5 : (time % 3) / 3;
+  label.scale.set(enabled ? 4.3 : 3.8, enabled ? 1.38 : 1.22, 1);
+  label.userData.drawVoice(!!label.userData.mic, !!label.userData.speaker);
 }
 
 export function setupChat(send: (text: string) => boolean, focus: () => void) {

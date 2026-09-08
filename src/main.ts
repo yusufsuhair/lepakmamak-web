@@ -9,7 +9,7 @@ import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics
 import type { Solid } from './physics';
 import { auth, session, displayName, setupAuth } from './auth';
 import { appearance, type Appearance } from './appearance';
-import { nameTag, updateNameTagVoice, setupChat } from './social';
+import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
@@ -107,7 +107,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -869,6 +869,11 @@ async function init() {
       iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
+    if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);
+    for (const remote of roomPlayers) {
+      const entity = remotePlayers.get(remote.id);
+      if (entity) updateGameMasterTag(entity.label, !!remote.gameMaster, elapsed, reducedMotion);
+    }
     camera.updateMatrixWorld();
     const voicePanel = $('voice-panel');
     voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open || onlinePlayersDialog.open;
