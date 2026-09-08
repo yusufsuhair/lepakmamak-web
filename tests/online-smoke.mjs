@@ -56,10 +56,17 @@ try {
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await expect(pages[1].locator('#chat-messages')).toContainText('Smoke Player 0: <img src=x onerror=alert(1)> Hello friend');
   await expect(pages[1].locator('#chat-messages img')).toHaveCount(0);
+  await expect(pages[1].locator('.speech-bubble')).toContainText('Smoke Player 0');
+  await expect(pages[1].locator('.speech-bubble')).toBeVisible();
+  await expect(pages[1].locator('.speech-bubble img')).toHaveCount(0);
   await pages[1].getByLabel('Message to the city').fill('Hello from mobile');
   await pages[1].getByRole('button', { name: 'Send', exact: true }).click();
   await expect(pages[0].locator('#chat-messages')).toContainText('Smoke Player 1: Hello from mobile');
+  await expect(pages[0].locator('.speech-bubble').filter({ hasText: 'Hello from mobile' })).toBeVisible();
+  await expect(pages[1].locator('.speech-bubble').filter({ hasText: 'Hello from mobile' })).toBeVisible();
   await pages[1].screenshot({ path: 'test-results/registration-mobile.png' });
+  await expect(pages[1].locator('.speech-bubble')).toHaveCount(0, { timeout: 9000 });
+  await expect(pages[1].locator('#chat-messages')).toContainText('Hello from mobile');
   await pages[0].reload();
   await pages[0].getByRole('button', { name: "Jom, let's go" }).click();
   await expect(pages[0].locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });

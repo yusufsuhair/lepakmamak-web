@@ -70,6 +70,22 @@ async function init() {
   type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number };
   type RemotePlayer = { group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; recallUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
+  const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
+  const speechPosition = new THREE.Vector3();
+  function clearSpeechBubbles() {
+    for (const bubble of speechBubbles.values()) bubble.element.remove();
+    speechBubbles.clear();
+  }
+  function showSpeechBubble(id: string, name: string, text: string) {
+    if (id !== networkPlayerId && !remotePlayers.has(id)) return;
+    speechBubbles.get(id)?.element.remove();
+    const element = document.createElement('div'); element.className = 'speech-bubble'; element.hidden = true;
+    element.setAttribute('aria-hidden', 'true'); // The chat log already announces messages.
+    const author = document.createElement('strong'); author.textContent = name;
+    const message = document.createElement('span'); message.textContent = text;
+    element.append(author, message); $('hud').append(element);
+    speechBubbles.set(id, { element, expiresAt: performance.now() + 6500 });
+  }
   let localName: THREE.Sprite | null = null;
   const chat = setupChat(text => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
@@ -161,6 +177,7 @@ async function init() {
     setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
   }
   function disconnectMultiplayer() {
+    clearSpeechBubbles();
     if (networkReconnectTimer !== null) { window.clearTimeout(networkReconnectTimer); networkReconnectTimer = null; }
     const oldSocket = networkSocket; networkSocket = null;
     oldSocket?.close(1000, 'Leaving the city');
@@ -195,7 +212,10 @@ async function init() {
         if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
-        if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') chat.append(message.name, message.text);
+        if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
+          chat.append(message.name, message.text);
+          if (message.id) showSpeechBubble(message.id, message.name, message.text);
+        }
         if (message.type === 'notice') chat.append('City', message.message || 'Please try again.');
         if (message.type === 'error') {
           setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');
@@ -500,6 +520,34 @@ async function init() {
       if (visible) { $('destination-label').style.left = `${THREE.MathUtils.clamp(screenX, 85, innerWidth - 85)}px`; $('destination-label').style.top = `${screenY}px`; $('destination-label').style.transform = 'translate(-50%, -100%)'; }
     }
     if (localName) localName.position.set(pos.x, 3.1, pos.z);
+    camera.updateMatrixWorld();
+    const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
+    for (const [id, bubble] of speechBubbles) {
+      const speaker = id === networkPlayerId ? pos : remotePlayers.get(id)?.group.position;
+      const remaining = bubble.expiresAt - time;
+      if (!speaker || remaining <= 0 || !networkConnected) {
+        bubble.element.remove(); speechBubbles.delete(id); continue;
+      }
+      speechPosition.set(speaker.x, speaker.y + 3.8, speaker.z).project(camera);
+      bubble.element.hidden = !started || speechPosition.z < -1 || speechPosition.z > 1 || Math.abs(speechPosition.x) > 1 || Math.abs(speechPosition.y) > 1;
+      if (!bubble.element.hidden) {
+        const width = bubble.element.offsetWidth, height = bubble.element.offsetHeight;
+        const x = THREE.MathUtils.clamp((speechPosition.x * .5 + .5) * innerWidth, width / 2 + 8, innerWidth - width / 2 - 8);
+        let y = (-speechPosition.y * .5 + .5) * innerHeight;
+        // Stack nearby speakers upward so each message remains readable.
+        for (let attempt = 0; attempt < placedBubbles.length; attempt++) {
+          const overlap = placedBubbles.find(rect => x + width / 2 > rect.left && x - width / 2 < rect.right && y > rect.top - 10 && y - height < rect.bottom + 10);
+          if (!overlap) break;
+          y = overlap.top - 10;
+        }
+        bubble.element.hidden = y - height < 8;
+        if (bubble.element.hidden) continue;
+        placedBubbles.push({ left: x - width / 2, right: x + width / 2, top: y - height, bottom: y });
+        bubble.element.style.left = `${x}px`;
+        bubble.element.style.top = `${y}px`;
+        bubble.element.style.opacity = String(Math.min(1, remaining / 500));
+      }
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
