@@ -104,7 +104,7 @@ webSocketServer.on('connection', ws => {
         yaw: Math.PI,
         riding: false,
         speed: 0,
-        jumpHeight: 0,
+        jumpHeight: 0, seated: false,
         mic: false, speaker: false,
         updatedAt: Date.now(),
       };
@@ -149,14 +149,15 @@ webSocketServer.on('connection', ws => {
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 20);
       player.riding = Boolean(message.riding);
-      player.jumpHeight = player.riding ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
+      player.seated = !player.riding && message.seated === true;
+      player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
     }
     if (message.type === 'punch') {
       const now = Date.now();
-      if (player.riding || now - lastPunchAt < 350) return;
+      if (player.riding || player.seated || now - lastPunchAt < 350) return;
       lastPunchAt = now;
       broadcast(currentRoom.players, { type: 'punch', id: player.id }); return;
     }

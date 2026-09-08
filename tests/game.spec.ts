@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
@@ -38,12 +38,14 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   expect((await state(page)).jumpHeight).toBe(0);
   await page.keyboard.up('Space');
   await expect(page.locator('#interaction-text')).toHaveText('Collect the order');
-  await page.keyboard.press('e');
+  await page.keyboard.press('Enter');
   await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
   await page.keyboard.down('d');
   await expect.poll(async () => (await state(page)).position.x, { timeout: 15000 }).toBeGreaterThan(-9.6);
   await page.keyboard.up('d');
   await page.keyboard.press('e');
+  expect((await state(page)).riding).toBe(false);
+  await page.keyboard.press('Enter');
   await expect.poll(async () => (await state(page)).riding).toBe(true);
   await page.keyboard.down('w');
   await expect.poll(async () => (await state(page)).position.z, { timeout: 45000 }).toBeLessThan(-82);
@@ -51,7 +53,7 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await page.keyboard.down('Space');
   await expect.poll(async () => Math.abs((await state(page)).speed)).toBeLessThan(.4);
   await page.keyboard.up('Space');
-  await page.keyboard.press('e');
+  await page.keyboard.press('Enter');
   await expect.poll(async () => (await state(page)).riding).toBe(false);
   await page.keyboard.down('d');
   await expect.poll(async () => (await state(page)).position.x, { timeout: 12000 }).toBeGreaterThan(-2.2);
@@ -64,7 +66,7 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
     await page.keyboard.up('s');
   }
   await expect(page.locator('#interaction-text')).toHaveText('Deliver the order');
-  await page.keyboard.press('e');
+  await page.keyboard.press('Enter');
   await expect(page.locator('#money')).toHaveText('RM 25');
   await expect(page.locator('#mission-title')).toHaveText('The city is yours');
   await page.screenshot({ path: 'test-results/delivery-complete.png' });
@@ -128,4 +130,20 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/mobile-game.png' });
   await context.close();
+});
+
+test('Enter sits at a nearby chair and stands without opening chat', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.keyboard.down('a');
+  await expect.poll(async () => (await state(page)).position.x).toBeLessThan(-26);
+  await page.keyboard.up('a');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await state(page)).seated).toBe(true);
+  const sitting = (await state(page)).position;
+  await page.keyboard.press('w');
+  expect((await state(page)).position).toEqual(sitting);
+  await expect(page.locator('#chat-input')).not.toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await state(page)).seated).toBe(false);
 });
