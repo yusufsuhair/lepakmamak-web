@@ -24,7 +24,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const choices = el('avatar-choices');
   for (const [key, values] of Object.entries(appearanceOptions)) {
     const label = document.createElement('label'); label.textContent = labels[key as keyof typeof labels];
-    const select = document.createElement('select'); select.id = `avatar-${key}`;
+    const select = document.createElement('select'); select.id = `avatar-${key}`; select.setAttribute('aria-label', labels[key as keyof typeof labels]);
     for (const [name, value] of Object.entries(values)) select.add(new Option(name, value));
     select.value = defaultAppearance[key as keyof typeof defaultAppearance]; label.append(select); choices.append(label);
   }
