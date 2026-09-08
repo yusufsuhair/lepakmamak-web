@@ -9,26 +9,26 @@ import { nameTag, setupChat } from './social';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
-  <div id="loading"><strong>LEPAK CITY</strong><p>Setting the tables. Warming up the kapcai.</p></div>
+  <div id="loading"><strong>LEPAKMAMAK</strong><p>Setting the tables. Warming up the kapcai.</p></div>
   <audio id="background-music" src="/background-short.mp3" loop preload="auto" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
-  <section id="intro" aria-label="Welcome to Lepak City">
-    <div class="intro-top"><div class="brand"><span class="brand-mark">L</span> LEPAK CITY</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
-    <div class="intro-copy"><div class="eyebrow intro-kicker">Your city. Your cerita.</div><h1>LEPAK<span>CITY.</span></h1><p class="tagline">A little chaos. A lot of Malaysia.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><div class="intro-hint"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</div></div>
+  <section id="intro" aria-label="Welcome to LepakMamak">
+    <div class="intro-top"><div class="brand"><span class="brand-mark">L</span> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
+    <div class="intro-copy"><div class="eyebrow intro-kicker">Your mamak. Your geng. Your cerita.</div><h1>LEPAK<span>MAMAK.</span></h1><p class="tagline">Good food. Good friends. A little chaos.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><div class="intro-hint"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</div></div>
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>CITY.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Pause and settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
     <div id="minimap-wrap"><div class="map-frame"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑</span></div><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
     <div id="interaction" hidden><kbd>E</kbd><span id="interaction-text"></span></div>
-    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Pause</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
+    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
     <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
     <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>Your city will be right here.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Pause or resume</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
@@ -231,7 +231,7 @@ async function init() {
   function triggerRecall(remoteId?: string) {
     if (remoteId) {
       const remote = remotePlayers.get(remoteId); if (remote) remote.recallUntil = simTime + .82;
-      if (remote && !paused && remote.target.distanceTo(pos) < 25) recallSound();
+      if (remote && remote.target.distanceTo(pos) < 25) recallSound();
       return;
     }
     if (!started || paused) return;
@@ -246,7 +246,7 @@ async function init() {
   function setPause(value: boolean) {
     if (!started) return;
     paused = value; $('pause').hidden = !value; keys.clear(); dragging = false;
-    if (value) { $('resume').focus(); backgroundMusic.pause(); if (engineGain && audioContext) engineGain.gain.setTargetAtTime(0, audioContext.currentTime, .03); }
+    if (value) { $('resume').focus(); }
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
   function start() {
@@ -317,8 +317,8 @@ async function init() {
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
   window.addEventListener('beforeunload', disconnectMultiplayer);
-  window.addEventListener('blur', () => { keys.clear(); if (started) setPause(true); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && started) setPause(true); });
+  window.addEventListener('blur', () => { keys.clear(); dragging = false; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); dragging = false; } });
   canvas.addEventListener('pointerdown', event => { if (!started || paused) return; dragging = true; lastX = event.clientX; lastY = event.clientY; canvas.setPointerCapture(event.pointerId); });
   canvas.addEventListener('pointermove', event => {
     if (!dragging) return; orbit -= (event.clientX - lastX) * .005; cameraPitch = THREE.MathUtils.clamp(cameraPitch + (event.clientY - lastY) * .004, -.15, .95); lastX = event.clientX; lastY = event.clientY;
@@ -381,8 +381,8 @@ async function init() {
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
     const dt = Math.min((time - lastTime) / 1000, .04); lastTime = time; elapsed += dt;
-    const active = started && !paused;
-    if (!paused) {
+    const active = started;
+    {
       simTime += dt;
       for (const car of world.traffic) {
         const coordinate = car.axis; const old = car[coordinate];

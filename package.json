@@ -1,5 +1,5 @@
 {
-  "name": "lepak-city",
+  "name": "lepakmamak",
   "version": "1.0.0",
   "description": "A stylised Kuala Lumpur browser game",
   "scripts": {
@@ -8,7 +8,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test",
     "start": "node server/index.mjs",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name lepak-city --branch main",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
     "deploy:realtime": "railway up --service 9a776d22-a5d8-4151-8059-300149fce72c --detach --yes"
   },
   "keywords": [],

@@ -1,4 +1,4 @@
-# Lepak City — browser prototype plan
+# LepakMamak — browser prototype plan
 
 ## Direction
 A stylised third-person open-world game in a fictional, compressed Kuala Lumpur. KLCC anchors the skyline; Mamak Maju anchors the neighbourhood. Warm late-afternoon light, colourful shophouses, tropical foliage, left-side traffic, and local signage establish the setting.
@@ -13,7 +13,7 @@ A stylised third-person open-world game in a fictional, compressed Kuala Lumpur.
 - Optional rain, looping music, and sound. Desktop keyboard is the primary target; touch controls provide a secondary path, including a reachable recall emote button.
 
 ## Implementation
-Vite + TypeScript + Three.js. Browser GPU renders every frame. Procedural geometry is bundled with the app, with no external model services. Static meshes are merged by material, geometry/materials reused, device pixel ratio capped, and shadows switchable. Simple substepped circle/AABB collision supports arcade movement without adding a physics engine. Game simulation pauses in menus and on tab blur.
+Vite + TypeScript + Three.js. Browser GPU renders every frame. Procedural geometry is bundled with the app, with no external model services. Static meshes are merged by material, geometry/materials reused, device pixel ratio capped, and shadows switchable. Simple substepped circle/AABB collision supports arcade movement without adding a physics engine. Settings and tab blur do not pause the game; held inputs clear to prevent stuck movement. Background rendering remains subject to browser throttling.
 
 ## Build order
 1. World blockout, readable landmark silhouettes, mamak, and street composition.
@@ -23,7 +23,7 @@ Vite + TypeScript + Three.js. Browser GPU renders every frame. Procedural geomet
 5. Typecheck, production build, browser inspection, and gameplay smoke tests.
 
 ## Acceptance
-The user can start, pick up a mission, enter the bike, ride a connected route, dismount, complete delivery, and see the reward persist on reload. Collisions prevent entering buildings; pause stops simulation; reset recovers the player without granting rewards. No browser runtime errors in the tested desktop flow.
+The user can start, pick up a mission, enter the bike, ride a connected route, dismount, complete delivery, and see the reward persist on reload. Collisions prevent entering buildings; settings keep simulation running; reset recovers the player without granting rewards. No browser runtime errors in the tested desktop flow.
 
 ## Later milestones
 Replace selected objects with Blender-authored GLB assets; add character rigging and better bike animation; extend missions and map; improve traffic AI; add pursuit mechanics. Multiplayer, combat, large interiors, and a city-scale map are outside this first slice. Rain is initially a visual weather option, not a traction simulation.

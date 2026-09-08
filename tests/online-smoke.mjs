@@ -38,7 +38,7 @@ try {
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.locator('#auth-panel')).toBeHidden({ timeout: 20000 });
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 20000 });
-    await page.getByRole('button', { name: 'Pause and settings' }).click();
+    await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
     await expect(page.locator('#intro')).toBeVisible();
     await page.getByRole('button', { name: "Jom, let's go" }).click();

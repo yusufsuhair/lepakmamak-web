@@ -154,4 +154,4 @@ webSocketServer.on('connection', ws => {
   });
 });
 
-server.listen(port, '0.0.0.0', () => console.log(`Lepak City realtime server listening on ${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`LepakMamak realtime server listening on ${port}`));

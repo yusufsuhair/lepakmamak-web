@@ -1,10 +1,12 @@
-# Lepak City
+# LepakMamak
 
 A playable, stylised Kuala Lumpur browser prototype. Start at Mamak Maju, collect an order, hop on your kapcai, and deliver it near the twin towers. Earn RM 25, then explore or return for another job.
 
 ## Live deployment
 
-Production URL: https://lepak-city.pages.dev/
+Primary domain: https://lepakmamak.my/ (DNS activation pending at rebrand).
+Cloudflare fallback: https://lepakmamak.pages.dev/
+Both domains serve the same app and share Supabase accounts and Railway rooms. Sessions and local earnings are browser-origin-specific. The former lepak-city.pages.dev address remains available for existing links.
 
 The frontend is hosted on Cloudflare Pages and the realtime room service runs on Railway. The game still keeps earnings in the current browser's local storage; the shared room is temporary and does not need a database yet.
 
@@ -14,7 +16,7 @@ To publish a new frontend version using the authenticated Cloudflare account:
 npm run deploy
 ```
 
-This builds `dist/` and uploads it to the `lepak-city` Pages project on its `main` production branch. Configuration is in `wrangler.jsonc`; `public/_headers` controls static asset caching. Deployment is a direct upload, so commits alone do not trigger a release. Do not commit Cloudflare credentials.
+This builds `dist/` and uploads it to the `lepakmamak` Pages project on its `main` production branch. Configuration is in `wrangler.jsonc`; `public/_headers` controls static asset caching. The custom domain is associated in Pages and has a proxied apex CNAME to lepakmamak.pages.dev. Assigned nameservers: justin.ns.cloudflare.com and sneh.ns.cloudflare.com. Deployment is a direct upload, so commits alone do not trigger a release. Do not commit Cloudflare credentials.
 
 The realtime server is optional for local development. Persistent storage can be introduced later for accounts and cross-device progress; it is not required for temporary rooms or recall emotes.
 
@@ -26,13 +28,13 @@ The realtime service has a `/health` endpoint and uses temporary in-memory state
 
 ## Accounts
 
-Supabase project `LepakCity` (`sbzvvhzibqpozqvojzhe`) stores accounts. Registration asks for a display name, email, and password (minimum 8 characters). Supabase handles passwords and sessions. Railway verifies access tokens through Supabase Auth before joining; it derives the display name from the verified user, not the join payload. Display names are cosmetic and are not unique identity or authorization markers. Log out is in the pause menu.
+The existing Supabase project (`sbzvvhzibqpozqvojzhe`, dashboard label `LepakCity`) stores accounts. Registration asks for a display name, email, and password (minimum 8 characters). Supabase handles passwords and sessions. Railway verifies access tokens through Supabase Auth before joining; it derives the display name from the verified user, not the join payload. Display names are cosmetic and are not unique identity or authorization markers. Log out is in settings. Existing project identifiers, realtime hostname, and the `lepak-city-save` storage key are retained for compatibility.
 
 Email confirmation is disabled for the initial friends MVP, so email ownership is unverified. Custom SMTP is not configured: password-reset delivery through Supabase's default mail service is limited and is not production-ready. Configure SMTP and test recovery before relying on email recovery or enabling confirmation. No application tables or RLS policies are needed for this release; auth records remain managed by Supabase.
 
 Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. `ALLOW_GUESTS=true` is an explicit local-development alternative. Never place a secret or service-role key in frontend settings.
 
-`node tests/online-smoke.mjs` tests production-built UI served on port 4173 against real services. `TEST_BASE_URL=https://lepak-city.pages.dev node tests/online-smoke.mjs` tests the live UI. It uses the authenticated Supabase CLI to delete only its temporary accounts and uses an isolated test room. It checks signup, login/logout, incorrect passwords, session restoration, desktop/mobile chat, and unauthenticated rejection.
+`node tests/online-smoke.mjs` tests production-built UI served on port 4173 against real services. `TEST_BASE_URL=https://lepakmamak.pages.dev node tests/online-smoke.mjs` tests the live UI. It uses the authenticated Supabase CLI to delete only its temporary accounts and uses an isolated test room. It checks signup, login/logout, incorrect passwords, session restoration, desktop/mobile chat, and unauthenticated rejection.
 
 To redeploy the realtime service from this repository, run `npm run deploy:realtime` while authenticated with Railway. The service listens on Railway's `PORT` and exposes WebSockets at `/ws`.
 
@@ -77,8 +79,8 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 - Third-person movement, arcade kapcai driving, wall/furniture/vehicle collision, moving cars, and pedestrians.
 - A repeatable delivery mission with a map, world beacon, contextual prompts, and RM 25 payouts.
 - Earnings and completed-delivery count in browser local storage. Active mission and position reset on reload.
-- Live 3D title screen, responsive HUD, keyboard/touch controls, pause on window blur, and graphics error fallback.
-- Local looping background music from `public/background-short.mp3`; it starts after the player gesture, pauses with the game, and follows the Music & city sounds setting.
+- Live 3D title screen, responsive HUD, keyboard/touch controls, settings menu, and graphics error fallback. Settings do not pause the simulation or multiplayer. Losing focus clears held input without pausing; browsers may throttle rendering in background tabs.
+- Local looping background music from `public/background-short.mp3`; it starts after the player gesture, continues through settings and focus changes, and follows the Music & city sounds setting.
 - A multiplayer recall emote with a mobile button, keyboard shortcut, short synthesized buzz sequence, local pulse animation, and room-wide WebSocket broadcast.
 - Procedural models and locally bundled fonts; static scene geometry merged by material.
 

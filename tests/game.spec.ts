@@ -44,10 +44,13 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   const pausedAt = (await state(page)).simTime;
   await page.getByLabel('Rain over KL').check();
   await page.keyboard.press('w');
-  expect((await state(page)).simTime).toBe(pausedAt);
+  await expect.poll(async () => (await state(page)).simTime).toBeGreaterThan(pausedAt);
   expect((await state(page)).rain).toBe(true);
   await page.getByRole('button', { name: 'Back to the streets' }).click();
   await expect.poll(async () => (await state(page)).paused).toBe(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('#pause')).toBeHidden();
+  await expect.poll(async () => page.locator('#background-music').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
   await page.reload();
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
@@ -67,7 +70,7 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.locator('#toast')).toContainText('BZZ BZZ BZZ BZZ');
   await page.getByRole('button', { name: 'PICK UP', exact: true }).click();
   await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
-  await page.getByRole('button', { name: 'Pause and settings' }).click();
+  await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
   await expect(page.locator('#pause')).toBeHidden();
   expect((await state(page)).mission).toBe('delivering');
