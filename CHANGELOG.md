@@ -1,5 +1,7 @@
 # Changelog
 
+- Returning signed-in players now enter the city automatically when opening or refreshing LepakMamak, while expired or missing sessions still show the normal account screen.
+
 - Added the supplied Ar-Rahman audio around both mosques, using the nearest mosque for one smooth proximity fade and respecting the City sounds setting.
 
 - Disabled guest entry in production and added a server-side rejection so bypassing the login screen cannot create an unauthenticated city session. Local guest mode remains available only with the explicit development flag.

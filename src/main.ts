@@ -1257,6 +1257,9 @@ async function init() {
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   hideLoading();
+  // Returning members skip the title screen once Supabase restores a valid session.
+  // Calling the same entry function preserves recovery mode and all normal startup checks.
+  if (session) requestEntry();
   requestAnimationFrame(frame);
 }
 void init().catch(error => { console.error(error); fail('The city could not finish loading. Please reload and try again.'); });
