@@ -21,7 +21,7 @@ $('app').innerHTML = `
   <audio id="background-music" src="/background-short.mp3" loop preload="auto" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
-    <div class="intro-top"><div class="brand"><span class="brand-mark">L</span> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
+    <div class="intro-top"><div class="brand"><img class="brand-mark" src="/icon-80.png" width="28" height="28" alt="" /> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
     <div class="intro-copy"><div class="eyebrow intro-kicker">Your mamak. Your geng. Your cerita.</div><h1>LEPAK<span>MAMAK.</span></h1><p class="tagline">Good food. Good friends. A little chaos.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><div class="intro-hint"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</div></div>
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>

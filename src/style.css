@@ -48,7 +48,7 @@ button, a { touch-action: manipulation; }
 #intro { position: absolute; inset: 0; z-index: 5; background: linear-gradient(90deg, rgba(19,43,35,.96) 0%, rgba(24,47,37,.78) 28%, rgba(30,49,36,.18) 58%, transparent 78%); }
 .intro-top { position: absolute; top: 32px; left: 44px; right: 40px; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
-.brand-mark { width: 28px; height: 28px; display: grid; place-items: center; background: var(--lime); color: var(--ink); border-radius: 3px; font: 800 25px/1 'Barlow Condensed'; transform: rotate(-6deg); }
+.brand-mark { width: 28px; height: 28px; display: block; object-fit: contain; }
 .place-tag { border: 1px solid #fff8e740; border-radius: 4px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; background: #2541384d; font-size: 10px; letter-spacing: .13em; }
 .live-dot { display: inline-block; width: 5px; height: 5px; background: var(--lime); border-radius: 50%; }
 .intro-copy { position: absolute; top: 50%; transform: translateY(-48%); left: clamp(32px, 5.4vw, 90px); width: 440px; }
