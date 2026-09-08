@@ -19,7 +19,7 @@ test('punch sound plays once per allowed punch and respects mute', async ({ page
   await page.locator('#world').click({ position: { x: 640, y: 400 } });
   expect(await count()).toBe(2);
   await page.getByRole('button', { name: 'Open settings' }).click();
-  await page.getByLabel('Music & city sounds').uncheck();
+  await page.getByLabel('City sounds').uncheck();
   await page.getByRole('button', { name: 'Back to the streets' }).click();
   await page.waitForTimeout(450);
   await page.locator('#world').click({ position: { x: 640, y: 400 } });

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a separate, remembered Background music toggle in Settings, independent of city sounds and voice.
+
 - Added an exclusive gold, shimmering GAME MASTER name banner for the verified owner account, visible to all players.
 
 - Removed legacy corner positioning and visible voice status text; mic and speaker controls appear only as icons above the character.

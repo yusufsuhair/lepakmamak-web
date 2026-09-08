@@ -17,9 +17,9 @@ test('ice cream song fades with distance and respects sound settings', async ({ 
   await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
   await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.03);
   await page.getByRole('button', { name: 'Open settings' }).click();
-  await page.getByLabel('Music & city sounds').uncheck();
+  await page.getByLabel('City sounds').uncheck();
   expect((await sound()).playing).toBe(false);
   await expect.poll(async () => (await sound()).gain).toBeLessThan(.001);
-  await page.getByLabel('Music & city sounds').check();
+  await page.getByLabel('City sounds').check();
   await expect.poll(async () => (await sound()).playing).toBe(true);
 });

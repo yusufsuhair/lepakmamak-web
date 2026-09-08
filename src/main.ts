@@ -38,7 +38,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -106,7 +106,9 @@ async function init() {
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
-  let audioEnabled = true, rainEnabled = false;
+  let audioEnabled = true, rainEnabled = false, musicEnabled = true;
+  try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
+  $<HTMLInputElement>('music-toggle').checked = musicEnabled;
   type NetworkPlayer = { gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
@@ -200,15 +202,15 @@ async function init() {
     } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
   }
   function startBackgroundMusic() {
-    if (!audioEnabled) return;
-    if (started && iceCreamGain) void iceCreamSong.play().catch(() => {});
+    if (audioEnabled && started && iceCreamGain) void iceCreamSong.play().catch(() => {});
+    if (!musicEnabled) return;
     void backgroundMusic.play().catch(() => {
       // Browsers can still reject playback when the user starts with the keyboard.
       // The next user interaction will try again without interrupting the game.
     });
   }
   document.addEventListener('pointerdown', () => {
-    if (started && audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')) { ensureAudio(); startBackgroundMusic(); }
+    if (started && ((musicEnabled && backgroundMusic.paused) || (audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
@@ -559,7 +561,12 @@ async function init() {
     sun.intensity = rainEnabled ? 1.25 : 2.7;
     $('weather-label').textContent = rainEnabled ? '17:42 · Hujan sekejap' : '17:42 · Golden hour';
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { backgroundMusic.pause(); iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
+  $<HTMLInputElement>('music-toggle').onchange = event => {
+    musicEnabled = (event.target as HTMLInputElement).checked;
+    try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
+    if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
+  };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
   const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR', 'KeyH']);
   window.addEventListener('keydown', event => {
