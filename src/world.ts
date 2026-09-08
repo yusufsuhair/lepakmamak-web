@@ -303,13 +303,13 @@ export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese') {
   }
   if (kind === 'mosque') {
     tube(g, 0, 6.3, 0, 5.4, .6, '#d7bd75');
-    const dome = ball(g, 0, 6.8, 0, 5.4, '#438d7b'); dome.scale.y = .8;
+    const dome = ball(g, 0, 6.8, 0, 5.4, '#438d7b'); dome.scale.y *= .8;
     tube(g, 0, 11.4, 0, .1, 1.4, '#dbb956');
     const crescent = new THREE.Mesh(new THREE.TorusGeometry(.5, .085, 8, 24, Math.PI * 1.5), material('#edca69')); crescent.position.set(0, 12.2, 0); crescent.rotation.z = Math.PI / 4; g.add(crescent);
     for (const x of [-15, 15]) {
       tube(g, x, 6, 0, 1.25, 12, '#efe6cc');
       for (const y of [3, 8, 11.5]) tube(g, x, y, 0, 1.55, .35, '#d5bc76');
-      const cap = ball(g, x, 12.2, 0, 1.5, '#438d7b'); cap.scale.y = .8;
+      const cap = ball(g, x, 12.2, 0, 1.5, '#438d7b'); cap.scale.y *= .8;
       tube(g, x, 14, 0, .08, 1.4, '#dbb956');
     }
     sign(g, 'MASJID LEPAK', 0, 5.25, 7.7, 12, .8, '#438d7b');
