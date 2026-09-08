@@ -20,6 +20,19 @@ for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
   });
 }
 
+// Safari can treat repeated taps on fixed game layers as smart zoom.
+// Gameplay already uses pointer events, so cancel the native touch-end action there.
+function isGameTouchSurface(target: EventTarget | null) {
+  return target instanceof Element && !!target.closest('#world, #hud, #move-stick') &&
+    !target.closest('button, a, input, textarea, select, [contenteditable="true"], #city-chat');
+}
+document.addEventListener('touchend', event => {
+  if (isGameTouchSurface(event.target) && event.cancelable) event.preventDefault();
+}, { passive: false });
+document.addEventListener('dblclick', event => {
+  if (isGameTouchSurface(event.target)) event.preventDefault();
+});
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
   <div id="loading"><strong>LEPAKMAMAK</strong><p>Setting the tables. Warming up the kapcai.</p></div>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prevent repeated taps on fixed gameplay layers from triggering Safari smart zoom, while preserving menu and text input interaction.
+
 - Renamed the settings return button to Resume, centred its text and removed its arrow.
 
 - Removed the wallet label and money amount from the HUD.
