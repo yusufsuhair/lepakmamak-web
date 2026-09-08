@@ -69,6 +69,7 @@ async function init() {
   const bike = createBike(); scene.add(bike.group);
   const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
   let vehicle: 'bike' | 'car' = 'bike';
+  let passengerOf: string | null = null;
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
   const savedMoney = Number((saved as { money?: number }).money);
@@ -96,8 +97,8 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type NetworkPlayer = { passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
@@ -213,12 +214,19 @@ async function init() {
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
+    const bike = createBike(); applyAppearance(bike.rider, player.appearance); bike.rider.visible = true; bike.group.visible = false; group.add(bike.group);
     const car = createDriveableCar(); applyAppearance(car.driver, player.appearance); car.driver.visible = true; car.group.visible = false; group.add(car.group);
     const label = nameTag(player.name); updateNameTagVoice(label, !!player.mic, !!player.speaker); group.add(label);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
+    return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
+    const self = players.find(p => p.id === networkPlayerId);
+    if (self && (self.passengerOf || passengerOf)) {
+      passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = 'bike';
+      pos.set(self.x, .12, self.z); yaw = self.yaw; speed = self.speed;
+      player.group.visible = true; bike.rider.visible = false; keys.clear(); resetStick();
+    }
     const visibleIds = new Set<string>();
     for (const remote of players) {
       if (!remote.id || remote.id === networkPlayerId) continue;
@@ -226,8 +234,9 @@ async function init() {
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
-      entity.target.set(remote.x, (remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike';
-      entity.car.group.visible = entity.riding && entity.vehicle === 'car'; entity.person.group.visible = !entity.car.group.visible;
+      entity.target.set(remote.x, (remote.passengerOf ? .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
+      entity.car.group.visible = entity.riding && entity.vehicle === 'car'; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
+      entity.person.group.visible = !entity.car.group.visible && !entity.bike.group.visible;
     }
     for (const [id, entity] of remotePlayers) {
       if (visibleIds.has(id)) continue;
@@ -242,6 +251,7 @@ async function init() {
   });
   function disconnectMultiplayer() {
     voice.connected(false);
+    if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
     clearSpeechBubbles();
     if (networkReconnectTimer !== null) { window.clearTimeout(networkReconnectTimer); networkReconnectTimer = null; }
     const oldSocket = networkSocket; networkSocket = null;
@@ -290,7 +300,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', () => { if (socket !== networkSocket) return; voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -356,6 +366,7 @@ async function init() {
   signout.onclick = async () => { if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
+    if (passengerOf && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'passenger-leave', reset: true })); setPause(false); return; }
     car.group.position.set(-7, .09, 64); car.group.rotation.set(0, Math.PI, 0); car.driver.visible = false; vehicle = 'bike';
     seated = false; jumpHeight = 0; jumpVelocity = 0;
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
@@ -363,11 +374,16 @@ async function init() {
     camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', 'Grab a seat, meet your friends, or explore the city.');
   }
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
+  function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && p.vehicle === 'bike' && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
+  function backSeatFull(id: string) { return [...remotePlayers.values()].some(p => p.passengerOf === id) || passengerOf === id; }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function interact() {
     if (!started || paused) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
+    if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
+    const driver = !riding && nearbyDriver();
+    if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
     if (seated) { seated = false; pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const chair = !riding && nearbyChair();
     if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; walkSpeed = 0; keys.clear(); resetStick(); return; }
@@ -427,7 +443,7 @@ async function init() {
     const rect = canvas.getBoundingClientRect();
     const ray = new THREE.Raycaster();
     ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
-    const own = riding ? (vehicle === 'car' ? car.driver : bike.rider) : player.group;
+    const own = riding && !passengerOf ? (vehicle === 'car' ? car.driver : bike.rider) : player.group;
     own.userData.profileName = displayName();
     if (localName) localName.userData.profileName = displayName();
     const targets = [own, ...Array.from(remotePlayers.values(), p => p.group), ...(localName ? [localName] : [])];
@@ -507,14 +523,17 @@ async function init() {
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
     $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
-    $('vehicle-label').textContent = riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
+    $('vehicle-label').textContent = passengerOf ? 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
     let hint = '';
     if (riding) hint = Math.abs(speed) < 1.5 ? vehicle === 'car' ? 'Get out of your car' : 'Get off your kapcai' : '';
     else if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) hint = 'Drive your car';
     else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
+    const nearbyBikeDriver = !riding && nearbyDriver();
+    if (nearbyBikeDriver) hint = backSeatFull(nearbyBikeDriver.id) ? 'Bike full · 2 / 2' : Math.abs(nearbyBikeDriver.speed) >= 1.5 ? 'Wait for the bike to stop' : 'Ride pillion · 1 / 2';
+    if (passengerOf) hint = Math.abs(speed) < 1.5 ? 'Get off the back seat' : 'Passenger · Driver controls the bike';
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
-    $('touch-interact').textContent = seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
+    $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     drawMap();
     if (cityMap.open) drawMap(true);
   }
@@ -550,11 +569,11 @@ async function init() {
         remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
         remote.group.rotation.y = remote.yaw;
         remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
-        if (remote.seated) sitPose(remote.person);
+        if (remote.seated || remote.passengerOf) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
-        remote.group.scale.setScalar(remote.car.group.visible ? 1 : pulse); remote.car.driver.scale.setScalar(.7 * (remote.car.group.visible ? pulse : 1));
+        remote.group.scale.setScalar(remote.car.group.visible || remote.bike.group.visible ? 1 : pulse); remote.bike.rider.scale.setScalar(remote.bike.group.visible ? pulse : 1); remote.car.driver.scale.setScalar(.7 * (remote.car.group.visible ? pulse : 1));
       }
     }
     if (active) {
@@ -564,7 +583,11 @@ async function init() {
       const solids = [...world.solids, ...dynamicSolids];
       if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
       if (!riding || vehicle !== 'car') solids.push({ x: car.group.position.x, z: car.group.position.z, hx: 1.8, hz: 1.8 });
-      if (riding) {
+      if (passengerOf) {
+        const driver = remotePlayers.get(passengerOf);
+        if (driver) { yaw = driver.yaw; pos.set(driver.group.position.x - Math.sin(yaw) * .72, .12, driver.group.position.z - Math.cos(yaw) * .72); speed = driver.speed; }
+        player.group.position.set(pos.x, .42, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
+      } else if (riding) {
         if (keys.has('Space')) speed = THREE.MathUtils.damp(speed, 0, 6, dt);
         else if (forward) speed += forward * (forward * speed < 0 ? 15 : 6.7) * dt;
         else speed = THREE.MathUtils.damp(speed, 0, 1.1, dt);
@@ -608,7 +631,7 @@ async function init() {
       if (!riding) punchPose(player, punchUntil);
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
-      player.group.scale.setScalar(riding ? 1 : localRecallScale);
+      player.group.scale.setScalar(riding && !passengerOf ? 1 : localRecallScale);
       bike.rider.scale.setScalar(riding && vehicle === 'bike' ? localRecallScale : 1);
       car.driver.scale.setScalar(.7 * (riding && vehicle === 'car' ? localRecallScale : 1));
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
@@ -646,11 +669,11 @@ async function init() {
     }
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
-    if (localName) localName.position.set(pos.x, 3.1 + jumpHeight - (seated ? .34 : 0), pos.z);
+    if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
-      const speaker = id === networkPlayerId ? (riding ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(id)?.group.position;
+      const speaker = id === networkPlayerId ? (riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(id)?.group.position;
       const remaining = bubble.expiresAt - time;
       if (!speaker || remaining <= 0 || !networkConnected) {
         bubble.element.remove(); speechBubbles.delete(id); continue;
@@ -680,7 +703,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);

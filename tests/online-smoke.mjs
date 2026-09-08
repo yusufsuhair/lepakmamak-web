@@ -17,6 +17,7 @@ const sockets = [];
 const errors = [];
 try {
   const pages = [];
+  let latestPlayers = [];
   let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false, customizedPlayerSeen = false, remoteCarSeen = false;
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
@@ -29,6 +30,7 @@ try {
     page.on('pageerror', e => errors.push(e.message));
     if (i === 1) page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
       const data = JSON.parse(String(payload));
+      if (data.players) latestPlayers = data.players;
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.seated)) remoteSitSeen = true;
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.appearance?.gender === "female" && player.appearance?.hair === "#79549b" && player.appearance?.hairstyle === "bob")) customizedPlayerSeen = true;
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.vehicle === "car" && player.riding)) remoteCarSeen = true;
@@ -80,6 +82,41 @@ try {
   await expect.poll(async () => { if (!remoteJumpSeen) await pages[0].keyboard.press('Space'); return remoteJumpSeen; }, { timeout: 10000, intervals: [1000] }).toBe(true);
   await pages[0].locator('#world').click({ position: { x: 640, y: 400 } });
   await expect.poll(() => remotePunchSeen).toBe(true);
+  await pages[0].locator('#world').focus();
+  await pages[0].keyboard.down('d');
+  await expect(pages[0].locator('#interaction-text')).toHaveText('Ride your kapcai', { timeout: 12000 });
+  await pages[0].keyboard.up('d');
+  await pages[0].keyboard.press('Enter');
+  await expect.poll(() => latestPlayers.find(p => p.name === 'Smoke Player 0')?.riding).toBe(true);
+  await pages[1].bringToFront();
+  await pages[1].locator('#world').focus();
+  await pages[1].keyboard.down('d');
+  await expect(pages[1].locator('#touch-interact')).toHaveText('HOP ON', { timeout: 12000 });
+  await pages[1].keyboard.up('d');
+  await pages[1].locator('#touch-interact').tap();
+  await expect(pages[1].locator('#vehicle-label')).toHaveText('PILLION · PASSENGER');
+  await expect.poll(() => !!latestPlayers.find(p => p.name === 'Smoke Player 1')?.passengerOf).toBe(true);
+  await pages[0].bringToFront();
+  await pages[0].locator('#world').focus();
+  const bikeStart = latestPlayers.find(p => p.name === 'Smoke Player 0').z;
+  await pages[0].keyboard.down('w');
+  await expect.poll(() => latestPlayers.find(p => p.name === 'Smoke Player 0')?.z).toBeLessThan(bikeStart - 3);
+  await pages[0].keyboard.up('w');
+  await pages[0].keyboard.down('Space');
+  await expect.poll(() => Math.abs(latestPlayers.find(p => p.name === 'Smoke Player 0')?.speed ?? 99)).toBeLessThan(.4);
+  await pages[0].keyboard.up('Space');
+  const driver = latestPlayers.find(p => p.name === 'Smoke Player 0');
+  const passenger = latestPlayers.find(p => p.name === 'Smoke Player 1');
+  expect(Math.hypot(driver.x - passenger.x, driver.z - passenger.z)).toBeCloseTo(.72, 1);
+  await pages[0].screenshot({ path: 'test-results/two-seat-bike.png' });
+  await pages[1].bringToFront();
+  await pages[1].locator('#touch-interact').tap();
+  await expect(pages[1].locator('#vehicle-label')).toHaveText('ON FOOT · TAKE IT EASY');
+  for (const page of pages) {
+    await page.bringToFront();
+    await page.getByRole('button', { name: 'Open settings' }).click();
+    await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
+  }
   for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await expect(page.locator('#chat-body')).toBeVisible(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();

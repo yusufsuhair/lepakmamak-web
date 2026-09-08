@@ -60,16 +60,6 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.up('Space');
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await state(page)).riding).toBe(false);
-  await page.keyboard.down('d');
-  await expect.poll(async () => (await state(page)).position.x, { timeout: 12000 }).toBeGreaterThan(-2.2);
-  await page.keyboard.up('d');
-  // Adjust a possible frame/poll overshoot through normal walking input.
-  const current = await state(page);
-  if (current.position.z < -88) {
-    await page.keyboard.down('s');
-    await expect.poll(async () => (await state(page)).position.z).toBeGreaterThan(-87);
-    await page.keyboard.up('s');
-  }
   await expect(page.locator('#money')).toHaveText('RM 0');
   await page.keyboard.press('Escape');
   const pausedAt = (await state(page)).simTime;

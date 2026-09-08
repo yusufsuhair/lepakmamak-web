@@ -36,6 +36,15 @@ function finiteNumber(value, fallback, min, max) {
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
 }
 
+function followDriver(passenger, driver) {
+  passenger.x = driver.x - Math.sin(driver.yaw) * .72; passenger.z = driver.z - Math.cos(driver.yaw) * .72;
+  passenger.yaw = driver.yaw; passenger.speed = driver.speed; passenger.riding = true; passenger.vehicle = 'bike'; passenger.seated = false; passenger.jumpHeight = 0;
+}
+function releasePassenger(passenger, reset = false) {
+  passenger.passengerOf = null; passenger.riding = false; passenger.speed = 0;
+  passenger.x = reset ? -18 : Math.max(-151, Math.min(151, passenger.x + Math.cos(passenger.yaw) * 2.4));
+  passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
+}
 function snapshot(players) {
   return [...players.values()].map(({ ws: _ws, ...player }) => player);
 }
@@ -106,7 +115,7 @@ webSocketServer.on('connection', ws => {
         x: -18,
         z: 52,
         yaw: Math.PI,
-        riding: false, vehicle: 'bike',
+        riding: false, vehicle: 'bike', passengerOf: null,
         speed: 0,
         jumpHeight: 0, seated: false,
         mic: false, speaker: false,
@@ -121,6 +130,21 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (message.type === 'passenger-join') {
+      const driver = currentRoom.players.get(message.driverId);
+      const occupied = [...currentRoom.players.values()].some(p => p.passengerOf === message.driverId);
+      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || !driver.riding || driver.vehicle !== 'bike' || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || occupied) {
+        send(ws, { type: 'notice', message: 'The bike must be nearby, stopped, and have a free back seat.' }); return;
+      }
+      player.passengerOf = driver.id; followDriver(player, driver);
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'passenger-leave') {
+      if (!player.passengerOf) return;
+      if (Math.abs(player.speed) >= 1.5 && !message.reset) { send(ws, { type: 'notice', message: 'Wait for the driver to stop before getting off.' }); return; }
+      releasePassenger(player, message.reset === true);
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
@@ -149,6 +173,7 @@ webSocketServer.on('connection', ws => {
       const now = Date.now();
       if (now - lastStateAt < 35) return;
       lastStateAt = now;
+      if (player.passengerOf) return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
@@ -158,6 +183,9 @@ webSocketServer.on('connection', ws => {
       player.seated = !player.riding && message.seated === true;
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
+      for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) {
+        if (player.riding && player.vehicle === 'bike') followDriver(passenger, player); else releasePassenger(passenger);
+      }
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
     }
@@ -180,6 +208,7 @@ webSocketServer.on('connection', ws => {
   ws.on('close', () => {
     clearTimeout(joinTimeout);
     if (!player || !currentRoom) return;
+    for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
     if (!currentRoom.players.size) rooms.delete(currentRoom.name);

@@ -105,7 +105,7 @@ export function createBike() {
   }
   box(group, 0, .8, -.45, .5, .37, 1, '#178e86');
   const frame = box(group, 0, .84, .26, .28, .22, .97, '#b0bcb3'); frame.rotation.x = -.3;
-  box(group, 0, 1.08, -.36, .57, .18, .9, '#253034');
+  box(group, 0, 1.08, -.38, .57, .18, 1.35, '#253034');
   const front = box(group, 0, 1.04, .73, .43, .74, .27, '#2ab4a1'); front.rotation.x = -.2;
   box(group, 0, 1.48, .83, .55, .25, .28, '#239b8b');
   box(group, 0, 1.49, .989, .31, .15, .03, '#fff2b9');
@@ -118,11 +118,7 @@ export function createBike() {
   box(group, .34, .48, -.51, .16, .17, .94, '#879996');
   box(group, 0, .9, -1.01, .27, .12, .035, '#e8573b');
   box(group, 0, .71, -1.035, .32, .17, .04, '#20312f');
-  // Insulated delivery box mounted behind the rider.
-  box(group, 0, 1.41, -.86, .74, .64, .64, '#e7b632');
-  box(group, 0, 1.73, -.86, .77, .06, .67, '#f8d665');
-  sign(group, 'MAJU', 0, 1.45, -1.185, .55, .23, '#e7b632', '#244e3e', Math.PI);
-  const rider = createPerson('#e87043', true); rider.group.position.set(0, .62, -.18); rider.group.visible = false; group.add(rider.group);
+  const rider = createPerson('#e87043', true); rider.group.position.set(0, .25, .1); rider.group.visible = false; group.add(rider.group);
   group.scale.setScalar(1.18);
   return { group, wheels, rider: rider.group };
 }
