@@ -645,7 +645,7 @@ async function init() {
     if (nearbyBikeDriver) hint = backSeatFull(nearbyBikeDriver.id) ? nearbyBikeDriver.vehicle === 'car' ? 'Car full · 4 / 4' : 'Bike full · 2 / 2' : Math.abs(nearbyBikeDriver.speed) >= 1.5 ? 'Wait for the vehicle to stop' : nearbyBikeDriver.vehicle === 'car' ? 'Enter car · Passenger seat' : 'Ride pillion · 1 / 2';
     if (passengerOf) hint = Math.abs(speed) < 1.5 ? 'Leave passenger seat' : 'Passenger · Driver controls the vehicle';
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
-    $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
+    $('interaction').hidden = touch || !hint; $('interaction-text').textContent = hint;
     $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     $('touch-horn').hidden = $('desktop-horn').hidden = !riding || !!passengerOf;
     const seatsPanel = $('vehicle-seats');

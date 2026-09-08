@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Hide redundant Enter interaction prompts on touch devices; use the existing action buttons.
+
 - Replaced mic and speaker button text with compact on/off icons on desktop and mobile.
 
 - Cars now seat one driver and three passengers, with a live occupancy and passenger-name panel.
