@@ -1,5 +1,7 @@
 # Changelog
 
+- Added Poker Kampung at mamak tables: private Hold'em cards, free per-hand chips, fixed-limit betting, timed turns, automatic showdown and rematches on desktop and mobile.
+
 - Removed the table mamak food-order flow and its served food visuals; table interactions now focus on sitting, social play and Lukis Lah.
 
 - Added Lukis Lah at mamak tables: live drawing, secret words, 60-second turns and server-owned guessing scores for seated friends.

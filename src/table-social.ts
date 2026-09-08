@@ -1,4 +1,5 @@
 import {setupLukis} from './lukis';
+import {setupPoker} from './poker';
 import locations from '../shared/tables.json';
 export type TableState = { id: string; name: string; hostId: string | null; capacity: number; cheersUntil: number; occupants: {id:string; name:string; chairId:string; hasCup:boolean}[] };
 export type Receipt = {name:string; tableId:string|null; tableName:string; minutes:number; drinksGiven:number; drinksReceived:number; recalls:number; issuedAt:string};
@@ -30,6 +31,7 @@ export function setupTableSocial(send:(message:object)=>boolean, room:string, re
   dialog.innerHTML=`<header><div><small>JOM MAMAK</small><h2 id="table-social-title">Meja Kita</h2></div><button id="close-table-social" aria-label="Close Meja Kita">×</button></header><p id="table-social-help">Sit with your geng. Play a game. Make a memory.</p><div id="table-list"></div><section id="table-detail" hidden><h3 id="table-name"></h3><p id="table-seats"></p><ul id="table-occupants"></ul><form id="table-name-form"><label for="table-name-input">Your table’s name</label><div><input id="table-name-input" maxlength="28" placeholder="Geng Balik Lambat" required /><button>Save</button></div></form><p id="table-host-hint"></p><button id="table-round">Cheers satu meja · Free</button><small>Two or more friends? Jom main together!</small><label for="table-link">Invite friends to this table</label><div class="table-link-row"><input id="table-link" readonly /><button id="copy-table-link">Copy link</button></div></section><button id="get-receipt">Resit Lepak ↗</button><p id="table-feedback" role="status"></p><section id="receipt-view" hidden><canvas id="receipt-canvas" aria-label="Your LepakMamak session receipt"></canvas><div><button id="download-receipt">Download PNG</button><button id="share-receipt">Share receipt</button></div><small>Only your own session stats. Chat and voice are never included. Counters reset when you reconnect.</small></section>`;
   document.body.append(dialog);
   const lukis=setupLukis(send);dialog.querySelector('#table-detail')!.append(lukis.root);
+  const poker=setupPoker(send);dialog.querySelector('#table-detail')!.append(poker.root);
   const el=<T extends HTMLElement>(id:string)=>dialog.querySelector<T>(`#${id}`)!;
   let tables:TableState[]=[], selfId='', online=false, selected=locations[0].id, receipt:Receipt|null=null, roundPending=false;
   let lastView='';
@@ -42,6 +44,7 @@ export function setupTableSocial(send:(message:object)=>boolean, room:string, re
     const table=tables.find(t=>t.id===selected);el('table-detail').hidden=!table;
     el('table-social-help').textContent=online?'Sit at a table to play with your geng. Invite friends with its link.':'Connect to the city to use tables and games.';
     el<HTMLButtonElement>('get-receipt').disabled=!online;
+    poker.context(selected,!!table?.occupants.some(p=>p.id===selfId)&&online,selfId);
     if(!table)return;
     const seated=table.occupants.some(p=>p.id===selfId),host=table.hostId===selfId;
     el('table-name').textContent=table.name;el('table-seats').textContent=`${table.occupants.length} / ${table.capacity} seats · ${table.capacity-table.occupants.length} available`;
@@ -67,10 +70,11 @@ export function setupTableSocial(send:(message:object)=>boolean, room:string, re
     open(tableId?:string){selected=tableId||tables.find(t=>t.occupants.some(p=>p.id===selfId))?.id||selected;releaseInput();if(!dialog.open)dialog.showModal();render(true);el('close-table-social').focus();},
     close,
     game(value:any){lukis.state(value,selfId);},
+    poker(value:any){poker.state(value,selfId);},
     gameLine(value:any){lukis.line(value);},
     get opened(){return dialog.open;},
-    state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
-    offline(){lukis.state(null,selfId);online=false;tables=[];receipt=null;el('receipt-view').hidden=true;roundPending=false;render(true);},
+    state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;poker.context(selected,connected&&!!tables.find(t=>t.id===selected)?.occupants.some(p=>p.id===id),id);render();},
+    offline(){lukis.state(null,selfId);poker.state(null,selfId);online=false;tables=[];receipt=null;el('receipt-view').hidden=true;roundPending=false;render(true);},
     receipt(value:Receipt){receipt=value;drawReceipt(el('receipt-canvas'),value,inviteUrl(room,value.tableId));el('receipt-view').hidden=false;feedback('Your receipt is ready.');el('receipt-view').scrollIntoView({block:'nearest'});},
   };
 }

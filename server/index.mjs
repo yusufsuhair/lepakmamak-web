@@ -1,4 +1,5 @@
 import { createLukis } from './lukis.mjs';
+import { createPoker } from './poker.mjs';
 import {createStalls} from './stalls.mjs';
 const handleStall=createStalls(send);
 import { createChatHistory } from './chat-history.mjs';
@@ -33,6 +34,8 @@ setInterval(() => {
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
 const lukis = createLukis(send);
+const poker = createPoker(send);
+setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
 setInterval(()=>{for(const ps of rooms.values())lukis.tick(ps);},500).unref();
 const chatHistory = createChatHistory();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
@@ -230,6 +233,7 @@ webSocketServer.on('connection', ws => {
       return;
     }
     if (lukis.handle(currentRoom.players, player, message)) return;
+    if (poker.handle(currentRoom.players, player, message)) return;
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
       if((player.danceUntil||0)>Date.now())return;

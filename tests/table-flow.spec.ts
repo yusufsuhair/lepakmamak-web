@@ -15,6 +15,11 @@ test('invited player sits, treats a friend and exports a real session receipt',a
  const free=chairs.find(c=>c.tableId==='meja-1'&&!peers.some(p=>p.chairId===c.id))!;friend.send(JSON.stringify({type:'state',x:free.x,z:free.z}));await expect.poll(()=>peers.find(p=>p.id===friendId)?.x).toBe(free.x);friend.send(JSON.stringify({type:'chair-sit',chairId:free.id}));await expect.poll(()=>peers.find(p=>p.id===friendId)?.seated).toBe(true);
  await expect(page.locator('#open-tables')).toHaveCount(0);const nearbyTable=page.getByRole('button',{name:/Open Meja Kita at Meja 1/});await expect(nearbyTable).toBeVisible();await nearbyTable.click();await expect(page.locator('#table-name-form')).toBeVisible();await page.locator('#table-name-input').fill('Geng Balik Lambat');await page.locator('#table-name-form button').click();await expect(page.locator('#table-name')).toHaveText('Geng Balik Lambat');
  await page.locator('#table-round').click();await expect(page.locator('#table-occupants')).toContainText('☕');await expect(page.locator('#table-occupants li')).toHaveCount(2);
+ let pokerGame:any;friend.on('message',raw=>{const m=JSON.parse(String(raw));if(m.type==='poker-state')pokerGame=m.game;});
+ await page.locator('.poker [data-start]').click();await expect(page.locator('.poker [data-game]')).toBeVisible();await expect.poll(()=>pokerGame?.hand).toBeTruthy();
+ expect(pokerGame.players.find((p:any)=>p.id!==friendId).cards).toEqual([]);
+ if(pokerGame.turnId===friendId)friend.send(JSON.stringify({type:'poker-action',hand:pokerGame.hand,revision:pokerGame.revision,action:'fold'}));else await page.locator('.poker [data-action="fold"]').click();
+ await expect(page.locator('.poker [data-phase]')).toHaveText('Pusingan tamat');await expect(page.locator('.poker [data-turn]')).toContainText('menang');
  await page.locator('#get-receipt').click();await expect(page.locator('#receipt-view')).toBeVisible();const download=page.waitForEvent('download');await page.locator('#download-receipt').click();expect((await download).suggestedFilename()).toBe('resit-lepak.png');
  await page.locator('#close-table-social').click();await page.screenshot({path:'test-results/table-flow-world.png'});expect(errors).toEqual([]);
  }finally{friend?.close();vite.kill();server.kill();}

@@ -1,0 +1,11 @@
+#table-social .poker{margin-top:24px;padding:18px;border-radius:18px;background:#163e34;color:#fff4d7;min-width:0}
+#table-social .poker h3{margin:2px 0;color:inherit;font-size:30px}
+.poker-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.poker-heading>span{font-size:46px;color:#e4bd6c}.poker-heading small{font-size:10px;letter-spacing:1.3px}
+#table-social .poker p{font-size:13px;line-height:1.5;color:inherit}.poker-launch,.poker-actions{display:flex;gap:8px;flex-wrap:wrap}
+#table-social .poker button{background:#efce8c;color:#183d33;flex:1;min-height:44px;border:1px solid #efce8c;border-radius:10px;font-weight:700}
+#table-social .poker button:disabled{opacity:.4;cursor:default}#table-social .poker [data-action="fold"]{background:transparent;color:#fff4d7;border-color:#769389}
+.poker-meta{display:flex;justify-content:space-between;gap:8px;margin:20px 0 12px;font-size:13px}.poker-board{display:flex;justify-content:center;gap:6px;padding:18px 5px;background:#245446;border:1px solid #537962;border-radius:16px}
+.poker-card{display:inline-flex;width:48px;height:65px;align-items:center;justify-content:center;border-radius:6px;background:#fff7e9;color:#24382f;font:bold 19px Georgia,serif;box-shadow:0 2px 3px #0003;flex-shrink:0}.poker-card.red{color:#be3c40}.poker-card.back{background:repeating-linear-gradient(45deg,#315f51,#315f51 4px,#396a5c 4px,#396a5c 8px);color:#acc6b7;border:1px solid #8ca696}
+.poker-players{display:grid;gap:8px;margin:16px 0}.poker-player{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #ffffff25;border-radius:10px}.poker-player.active{border-color:#efce8c;background:#efce8c12}.poker-player.folded{opacity:.5}.poker-player>div:first-child{min-width:0}.poker-player strong{font-size:13px;overflow-wrap:anywhere}.poker-player small{display:block;font-size:11px;margin-top:4px}.poker-hand{display:flex;gap:5px}.poker-hand .poker-card{width:34px;height:44px;font-size:15px}
+.poker details{margin-top:15px;font-size:12px}.poker summary{cursor:pointer;padding:8px 0}.poker [data-turn]{font-weight:700}.poker [data-clock]{opacity:.7;font-variant-numeric:tabular-nums}
+@media(max-width:380px){#table-social .poker{padding:12px}.poker-board{gap:4px}.poker-board .poker-card{width:39px;height:56px;font-size:17px}}
