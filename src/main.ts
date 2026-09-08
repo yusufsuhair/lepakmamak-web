@@ -1,6 +1,6 @@
 import './style.css';
 import * as THREE from 'three';
-import { createWorld, createPerson, createBike, createDriveableCar, applyAppearance } from './world';
+import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, displayName, setupAuth } from './auth';
@@ -65,6 +65,8 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
+  world.solids.push({ x: -11, z: 44, hx: .9, hz: 1.8 });
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
   const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
@@ -174,11 +176,16 @@ async function init() {
   const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: '#d7e5de', transparent: true, opacity: .45 })); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
+  const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'auto';
+  let iceCreamGain: GainNode | null = null;
   function ensureAudio() {
     if (!audioEnabled) return;
     try {
       if (!audioContext) {
-        audioContext = new AudioContext(); engine = audioContext.createOscillator(); engine.type = 'triangle';
+        audioContext = new AudioContext();
+        iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
+        audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(audioContext.destination);
+        engine = audioContext.createOscillator(); engine.type = 'triangle';
         engineGain = audioContext.createGain(); engineGain.gain.value = 0; engine.connect(engineGain); engineGain.connect(audioContext.destination); engine.start();
       }
       if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
@@ -186,11 +193,15 @@ async function init() {
   }
   function startBackgroundMusic() {
     if (!audioEnabled) return;
+    if (started && iceCreamGain) void iceCreamSong.play().catch(() => {});
     void backgroundMusic.play().catch(() => {
       // Browsers can still reject playback when the user starts with the keyboard.
       // The next user interaction will try again without interrupting the game.
     });
   }
+  document.addEventListener('pointerdown', () => {
+    if (started && audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')) { ensureAudio(); startBackgroundMusic(); }
+  });
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
@@ -357,7 +368,7 @@ async function init() {
   }
   function leaveCity() {
     setMap(false); profile.close(); closeOptions();
-    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause();
+    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -403,7 +414,7 @@ async function init() {
     sun.intensity = rainEnabled ? 1.25 : 2.7;
     $('weather-label').textContent = rainEnabled ? '17:42 · Hujan sekejap' : '17:42 · Golden hour';
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { backgroundMusic.pause(); } };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { backgroundMusic.pause(); iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
   const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR']);
   window.addEventListener('keydown', event => {
@@ -669,6 +680,11 @@ async function init() {
     }
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
+    if (iceCreamGain && audioContext) {
+      const distance = Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z);
+      const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
+      iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? .6 * proximity * proximity : 0, audioContext.currentTime, .18);
+    }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
@@ -703,7 +719,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ iceCream: { playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);

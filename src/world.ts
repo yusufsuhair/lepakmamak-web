@@ -149,6 +149,37 @@ function palm(parent: THREE.Object3D, x: number, z: number, size = 1) {
   }
 }
 
+/** A parked Malaysian ice-cream seller's kapcai, shared at the same spot for everyone. */
+export function createIceCreamBike() {
+  const { group } = createBike();
+  const yellow = '#ffd735', blue = '#2263bb';
+  // Rear freezer, insulated lid and stainless mounting rack.
+  box(group, 0, 1.13, -.98, 1.5, .12, 1.05, '#bdcbd1');
+  box(group, 0, 1.62, -.98, 1.4, .9, 1, yellow);
+  box(group, 0, 2.1, -.98, 1.47, .12, 1.07, '#fff6df');
+  box(group, 0, 1.97, -1.495, .35, .08, .04, blue);
+  sign(group, 'MATKOOL', 0, 1.74, -1.49, 1.27, .34, blue, '#ffffff', Math.PI);
+  sign(group, 'AIS KRIM', 0, 1.39, -1.49, 1.27, .22, yellow, blue, Math.PI);
+  for (const side of [-1, 1]) {
+    sign(group, 'MATKOOL', side * .706, 1.8, -.98, .93, .28, blue, '#ffffff', side * Math.PI / 2);
+    // Colourful ice lolly illustrations on both freezer panels.
+    for (let i = 0; i < 3; i++) {
+      box(group, side * .715, 1.48, -1.26 + i * .28, .025, .24, .14, ['#f26b85', '#81d4d2', '#aa673c'][i]);
+      box(group, side * .715, 1.31, -1.26 + i * .28, .025, .11, .035, '#e7bf83');
+    }
+  }
+  tube(group, .62, 2.03, -.85, .035, 3.1, '#c5d5dc');
+  for (let i = 0; i < 8; i++) {
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.48, .48, 1, 1, true, i * Math.PI / 4, Math.PI / 4), material(i % 2 ? blue : yellow));
+    canopy.material.side = THREE.DoubleSide;
+    canopy.position.set(.2, 3.55, -.65); canopy.castShadow = true; group.add(canopy);
+  }
+  ball(group, .2, 3.82, -.65, .085, yellow);
+  // Kickstand keeps the unattended vendor bike upright.
+  const stand = box(group, -.42, .3, -.4, .07, .6, .08, '#34434c'); stand.rotation.z = -.4;
+  return group;
+}
+
 function streetLamp(parent: THREE.Object3D, x: number, z: number, facing = 1) {
   tube(parent, x, 3.65, z, .095, 7.3, '#465852');
   box(parent, x + facing * .82, 7.3, z, 1.8, .12, .13, '#465852');

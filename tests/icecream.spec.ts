@@ -1,0 +1,22 @@
+import { test, expect } from '@playwright/test';
+test('ice cream song fades with distance and respects sound settings', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  const sound = () => page.evaluate(() => (window as any).__lepak.iceCream);
+  await expect.poll(async () => (await sound()).playing).toBe(true);
+  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.1);
+  await page.screenshot({ path: 'test-results/ice-cream-bike.png' });
+  await page.locator('#world').focus();
+  await page.keyboard.down('s');
+  await expect.poll(async () => (await sound()).gain, { timeout: 18000 }).toBeLessThan(.001);
+  await page.keyboard.up('s');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
+  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.1);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.getByLabel('Music & city sounds').uncheck();
+  expect((await sound()).playing).toBe(false);
+  await expect.poll(async () => (await sound()).gain).toBeLessThan(.001);
+  await page.getByLabel('Music & city sounds').check();
+  await expect.poll(async () => (await sound()).playing).toBe(true);
+});
