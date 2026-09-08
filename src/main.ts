@@ -46,13 +46,13 @@ $('app').innerHTML = `
   <section id="hud" aria-label="Game information" hidden>
     <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
-    <div id="interaction" hidden><kbd>Enter</kbd><span id="interaction-text"></span></div>
+    <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <section id="vehicle-seats" aria-label="Car occupants" hidden></section><div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
-    <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
+    <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -556,13 +556,24 @@ async function init() {
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
+  function objectAction() {
+    if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
+    if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
+    const driver = nearbyDriver();
+    if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
+    const chair = nearbyChair();
+    if (chair) return { point: chair, height: 1.3, label: 'Sit', disabled: false };
+    const vehiclePoint = distanceTo(car.group.position) < distanceTo(bike.group.position) ? car.group.position : bike.group.position;
+    if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
+    return null;
+  }
   function interact() {
     if (!started || paused) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
+    if (seated) { seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const driver = !riding && nearbyDriver();
     if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
-    if (seated) { seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const chair = !riding && nearbyChair();
     if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
     if (riding) {
@@ -580,7 +591,7 @@ async function init() {
     toast('Looking good, lah', 'Your new outfit is saved.', 2);
   });
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk;
-  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
     rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
     const color = rainEnabled ? '#adbeb8' : '#d6decd'; scene.background = new THREE.Color(color); (scene.fog as THREE.Fog).color.set(color);
@@ -611,7 +622,6 @@ async function init() {
       return;
     }
     if (!started || paused || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === 'Enter') { event.preventDefault(); if (!event.repeat) interact(); return; }
     if (gameKeys.has(event.code)) event.preventDefault();
     if (event.code === 'Space' && !event.repeat) jump();
     if (event.code === 'KeyH' && !event.repeat) honk();
@@ -713,16 +723,6 @@ async function init() {
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
     $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
     $('vehicle-label').textContent = passengerOf ? vehicle === 'car' ? 'CAR · PASSENGER' : 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'MYVI · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
-    let hint = '';
-    if (riding) hint = Math.abs(speed) < 1.5 ? vehicle === 'car' ? 'Get out of your car' : 'Get off your kapcai' : '';
-    else if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) hint = 'Drive your car';
-    else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
-    const nearbyBikeDriver = !riding && nearbyDriver();
-    if (nearbyBikeDriver) hint = backSeatFull(nearbyBikeDriver.id) ? nearbyBikeDriver.vehicle === 'car' ? 'Car full · 4 / 4' : 'Bike full · 2 / 2' : Math.abs(nearbyBikeDriver.speed) >= 1.5 ? 'Wait for the vehicle to stop' : nearbyBikeDriver.vehicle === 'car' ? 'Enter car · Passenger seat' : 'Ride pillion · 1 / 2';
-    if (passengerOf) hint = Math.abs(speed) < 1.5 ? 'Leave passenger seat' : 'Passenger · Driver controls the vehicle';
-    if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
-    $('interaction').hidden = touch || !hint; $('interaction-text').textContent = hint;
-    $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     $('touch-recall').hidden = $('desktop-recall').hidden = riding;
     $('touch-horn').hidden = $('desktop-horn').hidden = !riding || !!passengerOf;
     const seatsPanel = $('vehicle-seats');
@@ -910,6 +910,17 @@ async function init() {
       if (entity) updateGameMasterTag(entity.label, !!remote.gameMaster, elapsed, reducedMotion);
     }
     camera.updateMatrixWorld();
+    const actionButton = $<HTMLButtonElement>('interaction');
+    const action = objectAction();
+    actionButton.hidden = !started || paused || cityMap.open || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
+    if (action && !actionButton.hidden) {
+      const anchor = new THREE.Vector3(action.point.x, action.height, action.point.z).project(camera);
+      actionButton.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
+      actionButton.style.left = `${Math.max(60, Math.min(innerWidth - 60, (anchor.x + 1) * innerWidth / 2))}px`;
+      actionButton.style.top = `${Math.max(50, Math.min(innerHeight - 70, (1 - anchor.y) * innerHeight / 2))}px`;
+      actionButton.disabled = action.disabled;
+      $('interaction-text').textContent = action.label;
+    }
     const voicePanel = $('voice-panel');
     voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open || onlinePlayersDialog.open;
     if (localName && !voicePanel.hidden) {

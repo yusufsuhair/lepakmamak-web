@@ -50,7 +50,7 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.up('d');
   await page.keyboard.press('e');
   expect((await state(page)).riding).toBe(false);
-  await page.keyboard.press('Enter');
+  await page.locator('#interaction').click();
   await expect.poll(async () => (await state(page)).riding).toBe(true);
   await page.keyboard.down('w');
   await expect.poll(async () => (await state(page)).position.z, { timeout: 45000 }).toBeLessThan(-82);
@@ -58,9 +58,9 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.down('Space');
   await expect.poll(async () => Math.abs((await state(page)).speed)).toBeLessThan(.4);
   await page.keyboard.up('Space');
-  await page.keyboard.press('Enter');
+  await page.locator('#interaction').click();
   await expect.poll(async () => (await state(page)).riding).toBe(false);
-  await expect(page.locator('#money')).toHaveText('RM 0');
+  await expect(page.locator('#money')).toHaveCount(0);
   await page.keyboard.press('Escape');
   const pausedAt = (await state(page)).simTime;
   await page.getByLabel('Rain over KL').check();
@@ -75,7 +75,7 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.reload();
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
-  await expect(page.locator('#money')).toHaveText('RM 0');
+  await expect(page.locator('#money')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -110,7 +110,7 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect.poll(async () => (await state(page)).jumpHeight).toBe(0);
   await expect(page.getByRole('button', { name: 'Spam recall emote' })).toBeVisible();
   await page.getByRole('button', { name: 'Spam recall emote' }).click();
-  await expect(page.locator('#toast')).toContainText('BZZ BZZ BZZ BZZ');
+  await expect(page.locator('#toast')).toBeHidden();
   await expect(page.locator('#mission-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
@@ -121,19 +121,22 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await context.close();
 });
 
-test('Enter sits at a nearby chair and stands without opening chat', async ({ page }) => {
+test('object buttons sit and stand while Enter does nothing', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await page.keyboard.down('a');
   await expect.poll(async () => (await state(page)).position.x).toBeLessThan(-26);
   await page.keyboard.up('a');
   await page.keyboard.press('Enter');
+  expect((await state(page)).seated).toBe(false);
+  await expect(page.locator('#interaction')).toHaveText('Sit');
+  await page.locator('#interaction').click();
   await expect.poll(async () => (await state(page)).seated).toBe(true);
   const sitting = (await state(page)).position;
   await page.keyboard.press('w');
   expect((await state(page)).position).toEqual(sitting);
   await expect(page.locator('#chat-input')).not.toBeFocused();
-  await page.keyboard.press('Enter');
+  await page.locator('#interaction').click();
   await expect.poll(async () => (await state(page)).seated).toBe(false);
 });
 
@@ -177,9 +180,9 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   await expect.poll(async () => (await state(page)).position.z, { timeout: 10000 }).toBeGreaterThan(63);
   await page.keyboard.up('s');
   await page.keyboard.down('d');
-  await expect(page.locator('#interaction-text')).toHaveText('Drive your car', { timeout: 12000 });
+  await expect(page.locator('#interaction-text')).toHaveText('Enter', { timeout: 12000 });
   await page.keyboard.up('d');
-  await page.keyboard.press('Enter');
+  await page.locator('#interaction').click();
   expect((await state(page)).vehicle).toBe('car');
   await expect(page.locator('#vehicle-seats')).toContainText('CAR · 1 / 4');
   await expect(page.locator('#vehicle-seats')).toContainText('Driver:');
@@ -192,10 +195,26 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   await page.keyboard.down('Space');
   await expect.poll(async () => Math.abs((await state(page)).speed)).toBeLessThan(.4);
   await page.keyboard.up('Space');
-  await page.keyboard.press('Enter');
+  await page.locator('#interaction').click();
   expect((await state(page)).riding).toBe(false);
   const exitX = (await state(page)).position.x;
   await page.keyboard.down('a');
   await expect.poll(async () => (await state(page)).position.x).toBeLessThan(exitX - .5);
   await page.keyboard.up('a');
+});
+
+test('mobile object action taps sit and stand without punching', async ({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const page=await context.newPage();
+ try{
+ await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).tap();
+ await page.keyboard.down('a');await expect.poll(async()=>(await state(page)).position.x).toBeLessThan(-26);await page.keyboard.up('a');
+ const punches=(await state(page)).punchCount;
+ await expect(page.locator('#interaction')).toHaveText('Sit');
+ await page.screenshot({path:'test-results/mobile-object-action.png'});
+ await page.locator('#interaction').tap();await expect.poll(async()=>(await state(page)).seated).toBe(true);
+ await expect(page.locator('#interaction')).toHaveText('Stand');await page.locator('#interaction').tap();
+ await expect.poll(async()=>(await state(page)).seated).toBe(false);expect((await state(page)).punchCount).toBe(punches);
+ await expect(page.locator('#touch-interact')).toHaveCount(0);
+ }finally{await context.close();}
 });

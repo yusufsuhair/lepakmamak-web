@@ -9,8 +9,8 @@ test('horn is driver-only and responds to H and button while respecting mute', a
   await page.goto('/'); await page.getByRole('button', { name: "Jom, let's go" }).click();
   await page.keyboard.press('h'); expect(await count()).toBe(0);
   await page.keyboard.down('d');
-  await expect(page.locator('#interaction-text')).toHaveText('Ride your kapcai');
-  await page.keyboard.up('d'); await page.keyboard.press('Enter');
+  await expect(page.locator('#interaction-text')).toHaveText('Enter');
+  await page.keyboard.up('d'); await page.locator('#interaction').click();
   await expect(page.locator('#desktop-horn')).toBeVisible();
   await expect(page.locator('#desktop-recall')).toBeHidden();
   await expect(page.locator('#touch-recall')).toBeHidden();

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replaced Enter and the fixed mobile interaction button with contextual Sit, Stand, Enter and Get out actions positioned beside nearby chairs and vehicles.
+
 - Lowered background music from 22% to 6% volume for a quieter ambience.
 
 - Prevent repeated taps on fixed gameplay layers from triggering Safari smart zoom, while preserving menu and text input interaction.

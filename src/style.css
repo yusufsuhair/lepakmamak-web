@@ -98,8 +98,8 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .map-north { position: absolute; top: 6px; left: 8px; font-size: 9px; color: #f7f1d9; font-weight: 700; }
 .map-caption { display: flex; justify-content: space-between; margin-top: 10px; font-size: 8px; font-weight: 600; letter-spacing: .09em; }
 .map-caption span:last-child { color: #e9efdc; }
-#interaction { position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 15px 10px 10px; border-radius: 5px; background: #183b33ed; font-size: 12px; white-space: nowrap; border: 1px solid #ffffff25; }
-#interaction kbd { border: none; color: #243f2c; background: var(--lime); font-size: 12px; font-weight: 700; width: 29px; height: 29px; }
+
+
 #controls-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; background: #17372eab; padding: 10px 15px; border-radius: 5px; white-space: nowrap; }
 .control { display: flex; gap: 6px; align-items: center; font-size: 9px; }
 .control kbd { font-size: 9px; min-width: 19px; height: 19px; }
@@ -141,7 +141,7 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #error p { max-width: 440px; line-height: 1.7; color: #c7d6bc; }
 @media (max-width: 900px) { .intro-copy { left: 36px; width: 370px; } h1 { font-size: 118px; } #controls-bar { gap: 10px; bottom: 22px; } .control:nth-child(4) { display: none; } #minimap-wrap { width: 150px; bottom: 22px; left: 22px; } #minimap { width: 144px; height: 133px; } #speedometer { width: 110px; right: 22px; bottom: 22px; } .speed-number { font-size: 62px; } }
 @media (pointer: coarse) { #desktop-recall { display: none; } }
-@media (max-width: 600px) { .intro-top { top: 24px; left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: 18px; left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } .multiplayer-status { padding: 6px 7px; font-size: 7px; gap: 5px; } .multiplayer-status b { display: none; } #mission-card { top: 76px; left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; } #interaction { bottom: 170px; left: auto; right: 18px; transform: none; font-size: 10px; gap: 7px; padding: 7px; } #interaction kbd { width: 24px; height: 24px; } #speedometer { bottom: 237px; right: 18px; width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: 245px; } .touch-actions { right: 14px; bottom: 24px; gap: 6px; } .touch-actions button { width: 58px; height: 50px; } .touch-actions .recall-button { width: 68px; } }
+@media (max-width: 600px) { .intro-top { top: 24px; left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: 18px; left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } .multiplayer-status { padding: 6px 7px; font-size: 7px; gap: 5px; } .multiplayer-status b { display: none; } #mission-card { top: 76px; left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; }   #speedometer { bottom: 237px; right: 18px; width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: 245px; } .touch-actions { right: 14px; bottom: 24px; gap: 6px; } .touch-actions button { width: 58px; height: 50px; } .touch-actions .recall-button { width: 68px; } }
 @media (max-height: 650px) and (min-width: 601px) { .intro-copy { transform: translateY(-43%); } h1 { font-size: 100px; } .intro-description { margin-bottom: 18px; } .intro-kicker { margin-bottom: 13px; } .intro-bottom { bottom: 18px; } .intro-top { top: 22px; } .intro-copy .tagline { margin-top: 18px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
 
@@ -216,7 +216,7 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
   #voice-status { font-size: 8px; }
   #speedometer { bottom: 92px; right: 18px; width: 85px; }
   .speed-number { font-size: 38px; }
-  #interaction { bottom: 96px; left: auto; right: 118px; transform: none; }
+
 }
 @media (max-height: 500px) and (pointer: coarse) {
   .intro-copy { top: 58px; left: max(24px, env(safe-area-inset-left)); transform: none; width: min(440px, 65vw); }
@@ -229,7 +229,7 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 @media (max-height: 500px) and (pointer: coarse) {
   #speedometer { right: 230px; bottom: 25px; width: 65px; }
   #speedometer .vehicle-label { display: none; }
-  #interaction { left: 152px; right: auto; bottom: 115px; }
+
   .map-caption { font-size: 6px; }
 }
 
@@ -315,3 +315,6 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 
 /* Disable smart tap zoom while retaining deliberate pinch zoom in menus. */
 html, body, #app { touch-action: manipulation; }
+
+#interaction { position: fixed; bottom: auto; right: auto; transform: translate(-50%, -100%); z-index: 6; pointer-events: auto; touch-action: manipulation; min-width: 76px; min-height: 44px; padding: 10px 18px; border: 1px solid #efffd09c; border-radius: 24px; background: #ddf69aee; color: #193e32; font: 700 14px "DM Sans", sans-serif; box-shadow: 0 3px 12px #102a3440; }
+#interaction:disabled { opacity: .65; cursor: default; }
