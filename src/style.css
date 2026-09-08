@@ -265,3 +265,10 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #vehicle-seats div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; color: #a7b5a6; }
 #vehicle-seats .occupied { color: #fff4d9; }
 @media (max-width: 700px) { #vehicle-seats { left: 10px; top: 75px; width: 155px; padding: 9px; font-size: 11px; } }
+
+.voice-buttons { flex-direction: row; }
+.voice-buttons button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; padding: 10px; flex: 0 0 44px; }
+.voice-buttons svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.voice-buttons button[aria-pressed="true"] .voice-off-slash { display: none; }
+.voice-buttons button[data-pending="true"] { border: 2px dashed #e8c97b; color: #e8c97b; }
+.voice-buttons button:focus-visible { outline: 2px solid #dfff87; outline-offset: 3px; }

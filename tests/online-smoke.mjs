@@ -137,10 +137,10 @@ try {
   await pages[1].locator('#voice-speaker').click();
   await pages[0].bringToFront();
   await pages[0].locator('#voice-mic').click();
-  await expect(pages[0].locator('#voice-mic')).toHaveText('Mic on');
+  await expect(pages[0].locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => pages[1].evaluate(() => window.voicePlayCount), { timeout: 15000 }).toBeGreaterThan(3);
   await pages[0].locator('#voice-mic').click();
-  await expect(pages[0].locator('#voice-mic')).toHaveText('Mic off');
+  await expect(pages[0].locator('#voice-mic')).toHaveAttribute('aria-pressed', 'false');
   await pages[1].locator('#voice-speaker').click();
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();

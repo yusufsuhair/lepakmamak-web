@@ -1,7 +1,9 @@
+const micIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
+const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string };
 export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const panel = document.createElement('aside'); panel.id = 'voice-panel';
-  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false">Mic off</button><button id="voice-speaker" type="button" aria-pressed="false">Speaker off</button></div><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
+  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
   const micButton = panel.querySelector<HTMLButtonElement>('#voice-mic')!;
   const speakerButton = panel.querySelector<HTMLButtonElement>('#voice-speaker')!;
@@ -14,9 +16,13 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const playing = new Set<AudioBufferSourceNode>();
   function render() {
     micButton.disabled = !online; speakerButton.disabled = !online;
-    micButton.textContent = busy ? 'Cancel mic' : mic ? 'Mic on' : 'Mic off';
+    micButton.setAttribute('aria-label', busy ? 'Cancel microphone request' : mic ? 'Turn microphone off' : 'Turn microphone on');
+    micButton.title = busy ? 'Microphone permission pending · Click to cancel' : mic ? 'Microphone on' : 'Microphone off';
+    micButton.dataset.pending = String(busy);
     micButton.setAttribute('aria-pressed', String(mic));
-    speakerButton.textContent = speaker ? 'Speaker on' : 'Speaker off'; speakerButton.setAttribute('aria-pressed', String(speaker));
+    speakerButton.setAttribute('aria-label', speaker ? 'Turn speakers off' : 'Turn speakers on');
+    speakerButton.title = speaker ? 'Speakers on' : 'Speakers off';
+    speakerButton.setAttribute('aria-pressed', String(speaker));
   }
   function announce() { send({ type: 'voice-state', mic, speaker }); render(); }
   async function audioContext() {
@@ -55,7 +61,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
         send({ type: 'voice-audio', audio: btoa(String.fromCharCode(...bytes)) });
       };
       input.connect(capture); capture.connect(ctx.destination); // Processor outputs silence.
-      requested.getAudioTracks()[0].onended = () => { if (attempt === generation) { stopMic(); status.textContent = 'Microphone disconnected. Tap Mic off to retry.'; } };
+      requested.getAudioTracks()[0].onended = () => { if (attempt === generation) { stopMic(); status.textContent = 'Microphone disconnected. Tap the microphone icon to retry.'; } };
       busy = false; mic = true; announce(); status.textContent = 'Mic live · Everyone with speakers on can hear you';
     } catch (error) {
       if (attempt !== generation) return;

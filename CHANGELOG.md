@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replaced mic and speaker button text with compact on/off icons on desktop and mobile.
+
 - Cars now seat one driver and three passengers, with a live occupancy and passenger-name panel.
 
 - Added car and motorbike horns: H or the mobile HONK button, audible to nearby players.

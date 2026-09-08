@@ -44,14 +44,14 @@ test('voice requires opt-in, streams to another player, mutes independently and 
     expect((await stats(receiver)).requests).toBe(0);
     await sender.bringToFront();
     await sender.locator('#voice-mic').click();
-    await expect(sender.locator('#voice-mic')).toHaveText('Mic on');
+    await expect(sender.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(async () => (await stats(receiver)).plays).toBeGreaterThan(3);
     await receiver.bringToFront();
     await receiver.locator('#voice-speaker').click();
     const muted = (await stats(receiver)).plays;
     await receiver.waitForTimeout(200);
     expect((await stats(receiver)).plays).toBe(muted);
-    await expect(sender.locator('#voice-mic')).toHaveText('Mic on');
+    await expect(sender.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
     await receiver.bringToFront();
     await receiver.locator('#voice-speaker').click();
     await expect.poll(async () => (await stats(receiver)).plays).toBeGreaterThan(muted);
@@ -60,7 +60,7 @@ test('voice requires opt-in, streams to another player, mutes independently and 
     expect((await stats(sender)).stopped).toBe(true);
     await sender.bringToFront();
     await sender.locator('#voice-mic').click();
-    await expect(sender.locator('#voice-mic')).toHaveText('Mic on');
+    await expect(sender.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
     await sender.evaluate(() => (window as any).disconnectVoice());
     await expect(sender.locator('#voice-mic')).toBeDisabled();
     expect((await stats(sender)).stopped).toBe(true);
