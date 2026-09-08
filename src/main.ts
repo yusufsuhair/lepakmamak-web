@@ -433,11 +433,11 @@ async function init() {
   }
   function triggerRecall(remoteId?: string) {
     if (remoteId) {
-      const remote = remotePlayers.get(remoteId); if (remote) remote.recallUntil = simTime + .82;
+      const remote = remotePlayers.get(remoteId); if (!remote || remote.riding) return; if (remote) remote.recallUntil = simTime + .82;
       if (remote && remote.target.distanceTo(pos) < 25) recallSound();
       return;
     }
-    if (!started || paused) return;
+    if (!started || paused || riding || passengerOf) return;
     recallUntil = simTime + .82; recallSound();
     for (const id of ['desktop-recall', 'touch-recall']) {
       const button = $(id); button.classList.remove('recall-active'); void button.offsetWidth; button.classList.add('recall-active');
@@ -647,6 +647,7 @@ async function init() {
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = touch || !hint; $('interaction-text').textContent = hint;
     $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
+    $('touch-recall').hidden = $('desktop-recall').hidden = riding;
     $('touch-horn').hidden = $('desktop-horn').hidden = !riding || !!passengerOf;
     const seatsPanel = $('vehicle-seats');
     seatsPanel.hidden = !riding || vehicle !== 'car';
@@ -699,6 +700,7 @@ async function init() {
         remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
         if (remote.seated || remote.passengerOf) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
+        if (remote.riding) remote.recallUntil = 0;
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
         remote.group.scale.setScalar(remote.car.group.visible || remote.bike.group.visible ? 1 : pulse); remote.bike.rider.scale.setScalar(remote.bike.group.visible ? pulse : 1); remote.car.driver.scale.setScalar(.7 * (remote.car.group.visible ? pulse : 1));
@@ -766,6 +768,7 @@ async function init() {
         player.group.position.y = .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
       }
       if (!riding) punchPose(player, punchUntil);
+      if (riding) recallUntil = 0;
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
       player.group.scale.setScalar((passengerOf && vehicle === 'car' ? .7 : 1) * (riding && !passengerOf ? 1 : localRecallScale));

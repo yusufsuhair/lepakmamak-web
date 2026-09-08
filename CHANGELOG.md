@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Disabled recall for vehicle drivers and passengers, including server validation.
+
 - Added collapsible chat with unread counts; starts compact on mobile and remembers the preference.
 
 - Hide redundant Enter interaction prompts on touch devices; use the existing action buttons.

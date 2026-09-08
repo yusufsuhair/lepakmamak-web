@@ -216,7 +216,7 @@ webSocketServer.on('connection', ws => {
     }
     if (message.type === 'recall') {
       const now = Date.now();
-      if (now - lastRecallAt < 90) return;
+      if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
       lastRecallAt = now;
       broadcast(currentRoom.players, { type: 'recall', id: player.id });
       return;
