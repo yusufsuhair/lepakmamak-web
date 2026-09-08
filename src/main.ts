@@ -20,7 +20,7 @@ $('app').innerHTML = `
   <section id="hud" aria-label="Game information" hidden>
     <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
-    <div id="minimap-wrap"><div class="map-frame"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑</span></div><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
+    <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
     <div id="interaction" hidden><kbd>E</kbd><span id="interaction-text"></span></div>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
@@ -28,7 +28,8 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike and delivery route"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; ◆ Job &nbsp; <span class="map-bike-key">● Bike</span></span><span>M / Esc to close · City stays live</span></footer></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
@@ -64,6 +65,16 @@ async function init() {
   const pos = new THREE.Vector3(-18, .12, 52); let yaw = Math.PI;
   let bikeYaw = Math.PI; bike.group.position.set(-6.5, .09, 54); bike.group.rotation.y = bikeYaw;
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
+  const cityMap = $<HTMLDialogElement>('city-map');
+  function setMap(open: boolean) {
+    keys.clear(); dragging = false;
+    if (open && started && !paused) { cityMap.showModal(); drawMap(true); $('close-map').focus(); }
+    else { cityMap.close(); canvas.focus(); }
+  }
+  $('open-map').onclick = () => setMap(true);
+  $('close-map').onclick = () => setMap(false);
+  cityMap.addEventListener('cancel', event => { event.preventDefault(); setMap(false); });
+  cityMap.addEventListener('click', event => { if (event.target === cityMap) { const rect = cityMap.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setMap(false); } });
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
     if (!started || paused || riding || jumpHeight > 0 || jumpVelocity > 0) return;
@@ -270,6 +281,7 @@ async function init() {
   }
   function setPause(value: boolean) {
     if (!started) return;
+    if (value && cityMap.open) setMap(false);
     paused = value; $('pause').hidden = !value; keys.clear(); dragging = false;
     if (value) { $('resume').focus(); }
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
@@ -281,6 +293,7 @@ async function init() {
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
   }
   function leaveCity() {
+    cityMap.close();
     started = false; paused = false; keys.clear(); disconnectMultiplayer(); backgroundMusic.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
@@ -327,6 +340,8 @@ async function init() {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
+    if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
+    if (cityMap.open) { if (event.code === 'Escape') { event.preventDefault(); setMap(false); } return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
     if (paused && event.code === 'Tab') {
       const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button, input'));
@@ -360,9 +375,9 @@ async function init() {
   });
   window.addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
-  const map = $<HTMLCanvasElement>('minimap'); const ctx = map.getContext('2d')!;
-  function drawMap() {
-    const w = map.width, h = map.height, scale = 1.06;
+  function drawMap(expanded = false) {
+    const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
+    const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.06;
     ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
     ctx.fillStyle = '#82907a';
@@ -380,6 +395,11 @@ async function init() {
     ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-5, -5); ctx.lineTo(0, -2); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     ctx.fillStyle = '#d3dfba'; ctx.font = '600 9px "DM Sans"'; ctx.textAlign = 'center'; ctx.fillText('KLCC', 0, -138);
+    if (expanded) {
+      ctx.fillText('MAMAK MAJU', PICKUP.x, PICKUP.z + 14);
+      ctx.fillText('N ↑', 140, -145);
+      for (const remote of remotePlayers.values()) { ctx.fillStyle = '#e4b87b'; ctx.beginPath(); ctx.arc(remote.group.position.x, remote.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
+    }
     ctx.restore();
   }
   function updateHud() {
@@ -406,6 +426,7 @@ async function init() {
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
     $('touch-interact').textContent = riding ? 'GET OFF' : distanceTo(mission.destination) < 4 ? delivery ? 'DELIVER' : 'PICK UP' : 'RIDE';
     drawMap();
+    if (cityMap.open) drawMap(true);
   }
 
   const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3(); const projected = new THREE.Vector3();
