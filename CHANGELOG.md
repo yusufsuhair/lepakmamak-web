@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added server-issued chat timestamps displayed in Malaysia time, with full date/time available on hover.
+
 - Coalesced movement snapshots to 20 Hz per room, suppressed idle movement spam and stale socket queues, added adaptive graphics quality and ambient distance culling, and configured the realtime server for Singapore.
 
 - Enforced one player per chair on the multiplayer server, with occupied actions and automatic release on standing or disconnecting.

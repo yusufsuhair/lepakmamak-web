@@ -483,7 +483,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
+        let message: { sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
@@ -494,7 +494,7 @@ async function init() {
         if (message.type === 'punch' && message.id && message.id !== networkPlayerId) { const remote = remotePlayers.get(message.id); if (remote) remote.punchUntil = simTime + .38; }
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
         if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
-          chat.append(message.name, message.text);
+          chat.append(message.name, message.text, message.sentAt);
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
         if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume);

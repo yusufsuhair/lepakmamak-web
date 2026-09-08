@@ -245,7 +245,7 @@ webSocketServer.on('connection', ws => {
       if (!text) return;
       if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
       lastChatAt = Date.now();
-      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filterChat(text) });
+      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filterChat(text), sentAt: new Date().toISOString() });
       return;
     }
     if (message.type === 'state') {

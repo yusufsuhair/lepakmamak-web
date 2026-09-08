@@ -114,9 +114,15 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   return {
     open() { expand(); input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
-    append(name: string, text: string) {
+    append(name: string, text: string, sentAt?: string) {
+      const parsed = sentAt ? new Date(sentAt) : new Date();
+      const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+      const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
+      timestamp.textContent = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
+      timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
+      timestamp.setAttribute('aria-label', timestamp.title);
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
-      row.append(author, document.createTextNode(text)); messages.append(row);
+      row.append(timestamp, document.createTextNode(' '), author, document.createTextNode(text)); messages.append(row);
       while (messages.children.length > 50) messages.firstElementChild!.remove();
       if (collapsed) { unread++; render(); }
       else messages.scrollTop = messages.scrollHeight;
