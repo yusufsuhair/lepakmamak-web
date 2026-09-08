@@ -22,13 +22,13 @@ $('app').innerHTML = `
     <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
     <div id="minimap-wrap"><div class="map-frame"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑</span></div><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
     <div id="interaction" hidden><kbd>E</kbd><span id="interaction-text"></span></div>
-    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
+    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
     <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
     <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
@@ -64,10 +64,15 @@ async function init() {
   const pos = new THREE.Vector3(-18, .12, 52); let yaw = Math.PI;
   let bikeYaw = Math.PI; bike.group.position.set(-6.5, .09, 54); bike.group.rotation.y = bikeYaw;
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
+  let jumpHeight = 0, jumpVelocity = 0;
+  function jump() {
+    if (!started || paused || riding || jumpHeight > 0 || jumpVelocity > 0) return;
+    jumpVelocity = 6.5;
+  }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number };
+  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; jumpHeight?: number };
   type RemotePlayer = { group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; recallUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -168,7 +173,7 @@ async function init() {
       visibleIds.add(remote.id);
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
-      entity.target.set(remote.x, .12, remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed;
+      entity.target.set(remote.x, .12 + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed;
     }
     for (const [id, entity] of remotePlayers) {
       if (visibleIds.has(id)) continue;
@@ -232,7 +237,7 @@ async function init() {
     networkSendTimer += dt;
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
-    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed }));
+    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight }));
   }
   function recallSound() {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
@@ -285,6 +290,7 @@ async function init() {
   signout.onclick = async () => { if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
+    jumpHeight = 0; jumpVelocity = 0;
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
     bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
     camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', mission.stage === 'delivering' ? 'Your order is still with you. KLCC is north of here.' : 'A fresh start. Your earnings are safe.');
@@ -292,6 +298,7 @@ async function init() {
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
   function interact() {
     if (!started || paused) return;
+    if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
       const exit = safeDismount(pos, yaw, world.solids);
@@ -331,6 +338,7 @@ async function init() {
     if (!started || paused || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'Enter') { event.preventDefault(); if (!event.repeat) chat.open(); return; }
     if (gameKeys.has(event.code)) event.preventDefault();
+    if (event.code === 'Space' && !event.repeat) jump();
     if (event.code === 'KeyE' && !event.repeat) interact();
     if (event.code === 'KeyR' && !event.repeat) triggerRecall();
     if (event.code === 'KeyC') { orbit = 0; cameraPitch = .35; }
@@ -347,7 +355,7 @@ async function init() {
   const endDrag = () => { dragging = false; }; canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
   canvas.addEventListener('wheel', event => { if (!started || paused) return; event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom + event.deltaY * .01, 5, 17); }, { passive: false });
   document.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(button => {
-    button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); keys.add(button.dataset.key!); });
+    button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); if (button.dataset.key === 'Space') jump(); keys.add(button.dataset.key!); });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key!));
   });
   window.addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
@@ -375,6 +383,8 @@ async function init() {
     ctx.restore();
   }
   function updateHud() {
+    const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
+    jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
     $('money').textContent = `RM ${mission.money.toLocaleString()}`;
     const delivery = mission.stage === 'delivering', complete = mission.stage === 'complete';
     $('mission-status').textContent = delivery ? 'ORDER ON BOARD' : complete ? 'NICELY DONE' : 'YOUR FIRST JOB';
@@ -428,7 +438,6 @@ async function init() {
         remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
         remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
         remote.group.rotation.y = remote.yaw;
-        remote.group.position.y = .12 + Math.abs(Math.sin(simTime * 9 + remote.target.x)) * (remote.speed > .5 ? .045 : 0);
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         remote.group.scale.setScalar(recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1);
       }
@@ -452,6 +461,10 @@ async function init() {
         bike.wheels.forEach(wheel => wheel.rotation.x += speed * dt / .4);
         walkSpeed = 0;
       } else {
+        if (jumpVelocity !== 0 || jumpHeight > 0) {
+          jumpVelocity -= 18 * dt; jumpHeight = Math.max(0, jumpHeight + jumpVelocity * dt);
+          if (jumpHeight === 0) jumpVelocity = 0;
+        }
         const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
         const running = keys.has('ShiftLeft') || keys.has('ShiftRight'); const maxSpeed = running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
@@ -465,7 +478,7 @@ async function init() {
         player.group.position.copy(pos); player.group.rotation.y = yaw;
         const stride = Math.sin(simTime * (running ? 13 : 9)) * Math.min(.7, walkSpeed * .12);
         player.leftLeg.rotation.x = stride; player.rightLeg.rotation.x = -stride; player.leftArm.rotation.x = -stride * .7; player.rightArm.rotation.x = stride * .7;
-        player.group.position.y = .12 + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
+        player.group.position.y = .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
       }
       if (mission.stage === 'delivering') mission.elapsed += dt;
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
@@ -519,11 +532,11 @@ async function init() {
       $('destination-label').hidden = !visible || paused;
       if (visible) { $('destination-label').style.left = `${THREE.MathUtils.clamp(screenX, 85, innerWidth - 85)}px`; $('destination-label').style.top = `${screenY}px`; $('destination-label').style.transform = 'translate(-50%, -100%)'; }
     }
-    if (localName) localName.position.set(pos.x, 3.1, pos.z);
+    if (localName) localName.position.set(pos.x, 3.1 + jumpHeight, pos.z);
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
-      const speaker = id === networkPlayerId ? pos : remotePlayers.get(id)?.group.position;
+      const speaker = id === networkPlayerId ? (riding ? bike.group.position : player.group.position) : remotePlayers.get(id)?.group.position;
       const remaining = bubble.expiresAt - time;
       if (!speaker || remaining <= 0 || !networkConnected) {
         bubble.element.remove(); speechBubbles.delete(id); continue;
@@ -553,7 +566,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, jumpHeight, position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);

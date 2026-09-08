@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
@@ -9,6 +9,12 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await expect(page.locator('#loading')).toBeHidden();
   await page.screenshot({ path: 'test-results/title-screen.png' });
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.keyboard.down('Space');
+  await expect.poll(async () => (await state(page)).jumpHeight, { intervals: [30] }).toBeGreaterThan(.4);
+  await expect.poll(async () => (await state(page)).jumpHeight).toBe(0);
+  await page.waitForTimeout(300);
+  expect((await state(page)).jumpHeight).toBe(0);
+  await page.keyboard.up('Space');
   await expect(page.locator('#interaction-text')).toHaveText('Collect the order');
   await page.keyboard.press('e');
   await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
@@ -65,6 +71,9 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await expect(page.locator('#touch-controls')).toBeVisible();
+  await page.getByRole('button', { name: 'Jump', exact: true }).tap();
+  await expect.poll(async () => (await state(page)).jumpHeight, { intervals: [30] }).toBeGreaterThan(.3);
+  await expect.poll(async () => (await state(page)).jumpHeight).toBe(0);
   await expect(page.getByRole('button', { name: 'Spam recall emote' })).toBeVisible();
   await page.getByRole('button', { name: 'Spam recall emote' }).click();
   await expect(page.locator('#toast')).toContainText('BZZ BZZ BZZ BZZ');

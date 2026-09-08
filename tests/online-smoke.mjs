@@ -17,10 +17,15 @@ const sockets = [];
 const errors = [];
 try {
   const pages = [];
+  let remoteJumpSeen = false;
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
     const page = await context.newPage(); pages.push(page);
     page.on('pageerror', e => errors.push(e.message));
+    if (i === 1) page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
+      const data = JSON.parse(String(payload));
+      if (data.players?.some(player => player.name === 'Smoke Player 0' && player.jumpHeight > .3)) remoteJumpSeen = true;
+    }));
     page.on('response', async response => {
       if (response.url().includes('/auth/v1/signup') && response.ok()) {
         const data = await response.json(); if (data.user?.id) users.add(data.user.id);
@@ -51,6 +56,8 @@ try {
     await page.getByRole('button', { name: 'Log in & enter' }).click();
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
+  await pages[0].keyboard.press('Space');
+  await expect.poll(() => remoteJumpSeen, { timeout: 10000 }).toBe(true);
   for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await page.locator('#chat-toggle').click(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();

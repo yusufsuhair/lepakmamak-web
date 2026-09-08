@@ -102,6 +102,7 @@ webSocketServer.on('connection', ws => {
         yaw: Math.PI,
         riding: false,
         speed: 0,
+        jumpHeight: 0,
         updatedAt: Date.now(),
       };
       currentRoom = room;
@@ -131,6 +132,7 @@ webSocketServer.on('connection', ws => {
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 20);
       player.riding = Boolean(message.riding);
+      player.jumpHeight = player.riding ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
