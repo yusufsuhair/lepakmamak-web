@@ -9,23 +9,32 @@ export function nameTag(name: string, interactiveVoice = false) {
   label.userData.drawVoice = (mic: boolean, speaker: boolean) => {
     label.userData.mic = mic; label.userData.speaker = speaker;
     ctx.clearRect(0, 0, 512, 164);
-    ctx.fillStyle = '#173c32ed'; ctx.beginPath(); ctx.roundRect(8, 76, 496, 80, 24); ctx.fill();
-    ctx.font = '600 36px "DM Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ddf69a';
+    ctx.font = label.userData.gameMaster ? '700 30px "DM Sans", sans-serif' : '600 36px "DM Sans", sans-serif';
+    const nameWidth = ctx.measureText(name.slice(0, 18)).width;
+    ctx.font = '700 16px "DM Sans", sans-serif';
+    const titleWidth = label.userData.gameMaster ? ctx.measureText('✦  GAME MASTER  ✦').width : 0;
+    const width = Math.min(496, Math.ceil(Math.max(nameWidth, titleWidth) + 40));
+    const left = (512 - width) / 2;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (!label.userData.gameMaster) {
+      ctx.fillStyle = '#173c3280'; ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill();
+    }
+    ctx.font = '600 36px "DM Sans", sans-serif'; ctx.fillStyle = '#ddf69a';
     if (label.userData.gameMaster) {
       ctx.save();
       ctx.shadowColor = '#ffc94a'; ctx.shadowBlur = 14;
-      ctx.fillStyle = '#30200ff5'; ctx.strokeStyle = '#ffd978'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.roundRect(8, 76, 496, 80, 24); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#30200f80'; ctx.strokeStyle = '#ffd978'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill(); ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillStyle = '#ffe8a3';
       ctx.fillText('✦  GAME MASTER  ✦', 256, 94);
       ctx.font = '700 30px "DM Sans", sans-serif'; ctx.fillStyle = '#fff5d1';
       ctx.fillText(name.slice(0, 18), 256, 128, 440);
-      ctx.beginPath(); ctx.roundRect(10, 78, 492, 76, 22); ctx.clip();
-      const x = (label.userData.shine || 0) * 650 - 100;
+      ctx.beginPath(); ctx.roundRect(left + 2, 78, width - 4, 76, 18); ctx.clip();
+      const x = left - 80 + (label.userData.shine || 0) * (width + 160);
       const shine = ctx.createLinearGradient(x - 70, 76, x + 70, 156);
       shine.addColorStop(0, '#ffffff00'); shine.addColorStop(.5, '#fff4ba66'); shine.addColorStop(1, '#ffffff00');
-      ctx.fillStyle = shine; ctx.fillRect(8, 76, 496, 80); ctx.restore();
+      ctx.fillStyle = shine; ctx.fillRect(left, 76, width, 80); ctx.restore();
     } else ctx.fillText(name.slice(0, 18), 256, 117, 460);
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;

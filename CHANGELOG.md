@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Name banners now fit their text and use translucent backgrounds, including the Game Master banner.
+
 - Voice audio is delivered only to listeners within 15 metres, with full volume inside 5 metres and a fade to the cutoff.
 
 - Reduced all city sound effects to 50% volume; background music and voice chat retain their separate levels.
