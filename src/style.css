@@ -240,3 +240,10 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
   #interaction { left: 152px; right: auto; bottom: 115px; }
   .map-caption { font-size: 6px; }
 }
+
+#avatar-fields { border: 1px solid #a5b59b; border-radius: 8px; padding: 12px; margin: 18px 0; }
+#avatar-fields legend { font-weight: 700; font-size: 13px; }
+#avatar-preview { display: block; width: 100px; height: 112px; float: right; margin: 0 0 8px 10px; border-radius: 7px; }
+#avatar-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; clear: both; }
+#avatar-choices label { margin: 0; font-size: 11px; }
+#avatar-choices select { width: 100%; min-width: 0; padding: 8px 4px; font: inherit; font-size: 16px; border: 1px solid #a5b59b; border-radius: 5px; background: #fffbed; color: #193d33; }

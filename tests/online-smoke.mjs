@@ -17,7 +17,7 @@ const sockets = [];
 const errors = [];
 try {
   const pages = [];
-  let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false;
+  let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false, customizedPlayerSeen = false;
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
     const page = await context.newPage(); pages.push(page);
@@ -30,6 +30,7 @@ try {
     if (i === 1) page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
       const data = JSON.parse(String(payload));
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.seated)) remoteSitSeen = true;
+      if (data.players?.some(player => player.name === "Smoke Player 0" && player.appearance?.gender === "female" && player.appearance?.hair === "#79549b" && player.appearance?.hairstyle === "bob")) customizedPlayerSeen = true;
       if (data.type === "punch") remotePunchSeen = true;
       if (data.players?.some(player => player.name === 'Smoke Player 0' && player.jumpHeight > .3)) remoteJumpSeen = true;
     }));
@@ -47,6 +48,14 @@ try {
     await page.getByLabel('Display name', { exact: true }).fill(`Smoke Player ${i}`);
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Password', { exact: true }).fill(password);
+    if (i === 0) {
+      await page.getByLabel('Gender', { exact: true }).selectOption('female');
+      await page.getByLabel('Hair style', { exact: true }).selectOption('bob');
+      await page.getByLabel('Hair colour', { exact: true }).selectOption('#79549b');
+      await page.getByLabel('Skin tone', { exact: true }).selectOption('#593b30');
+      await page.getByLabel('Shirt colour', { exact: true }).selectOption('#628fbb');
+    }
+    await page.locator('#avatar-fields').screenshot({ path: `test-results/customization-${i}.png` });
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.locator('#auth-panel')).toBeHidden({ timeout: 20000 });
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 20000 });
@@ -64,6 +73,7 @@ try {
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
   for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
+  await expect.poll(() => customizedPlayerSeen).toBe(true);
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();
   await expect.poll(async () => { if (!remoteJumpSeen) await pages[0].keyboard.press('Space'); return remoteJumpSeen; }, { timeout: 10000, intervals: [1000] }).toBe(true);

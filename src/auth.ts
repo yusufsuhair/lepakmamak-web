@@ -1,5 +1,7 @@
 import { createClient, type Session } from '@supabase/supabase-js';
 
+import { appearance, appearanceOptions, defaultAppearance } from './appearance';
+
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const auth = url && key ? createClient(url, key) : null;
@@ -10,7 +12,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
-  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Pick a name your friends will see above your character.</p><label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
+  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Pick a name your friends will see above your character.</p><label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
   document.getElementById('app')!.append(overlay);
   const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const password = el<HTMLInputElement>('auth-password');
@@ -18,9 +20,31 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const name = el<HTMLInputElement>('auth-name');
   const submit = el<HTMLButtonElement>('auth-submit');
   const message = el('auth-message');
-  let mode: 'register' | 'login' | 'recovery' = 'register';
+  const labels = { gender: 'Gender', hairstyle: 'Hair style', hair: 'Hair colour', skin: 'Skin tone', shirt: 'Shirt colour', trousers: 'Trouser colour' };
+  const choices = el('avatar-choices');
+  for (const [key, values] of Object.entries(appearanceOptions)) {
+    const label = document.createElement('label'); label.textContent = labels[key as keyof typeof labels];
+    const select = document.createElement('select'); select.id = `avatar-${key}`;
+    for (const [name, value] of Object.entries(values)) select.add(new Option(name, value));
+    select.value = defaultAppearance[key as keyof typeof defaultAppearance]; label.append(select); choices.append(label);
+  }
+  const selectedAppearance = () => appearance(Object.fromEntries(Object.keys(appearanceOptions).map(key => [key, el<HTMLSelectElement>(`avatar-${key}`).value])));
+  function preview() {
+    const look = selectedAppearance(), ctx = el<HTMLCanvasElement>('avatar-preview').getContext('2d')!;
+    ctx.clearRect(0, 0, 180, 200); ctx.fillStyle = '#d9e2cc'; ctx.fillRect(0, 0, 180, 200);
+    ctx.fillStyle = look.trousers; ctx.fillRect(66, 125, 21, 57); ctx.fillRect(93, 125, 21, 57);
+    ctx.fillStyle = look.shirt; ctx.fillRect(look.gender === 'female' ? 67 : 62, 72, look.gender === 'female' ? 46 : 56, 57); ctx.fillRect(46, 76, 17, 34); ctx.fillRect(117, 76, 17, 34);
+    ctx.fillStyle = look.skin; ctx.fillRect(46, 110, 17, 22); ctx.fillRect(117, 110, 17, 22); ctx.fillRect(82, 62, 16, 14); ctx.beginPath(); ctx.ellipse(90, 43, 25, 30, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = look.hair; ctx.beginPath(); ctx.ellipse(90, 23, 26, 13, 0, Math.PI, Math.PI * 2); ctx.fill(); ctx.fillRect(65, 21, 50, 12);
+    if (look.hairstyle === 'bob') { ctx.fillRect(63, 26, 8, 46); ctx.fillRect(109, 26, 8, 46); }
+    if (look.hairstyle === 'ponytail') ctx.fillRect(112, 26, 12, 44);
+    ctx.fillStyle = '#253a40'; ctx.fillRect(78, 40, 4, 4); ctx.fillRect(98, 40, 4, 4); ctx.fillRect(66, 182, 21, 8); ctx.fillRect(93, 182, 21, 8);
+  }
+  choices.addEventListener('change', preview); preview();
+  let mode: 'register'  | 'login' | 'recovery' = 'register';
   let busy = false;
   function render() {
+    el('avatar-fields').hidden = mode !== 'register';
     el('name-field').hidden = mode !== 'register'; name.required = mode === 'register';
     email.parentElement!.hidden = mode === 'recovery'; email.required = mode !== 'recovery';
     password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
@@ -54,7 +78,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       } else {
         const credentials = { email: email.value.trim(), password: password.value };
         const { data, error } = mode === 'register'
-          ? await auth.auth.signUp({ ...credentials, options: { data: { display_name: name.value.trim() }, emailRedirectTo: location.origin } })
+          ? await auth.auth.signUp({ ...credentials, options: { data: { display_name: name.value.trim(), appearance: selectedAppearance() }, emailRedirectTo: location.origin } })
           : await auth.auth.signInWithPassword(credentials);
         if (error) throw error;
         session = data.session;
@@ -68,7 +92,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     event.stopPropagation();
     if (event.key === 'Escape' && !busy) overlay.hidden = true;
     if (event.key === 'Tab') {
-      const items = [...overlay.querySelectorAll<HTMLElement>('input, button')].filter(e => e.getClientRects().length && !(e as HTMLButtonElement).disabled);
+      const items = [...overlay.querySelectorAll<HTMLElement>('input, select, button')].filter(e => e.getClientRects().length && !(e as HTMLButtonElement).disabled);
       if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1)!.focus(); }
       if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
     }

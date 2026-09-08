@@ -1,10 +1,11 @@
 import './style.css';
 import * as THREE from 'three';
-import { createWorld, createPerson, createBike } from './world';
+import { createWorld, createPerson, createBike, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { DeliveryMission, PICKUP, DELIVERY } from './mission';
 import { auth, session, displayName, setupAuth } from './auth';
+import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, setupChat } from './social';
 import { setupVoice } from './voice';
 
@@ -95,7 +96,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -213,7 +214,7 @@ async function init() {
   function makeRemotePlayer(player: NetworkPlayer) {
     const group = new THREE.Group();
     group.userData.profileName = player.name;
-    const person = createPerson(player.color || '#72c8ba');
+    const person = createPerson('#ef734c', false, appearance(player.appearance));
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
@@ -341,7 +342,9 @@ async function init() {
   }
   function start() {
     if (auth && !session) return;
-    if (started) return; started = true; $('intro').hidden = true; $('hud').hidden = false;
+    if (started) return;
+    applyAppearance(player.group, session?.user.user_metadata?.appearance); applyAppearance(bike.rider, session?.user.user_metadata?.appearance);
+    started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
   }

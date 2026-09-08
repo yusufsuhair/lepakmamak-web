@@ -1,4 +1,7 @@
 import http from 'node:http';
+import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
+const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c' };
+function cleanAppearance(value) { return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, Object.values(appearanceOptions[key]).includes(value?.[key]) ? value[key] : fallback])); }
 import crypto from 'node:crypto';
 import { WebSocketServer } from 'ws';
 
@@ -19,7 +22,7 @@ async function identify(token) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+  return { appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
 }
 
 function roomFor(name) {
@@ -98,6 +101,7 @@ webSocketServer.on('connection', ws => {
         id,
         ws,
         name: identity.name,
+        appearance: cleanAppearance(identity.appearance),
         color: palette[number % palette.length],
         x: -18,
         z: 52,

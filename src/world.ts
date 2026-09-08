@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { appearance, type Appearance } from './appearance';
 import type { Solid } from './physics';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
@@ -41,7 +42,7 @@ function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: num
 }
 
 export interface Person { group: THREE.Group; leftLeg: THREE.Group; rightLeg: THREE.Group; leftArm: THREE.Group; rightArm: THREE.Group }
-export function createPerson(shirt = '#ef734c', seated = false): Person {
+export function createPerson(shirt = '#ef734c', seated = false, customization?: Appearance): Person {
   const group = new THREE.Group();
   box(group, 0, 1.2, 0, .61, .68, .34, shirt);
   box(group, 0, .91, 0, .5, .18, .31, '#253a40');
@@ -67,7 +68,30 @@ export function createPerson(shirt = '#ef734c', seated = false): Person {
     if (seated) { arm.rotation.x = -1.08; arm.rotation.z = side * -.12; }
     group.add(arm); limbs.push(arm);
   }
+  group.traverse(object => {
+    if (object instanceof THREE.Mesh) {
+      const color = (object.material as THREE.MeshStandardMaterial).color.getHexString();
+      object.userData.avatarPart = color === shirt.slice(1) ? 'shirt' : color === 'b98157' || color === 'ac744c' ? 'skin' : color === '202c2b' ? 'hair' : color === 'c7be9c' ? 'trousers' : '';
+    }
+  });
+  if (customization) applyAppearance(group, customization);
   return { group, leftLeg: limbs[0], rightLeg: limbs[1], leftArm: limbs[2], rightArm: limbs[3] };
+}
+
+export function applyAppearance(group: THREE.Group, value: unknown) {
+  const look = appearance(value);
+  group.traverse(object => { if (object instanceof THREE.Mesh && object.userData.avatarPart) object.material = material(look[object.userData.avatarPart as keyof Appearance]); });
+  group.children[0].scale.x = look.gender === 'female' ? .55 : .61;
+  group.children[1].scale.x = look.gender === 'female' ? .55 : .5;
+  const old = group.getObjectByName('avatar-hair'); if (old) group.remove(old);
+  const extra = new THREE.Group(); extra.name = 'avatar-hair'; group.add(extra);
+  if (look.hairstyle === 'bob') {
+    box(extra, 0, 1.79, -.17, .48, .46, .2, look.hair);
+    for (const side of [-1, 1]) box(extra, side * .225, 1.83, -.025, .10, .4, .3, look.hair);
+  } else if (look.hairstyle === 'ponytail') {
+    const tail = ball(extra, 0, 1.76, -.29, .15, look.hair); tail.scale.y = .36;
+  }
+  group.userData.appearance = look;
 }
 
 export function createBike() {
