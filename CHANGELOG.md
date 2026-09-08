@@ -1,5 +1,7 @@
 # Changelog
 
+- Added Lukis Lah at mamak tables: live drawing, secret words, 60-second turns and server-owned guessing scores for seated friends.
+
 - Returning signed-in players now enter the city automatically when opening or refreshing LepakMamak, while expired or missing sessions still show the normal account screen.
 
 - Added the supplied Ar-Rahman audio around both mosques, using the nearest mosque for one smooth proximity fade and respecting the City sounds setting.

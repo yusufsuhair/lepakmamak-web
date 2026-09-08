@@ -1,3 +1,4 @@
+import { createLukis } from './lukis.mjs';
 import {createStalls} from './stalls.mjs';
 const handleStall=createStalls(send);
 import { createChatHistory } from './chat-history.mjs';
@@ -31,6 +32,8 @@ setInterval(() => {
 }, 50).unref();
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
+const lukis = createLukis(send);
+setInterval(()=>{for(const ps of rooms.values())lukis.tick(ps);},500).unref();
 const chatHistory = createChatHistory();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
@@ -226,6 +229,7 @@ webSocketServer.on('connection', ws => {
       } catch { send(ws, { type: 'notice', message: 'Profile saved to your account. Rejoin to refresh its public card.' }); }
       return;
     }
+    if (lukis.handle(currentRoom.players, player, message)) return;
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
       if((player.danceUntil||0)>Date.now())return;
