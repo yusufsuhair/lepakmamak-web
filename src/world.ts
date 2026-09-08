@@ -114,6 +114,19 @@ export function applyAccessories(group: THREE.Group, items: string[]) {
     box(accessories, 0, 2.025, .22, .43, .04, .36, '#dfff87');
     box(accessories, 0, 2.12, .21, .08, .09, .02, '#dfff87');
   }
+  if (items.includes('batik')) {
+    box(accessories, 0, 1.2, .185, .62, .68, .035, '#244f75');
+    for (let i = -2; i <= 2; i++) {
+      const motif = box(accessories, i * .12, 1.2 + (i % 2) * .13, .208, .055, .47, .018, '#e2b94e'); motif.rotation.z = i % 2 ? .58 : -.58;
+    }
+    for (const side of [-1, 1]) box(accessories, side * .39, 1.4, .145, .235, .34, .035, '#244f75');
+  }
+  if (items.includes('harimau')) {
+    box(accessories, 0, 1.2, .185, .62, .68, .035, '#efc62f');
+    for (const x of [-.23, -.11, .11, .23]) { const stripe = box(accessories, x, 1.22, .208, .055, .6, .018, '#202b2d'); stripe.rotation.z = x * 1.6; }
+    box(accessories, 0, 1.45, .219, .22, .08, .018, '#f7e49b');
+    for (const side of [-1, 1]) box(accessories, side * .39, 1.4, .145, .235, .34, .035, '#efc62f');
+  }
 }
 
 export function createBike() {

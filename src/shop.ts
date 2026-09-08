@@ -1,44 +1,81 @@
 import { session } from './auth';
 import catalog from '../shared/shop.json';
-export function setupShop(onEquip: (items: string[]) => void) {
- const dialog=document.createElement('dialog');dialog.id='item-shop';dialog.setAttribute('aria-labelledby','shop-title');
- dialog.innerHTML=`<header><div><h2 id="shop-title">A little more you.</h2><p>One-time accessories · RM 5 each</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><p>Keep your favourites on this account. Wear them around the city.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p><button type="button" id="shop-refresh" class="secondary">Refresh purchases</button>`;
- document.body.append(dialog);
- const message=dialog.querySelector<HTMLElement>('#shop-message')!;
- const base=(import.meta.env.VITE_MULTIPLAYER_URL || '').replace(/^ws/,'http').replace(/\/ws\/?$/,'').replace(/\/$/,'');
- let owned: {sku:string;equipped:boolean}[]=[], available=false, busy=false;
- async function request(path:string, body?:unknown) {
-  if(!base)throw Error('The shop needs an online connection.');
-  const result=await fetch(`${base}/shop/${path}`,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.access_token}`}:{})},...(body?{body:JSON.stringify(body)}:{})});
-  const data=await result.json();if(!result.ok)throw Error(data.error || 'Please try again.');return data;
- }
- const equipped=()=>owned.filter(i=>i.equipped).map(i=>i.sku);
- function draw() {
-  const list=dialog.querySelector('#shop-items')!;list.replaceChildren();
-  for(const item of catalog){
-   const record=owned.find(i=>i.sku===item.id), card=document.createElement('article');
-   const preview=document.createElement('div');preview.className=`shop-art ${item.id}`;preview.setAttribute('aria-hidden','true');preview.innerHTML=item.id==='cap'?'<i></i>':'<i></i><i></i>';
-   const title=document.createElement('h3');title.textContent=item.name;
-   const description=document.createElement('p');description.textContent=item.description;
-   const button=document.createElement('button');button.className='primary';button.type='button';button.disabled=busy||!available||!session;
-   button.textContent=record?(record.equipped?'Take off':'Wear item'):'Buy · RM 5';
-   button.onclick=async()=>{if(busy)return;busy=true;draw();message.textContent=record?'Updating your look…':'Opening secure Stripe Checkout…';try{
-    if(record){const data=await request('equip',{sku:item.id,equipped:!record.equipped});owned=data.items;onEquip(equipped());message.textContent='Outfit updated.';}
-    else {const data=await request('checkout',{sku:item.id});const target=new URL(data.url);if(target.protocol!=='https:'||target.hostname!=='checkout.stripe.com')throw Error('Invalid checkout address');location.assign(target.href);}
-   }catch(error){message.textContent=error instanceof Error?error.message:'Please try again.';}finally{busy=false;draw();}};
-   card.append(preview,title,description,button);list.append(card);
+
+type InventoryItem = { sku: string; equipped: boolean };
+type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: boolean; nextDailyAt?: string | null };
+
+export function setupShop(onEquip: (items: string[]) => void, endpoint?: string) {
+  const dialog = document.createElement('dialog'); dialog.id = 'item-shop'; dialog.setAttribute('aria-labelledby', 'shop-title');
+  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins dan aksesori · tiada bayaran sebenar</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><p>Beli sekali, simpan dalam akaun dan pakai bila-bila masa.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p><button type="button" id="shop-refresh" class="secondary">Refresh kedai</button>`;
+  document.body.append(dialog);
+  const message = dialog.querySelector<HTMLElement>('#shop-message')!;
+  const balanceLabel = dialog.querySelector<HTMLElement>('#shop-balance')!;
+  const daily = dialog.querySelector<HTMLButtonElement>('#shop-daily')!;
+  const base = (endpoint || import.meta.env.VITE_MULTIPLAYER_URL || '').replace(/^ws/, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
+  let owned: InventoryItem[] = [], balance = 0, dailyAvailable = false, nextDailyAt: string | null = null, available = false, busy = false;
+
+  async function request(path: string, body?: unknown) {
+    if (!base) throw Error('The shop needs an online connection.');
+    const result = await fetch(`${base}/shop/${path}`, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const data = await result.json(); if (!result.ok) throw Object.assign(Error(data.error || 'Please try again.'), { state: data }); return data;
   }
- }
- async function refresh(){if(busy)return;busy=true;draw();try{const data=await request('catalog');available=data.available;if(session&&available){owned=(await request('inventory')).items;onEquip(equipped());}message.textContent=!session?'Log in to buy and wear accessories.':available?'Purchases use real MYR payments through Stripe.':'The shop is not available yet.';}catch{available=false;message.textContent='Could not connect to the shop. Please try again.';}finally{busy=false;draw();}}
- dialog.querySelector('#shop-close')!.addEventListener('click',()=>dialog.close());
- dialog.querySelector('#shop-refresh')!.addEventListener('click',()=>void refresh());
- dialog.addEventListener('keydown',e=>e.stopPropagation());
- async function enter(){
-  owned=[];onEquip([]);await refresh();
-  const params=new URLSearchParams(location.search), checkout=params.get('session_id');
-  if(params.has('shop')){dialog.showModal();if(params.get('shop')==='success'&&checkout&&session){try{const result=await request('confirm',{session_id:checkout});owned=result.items;onEquip(equipped());message.textContent=result.paid?'Payment confirmed. Your item is ready to wear.':'Your payment is processing. Refresh purchases shortly.';draw();}catch{message.textContent='Payment verification is pending. Refresh purchases in a moment.';}}
-   const clean=new URL(location.href);clean.searchParams.delete('shop');clean.searchParams.delete('session_id');history.replaceState(null,'',clean);
+  const equipped = () => owned.filter(item => item.equipped).map(item => item.sku);
+  function applyState(state: ShopState) {
+    if (state.items) owned = state.items;
+    if (Number.isFinite(state.balance)) balance = state.balance!;
+    if (typeof state.dailyAvailable === 'boolean') dailyAvailable = state.dailyAvailable;
+    if ('nextDailyAt' in state) nextDailyAt = state.nextDailyAt || null;
+    onEquip(equipped());
   }
- }
- return {open(){dialog.showModal();void refresh();},enter, close(){dialog.close();owned=[];onEquip([]);}};
+  function rewardLabel() {
+    if (dailyAvailable) return 'Tuntut harian · +100';
+    if (!nextDailyAt) return 'Ganjaran dituntut';
+    const hours = Math.max(1, Math.ceil((Date.parse(nextDailyAt) - Date.now()) / 3600000));
+    return `Lagi ${hours} jam`;
+  }
+  function draw() {
+    balanceLabel.textContent = `🪙 ${balance.toLocaleString('en-MY')}`;
+    daily.textContent = rewardLabel(); daily.disabled = busy || !available || !session || !dailyAvailable;
+    const list = dialog.querySelector('#shop-items')!; list.replaceChildren();
+    for (const item of catalog) {
+      const record = owned.find(entry => entry.sku === item.id), card = document.createElement('article');
+      card.dataset.type = item.type;
+      const preview = document.createElement('div'); preview.className = `shop-art ${item.id}`; preview.setAttribute('aria-hidden', 'true'); preview.innerHTML = item.id === 'spectacles' ? '<i></i><i></i>' : '<i></i>';
+      const kind = document.createElement('small'); kind.className = 'shop-kind'; kind.textContent = item.type === 'skin' ? 'SKIN' : 'ACCESSORY';
+      const title = document.createElement('h3'); title.textContent = item.name;
+      const description = document.createElement('p'); description.textContent = item.description;
+      const button = document.createElement('button'); button.className = 'primary'; button.type = 'button'; button.disabled = busy || !available || !session;
+      button.textContent = record ? (record.equipped ? 'Tanggalkan' : 'Pakai') : `Beli · 🪙 ${item.price}`;
+      button.onclick = async () => {
+        if (busy) return; busy = true; draw(); message.textContent = record ? 'Mengemas kini character…' : `Membeli ${item.name}…`;
+        try {
+          const data = record ? await request('equip', { sku: item.id, equipped: !record.equipped }) : await request('buy', { sku: item.id });
+          applyState(data); message.textContent = record ? 'Character dikemas kini.' : `${item.name} kini milik anda.`;
+        } catch (error) {
+          const failure = error as Error & { state?: ShopState }; if (failure.state) applyState(failure.state);
+          message.textContent = failure.message || 'Please try again.';
+        } finally { busy = false; draw(); }
+      };
+      card.append(preview, kind, title, description, button); list.append(card);
+    }
+  }
+  async function refresh() {
+    if (busy) return; busy = true; draw();
+    try {
+      const data = await request('catalog'); available = data.available;
+      if (session && available) applyState(await request('inventory'));
+      message.textContent = !session ? 'Log masuk untuk simpan Syiling Lepak dan item.' : available ? '500 syiling permulaan diberi kepada setiap akaun.' : 'Kedai belum tersedia.';
+    } catch { available = false; message.textContent = 'Tidak dapat sambung ke kedai. Cuba lagi.'; }
+    finally { busy = false; draw(); }
+  }
+  daily.onclick = async () => {
+    if (busy || !dailyAvailable) return; busy = true; draw(); message.textContent = 'Menuntut ganjaran harian…';
+    try { applyState(await request('daily', {})); message.textContent = '🪙 100 Syiling Lepak diterima!'; }
+    catch (error) { const failure = error as Error & { state?: ShopState }; if (failure.state) applyState(failure.state); message.textContent = failure.message; }
+    finally { busy = false; draw(); }
+  };
+  dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
+  dialog.querySelector('#shop-refresh')!.addEventListener('click', () => void refresh());
+  dialog.addEventListener('keydown', event => event.stopPropagation());
+  return { open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; onEquip([]); } };
 }

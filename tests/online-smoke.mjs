@@ -78,10 +78,11 @@ try {
   for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
   for (const [index,page] of pages.entries()) {
     await page.getByRole('button', {name:'Open settings'}).click();
-    await page.getByRole('button', {name:'Shop · Accessories'}).click();
+    await page.getByRole('button', {name:'Kedai · Skins & Accessories'}).click();
     await expect(page.locator('#item-shop')).toBeVisible();
-    await expect(page.locator('#item-shop').getByRole('button', {name:'Buy · RM 5'})).toHaveCount(2);
-    await expect(page.locator('#item-shop').getByRole('button', {name:'Buy · RM 5'}).first()).toBeEnabled();
+    await expect(page.locator('#shop-balance')).toContainText('🪙 500');
+    await expect(page.locator('#item-shop').getByRole('button', {name:/Beli · 🪙/})).toHaveCount(4);
+    await expect(page.locator('#item-shop').getByRole('button', {name:/Beli · 🪙/}).first()).toBeEnabled();
     await page.locator('#item-shop').screenshot({path:`test-results/shop-${index}.png`});
     await page.getByRole('button', {name:'Close shop'}).click();
     await page.locator('#resume').click();

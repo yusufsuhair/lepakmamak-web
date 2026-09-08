@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replaced Stripe purchases with Syiling Lepak: 500 starter coins, a 100-coin daily reward, atomic server-side spending, two accessories and two Malaysian outfit skins.
+
 - Added a PETRONAS-inspired Malaysian fuel station with Kedai Mesra, a turquoise canopy, six pumps and a dedicated city-map marker.
 
 - Styled verified Game Master chat messages with a compact gold border, GM label and subtle shine; the server-owned role persists with chat history.

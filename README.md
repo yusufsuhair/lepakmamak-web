@@ -113,12 +113,12 @@ The first version relays transient mono 16 kHz PCM audio in 40 ms frames over th
 
 `tests/voice.spec.ts` uses generated browser audio to test playback between two clients, permission handling, independent mute, and capture cleanup. `tests/online-smoke.mjs` also checks playback through production using temporary accounts and a private test room.
 
-## Accessory shop
+## Syiling Lepak shop
 
-Open **Settings → Shop · Accessories**. Spectacles and cap cost RM5 each as permanent account purchases. Stripe hosted Checkout handles payment; players equip purchased items in the shop. Equipment is broadcast to other players and restored on login.
+Open **Settings → Kedai · Skins & Accessories**. Every registered account starts with 500 Syiling Lepak and can claim another 100 every 24 hours. Spectacles, caps and Malaysian outfit skins are permanent account unlocks; owned items can be equipped at any time and appear to other players.
 
-The Railway server requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SPECTACLES`, `STRIPE_PRICE_CAP`, `SUPABASE_SERVICE_ROLE_KEY` and `SHOP_ORIGIN`. These are server secrets/configuration, never Vite variables. The live webhook is `/shop/webhook` on the realtime API. It handles completed/async-success/expired Checkout sessions and full charge refunds. Refunds remove ownership and equipment. Catalog prices are checked against Stripe's session and line items before the service-role RPC grants inventory. Browser writes to inventory are denied by RLS.
+Wallet creation, daily rewards and purchases run through service-role-only Supabase functions. Purchases lock the wallet row, verify the catalog price in the database, prevent duplicate ownership and record an audit transaction before returning the new balance. Browser writes to wallets, transactions and inventory are denied by RLS. No real-money checkout is used.
 
-Apply `supabase/migrations/202609080001_shop.sql` through the linked Supabase CLI when setting up a new environment. `scripts/configure-shop.mjs` provisions the fixed live catalog and Railway configuration using a securely supplied `STRIPE_SECRET_KEY`. The existing webhook secret must be retained if rerunning setup. Runtime restricted keys need Checkout Sessions read/write, Payment Intents and Charges read; provisioning additionally needs Products, Prices and Webhook Endpoints access.
+Apply `supabase/migrations/202609080001_shop.sql` followed by `supabase/migrations/20260908134952_game_currency_shop.sql` when setting up a new environment. The Railway server only needs the existing Supabase service-role configuration for this shop.
 
-`npx playwright test tests/shop.spec.ts` checks authorization and payment guards without Stripe calls. `scripts/shop-live-smoke.mjs` is an explicit live integration check requiring a server key: it creates a disposable user, opens and expires an unpaid RM5 Checkout, tests inventory on that disposable account, and cleans it up. It never pays. Do not put keys in files or Git.
+`npx playwright test tests/shop.spec.ts` checks authorization, currency purchase responses, daily rewards and skin equipment without using a real account.

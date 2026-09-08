@@ -296,18 +296,25 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 #item-shop h2 { font:700 36px/1 'Barlow Condensed'; margin:0; }
 #item-shop p { font-size:12px; line-height:1.5; }
 #shop-close { padding:10px; border:1px solid #8da28c; border-radius:6px; background:transparent; color:inherit; cursor:pointer; }
+.shop-wallet { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:18px 0; padding:14px; border-radius:10px; background:#173f35; color:#fff7d4; }
+.shop-wallet div { display:flex; flex-direction:column; gap:3px; }.shop-wallet small { color:#b8d5bd; font-size:10px; letter-spacing:.12em; }.shop-wallet strong { font:700 28px/1 'Barlow Condensed'; }
+#shop-daily { min-height:44px; border:0; border-radius:7px; padding:10px 14px; background:#dfff87; color:#173c32; font-weight:700; cursor:pointer; }#shop-daily:disabled{opacity:.48;cursor:default;}
 #shop-items { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 #shop-items article { padding:14px; border:1px solid #bcc6a9; border-radius:10px; }
 #shop-items h3 { font:700 24px 'Barlow Condensed'; margin:12px 0 6px; }
 #shop-items .primary { width:100%; padding:12px; font-size:13px; }
 #shop-items button:disabled { opacity:.5; cursor:default; }
+.shop-kind { display:inline-block; margin-top:10px; padding:3px 6px; border-radius:4px; background:#d6dfc6; font-size:9px; font-weight:700; letter-spacing:.1em; }
 .shop-art { height:94px; background:#dbe1cb; border-radius:8px; display:flex; justify-content:center; align-items:center; position:relative; }
 .shop-art.spectacles { gap:7px; }
 .shop-art.spectacles i { width:36px; height:29px; border:5px solid #172b27; border-radius:8px; }
 .shop-art.spectacles:after { content:''; width:13px; height:5px; background:#172b27; position:absolute; }
 .shop-art.cap i { width:65px; height:42px; border-radius:38px 38px 0 0; background:#245d46; border-bottom:7px solid #dfff87; transform:rotate(-10deg); }
+.shop-art.batik i,.shop-art.harimau i { width:72px; height:67px; clip-path:polygon(20% 0,36% 10%,64% 10%,80% 0,100% 20%,84% 39%,75% 29%,75% 100%,25% 100%,25% 29%,16% 39%,0 20%); }
+.shop-art.batik i { background:repeating-linear-gradient(55deg,#244f75 0 10px,#e2b94e 11px 15px,#244f75 16px 24px); }
+.shop-art.harimau i { background:repeating-linear-gradient(70deg,#efc62f 0 12px,#202b2d 13px 18px,#efc62f 19px 29px); }
 #shop-message { min-height:20px; }
-@media(max-width:420px){#item-shop{padding:18px;}#shop-items{gap:8px;}#shop-items article{padding:9px;}}
+@media(max-width:420px){#item-shop{padding:18px;}#shop-items{gap:8px;}#shop-items article{padding:9px;}.shop-wallet{align-items:stretch;flex-direction:column;}#shop-daily{width:100%;}}
 
 .brand-status { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 

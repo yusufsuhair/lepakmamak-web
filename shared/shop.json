@@ -1,1 +1,6 @@
-[{"id":"spectacles","name":"Lepak Spectacles","description":"Black-frame spectacles for your character.","amount":500},{"id":"cap","name":"Lepak Cap","description":"A green cap with a lime brim.","amount":500}]
+[
+  {"id":"spectacles","name":"Cermin Mata Lepak","description":"Bingkai hitam klasik untuk character anda.","price":120,"type":"accessory"},
+  {"id":"cap","name":"Topi Lepak","description":"Topi hijau dengan brim warna limau.","price":150,"type":"accessory"},
+  {"id":"batik","name":"Skin Batik Malam","description":"Baju batik biru dengan corak emas Malaysia.","price":220,"type":"skin"},
+  {"id":"harimau","name":"Skin Harimau","description":"Jersi kuning hitam dengan semangat Harimau Malaya.","price":260,"type":"skin"}
+]
