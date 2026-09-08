@@ -124,5 +124,12 @@
     "x": -56,
     "z": -40,
     "kind": "kedai"
+  },
+  {
+    "id": "19",
+    "name": "FamilyMart Malaysia",
+    "x": 49,
+    "z": 34,
+    "kind": "kedai"
   }
 ]

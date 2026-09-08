@@ -499,7 +499,6 @@ export function createWorld(scene: THREE.Scene): World {
   shop(-57, -12, 20, shopColors[3], 'KEDAI KOPI');
   shop(-35, -40, 18, shopColors[2], 'PASAR MINI');
   shop(27, 34, 19, shopColors[0], 'WARUNG KAK ANA');
-  shop(49, 34, 22, shopColors[4], 'KEDAI BUKU');
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
   shop(33, 103, 24, shopColors[1], 'SELAMAT JALAN');
@@ -568,6 +567,32 @@ export function createWorld(scene: THREE.Scene): World {
     }
     sign(watsons, 'HEALTH · BEAUTY · PHARMACY', 0, .39, 6.35, 17.8, .42, deep, white);
     sign(watsons, '+', 7.55, 5.35, 6.32, 1.35, 1.35, white, turquoise);
+  }
+
+  // FamilyMart Malaysia storefront, using its white fascia and signature
+  // green-over-blue bands with café, fresh-food and snack displays.
+  {
+    const familyMart = shop(49, 34, 22, '#f4f4ec', 'FAMILYMART');
+    const green = '#159447', blue = '#1674be', white = '#fffef7', glass = '#8ebbbb';
+    box(familyMart, 0, 4.72, 6.28, 22, .42, .2, green);
+    box(familyMart, 0, 4.35, 6.29, 22, .32, .21, white);
+    box(familyMart, 0, 4.03, 6.3, 22, .34, .22, blue);
+    sign(familyMart, 'Family', -3.65, 5.55, 6.32, 10.3, 1.25, white, green);
+    sign(familyMart, 'Mart', 4.45, 5.55, 6.32, 6.1, 1.25, white, blue);
+    box(familyMart, 0, 3.17, 7.14, 22, .15, 2.35, green);
+    box(familyMart, 0, 2.93, 7.15, 22, .16, 2.36, white);
+    box(familyMart, 0, 2.69, 7.16, 22, .15, 2.37, blue);
+    box(familyMart, 0, 1.52, 6.2, 2.5, 3.05, .13, glass);
+    for (const x of [-8.2, -5.6, -3, 3, 5.6, 8.2]) {
+      box(familyMart, x, 1.52, 6.21, 2.35, 3.05, .13, glass);
+      box(familyMart, x - 1.18, 1.52, 6.3, .08, 3.05, .1, white);
+    }
+    for (const side of [-1, 1]) for (const y of [.83, 1.48, 2.13]) {
+      box(familyMart, side * 6.1, y - .18, 6.36, 6.3, .08, .45, white);
+      for (let i = 0; i < 6; i++) box(familyMart, side * (3.7 + i * .98), y + .04, 6.4, .55, .36, .25, ['#f0d56d', '#eb8d69', '#83b887', '#f5f0df'][i % 4]);
+    }
+    sign(familyMart, 'FRESH FOOD · CAFÉ · BAKERY', -1.5, .38, 6.38, 15.8, .42, blue, white);
+    sign(familyMart, 'SOFUTO', 8.35, .38, 6.38, 4.4, .42, green, white);
   }
 
   // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,
