@@ -1,3 +1,10 @@
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-hC1okkrnxa+PHroBa5FYLiTDcxFYp5xaKjVweTthZcU='; style-src 'self'; font-src 'self'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://lepak-city-realtime-production.up.railway.app wss://lepak-city-realtime-production.up.railway.app; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; manifest-src 'self'; upgrade-insecure-requests
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=(self)
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 

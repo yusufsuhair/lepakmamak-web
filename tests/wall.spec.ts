@@ -16,7 +16,8 @@ test('Wall server owns identity, filters text, stores media and protects deletio
  try{
   expect((await call('/wall/posts')).status).toBe(200);
   expect((await call('/wall/posts','POST',{text:'forged'},undefined)).status).toBe(401);
-  const created=await (await call('/wall/posts','POST',{text:'bodoh',author:'Admin',userId:'u2',mimeType:'image/png',data:'aGVsbG8='},'valid')).json();
+  expect((await call('/wall/posts','POST',{text:'fake image',mimeType:'image/png',data:'PHNjcmlwdD4='},'valid')).status).toBe(400);
+  const created=await (await call('/wall/posts','POST',{text:'bodoh',author:'Admin',userId:'u2',mimeType:'image/png',data:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='},'valid')).json();
   expect(created.post).toMatchObject({userId:ownId,author:'Real Name',text:'***',mediaType:'image'});expect(uploads).toHaveLength(1);
   expect((await call('/wall/posts/11111111-1111-4111-8111-111111111111','DELETE',undefined,'valid')).status).toBe(403);
   expect((await call('/wall/posts/22222222-2222-4222-8222-222222222222','DELETE',undefined,'valid')).status).toBe(200);expect(removed).toEqual(uploads);
@@ -27,10 +28,10 @@ test('Wall server owns identity, filters text, stores media and protects deletio
 test('Wall UI is responsive, renders mixed posts and opens a social profile',async({page})=>{
  await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const auth=null; export let guestName=""; export let session={access_token:"token",user:{id:"u1"}};'}));
  await page.route('**/wall-harness',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><button id="open-wall">Wall<i id="wall-unread" hidden></i></button>'}));
- await page.route('http://wall.test/wall/posts',async route=>{if(route.request().method()==='POST'){expect(route.request().headers().authorization).toBe('Bearer token');return route.fulfill({json:{post:{id:'p2',userId:'u1',author:'Saya',text:'New post',mediaType:null,mediaUrl:null,mimeType:null,createdAt:'2026-09-08T12:10:00Z'}}});}return route.fulfill({json:{posts:[{id:'p1',userId:'u2',author:'Aina',text:'Jom lepak!',mediaType:'image',mediaUrl:'data:image/png;base64,iVBORw0KGgo=',mimeType:'image/png',createdAt:'2026-09-08T12:00:00Z'}]}});});
+ await page.route('http://wall.test/wall/posts',async route=>{if(route.request().method()==='POST'){expect(route.request().headers().authorization).toBe('Bearer token');return route.fulfill({json:{post:{id:'p2',userId:'u1',author:'Saya',text:'New post',mediaType:null,mediaUrl:null,mimeType:null,createdAt:'2026-09-08T12:10:00Z'}}});}return route.fulfill({json:{posts:[{id:'p1',userId:'u2',author:'Aina',text:'<script>window.pwned=1</script><img src=x onerror=alert(1)> Jom lepak!',mediaType:'image',mediaUrl:'data:image/png;base64,iVBORw0KGgo=',mimeType:'image/png',createdAt:'2026-09-08T12:00:00Z'}]}});});
  await page.route('http://wall.test/wall/profile/u2',route=>route.fulfill({json:{profile:{id:'u2',name:'Aina',registered:true,details:{bio:'Teh tarik hunter'}}}}));
  await page.goto('/wall-harness');await page.evaluate(async()=>{const{setupWall}=await import('/src/wall.ts');(window as any).wall=setupWall('ws://wall.test/ws',()=>{});(window as any).wall.open();});
- await expect(page.locator('#social-wall')).toBeVisible();await expect(page.locator('.wall-post')).toContainText('Jom lepak!');await expect(page.locator('.wall-photo')).toHaveCount(1);
+ await expect(page.locator('#social-wall')).toBeVisible();await expect(page.locator('.wall-post')).toContainText('<script>window.pwned=1</script>');await expect(page.locator('.wall-photo')).toHaveCount(1);await expect(page.locator('.wall-post script, .wall-post img[src="x"]')).toHaveCount(0);expect(await page.evaluate(()=>(window as any).pwned)).toBeUndefined();
  await page.getByRole('button',{name:'Aina'}).click();await expect(page.locator('#wall-profile')).toBeVisible();await expect(page.locator('#wall-profile-details')).toContainText('Teh tarik hunter');await page.locator('#wall-profile-close').click();
  await page.locator('#wall-text').fill('New post');await page.locator('#wall-post').click();await expect(page.locator('.wall-post').first()).toContainText('New post');
 });

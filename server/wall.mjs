@@ -9,6 +9,16 @@ const MIME={
   'image/jpeg':{type:'image',ext:'jpg',max:4*1024*1024},'image/png':{type:'image',ext:'png',max:4*1024*1024},'image/webp':{type:'image',ext:'webp',max:4*1024*1024},
   'audio/webm':{type:'audio',ext:'webm',max:1536*1024},'audio/ogg':{type:'audio',ext:'ogg',max:1536*1024},'audio/mpeg':{type:'audio',ext:'mp3',max:1536*1024},'audio/mp4':{type:'audio',ext:'m4a',max:1536*1024},
 };
+function matchesMime(bytes,mime){
+ if(mime==='image/png')return bytes.length>=8&&bytes.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));
+ if(mime==='image/jpeg')return bytes.length>=3&&bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;
+ if(mime==='image/webp')return bytes.length>=12&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
+ if(mime==='audio/webm')return bytes.length>=4&&bytes.subarray(0,4).equals(Buffer.from([0x1a,0x45,0xdf,0xa3]));
+ if(mime==='audio/ogg')return bytes.length>=4&&bytes.toString('ascii',0,4)==='OggS';
+ if(mime==='audio/mpeg')return bytes.length>=3&&(bytes.toString('ascii',0,3)==='ID3'||(bytes[0]===0xff&&(bytes[1]&0xe0)===0xe0));
+ if(mime==='audio/mp4')return bytes.length>=12&&bytes.toString('ascii',4,8)==='ftyp';
+ return false;
+}
 const origins=new Set(['https://lepakmamak.my','https://lepakmamak.pages.dev','https://lepak-city.pages.dev','http://localhost:5173','http://localhost:4173']);
 export function cleanWallText(value){const text=typeof value==='string'?value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500):'';return text?filterChat(text):'';}
 
@@ -19,7 +29,7 @@ export function createWall(services={}){
  const format=row=>({id:row.id,userId:row.user_id,author:row.author_name,text:row.body,mediaType:row.media_type,mediaUrl:publicUrl(row.media_path),mimeType:row.media_mime,createdAt:row.created_at});
  async function readBody(request){const chunks=[];let size=0;for await(const chunk of request){size+=chunk.length;if(size>6*1024*1024)throw Error('POST_TOO_LARGE');chunks.push(chunk);}return JSON.parse(Buffer.concat(chunks).toString()||'{}');}
  async function user(request){const token=request.headers.authorization?.replace(/^Bearer /,'');if(!token) return null;const {data,error}=await db.auth.getUser(token);return error||!data.user||data.user.is_anonymous?null:data.user;}
- function reply(response,status,data){response.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});response.end(JSON.stringify(data));}
+ function reply(response,status,data){response.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(JSON.stringify(data));}
  async function handle(request,response){
   const url=new URL(request.url,'http://localhost');if(!url.pathname.startsWith('/wall/'))return false;
   const origin=request.headers.origin;if(origin&&origins.has(origin)){response.setHeader('Access-Control-Allow-Origin',origin);response.setHeader('Vary','Origin');response.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');response.setHeader('Access-Control-Allow-Methods','GET, POST, DELETE, OPTIONS');}
@@ -32,7 +42,7 @@ export function createWall(services={}){
    if(url.pathname==='/wall/posts'&&request.method==='POST'){
     const now=Date.now();if(now-(lastPost.get(account.id)||0)<10000){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
     const input=await readBody(request),body=cleanWallText(input.text);let mediaPath=null,mediaType=null,mediaMime=null;
-    if(input.data||input.mimeType){const spec=MIME[input.mimeType];if(!spec||typeof input.data!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.data)){reply(response,400,{error:'Unsupported media.'});return true;}const bytes=Buffer.from(input.data,'base64');if(!bytes.length||bytes.length>spec.max){reply(response,413,{error:spec.type==='image'?'Image must be 4 MB or smaller.':'Voice note must be 1.5 MB or smaller.'});return true;}mediaType=spec.type;mediaMime=input.mimeType;mediaPath=`${account.id}/${now}-${crypto.randomUUID()}.${spec.ext}`;const uploaded=await db.storage.from(BUCKET).upload(mediaPath,bytes,{contentType:mediaMime,cacheControl:'31536000',upsert:false});if(uploaded.error)throw uploaded.error;}
+    if(input.data||input.mimeType){const spec=MIME[input.mimeType];if(!spec||typeof input.data!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.data)){reply(response,400,{error:'Unsupported media.'});return true;}const bytes=Buffer.from(input.data,'base64');if(!bytes.length||bytes.length>spec.max){reply(response,413,{error:spec.type==='image'?'Image must be 4 MB or smaller.':'Voice note must be 1.5 MB or smaller.'});return true;}if(!matchesMime(bytes,input.mimeType)){reply(response,400,{error:'The file content does not match its media type.'});return true;}mediaType=spec.type;mediaMime=input.mimeType;mediaPath=`${account.id}/${now}-${crypto.randomUUID()}.${spec.ext}`;const uploaded=await db.storage.from(BUCKET).upload(mediaPath,bytes,{contentType:mediaMime,cacheControl:'31536000',upsert:false});if(uploaded.error)throw uploaded.error;}
     if(!body&&!mediaPath){reply(response,400,{error:'Write something or attach media.'});return true;}
     const author=String(account.user_metadata?.display_name||'Player').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18)||'Player';
     const inserted=await db.from('social_posts').insert({user_id:account.id,author_name:author,body,media_path:mediaPath,media_type:mediaType,media_mime:mediaMime}).select('*').single();if(inserted.error){if(mediaPath)await db.storage.from(BUCKET).remove([mediaPath]);throw inserted.error;}lastPost.set(account.id,now);const post=format(inserted.data);onPost(post);reply(response,201,{post});return true;

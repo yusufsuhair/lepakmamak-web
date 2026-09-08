@@ -96,6 +96,8 @@ function broadcast(players, message) {
 }
 
 const server = http.createServer(async (request, response) => {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('Cache-Control', 'no-store');
   if (await shop.handle(request, response)) return;
   if (await wall.handle(request,response)) return;
   if (request.url === '/health' || request.url === '/') {

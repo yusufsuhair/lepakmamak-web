@@ -30,3 +30,10 @@ test('chat storage takes Game Master status from the trusted player object',asyn
  await history.save('kampung',{id:'11111111-1111-4111-8111-111111111111',userId:'admin',name:'Yusuf',gameMaster:true},'Announcement','2026-09-08T10:00:00.000Z');
  expect(inserted.game_master).toBe(true);
 });
+
+test('SQL-looking chat input remains a parameter value',async()=>{
+ let inserted:any;const db={from(){return{insert:async(row:any)=>{inserted=row;return{error:null};}}}};
+ const history=createChatHistory({db});const attack=`Robert'); DROP TABLE chat_messages;--`;
+ await history.save('kampung',{id:'11111111-1111-4111-8111-111111111111',userId:null,name:'Ali'},attack,'2026-09-08T10:00:00.000Z');
+ expect(inserted.message).toBe(attack);expect(inserted.room).toBe('kampung');
+});

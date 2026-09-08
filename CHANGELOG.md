@@ -1,5 +1,7 @@
 # Changelog
 
+- Hardened chat, profiles and Lepak Wall against XSS and SQL-injection payloads with strict Cloudflare CSP/security headers, parameterized database access verification, plain-text rendering tests and file-signature checks for uploaded media.
+
 - Added Lepak Wall: a responsive live social feed with account-only text, photo and 30-second voice-note posts, public member profiles, server-owned identity, content filtering, post deletion, unread notifications and persistent Supabase storage.
 
 - Added a responsive loading experience with branded animation, accessible progress, startup phases, account-button feedback and an online-entry state that clears on welcome or recovers from connection failure.
