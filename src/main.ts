@@ -29,7 +29,7 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <div id="interaction" hidden><kbd>Enter</kbd><span id="interaction-text"></span></div>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -41,6 +41,7 @@ $('app').innerHTML = `
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
+  <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
@@ -84,6 +85,7 @@ async function init() {
   const pos = new THREE.Vector3(-18, .12, 52); let yaw = Math.PI;
   let bikeYaw = Math.PI; bike.group.position.set(-6.5, .09, 54); bike.group.rotation.y = bikeYaw;
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
+  const onlinePlayersDialog = $<HTMLDialogElement>('online-players');
   const cityMap = $<HTMLDialogElement>('city-map');
   function setMap(open: boolean) {
     dragging = false;
@@ -297,9 +299,36 @@ async function init() {
   function toast(title: string, body: string, seconds = 4) {
     $('toast').replaceChildren(); const strong = document.createElement('strong'); strong.textContent = title; $('toast').append(strong, document.createTextNode(body)); $('toast').hidden = false; toastRemaining = seconds;
   }
+  function renderOnlinePlayers() {
+    if (!onlinePlayersDialog.open) return;
+    const people = networkConnected ? [...roomPlayers].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)) : [];
+    const key = JSON.stringify([networkConnected, networkPlayerId, people.map(p => [p.id, p.name])]);
+    if (onlinePlayersDialog.dataset.people === key) return;
+    onlinePlayersDialog.dataset.people = key;
+    $('online-players-count').textContent = `${people.length} online`;
+    $('online-players-empty').textContent = networkConnected ? people.length ? '' : 'Waiting for the player list…' : 'You are not connected to a multiplayer room.';
+    const list = $('online-players-list'); list.replaceChildren();
+    for (const person of people) {
+      const row = document.createElement('li');
+      const dot = document.createElement('span'); dot.className = 'online-player-dot'; dot.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span'); name.textContent = person.name;
+      row.append(dot, name);
+      if (person.id === networkPlayerId) { const you = document.createElement('small'); you.textContent = 'You'; row.append(you); }
+      list.append(row);
+    }
+  }
+  $('multiplayer-status').onclick = () => {
+    if (!started) return;
+    keys.clear(); resetStick(); dragging = false;
+    onlinePlayersDialog.showModal(); renderOnlinePlayers(); $('close-online-players').focus();
+  };
+  $('close-online-players').onclick = () => onlinePlayersDialog.close();
+  onlinePlayersDialog.addEventListener('keydown', event => event.stopPropagation());
+  onlinePlayersDialog.addEventListener('close', () => $('multiplayer-status').focus());
   function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
     chat.status(state === 'online');
     const status = $('multiplayer-status'); status.dataset.state = state;
+    renderOnlinePlayers();
     $('multiplayer-status-text').textContent = label;
     $('player-count').textContent = `${count} / 24`;
   }
@@ -463,6 +492,7 @@ async function init() {
   }
   function leaveCity() {
     setMap(false); profile.close(); closeOptions();
+    onlinePlayersDialog.close();
     started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
@@ -826,7 +856,7 @@ async function init() {
     }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     const voicePanel = $('voice-panel');
-    voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open;
+    voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open || onlinePlayersDialog.open;
     if (localName && !voicePanel.hidden) {
       const anchor = localName.position.clone().add(new THREE.Vector3(0, .35, 0)).project(camera);
       voicePanel.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CITY ONLINE now opens a live list of players in the current room, with a marker for your own account.
+
 - Moved interactive mic/speaker controls above the local character, replacing the top-right panel.
 
 - Added stylised Axia, Myvi, Avanza, Vellfire, SUV and sports coupe models to traffic; the driveable car now uses the Myvi model.

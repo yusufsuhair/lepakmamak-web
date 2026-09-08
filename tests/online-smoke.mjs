@@ -77,6 +77,11 @@ try {
   }
   for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
   await expect.poll(() => customizedPlayerSeen).toBe(true);
+  await pages[0].getByRole('button', { name: 'Show online players' }).click();
+  await expect(pages[0].locator('#online-players-list')).toContainText('Smoke Player 0');
+  await expect(pages[0].locator('#online-players-list')).toContainText('Smoke Player 1');
+  await expect(pages[0].locator('#online-players-count')).toHaveText('2 online');
+  await pages[0].getByRole('button', { name: 'Close online players' }).click();
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();
   await expect.poll(async () => { if (!remoteJumpSeen) await pages[0].keyboard.press('Space'); return remoteJumpSeen; }, { timeout: 10000, intervals: [1000] }).toBe(true);
