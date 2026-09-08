@@ -117,7 +117,7 @@ try {
     await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
   }
-  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await expect(page.locator('#chat-body')).toBeVisible(); }
+  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); if (await page.locator('#chat-body').isHidden()) await page.locator('#chat-heading').click(); await expect(page.locator('#chat-body')).toBeVisible(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await expect(pages[1].locator('#chat-messages')).toContainText('Smoke Player 0: <img src=x onerror=alert(1)> Hello friend');

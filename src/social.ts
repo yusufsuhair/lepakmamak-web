@@ -42,11 +42,29 @@ export function updateNameTagVoice(label: THREE.Sprite, mic: boolean, speaker: b
 
 export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<div id="chat-heading">City chat <span>Click to type</span></div><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const input = panel.querySelector<HTMLInputElement>('input')!;
   const messages = panel.querySelector<HTMLElement>('#chat-messages')!;
   const status = panel.querySelector<HTMLElement>('#chat-status')!;
+  const heading = panel.querySelector<HTMLButtonElement>('#chat-heading')!;
+  const body = panel.querySelector<HTMLElement>('#chat-body')!;
+  const toggleLabel = panel.querySelector<HTMLElement>('#chat-toggle-label')!;
+  let collapsed = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches, unread = 0;
+  try { const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true'; } catch { /* Preference storage is optional. */ }
+  function render() {
+    body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
+    heading.setAttribute('aria-expanded', String(!collapsed));
+    heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
+    toggleLabel.textContent = collapsed ? `${unread ? `${unread} new · ` : ''}＋` : '−';
+  }
+  function expand() { collapsed = false; unread = 0; render(); messages.scrollTop = messages.scrollHeight; }
+  heading.onclick = () => {
+    if (collapsed) expand(); else { collapsed = true; input.blur(); render(); }
+    try { localStorage.setItem('lepak-chat-collapsed', String(collapsed)); } catch { /* Keep working without storage. */ }
+  };
+  heading.onkeydown = event => event.stopPropagation();
+  render();
   input.onfocus = focus;
   input.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') input.blur(); };
   panel.querySelector('form')!.onsubmit = e => {
@@ -55,13 +73,14 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
     else status.textContent = 'Reconnecting — your message was not sent. Try again when online.';
   };
   return {
-    open() { input.focus(); },
+    open() { expand(); input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
     append(name: string, text: string) {
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
       row.append(author, document.createTextNode(text)); messages.append(row);
       while (messages.children.length > 50) messages.firstElementChild!.remove();
-      messages.scrollTop = messages.scrollHeight;
+      if (collapsed) { unread++; render(); }
+      else messages.scrollTop = messages.scrollHeight;
     },
   };
 }

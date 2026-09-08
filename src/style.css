@@ -272,3 +272,9 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .voice-buttons button[aria-pressed="true"] .voice-off-slash { display: none; }
 .voice-buttons button[data-pending="true"] { border: 2px dashed #e8c97b; color: #e8c97b; }
 .voice-buttons button:focus-visible { outline: 2px solid #dfff87; outline-offset: 3px; }
+
+#chat-heading { width: 100%; border: 0; cursor: pointer; align-items: center; min-height: 44px; padding: 9px 12px; text-align: left; font-family: inherit; }
+#chat-heading #chat-toggle-label { display: inline; color: #ddf69a; font-size: 13px; }
+#chat-heading:focus-visible { outline: 2px solid #dfff87; outline-offset: 2px; }
+#city-chat.chat-collapsed { width: 160px; }
+.chat-collapsed #chat-heading { border-radius: 6px; }
