@@ -56,7 +56,7 @@ try {
       await page.getByLabel('Hair style', { exact: true }).selectOption('bob');
       await page.getByLabel('Hair colour', { exact: true }).selectOption('#79549b');
       await page.getByLabel('Skin tone', { exact: true }).selectOption('#593b30');
-      await page.getByLabel('Shirt colour', { exact: true }).selectOption('#628fbb');
+      await page.locator('#auth-panel').getByLabel('Shirt colour', { exact: true }).selectOption('#628fbb');
     }
     await page.locator('#avatar-fields').screenshot({ path: `test-results/customization-${i}.png` });
     await page.getByRole('button', { name: 'Create account', exact: true }).click();

@@ -1,4 +1,5 @@
 import './style.css';
+import { savedLook, setupWardrobe } from './wardrobe';
 import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
 import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAppearance } from './world';
@@ -35,7 +36,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -270,6 +271,11 @@ async function init() {
       visibleIds.add(remote.id);
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
+      const lookKey = JSON.stringify(remote.appearance);
+      if (entity.group.userData.lookKey !== lookKey) {
+        applyAppearance(entity.person.group, remote.appearance); applyAppearance(entity.bike.rider, remote.appearance); applyAppearance(entity.car.driver, remote.appearance);
+        entity.group.userData.lookKey = lookKey;
+      }
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
       entity.target.set(remote.x, (remote.passengerOf ? .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       entity.car.group.visible = entity.riding && entity.vehicle === 'car'; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
@@ -387,7 +393,7 @@ async function init() {
   function start() {
     if (auth && !session) return;
     if (started) return;
-    applyAppearance(player.group, session?.user.user_metadata?.appearance); applyAppearance(bike.rider, session?.user.user_metadata?.appearance); applyAppearance(car.driver, session?.user.user_metadata?.appearance);
+    applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
@@ -433,6 +439,11 @@ async function init() {
     if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) { vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
     if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
+  $('open-wardrobe').onclick = setupWardrobe(look => {
+    applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers }));
+    toast('Looking good, lah', 'Your new outfit is saved.', 2);
+  });
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
     rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;

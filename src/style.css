@@ -249,3 +249,13 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #avatar-choices select { width: 100%; min-width: 0; padding: 8px 4px; font: inherit; font-size: 16px; border: 1px solid #a5b59b; border-radius: 5px; background: #fffbed; color: #193d33; }
 
 #city-map #touch-controls { position: fixed; inset: 0; z-index: 2; }
+
+#wardrobe { width: min(390px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; border: 0; border-radius: 12px; padding: 26px; background: #f5efdb; color: #254b3b; }
+#wardrobe::backdrop { background: #102b24b8; }
+#wardrobe h2 { font: 700 38px/1 'Barlow Condensed'; margin: 0 0 10px; }
+#wardrobe p { font-size: 13px; }
+#wardrobe canvas { display: block; margin: 0 auto 12px; background: #e3dec9; border-radius: 12px; }
+#wardrobe label { display: grid; gap: 6px; margin: 12px 0; font-size: 13px; }
+#wardrobe select { padding: 12px; font: inherit; background: white; color: #254b3b; border: 1px solid #a9b3a2; border-radius: 6px; }
+#wardrobe button { width: 100%; }
+#wardrobe [role="status"] { min-height: 18px; }

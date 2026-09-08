@@ -147,6 +147,10 @@ webSocketServer.on('connection', ws => {
       releasePassenger(player, message.reset === true);
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
+    if (message.type === 'outfit') {
+      player.appearance = cleanAppearance({ ...player.appearance, shirt: message.shirt, trousers: message.trousers });
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
