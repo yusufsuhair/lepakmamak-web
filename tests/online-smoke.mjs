@@ -17,7 +17,7 @@ const sockets = [];
 const errors = [];
 try {
   const pages = [];
-  let remoteJumpSeen = false, remotePunchSeen = false;
+  let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false;
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
     const page = await context.newPage(); pages.push(page);
@@ -29,6 +29,7 @@ try {
     page.on('pageerror', e => errors.push(e.message));
     if (i === 1) page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
       const data = JSON.parse(String(payload));
+      if (data.players?.some(player => player.name === "Smoke Player 0" && player.seated)) remoteSitSeen = true;
       if (data.type === "punch") remotePunchSeen = true;
       if (data.players?.some(player => player.name === 'Smoke Player 0' && player.jumpHeight > .3)) remoteJumpSeen = true;
     }));
@@ -93,6 +94,15 @@ try {
   await pages[0].locator('#voice-mic').click();
   await expect(pages[0].locator('#voice-mic')).toHaveText('Mic off');
   await pages[1].locator('#voice-speaker').click();
+  await pages[0].bringToFront();
+  await pages[0].locator('#world').focus();
+  await pages[0].keyboard.down('a');
+  await pages[0].waitForTimeout(2500);
+  await pages[0].keyboard.up('a');
+  await pages[0].keyboard.press('Enter');
+  await expect(pages[0].locator('#interaction-text')).toHaveText('Stand up');
+  await expect.poll(() => remoteSitSeen).toBe(true);
+  await pages[0].keyboard.press('Enter');
   await pages[0].reload();
   await pages[0].getByRole('button', { name: "Jom, let's go" }).click();
   await expect(pages[0].locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
