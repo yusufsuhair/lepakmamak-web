@@ -27,3 +27,8 @@ The user can start, pick up a mission, enter the bike, ride a connected route, d
 
 ## Later milestones
 Replace selected objects with Blender-authored GLB assets; add character rigging and better bike animation; extend missions and map; improve traffic AI; add pursuit mechanics. Multiplayer, combat, large interiors, and a city-scale map are outside this first slice. Rain is initially a visual weather option, not a traction simulation.
+
+## Live release and multiplayer direction
+Publish the existing single-player prototype to Cloudflare Pages first. The browser executes the game and stores earnings locally; this version needs neither a game server nor a database.
+
+For the next multiplayer milestone, add a Railway-hosted WebSocket game server to coordinate rooms and player movement. Start with temporary guest sessions and in-memory rooms. Add persistent storage when introducing accounts, inventories, or progress that must survive server restarts and follow players between devices. A frontend deployment alone does not make the game multiplayer. Design that next milestone after the live prototype is reviewed.

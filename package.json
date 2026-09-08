@@ -6,7 +6,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "playwright test"
+    "test": "playwright test",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name lepak-city --branch main"
   },
   "keywords": [],
   "author": "",
@@ -21,7 +22,8 @@
     "@playwright/test": "^1.63.0",
     "@types/three": "^0.185.4",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "wrangler": "^4.129.1"
   },
   "private": true
 }

@@ -2,6 +2,22 @@
 
 A playable, stylised Kuala Lumpur browser prototype. Start at Mamak Maju, collect an order, hop on your kapcai, and deliver it near the twin towers. Earn RM 25, then explore or return for another job.
 
+## Live deployment
+
+Production URL: https://lepak-city.pages.dev/
+
+The current single-player game is hosted on Cloudflare Pages as a static frontend. No database or Railway service is needed for this release. Earnings stay in the current browser's local storage and are separate from the localhost version.
+
+To publish a new version using the authenticated Cloudflare account:
+
+```sh
+npm run deploy
+```
+
+This builds `dist/` and uploads it to the `lepak-city` Pages project on its `main` production branch. Configuration is in `wrangler.jsonc`; `public/_headers` controls static asset caching. Deployment is a direct upload, so commits alone do not trigger a release. Do not commit Cloudflare credentials.
+
+The next multiplayer version will need a real-time server for rooms and shared player state. Persistent storage can be introduced later for accounts and cross-device progress; it is not required for temporary guest rooms.
+
 ## Run locally
 
 Requires Node.js 22.12+ (developed with Node 24).
