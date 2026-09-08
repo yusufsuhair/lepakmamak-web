@@ -13,6 +13,7 @@ import { WebSocketServer } from 'ws';
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = 24;
 const rooms = new Map();
+const accountConnections = new Map();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
@@ -96,7 +97,19 @@ webSocketServer.on('connection', ws => {
   let voiceTokens = 30, voiceAt = Date.now();
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
 
+  function removePlayer() {
+    clearTimeout(joinTimeout);
+    if (!player || !currentRoom) return;
+    if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
+    for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
+    currentRoom.players.delete(player.id);
+    broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
+    if (!currentRoom.players.size) rooms.delete(currentRoom.name);
+    player = null; currentRoom = null;
+  }
+
   ws.on('message', async raw => {
+    if (ws.readyState !== 1) return;
     if (raw.length > 4096) return;
     let message;
     try { message = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Send JSON messages only.' }); return; }
@@ -111,8 +124,16 @@ webSocketServer.on('connection', ws => {
       if (ws.readyState !== 1) return;
       expiresAt = identity.expiresAt;
       clearTimeout(joinTimeout);
-      const room = roomFor(message.room);
-      if (room.players.size >= maxPlayers) { send(ws, { type: 'error', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
+      let room = roomFor(message.room);
+      const previous = identity.userId ? accountConnections.get(identity.userId) : null;
+      const replacingInRoom = previous?.room.name === room.name ? 1 : 0;
+      if (room.players.size - replacingInRoom >= maxPlayers) { send(ws, { type: 'error', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
+      if (previous) {
+        send(previous.ws, { type: 'error', code: 'SESSION_REPLACED', message: 'Your account joined from another tab or device. This session has ended.' });
+        previous.ws.close(4002, 'Session replaced');
+        previous.remove();
+        room = roomFor(message.room);
+      }
       const id = crypto.randomUUID();
       const number = room.players.size;
       player = {
@@ -132,6 +153,7 @@ webSocketServer.on('connection', ws => {
       };
       currentRoom = room;
       room.players.set(id, player);
+      if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       return;
@@ -228,14 +250,7 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'ping') send(ws, { type: 'pong', now: Date.now() });
   });
 
-  ws.on('close', () => {
-    clearTimeout(joinTimeout);
-    if (!player || !currentRoom) return;
-    for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
-    currentRoom.players.delete(player.id);
-    broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
-    if (!currentRoom.players.size) rooms.delete(currentRoom.name);
-  });
+  ws.on('close', removePlayer);
 });
 
 server.listen(port, '0.0.0.0', () => console.log(`LepakMamak realtime server listening on ${port}`));

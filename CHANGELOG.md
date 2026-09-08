@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Only one active game connection per account across rooms; a new connection replaces the old one, releases vehicle seats and stops the old client reconnecting.
+
 - Chat messages containing common English or Malay profanity are replaced with `***` server-side, including speech bubbles.
 
 - Added an account accessory shop: spectacles and cap at RM5 each, live Stripe Checkout, verified permanent ownership, equipping and multiplayer appearance sync.

@@ -179,6 +179,15 @@ try {
   await pages[0].reload();
   await pages[0].getByRole('button', { name: "Jom, let's go" }).click();
   await expect(pages[0].locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
+  const replacement = await pages[0].context().newPage();
+  await replacement.goto(`${base}/?room=${room}`);
+  await replacement.getByRole('button', {name: "Jom, let's go"}).click();
+  await expect(replacement.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', {timeout:15000});
+  await expect(pages[0].locator('#session-replaced-message')).toBeVisible();
+  await expect(pages[0].locator('#hud')).toBeHidden();
+  await replacement.waitForTimeout(3500);
+  await expect(replacement.locator('#player-count')).toHaveText('2 / 24');
+  await expect(pages[0].locator('#session-replaced-message')).toBeVisible();
   const ws = new WebSocket(`${env.VITE_MULTIPLAYER_URL}/ws`); sockets.push(ws);
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Unauthenticated join was not rejected')), 10000);
