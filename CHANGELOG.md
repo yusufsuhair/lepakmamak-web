@@ -1,5 +1,7 @@
 # Changelog
 
+- Removed the permanent Meja Kita button from the top-left HUD; nearby tables now show a clear floating Open action for table features on desktop and mobile.
+
 - Added a 7-Eleven Malaysia storefront with its striped fascia, glazed entrance, Fresh to Go, 7CAFé and Slurpee details, plus a city-map location.
 
 - Added a FamilyMart Malaysia storefront with its signature green, white and blue fascia, café and fresh-food displays, a map location and the supplied proximity song.
