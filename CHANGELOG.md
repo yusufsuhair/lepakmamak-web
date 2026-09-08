@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a PETRONAS-inspired Malaysian fuel station with Kedai Mesra, a turquoise canopy, six pumps and a dedicated city-map marker.
+
 - Styled verified Game Master chat messages with a compact gold border, GM label and subtle shine; the server-owned role persists with chat history.
 
 - Persisted room chat in Supabase and restore the latest 50 messages with their original timestamps when players join or refresh. Database writes remain server-only.

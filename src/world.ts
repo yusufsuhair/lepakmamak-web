@@ -497,6 +497,70 @@ export function createWorld(scene: THREE.Scene): World {
   retail(49,-40,'MR.DIY','#f1c62b','#253d35','diy');
   retail(105,60,'99 SPEEDMART','#df3437','#fff4d9','market');
   retail(129,60,'KK SUPER MART','#c92536','#ffffff','market');
+
+  // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,
+  // six pumps and a roadside fuel pylon. The open forecourt remains driveable.
+  {
+    const px = 117, pz = 115;
+    const station = new THREE.Group(); station.position.set(px, 0, pz); group.add(station);
+    const stationSolid = (x: number, z: number, w: number, d: number) => solid(px + x, pz + z, w, d);
+    const green = '#00a58f', darkGreen = '#087565', white = '#f5f4e9', charcoal = '#293d3b';
+
+    box(station, 0, .03, 0, 58, .12, 52, '#aaa99e');
+    box(station, 0, .11, -9, 40, .08, 25, '#d8d5c9');
+    for (const x of [-15, -5, 5, 15]) box(station, x, .17, -20, 7, .04, 3, '#f3eee0');
+
+    // Kedai Mesra, with a glazed frontage and familiar green fascia.
+    box(station, 0, 3.3, 18, 36, 6.6, 14, white);
+    box(station, 0, 6.7, 18, 37, .35, 14.6, darkGreen);
+    box(station, 0, 5.55, 10.94, 36.2, 1.55, .16, green);
+    sign(station, 'KEDAI MESRA', 0, 5.6, 10.84, 17, .92, green, '#ffffff', Math.PI);
+    for (const x of [-12.5, -8, -3.5, 3.5, 8, 12.5]) {
+      box(station, x, 2.45, 10.9, 3.7, 4.35, .18, '#76a9a7');
+      box(station, x, 2.45, 10.78, .1, 4.35, .08, white);
+    }
+    box(station, 0, 2.25, 10.72, 2.5, 4.1, .12, '#dce8df');
+    box(station, 0, 1.35, 10.62, .12, .35, .1, charcoal);
+    stationSolid(0, 18, 36, 14); mapBuildings.push({ x: px, z: pz + 18, w: 36, d: 14, color: green });
+
+    // Wide canopy with four slim supports and a green band visible from the road.
+    box(station, 0, 6.45, -9, 38, .55, 19, white);
+    box(station, 0, 6.38, -18.55, 38.2, .72, .28, green);
+    box(station, 0, 6.38, .55, 38.2, .72, .28, green);
+    box(station, -19.05, 6.38, -9, .28, .72, 19, green);
+    box(station, 19.05, 6.38, -9, .28, .72, 19, green);
+    sign(station, 'PETRONAS', 0, 6.38, -18.72, 12, .58, green, '#ffffff', Math.PI);
+    for (const x of [-16, 16]) for (const z of [-15, -3]) {
+      box(station, x, 3.25, z, .48, 6.5, .48, white);
+      box(station, x, 4.2, z - .26, .58, 1.4, .08, green);
+      stationSolid(x, z, .55, .55);
+    }
+    mapBuildings.push({ x: px, z: pz - 9, w: 38, d: 19, color: green });
+
+    // Three pump islands, with a dispenser on each side.
+    for (const x of [-11, 0, 11]) {
+      box(station, x, .18, -9, 5.5, .28, 2.25, '#e8e4d7');
+      for (const z of [-9.65, -8.35]) {
+        box(station, x, 1.55, z, 1.55, 2.7, .72, white);
+        box(station, x, 2.48, z - .38, 1.25, .55, .06, green);
+        box(station, x, 1.75, z - .39, .76, .52, .05, charcoal);
+        box(station, x + .66, 1.25, z, .12, 1.25, .18, '#202c2b');
+      }
+      for (const edge of [-1, 1]) box(station, x + edge * 2.45, .28, -9, .32, .45, 2.28, edge > 0 ? '#f2c944' : charcoal);
+      stationSolid(x, -9, 5.5, 2.25);
+    }
+
+    // Roadside brand pylon; fuel names avoid prices that change over time.
+    box(station, 23, 5.5, -24, 3.8, 11, 1.1, white);
+    box(station, 23, 8.9, -24.58, 3.9, 3.1, .12, green);
+    sign(station, 'PETRONAS', 23, 9.05, -24.66, 3.45, .58, green, '#ffffff', Math.PI);
+    sign(station, 'RON 95', 23, 6.35, -24.66, 3.2, 1.05, '#f5f4e9', darkGreen, Math.PI);
+    sign(station, 'RON 97', 23, 5.25, -24.66, 3.2, 1.05, '#f5f4e9', darkGreen, Math.PI);
+    sign(station, 'DIESEL', 23, 4.15, -24.66, 3.2, 1.05, '#f5f4e9', darkGreen, Math.PI);
+    box(station, 23, 2.65, -24.62, 3.5, .7, .12, green);
+    stationSolid(23, -24, 3.8, 1.1);
+  }
+
   for(const [x,z,label] of [[112,-14,'DATARAN SANTAI'],[-110,60,'LAMAN LEPAK']] as const){
     box(group,x,.02,z,13,.04,10,'#c6b891');
     sign(group,label,x,2.5,z-3.8,6,1,'#376b55','#fff0ce');
@@ -506,7 +570,7 @@ export function createWorld(scene: THREE.Scene): World {
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
-    if (x > 0 && (z === -37 || z === 37)) continue;
+    if (x > 0 && (z === -37 || z === 37 || z === 113)) continue;
     const height = 14 + rand() * 29, w = 13 + rand() * 5, d = 17;
     block(x, z, w, height, d, ['#aab7ad', '#c9bfa5', '#b4bdb6', '#d6c6aa'][Math.floor(rand() * 4)]);
     box(group, x, height + .25, z, w + .5, .5, d + .5, '#cbd0b7');

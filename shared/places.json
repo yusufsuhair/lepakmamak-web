@@ -103,5 +103,12 @@
     "x": 0,
     "z": -122,
     "kind": "lepak"
+  },
+  {
+    "id": "16",
+    "name": "PETRONAS · Kedai Mesra",
+    "x": 117,
+    "z": 106,
+    "kind": "minyak"
   }
 ]
