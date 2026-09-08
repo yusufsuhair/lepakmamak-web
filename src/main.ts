@@ -484,7 +484,6 @@ async function init() {
       const button = $(id); button.classList.remove('recall-active'); void button.offsetWidth; button.classList.add('recall-active');
       window.setTimeout(() => button.classList.remove('recall-active'), 760);
     }
-    toast('BZZ BZZ BZZ BZZ', 'Recall spam activated. Your friends can hear it too.', 2.2);
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'recall' }));
   }
   function setPause(value: boolean) {

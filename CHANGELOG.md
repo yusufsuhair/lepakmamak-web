@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Removed the recall notification toast.
+
 - Added six roaming street cats and dogs with wagging tails, playful ground animations and distance-faded meow/bark sounds controlled by City sounds.
 
 - Added a separate, remembered Background music toggle in Settings, independent of city sounds and voice.
