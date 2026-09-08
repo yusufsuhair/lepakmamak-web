@@ -862,12 +862,12 @@ async function init() {
     for (const b of world.mapBuildings) { ctx.fillStyle = '#4d6c56'; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
     for(const place of mapPlaces){
       const chosen=place.id===selectedMapPlace;
-      ctx.fillStyle=chosen?'#ffffff':place.kind==='kedai'?'#f1c85c':place.kind==='gerai'?'#efab83':place.kind==='minyak'?'#45d8cf':'#7ee1bd';ctx.beginPath();ctx.arc(place.x,place.z,expanded?5.5:2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=chosen?'#ffffff':place.kind==='kedai'?'#f1c85c':place.kind==='gerai'?'#efab83':place.kind==='minyak'?'#45d8cf':place.kind==='ibadah'?'#d3a6f5':'#7ee1bd';ctx.beginPath();ctx.arc(place.x,place.z,expanded?5.5:2,0,Math.PI*2);ctx.fill();
       if(expanded){ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.fillStyle='#183b30';ctx.fillText(place.id,place.x,place.z+2.7);}
       if(expanded&&chosen){ctx.strokeStyle='#fff1a1';ctx.lineWidth=.8;ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(pos.x,pos.z);ctx.lineTo(place.x,place.z);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffffff';ctx.font='bold 6px sans-serif';ctx.fillText(place.name,place.x,place.z-5);}
     }
     const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);
-    if(expanded)$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m dari anda · Garisan menunjukkan arah`:'Kuning: kedai · Hijau: tempat lepak · Jingga: gerai · Biru: stesen minyak. Pilih lokasi untuk lihat nama dan arah.';
+    if(expanded)$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m dari anda · Garisan menunjukkan arah`:'Kuning: kedai · Hijau: tempat lepak · Jingga: gerai · Biru: stesen minyak · Ungu: tempat ibadah. Pilih lokasi untuk lihat nama dan arah.';
     if (!riding || vehicle !== 'car') { ctx.fillStyle = '#f4a5bf'; ctx.beginPath(); ctx.arc(car.group.position.x, car.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
     if (!riding || vehicle !== 'bike') { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
     ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;

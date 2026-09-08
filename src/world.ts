@@ -305,7 +305,7 @@ export interface TrafficCar { group: THREE.Group; x: number; z: number; speed: n
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
 export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }
 
-export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese') {
+export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
   const width = kind === 'mosque' ? 36 : 18, depth = 20;
   box(g, 0, .12, 3, width + 2, .24, 28, '#ded3b8');
@@ -326,7 +326,7 @@ export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese') {
       const cap = ball(g, x, 12.2, 0, 1.5, '#438d7b'); cap.scale.y *= .8;
       tube(g, x, 14, 0, .08, 1.4, '#dbb956');
     }
-    sign(g, 'MASJID LEPAK', 0, 5.25, 7.7, 12, .8, '#438d7b');
+    sign(g, mosqueName, 0, 5.25, 7.7, 17, .8, '#438d7b');
   } else if (kind === 'hindu') {
     box(g, 0, 6.2, 0, 16.5, .5, 16.5, '#ad667c');
     for (let tier = 0; tier < 6; tier++) {
@@ -470,7 +470,14 @@ export function createWorld(scene: THREE.Scene): World {
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
   shop(33, 103, 24, shopColors[1], 'SELAMAT JALAN');
-  shop(-32, 107, 24, shopColors[4], 'HOTEL MERDEKA');
+  // Masjid Kampung Maju sits directly across the road from Mamak Maju.
+  // Rotate its entrance toward the mamak while keeping the courtyard clear.
+  {
+    const mosque = createWorshipLandmark('mosque', 'MASJID KAMPUNG MAJU');
+    mosque.group.position.set(-31, 0, 112); mosque.group.rotation.y = Math.PI; group.add(mosque.group);
+    solid(-31, 112, mosque.width, 28);
+    mapBuildings.push({ x: -31, z: 112, w: mosque.width, d: 28, color: '#438d7b' });
+  }
   // Neighbourhood retail fronts, with displays visible from the pavement.
   function retail(x: number, z: number, label: string, brand: string, ink: string, kind: 'market' | 'diy' | 'laundry') {
     const g = shop(x, z, 19, '#e2d5b5', label);

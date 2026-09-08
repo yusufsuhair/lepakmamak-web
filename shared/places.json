@@ -110,5 +110,12 @@
     "x": 117,
     "z": 106,
     "kind": "minyak"
+  },
+  {
+    "id": "17",
+    "name": "Masjid Kampung Maju",
+    "x": -31,
+    "z": 112,
+    "kind": "ibadah"
   }
 ]
