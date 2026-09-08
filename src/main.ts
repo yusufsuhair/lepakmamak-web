@@ -218,16 +218,26 @@ async function init() {
       if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
     } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
   }
+  let musicContext: AudioContext | null = null;
   function startBackgroundMusic() {
     if (audioEnabled && started && iceCreamGain) void iceCreamSong.play().catch(() => {});
     if (!musicEnabled) return;
+    try {
+      if (!musicContext) {
+        musicContext = new AudioContext();
+        const musicGain = musicContext.createGain(); musicGain.gain.value = .06;
+        musicContext.createMediaElementSource(backgroundMusic).connect(musicGain); musicGain.connect(musicContext.destination);
+        backgroundMusic.volume = 1;
+      }
+      if (musicContext.state === 'suspended') void musicContext.resume().catch(() => {});
+    } catch { /* Retain the quieter media-element fallback where supported. */ }
     void backgroundMusic.play().catch(() => {
       // Browsers can still reject playback when the user starts with the keyboard.
       // The next user interaction will try again without interrupting the game.
     });
   }
   document.addEventListener('pointerdown', () => {
-    if (started && ((musicEnabled && backgroundMusic.paused) || (audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
+    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
