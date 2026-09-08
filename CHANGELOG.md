@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a short punch swoosh, respecting punch cooldown and the sound setting.
+
 - Added a Settings wardrobe to preview and save shirt/trouser colours, with live multiplayer updates.
 
 - Added local footsteps for walking/running and jump/landing sounds, controlled by the existing sound setting.

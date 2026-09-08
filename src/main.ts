@@ -133,7 +133,7 @@ async function init() {
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
     if (!started || paused || cityMap.open || seated || riding || punchUntil > simTime) return;
-    punchUntil = simTime + .38; punchCount++;
+    punchUntil = simTime + .38; punchCount++; punchSound();
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'punch' }));
   }
   function punchPose(person: ReturnType<typeof createPerson>, until: number) {
@@ -228,6 +228,25 @@ async function init() {
     source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
     source.start(); source.stop(now + duration + .01);
+  }
+  let punchNoise: AudioBuffer | null = null;
+  function punchSound() {
+    if (!audioEnabled || !started) return;
+    ensureAudio(); if (!audioContext || audioContext.state !== 'running') return;
+    if (!punchNoise) {
+      punchNoise = audioContext.createBuffer(1, Math.ceil(audioContext.sampleRate * .16), audioContext.sampleRate);
+      const samples = punchNoise.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+    }
+    const source = audioContext.createBufferSource(), filter = audioContext.createBiquadFilter(), gain = audioContext.createGain();
+    const now = audioContext.currentTime;
+    source.buffer = punchNoise;
+    filter.type = 'bandpass'; filter.Q.value = .7;
+    filter.frequency.setValueAtTime(1900, now); filter.frequency.exponentialRampToValueAtTime(280, now + .14);
+    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.2, now + .025); gain.gain.exponentialRampToValueAtTime(.0001, now + .15);
+    source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+    source.start(); source.stop(now + .16);
   }
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
