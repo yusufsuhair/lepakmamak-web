@@ -190,15 +190,17 @@ async function init() {
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
   const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'auto';
   let iceCreamGain: GainNode | null = null;
+  let citySoundsGain: GainNode | null = null;
   function ensureAudio() {
     if (!audioEnabled) return;
     try {
       if (!audioContext) {
         audioContext = new AudioContext();
+        citySoundsGain = audioContext.createGain(); citySoundsGain.gain.value = .5; citySoundsGain.connect(audioContext.destination);
         iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
-        audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(audioContext.destination);
+        audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(citySoundsGain!);
         engine = audioContext.createOscillator(); engine.type = 'triangle';
-        engineGain = audioContext.createGain(); engineGain.gain.value = 0; engine.connect(engineGain); engineGain.connect(audioContext.destination); engine.start();
+        engineGain = audioContext.createGain(); engineGain.gain.value = 0; engine.connect(engineGain); engineGain.connect(citySoundsGain!); engine.start();
       }
       if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
     } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
@@ -235,7 +237,7 @@ async function init() {
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(kind === 'land' ? .22 : kind === 'jump' ? .08 : running ? .15 : .11, now + .008);
     gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
-    source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    source.connect(filter); filter.connect(gain); gain.connect(citySoundsGain!);
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
     source.start(); source.stop(now + duration + .01);
   }
@@ -254,7 +256,7 @@ async function init() {
     filter.type = 'bandpass'; filter.Q.value = .7;
     filter.frequency.setValueAtTime(1900, now); filter.frequency.exponentialRampToValueAtTime(280, now + .14);
     gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.2, now + .025); gain.gain.exponentialRampToValueAtTime(.0001, now + .15);
-    source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    source.connect(filter); filter.connect(gain); gain.connect(citySoundsGain!);
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
     source.start(); source.stop(now + .16);
   }
@@ -270,7 +272,7 @@ async function init() {
     filter.type = 'lowpass'; filter.frequency.value = 650;
     gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.035, now + .025);
     gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
-    oscillator.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    oscillator.connect(filter); filter.connect(gain); gain.connect(citySoundsGain!);
     oscillator.onended = () => { oscillator.disconnect(); filter.disconnect(); gain.disconnect(); };
     oscillator.start(); oscillator.stop(now + duration + .01);
   }
@@ -284,7 +286,7 @@ async function init() {
       oscillator.type = 'square'; oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.025 * volume, now + .015);
       gain.gain.setValueAtTime(.025 * volume, now + .2); gain.gain.linearRampToValueAtTime(0, now + .28);
-      oscillator.connect(gain); gain.connect(audioContext.destination);
+      oscillator.connect(gain); gain.connect(citySoundsGain!);
       oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
       oscillator.start(); oscillator.stop(now + .29);
     }
@@ -297,7 +299,7 @@ async function init() {
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
-      const o = audioContext.createOscillator(), gain = audioContext.createGain(); o.connect(gain); gain.connect(audioContext.destination);
+      const o = audioContext.createOscillator(), gain = audioContext.createGain(); o.connect(gain); gain.connect(citySoundsGain!);
       const time = audioContext.currentTime + i * .12; o.frequency.value = [523, 659, 784][i]; gain.gain.setValueAtTime(.035, time); gain.gain.exponentialRampToValueAtTime(.001, time + .23); o.start(time); o.stop(time + .25);
     }
   }
@@ -465,7 +467,7 @@ async function init() {
       const oscillator = audioContext.createOscillator();
       const gain = audioContext.createGain();
       const at = startAt + i * .13;
-      oscillator.type = 'square'; oscillator.connect(gain); gain.connect(audioContext.destination);
+      oscillator.type = 'square'; oscillator.connect(gain); gain.connect(citySoundsGain!);
       oscillator.frequency.setValueAtTime(155 + i * 12, at);
       oscillator.frequency.exponentialRampToValueAtTime(315 + i * 10, at + .075);
       gain.gain.setValueAtTime(.045, at); gain.gain.exponentialRampToValueAtTime(.001, at + .115);
@@ -726,7 +728,7 @@ async function init() {
     {
       simTime += dt;
       streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
-        if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan);
+        if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan, citySoundsGain!);
       });
       // A shared clock-based route keeps the vendor in the same area for all players.
       const vendorPhase = (Date.now() % 90000) / 90000 * Math.PI * 2;

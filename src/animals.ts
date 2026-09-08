@@ -55,8 +55,8 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
   }
  }};
 }
-export function animalSound(context:AudioContext,cat:boolean,volume:number,pan:number){
- const now=context.currentTime,output=context.createGain(),stereo=context.createStereoPanner();stereo.pan.value=pan;output.gain.value=volume*.09;output.connect(stereo);stereo.connect(context.destination);
+export function animalSound(context:AudioContext,cat:boolean,volume:number,pan:number,destination:AudioNode=context.destination){
+ const now=context.currentTime,output=context.createGain(),stereo=context.createStereoPanner();stereo.pan.value=pan;output.gain.value=volume*.09;output.connect(stereo);stereo.connect(destination);
  const duration=cat?.7:.42;
  const oscillator=context.createOscillator(),filter=context.createBiquadFilter(),envelope=context.createGain();
  oscillator.type=cat?'sawtooth':'triangle';filter.type='lowpass';filter.frequency.value=cat?1600:700;

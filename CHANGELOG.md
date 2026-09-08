@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reduced all city sound effects to 50% volume; background music and voice chat retain their separate levels.
+
 - Removed the recall notification toast.
 
 - Added six roaming street cats and dogs with wagging tails, playful ground animations and distance-faded meow/bark sounds controlled by City sounds.
