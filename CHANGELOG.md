@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Styled verified Game Master chat messages with a compact gold border, GM label and subtle shine; the server-owned role persists with chat history.
+
 - Persisted room chat in Supabase and restore the latest 50 messages with their original timestamps when players join or refresh. Database writes remain server-only.
 
 - Added Stop dance to the self context menu; cancellation stops the animation and nearby music for all players.

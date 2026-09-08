@@ -20,3 +20,14 @@ test('restored chat history replaces stale rows, keeps timestamps and does not c
  await expect(page.locator('#chat-messages')).toContainText('Ali: Assalamualaikum');
  await expect(page.locator('#chat-heading')).toHaveAttribute('aria-label','Expand city chat');
 });
+
+test('verified Game Master messages have a compact gold banner in live and restored chat',async({page})=>{
+ await page.route('**/gm-chat-harness',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>'}));
+ await page.goto('/gm-chat-harness');
+ await page.evaluate(async()=>{const {setupChat}=await import('/src/social.ts');const chat=setupChat(()=>true,()=>{});chat.append('Yusuf','Selamat datang','2026-09-08T07:42:00.000Z',true);chat.append('Ali','Hello','2026-09-08T07:43:00.000Z');});
+ await expect(page.locator('.game-master-chat')).toHaveCount(1);
+ await expect(page.locator('.game-master-chat')).toContainText('✦ GM · Yusuf: Selamat datang');
+ await expect(page.locator('#chat-messages p').nth(1)).not.toHaveClass(/game-master-chat/);
+ const style=await page.locator('.game-master-chat').evaluate(el=>({width:el.getBoundingClientRect().width,panel:el.parentElement!.getBoundingClientRect().width,border:getComputedStyle(el).borderTopColor}));
+ expect(style.width).toBeLessThanOrEqual(style.panel);expect(style.border).toBe('rgb(255, 217, 120)');
+});

@@ -20,5 +20,13 @@ test('chat storage saves server-owned identity and returns the latest 50 in chro
  await history.save('bilik-lain',{id:'22222222-2222-4222-8222-222222222222',userId:null,name:'Mei'},'Rahsia bilik lain',new Date().toISOString());
  const restored=await history.recent('kampung');
  expect(restored).toHaveLength(50);expect(restored[0].text).toBe('Mesej 5');expect(restored.at(-1).text).toBe('Mesej 54');expect(restored.some((m:any)=>m.text.includes('Rahsia'))).toBe(false);
- expect(restored[0]).toEqual({id:'11111111-1111-4111-8111-111111111111',name:'Ali',text:'Mesej 5',sentAt:new Date(1800000000000+5000).toISOString()});
+ expect(restored[0]).toEqual({id:'11111111-1111-4111-8111-111111111111',name:'Ali',text:'Mesej 5',sentAt:new Date(1800000000000+5000).toISOString(),gameMaster:false});
+});
+
+test('chat storage takes Game Master status from the trusted player object',async()=>{
+ let inserted:any;
+ const db={from(){return{insert:async(row:any)=>{inserted=row;return{error:null};}}}};
+ const history=createChatHistory({db});
+ await history.save('kampung',{id:'11111111-1111-4111-8111-111111111111',userId:'admin',name:'Yusuf',gameMaster:true},'Announcement','2026-09-08T10:00:00.000Z');
+ expect(inserted.game_master).toBe(true);
 });

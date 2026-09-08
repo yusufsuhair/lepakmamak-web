@@ -410,3 +410,27 @@ html, body, #app { touch-action: manipulation; }
 .map-place-picker{display:flex;flex-direction:column;gap:6px;font-size:12px}.map-place-picker select{font:16px sans-serif;padding:10px;border-radius:8px;width:100%;color:#173c32;background:#fff8df;}#map-place-info{font-size:12px;line-height:1.5;}
 #dance-action {background:#e6be77;color:#173c32;border:0;border-radius:5px;padding:12px 18px;font:inherit;cursor:pointer;min-height:44px;}
 #player-options button {display:block;width:100%;text-align:left;}#player-options button+button{margin-top:4px;}#player-options button[hidden]{display:none;}#dance-action:disabled{opacity:.5;cursor:default;}
+
+#chat-messages .game-master-chat {
+  position: relative;
+  margin: 5px 0;
+  padding: 7px 9px;
+  border: 1px solid #ffd978;
+  border-radius: 8px;
+  background: linear-gradient(105deg, #30200fbf, #5b3b18a6, #30200fbf);
+  box-shadow: 0 0 10px #ffc94a40, inset 0 0 8px #fff4ba18;
+  color: #fff5d1;
+  overflow: hidden;
+}
+#chat-messages .game-master-chat strong { color: #ffe08a; text-shadow: 0 0 7px #ffc94a80; }
+#chat-messages .game-master-chat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-140%);
+  background: linear-gradient(100deg, transparent 30%, #fff4ba35 50%, transparent 70%);
+  animation: game-master-chat-shine 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes game-master-chat-shine { 55%, 100% { transform: translateX(140%); } }
+@media (prefers-reduced-motion: reduce) { #chat-messages .game-master-chat::after { animation: none; } }

@@ -291,7 +291,7 @@ webSocketServer.on('connection', ws => {
       try { await chatHistory.save(currentRoom.name, player, filtered, sentAt); }
       catch { send(ws, { type: 'notice', message: 'Message sent live, but chat history could not save it.' }); }
       if (!player || !currentRoom || ws.readyState !== 1) return;
-      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt });
+      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt, gameMaster: !!player.gameMaster });
       return;
     }
     if (message.type === 'state') {

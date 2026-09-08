@@ -14,7 +14,7 @@ export function createChatHistory(services = {}) {
     async recent(room) {
       if (!db) return [];
       const { data, error } = await db.from('chat_messages')
-        .select('player_id,player_name,message,created_at')
+        .select('player_id,player_name,message,created_at,game_master')
         .eq('room', room)
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
@@ -25,6 +25,7 @@ export function createChatHistory(services = {}) {
         name: row.player_name,
         text: row.message,
         sentAt: row.created_at,
+        gameMaster: !!row.game_master,
       }));
     },
     async save(room, player, text, sentAt) {
@@ -36,6 +37,7 @@ export function createChatHistory(services = {}) {
         player_name: player.name,
         message: text,
         created_at: sentAt,
+        game_master: !!player.gameMaster,
       });
       if (error) throw new Error('Could not save chat message');
     },

@@ -114,13 +114,13 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   return {
     open() { expand(); input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
-    history(history: {name:string;text:string;sentAt?:string}[]) {
+    history(history: {name:string;text:string;sentAt?:string;gameMaster?:boolean}[]) {
       messages.replaceChildren(); unread = 0;
-      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt);
+      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster);
       unread = 0;
       render(); messages.scrollTop = messages.scrollHeight;
     },
-    append(name: string, text: string, sentAt?: string) {
+    append(name: string, text: string, sentAt?: string, gameMaster = false) {
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
       const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
@@ -128,6 +128,7 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
       timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
       timestamp.setAttribute('aria-label', timestamp.title);
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
+      if (gameMaster) { row.className = 'game-master-chat'; author.textContent = `✦ GM · ${name}: `; }
       row.append(timestamp, document.createTextNode(' '), author, document.createTextNode(text)); messages.append(row);
       while (messages.children.length > 50) messages.firstElementChild!.remove();
       if (collapsed) { unread++; render(); }
