@@ -179,6 +179,7 @@ webSocketServer.on('connection', ws => {
         speed: 0,
         jumpHeight: 0, seated: false, chairId: null,
         mic: false, speaker: false,
+        supermanUntil: 0,
         updatedAt: Date.now(),
       };
       const resume=message.resume;
@@ -224,7 +225,7 @@ webSocketServer.on('connection', ws => {
       const driver = currentRoom.players.get(message.driverId);
       const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
       const seatIndex = driver ? vehicleSeats[driver.vehicle].findIndex((_, i) => !occupied.some(p => p.seatIndex === i)) : -1;
-      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
+      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || Number(driver.supermanUntil) > Date.now() || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
         send(ws, { type: 'notice', message: 'The vehicle must be nearby, stopped, and have a free passenger seat.' }); return;
       }
       player.passengerOf = driver.id; player.seatIndex = seatIndex; followDriver(player, driver);
@@ -305,6 +306,7 @@ webSocketServer.on('connection', ws => {
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
+      if (!player.riding || player.vehicle !== 'bike') player.supermanUntil = 0;
       player.seated = false; // Only chair-sit can claim a seat.
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
@@ -322,6 +324,14 @@ webSocketServer.on('connection', ws => {
         if (Math.hypot(listener.x - player.x, listener.z - player.z) < 35) send(listener.ws, { type: 'horn', id: player.id, vehicle: player.vehicle });
       }
       return;
+    }
+    if (message.type === 'superman-cancel') {
+      if (player.supermanUntil) { player.supermanUntil = 0; dirtyRooms.add(currentRoom.players); } return;
+    }
+    if (message.type === 'superman') {
+      const now = Date.now();
+      if (!player.riding || player.passengerOf || player.vehicle !== 'bike' || player.seated || Number(player.supermanUntil) > now) return;
+      player.supermanUntil = now + 6000; dirtyRooms.add(currentRoom.players); return;
     }
     if(message.type==='dance-cancel'){
       if(player.danceUntil){player.danceUntil=0;dirtyRooms.add(currentRoom.players);}return;

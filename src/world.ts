@@ -155,7 +155,7 @@ export function createBike() {
   box(group, 0, .71, -1.035, .32, .17, .04, '#20312f');
   const rider = createPerson('#e87043', true); rider.group.position.set(0, .25, .1); rider.group.visible = false; group.add(rider.group);
   group.scale.setScalar(1.18);
-  return { group, wheels, rider: rider.group };
+  return { group, wheels, rider: rider.group, riderRig: rider };
 }
 
 function tree(parent: THREE.Object3D, x: number, z: number, scale = 1) {

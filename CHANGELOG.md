@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a synchronized six-second Superman motorbike stunt with rider menu, desktop and mobile controls, cancellation, and automatic reset when leaving the bike.
+
 - Redesigned Wardrobe as a visual character studio with a large live avatar stage, Tops and Bottoms tabs, graphical clothing choices, random outfit button and responsive mobile layout.
 
 - Added live Stripe Checkout top-ups for Syiling Lepak with RM5, RM10 and RM20 packs, verified server-side and credited idempotently to signed-in accounts.

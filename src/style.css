@@ -107,6 +107,8 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .recall-button:hover { background: #d16950e8; transform: translateY(-1px); }
 .recall-button kbd { min-width: 19px; height: 19px; border-color: #fff5db66; background: #fff5db1f; font-size: 9px; }
 .recall-button.recall-active { animation: recall-buzz .76s ease-out; background: #f2a36f; color: #2d4938; box-shadow: 0 0 0 5px #f2a36f2e, 0 5px 22px #f2a36f77; }
+.stunt-button { pointer-events:auto; min-height:36px; border:1px solid #bceeff99; border-radius:5px; padding:8px 11px; background:#276b83d9; color:#f2fbff; font:800 9px 'DM Sans'; letter-spacing:.08em; cursor:pointer; }
+.stunt-button[aria-pressed="true"] { background:#e5f7ff; color:#174758; box-shadow:0 0 0 4px #95ddfa35; }
 @keyframes recall-buzz { 0%, 100% { transform: translateX(0) rotate(0); } 12% { transform: translateX(-3px) rotate(-2deg); } 24% { transform: translateX(3px) rotate(2deg); } 36% { transform: translateX(-3px) rotate(-2deg); } 48% { transform: translateX(3px) rotate(2deg); } 60% { transform: translateX(-2px) rotate(-1deg); } 72% { transform: translateX(2px) rotate(1deg); } }
 #speedometer { position: absolute; bottom: 31px; right: 31px; width: 140px; text-align: right; }
 .speed-number { font: 600 74px/.8 'Barlow Condensed'; letter-spacing: -.035em; }
@@ -136,6 +138,7 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .touch-actions button { width: 60px; height: 52px; font-size: 10px; }
 .touch-actions button:first-child { background: #dff59ae8; color: #284a34; }
 .touch-actions .recall-button { background: #b9574ccc; color: #fff3d4; border-color: #f5b77d99; }
+.touch-actions .stunt-button { width:72px; background:#276b83df; color:#f2fbff; border-color:#bceeff99; }
 #error { position: absolute; z-index: 40; inset: 0; display: grid; place-content: center; padding: 30px; background: #203d32; text-align: center; }
 #error h2 { font: 700 45px 'Barlow Condensed'; margin: 0; }
 #error p { max-width: 440px; line-height: 1.7; color: #c7d6bc; }
