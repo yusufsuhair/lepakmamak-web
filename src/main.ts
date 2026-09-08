@@ -603,6 +603,7 @@ async function init() {
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
+        if(message.type==='uno-state')tableSocial.uno((message as any).game);
         if(message.type==='werewolf-state')tableSocial.werewolf((message as any).game);
         if(message.type==='poker-state')tableSocial.poker((message as any).game);
         if(message.type==='pickleball-state')pickleball.state((message as any).game);

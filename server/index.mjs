@@ -1,3 +1,4 @@
+import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
 import { createPoker } from './poker.mjs';
@@ -38,6 +39,7 @@ setInterval(() => {
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
 const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges})});
+const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
@@ -46,7 +48,7 @@ const basketball = createBasketball(send,Date.now,(player,points)=>socialProfile
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
-setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);}},500).unref();
+setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);}},500).unref();
 const chatHistory = createChatHistory();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
@@ -243,6 +245,7 @@ webSocketServer.on('connection', ws => {
       } catch { send(ws, { type: 'notice', message: 'Profile saved to your account. Rejoin to refresh its public card.' }); }
       return;
     }
+    if (uno.handle(currentRoom.players, player, message)) return;
     if (werewolf.handle(currentRoom.players, player, message)) return;
     if (lukis.handle(currentRoom.players, player, message)) return;
     if (poker.handle(currentRoom.players, player, message)) return;
