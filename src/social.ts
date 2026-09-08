@@ -30,6 +30,7 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
     else status.textContent = 'Reconnecting — your message was not sent. Try again when online.';
   };
   return {
+    open() { body.hidden = false; toggle.setAttribute('aria-expanded', 'true'); toggle.textContent = 'City chat'; input.focus(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
     append(name: string, text: string) {
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;

@@ -309,6 +309,7 @@ async function init() {
       return;
     }
     if (!started || paused || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === 'Enter') { event.preventDefault(); if (!event.repeat) chat.open(); return; }
     if (gameKeys.has(event.code)) event.preventDefault();
     if (event.code === 'KeyE' && !event.repeat) interact();
     if (event.code === 'KeyR' && !event.repeat) triggerRecall();
