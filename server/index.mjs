@@ -191,9 +191,11 @@ webSocketServer.on('connection', ws => {
       const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
       if (!player.mic || voiceTokens < 1 || typeof message.audio !== 'string' || message.audio.length !== 1708 || !/^[A-Za-z0-9+/]{1707}=$/.test(message.audio)) return;
       voiceTokens--;
-      const payload = JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio });
       for (const listener of currentRoom.players.values()) {
-        if (listener.id !== player.id && listener.speaker && listener.ws.readyState === 1 && listener.ws.bufferedAmount < 65536) listener.ws.send(payload);
+        const distance = Math.hypot(listener.x - player.x, listener.z - player.z);
+        if (listener.id === player.id || !listener.speaker || distance >= 15 || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
+        const volume = distance <= 5 ? 1 : (15 - distance) / 10;
+        listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume }));
       }
       return;
     }

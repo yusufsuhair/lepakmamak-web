@@ -426,7 +426,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; audio?: string };
+        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
@@ -440,7 +440,7 @@ async function init() {
           chat.append(message.name, message.text);
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
-        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio);
+        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume);
         if (message.type === 'notice') chat.append('City', message.message || 'Please try again.');
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {

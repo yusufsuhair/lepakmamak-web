@@ -46,7 +46,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   micButton.onclick = async () => {
     if (mic || busy) { stopMic(); status.textContent = 'Microphone off'; return; }
     if (!online) return;
-    const attempt = ++generation; busy = true; render(); status.textContent = 'Allow microphone access to talk to everyone in this city';
+    const attempt = ++generation; busy = true; render(); status.textContent = 'Allow microphone access to talk to nearby players (within 15 metres)';
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone access needs a supported browser on HTTPS.');
       const ctx = await audioContext();
@@ -77,7 +77,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
     const attempt = generation;
     try {
       await audioContext(); if (!online || attempt !== generation) return;
-      speaker = true; output!.gain.value = 0.8; announce(); status.textContent = 'Speakers on · Listening to this city';
+      speaker = true; output!.gain.value = 0.8; announce(); status.textContent = 'Speakers on · Listening within 15 metres';
     } catch { status.textContent = 'Could not enable speakers. Tap again to retry.'; }
   };
   render();
@@ -88,13 +88,13 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
       else status.textContent = 'Turn on speakers to listen · Mic asks permission';
       announce();
     },
-    receive(id: string, name: string, encoded: string) {
+    receive(id: string, name: string, encoded: string, volume = 1) {
       if (!speaker || !context || context.state !== 'running' || !output || encoded.length !== 1708) return;
       try {
         const bytes = Uint8Array.from(atob(encoded), char => char.charCodeAt(0)); if (bytes.length !== 1280) return;
         const samples = new Int16Array(bytes.buffer); const buffer = context.createBuffer(1, 640, 16000);
         const floats = buffer.getChannelData(0); let energy = 0;
-        for (let i = 0; i < samples.length; i++) { floats[i] = samples[i] / 32768; energy += floats[i] ** 2; }
+        for (let i = 0; i < samples.length; i++) { floats[i] = samples[i] / 32768 * Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 0)); energy += floats[i] ** 2; }
         const now = context.currentTime;
         const start = Math.max(now + .02, next.get(id) ?? now + .08);
         if (start > now + .3) return; // Drop delayed packets instead of building an audio backlog.
