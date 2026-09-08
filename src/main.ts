@@ -600,6 +600,8 @@ async function init() {
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
+        if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points);
+        if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
         if(message.type==='poker-state')tableSocial.poker((message as any).game);
         if(message.type==='pickleball-state')pickleball.state((message as any).game);

@@ -1,5 +1,7 @@
 # Changelog
 
+- Added an automatic table game lobby with illustrated game cards and focused game screens. Improved Lukis Lah with time/place scoring, hints, correct-answer audio, stroke undo, eraser sizes and ranked scores.
+
 - Expanded signed-in social profiles with favourite hangout and geng fields, server-owned gameplay statistics and achievements, recent Wall/activity highlights, and a moderated public guestbook.
 
 - Replaced the map dropdown with visible place labels and a categorized mall-style directory, including tap-to-highlight directions and a scrollable mobile map.
