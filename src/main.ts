@@ -8,6 +8,13 @@ import { auth, session, displayName, setupAuth } from './auth';
 import { nameTag, setupChat } from './social';
 import { setupVoice } from './voice';
 
+// Suppress native selection menus without interfering with player context menus or text entry.
+for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
+  document.addEventListener(type, event => {
+    if (!(event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"]'))) event.preventDefault();
+  });
+}
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
   <div id="loading"><strong>LEPAKMAMAK</strong><p>Setting the tables. Warming up the kapcai.</p></div>

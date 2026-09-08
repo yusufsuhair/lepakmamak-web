@@ -7,7 +7,8 @@
 @import '@fontsource/dm-sans/latin-700.css';
 
 :root { font-family: 'DM Sans', sans-serif; color: #fff8e7; background: #243d35; font-synthesis: none; --lime: #ddf69a; --ink: #193d33; --cream: #fff8e7; --orange: #f6a16c; }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 body { margin: 0; overflow: hidden; }
 #auth-panel { position: absolute; inset: 0; z-index: 20; background: #122e26cc; backdrop-filter: blur(8px); display: grid; place-items: center; padding: 18px; }
 .auth-card { width: min(400px, 100%); max-height: calc(100dvh - 36px); overflow: auto; border-radius: 12px; background: #f5efdb; color: #254b3b; padding: 28px; }
