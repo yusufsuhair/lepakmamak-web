@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Coalesced movement snapshots to 20 Hz per room, suppressed idle movement spam and stale socket queues, added adaptive graphics quality and ambient distance culling, and configured the realtime server for Singapore.
+
 - Enforced one player per chair on the multiplayer server, with occupied actions and automatic release on standing or disconnecting.
 
 - Added a persistent AFK note above players, editable and clearable in Settings, synchronized to peers and filtered for profanity.

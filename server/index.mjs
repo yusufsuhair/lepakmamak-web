@@ -15,6 +15,12 @@ import { WebSocketServer } from 'ws';
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = 24;
 const rooms = new Map();
+const dirtyRooms = new Set();
+// Coalesce movement from all players into at most one snapshot per room per tick.
+setInterval(() => {
+  const pending = [...dirtyRooms]; dirtyRooms.clear();
+  for (const players of pending) if (players.size) broadcast(players, { type: 'players', players: snapshot(players) });
+}, 50).unref();
 const accountConnections = new Map();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
@@ -71,7 +77,11 @@ function send(ws, message) {
 
 function broadcast(players, message) {
   const payload = JSON.stringify(message);
-  for (const player of players.values()) if (player.ws.readyState === 1) player.ws.send(payload);
+  for (const player of players.values()) {
+    if (player.ws.readyState !== 1) continue;
+    if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { dirtyRooms.add(players); continue; }
+    player.ws.send(payload);
+  }
 }
 
 const server = http.createServer(async (request, response) => {
@@ -255,7 +265,7 @@ webSocketServer.on('connection', ws => {
       for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) {
         if (player.riding && player.vehicle === passenger.vehicle) followDriver(passenger, player); else releasePassenger(passenger);
       }
-      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
+      dirtyRooms.add(currentRoom.players);
       return;
     }
     if (message.type === 'horn') {

@@ -52,7 +52,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -171,7 +171,8 @@ async function init() {
   let networkSocket: WebSocket | null = null;
   let networkPlayerId = '';
   let networkConnected = false;
-  let networkSendTimer = 0;
+  let networkSendTimer = 0, networkIdleTimer = 0;
+  let lastNetworkState = '';
   let networkReconnectTimer: number | null = null;
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
@@ -376,6 +377,9 @@ async function init() {
   onlinePlayersDialog.addEventListener('keydown', event => event.stopPropagation());
   onlinePlayersDialog.addEventListener('close', () => $('multiplayer-status').focus());
   function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
+    const statusKey = `${label}:${state}:${count}`;
+    if ($('multiplayer-status').dataset.statusKey === statusKey) { renderOnlinePlayers(); return; }
+    $('multiplayer-status').dataset.statusKey = statusKey;
     chat.status(state === 'online');
     const status = $('multiplayer-status'); status.dataset.state = state;
     renderOnlinePlayers();
@@ -508,10 +512,13 @@ async function init() {
   }
   function sendNetworkState(dt: number) {
     if (!networkConnected || !networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
-    networkSendTimer += dt;
+    networkSendTimer += dt; networkIdleTimer += dt;
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
-    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated, vehicle }));
+    if (networkSocket.bufferedAmount >= 16384) return;
+    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated, vehicle });
+    if (state === lastNetworkState && networkIdleTimer < .5) return;
+    lastNetworkState = state; networkIdleTimer = 0; networkSocket.send(state);
   }
   function recallSound() {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
@@ -639,7 +646,30 @@ async function init() {
     if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
-  $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
+  function setShadows(enabled: boolean) {
+    if (renderer.shadowMap.enabled === enabled) return;
+    renderer.shadowMap.enabled = enabled;
+    scene.traverse(obj => { if (obj instanceof THREE.Mesh) {
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      mats.forEach(m => m.needsUpdate = true);
+    } });
+    $<HTMLInputElement>('shadow-toggle').checked = enabled;
+  }
+  let graphicsQuality = 'auto', autoReduced = false, slowFrames = 0;
+  try { const savedQuality = localStorage.getItem('lepak-graphics'); if (['auto', 'smooth', 'detailed'].includes(savedQuality || '')) graphicsQuality = savedQuality!; } catch { /* Storage is optional. */ }
+  function applyQuality() {
+    const smooth = graphicsQuality === 'smooth' || (graphicsQuality === 'auto' && (touch || autoReduced));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, smooth ? 1 : 1.6));
+    setShadows(!smooth);
+    $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
+  }
+  $('graphics-quality').onchange = () => {
+    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value; autoReduced = false; slowFrames = 0;
+    try { localStorage.setItem('lepak-graphics', graphicsQuality); } catch { /* Storage is optional. */ }
+    applyQuality();
+  };
+  $<HTMLInputElement>('shadow-toggle').onchange = event => setShadows((event.target as HTMLInputElement).checked);
+  applyQuality();
   function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = 9; }
   $('camera-reset').onclick = () => { resetCamera(); canvas.focus(); };
   $('camera-in').onclick = () => { zoom = Math.max(5, zoom - 2); canvas.focus(); };
@@ -665,7 +695,7 @@ async function init() {
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
     if (paused && event.code === 'Tab') {
-      const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')).filter(element => element.getClientRects().length > 0);
+      const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)')).filter(element => element.getClientRects().length > 0);
       const index = focusable.indexOf(document.activeElement as HTMLElement);
       if (event.shiftKey && index <= 0) { event.preventDefault(); focusable.at(-1)!.focus(); }
       else if (!event.shiftKey && index === focusable.length - 1) { event.preventDefault(); focusable[0].focus(); }
@@ -795,7 +825,12 @@ async function init() {
   const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3();
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
-    const dt = Math.min((time - lastTime) / 1000, .04); lastTime = time; elapsed += dt;
+    const frameSeconds = (time - lastTime) / 1000;
+    if (started && !document.hidden && graphicsQuality === 'auto' && !autoReduced && !touch) {
+      slowFrames = frameSeconds > .025 && frameSeconds < .2 ? slowFrames + frameSeconds : Math.max(0, slowFrames - frameSeconds * .5);
+      if (slowFrames > 5) { autoReduced = true; applyQuality(); }
+    }
+    const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
     {
       simTime += dt;
@@ -820,6 +855,7 @@ async function init() {
         if (!nearPlayer && !crossing) car[coordinate] += car.speed * car.direction * dt;
         if (car[coordinate] > 150) car[coordinate] = -150; if (car[coordinate] < -150) car[coordinate] = 150;
         if (started && Math.hypot(car.x - pos.x, car.z - pos.z) < 2.5) car[coordinate] = old;
+        car.group.visible = Math.hypot(car.x - pos.x, car.z - pos.z) < 100;
         car.group.position.set(car.x, 0, car.z);
         for (const wheel of (car.group.userData.wheels || []) as THREE.Group[]) wheel.rotation.x += Math.abs(car[coordinate] - old) / .36;
       }
@@ -827,6 +863,7 @@ async function init() {
         const t = simTime * .12 + ped.phase;
         const offset = Math.sin(t) * ped.range;
         ped.person.group.position.set(ped.startX + (ped.axis === 'x' ? offset : 0), .1, ped.startZ + (ped.axis === 'z' ? offset : 0));
+        ped.person.group.visible = Math.hypot(ped.person.group.position.x - pos.x, ped.person.group.position.z - pos.z) < 80;
         ped.person.group.rotation.y = ped.axis === 'x' ? Math.cos(t) > 0 ? Math.PI / 2 : -Math.PI / 2 : Math.cos(t) > 0 ? 0 : Math.PI;
         ped.person.leftLeg.rotation.x = Math.sin(simTime * 6 + ped.phase) * .35; ped.person.rightLeg.rotation.x = -ped.person.leftLeg.rotation.x;
         ped.person.leftArm.rotation.x = -ped.person.leftLeg.rotation.x * .65; ped.person.rightArm.rotation.x = ped.person.leftLeg.rotation.x * .65;
@@ -1016,7 +1053,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
