@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
@@ -146,4 +146,35 @@ test('Enter sits at a nearby chair and stands without opening chat', async ({ pa
   await expect(page.locator('#chat-input')).not.toBeFocused();
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await state(page)).seated).toBe(false);
+});
+
+test('mobile analog movement supports release and a second finger in both orientations', async ({ browser }) => {
+  for (const viewport of [{ width: 360, height: 780 }, { width: 844, height: 390 }]) {
+    const context = await browser.newContext({ viewport, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.getByRole('button', { name: "Jom, let's go" }).click();
+    await expect(page.locator('.touch-pad')).toHaveCount(0);
+    const rect = (await page.locator('#move-stick').boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const point = { x: rect.x + rect.width / 2 + 25, y: rect.y + rect.height / 2, id: 1 };
+    const before = (await state(page)).position.x;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await expect.poll(async () => (await state(page)).position.x).toBeGreaterThan(before + .3);
+    const strength = (await state(page)).stick.x;
+    expect(strength).toBeGreaterThan(.4); expect(strength).toBeLessThan(.9);
+    const cameraPoint = { x: viewport.width / 2, y: viewport.height / 2, id: 2 };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point, cameraPoint] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point, { ...cameraPoint, x: cameraPoint.x + 30 }] });
+    expect((await state(page)).stick.x).toBeCloseTo(strength);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    expect((await state(page)).stick).toEqual({ x: 0, y: 0 });
+    expect((await state(page)).punchCount).toBe(0);
+    const stopped = (await state(page)).position;
+    await page.waitForTimeout(150);
+    expect((await state(page)).position).toEqual(stopped);
+    await page.screenshot({ path: `test-results/analog-${viewport.width}.png` });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await context.close();
+  }
 });

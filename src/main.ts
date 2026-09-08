@@ -33,7 +33,7 @@ $('app').innerHTML = `
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
     <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
-    <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
+    <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
@@ -77,7 +77,7 @@ async function init() {
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
   const cityMap = $<HTMLDialogElement>('city-map');
   function setMap(open: boolean) {
-    keys.clear(); dragging = false;
+    keys.clear(); resetStick(); dragging = false;
     if (open && started && !paused) { cityMap.showModal(); drawMap(true); $('close-map').focus(); }
     else { cityMap.close(); canvas.focus(); }
   }
@@ -137,10 +137,32 @@ async function init() {
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
   const keys = new Set<string>();
-  const touch = matchMedia('(pointer: coarse)').matches;
+  const stick = $('move-stick'), thumb = $('stick-thumb');
+  let stickId: number | null = null, stickX = 0, stickY = 0;
+  function resetStick() {
+    const id = stickId; stickId = null; stickX = stickY = 0;
+    thumb.style.transform = 'translate(-50%, -50%)'; stick.classList.remove('active');
+    if (id !== null && stick.hasPointerCapture(id)) stick.releasePointerCapture(id);
+  }
+  function moveStick(event: PointerEvent) {
+    const rect = stick.getBoundingClientRect(), radius = rect.width * .3;
+    const x = event.clientX - rect.left - rect.width / 2, y = event.clientY - rect.top - rect.height / 2;
+    const length = Math.hypot(x, y), scale = Math.min(1, radius / (length || 1));
+    const strength = Math.max(0, (Math.min(1, length / radius) - .12) / .88);
+    stickX = length ? x / length * strength : 0; stickY = length ? -y / length * strength : 0;
+    thumb.style.transform = `translate(-50%, -50%) translate(${x * scale}px, ${y * scale}px)`;
+  }
+  stick.addEventListener('pointerdown', event => {
+    if (!started || paused || cityMap.open || stickId !== null || event.button !== 0) return;
+    event.preventDefault(); stickId = event.pointerId; stick.setPointerCapture(stickId); stick.classList.add('active'); moveStick(event);
+  });
+  stick.addEventListener('pointermove', event => { if (event.pointerId === stickId) { event.preventDefault(); moveStick(event); } });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) stick.addEventListener(type, event => { if ((event as PointerEvent).pointerId === stickId) resetStick(); });
+  const touch = matchMedia('(any-pointer: coarse)').matches;
+  document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   $('touch-controls').hidden = !touch;
-  if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Touch controls included · landscape recommended'; }
+  if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
 
   const ring = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.7, 48), new THREE.MeshBasicMaterial({ color: '#d9f993', side: THREE.DoubleSide, transparent: true, opacity: .92, depthWrite: false }));
@@ -311,7 +333,7 @@ async function init() {
   function setPause(value: boolean) {
     if (!started) return;
     if (value && cityMap.open) setMap(false);
-    paused = value; $('pause').hidden = !value; keys.clear(); dragging = false;
+    paused = value; $('pause').hidden = !value; keys.clear(); resetStick(); dragging = false;
     if (value) { $('resume').focus(); }
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
@@ -323,7 +345,7 @@ async function init() {
   }
   function leaveCity() {
     cityMap.close(); profile.close(); closeOptions();
-    started = false; paused = false; keys.clear(); disconnectMultiplayer(); backgroundMusic.pause();
+    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -343,9 +365,9 @@ async function init() {
   function interact() {
     if (!started || paused) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
-    if (seated) { seated = false; pos.copy(standPosition); keys.clear(); return; }
+    if (seated) { seated = false; pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const chair = !riding && nearbyChair();
-    if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; walkSpeed = 0; keys.clear(); return; }
+    if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; walkSpeed = 0; keys.clear(); resetStick(); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
       const exit = safeDismount(pos, yaw, world.solids);
@@ -395,8 +417,8 @@ async function init() {
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
   window.addEventListener('beforeunload', disconnectMultiplayer);
-  window.addEventListener('blur', () => { keys.clear(); dragging = false; });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); dragging = false; } });
+  window.addEventListener('blur', () => { keys.clear(); resetStick(); dragging = false; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');
   const profile = $<HTMLDialogElement>('player-profile');
   let selectedName = '';
@@ -417,7 +439,7 @@ async function init() {
     while (object && typeof object.userData.profileName !== 'string') object = object.parent;
     if (!object) return;
     selectedName = object.userData.profileName;
-    keys.clear(); dragging = false;
+    keys.clear(); resetStick(); dragging = false;
     options.hidden = false;
     options.style.left = `${Math.max(8, Math.min(x, innerWidth - options.offsetWidth - 8))}px`;
     options.style.top = `${Math.max(8, Math.min(y, innerHeight - options.offsetHeight - 8))}px`;
@@ -431,7 +453,7 @@ async function init() {
   canvas.addEventListener('contextmenu', event => { event.preventDefault(); openPlayerOptions(event.clientX, event.clientY); });
   let pointerId: number | null = null, pointerX = 0, pointerY = 0, pointerAt = 0, pointerMoved = false, touchPointer = false;
   canvas.addEventListener('pointerdown', event => {
-    if (!started || paused || cityMap.open || !event.isPrimary || event.button !== 0) return;
+    if (!started || paused || cityMap.open || dragging || event.button !== 0) return;
     touchPointer = event.pointerType === 'touch';
     canvas.focus(); dragging = true; pointerId = event.pointerId; pointerX = lastX = event.clientX; pointerY = lastY = event.clientY; pointerAt = performance.now(); pointerMoved = false; canvas.setPointerCapture(event.pointerId);
   });
@@ -455,7 +477,7 @@ async function init() {
     button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); if (button.dataset.key === 'Space') jump(); keys.add(button.dataset.key!); });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key!));
   });
-  window.addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+  window.addEventListener('resize', () => { resetStick(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
   function drawMap(expanded = false) {
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
@@ -550,8 +572,8 @@ async function init() {
       }
     }
     if (active) {
-      const forward = Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown'));
-      const turn = Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight'));
+      const forward = THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
+      const turn = THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       const dynamicSolids: Solid[] = world.traffic.map(car => ({ x: car.x, z: car.z, hx: car.axis === 'z' ? 1 : 1.9, hz: car.axis === 'z' ? 1.9 : 1 }));
       const solids = [...world.solids, ...dynamicSolids];
       if (riding) {
@@ -575,9 +597,10 @@ async function init() {
           if (jumpHeight === 0) jumpVelocity = 0;
         }
         const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
-        const running = keys.has('ShiftLeft') || keys.has('ShiftRight'); const maxSpeed = running ? 7 : 3.7;
+        const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
         if (input.length()) {
+          input.normalize();
           const reference = cameraHeading + orbit;
           const dx = Math.sin(reference) * input.y - Math.cos(reference) * input.x;
           const dz = Math.cos(reference) * input.y + Math.sin(reference) * input.x;
@@ -676,7 +699,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, seated, jumpHeight, punchCount, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
