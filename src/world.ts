@@ -182,6 +182,28 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
   }
 }
 
+const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
+export function createDriveableCar() {
+  const group = new THREE.Group(), wheels: THREE.Group[] = [];
+  const color = '#57a99b';
+  box(group, 0, .78, 0, 1.8, .65, 3.5, color);
+  box(group, 0, 1.36, -.18, 1.55, .65, 1.83, carGlass);
+  box(group, 0, 1.73, -.18, 1.65, .12, 1.9, color);
+  for (const side of [-1, 1]) {
+    box(group, side * .78, 1.35, -.15, .08, .77, .12, color);
+    for (const z of [-1.1, 1.08]) {
+      const axle = new THREE.Group(); axle.position.set(side * .92, .42, z); group.add(axle);
+      const wheel = tube(axle, 0, 0, 0, .38, .19, '#283a37'); wheel.rotation.z = Math.PI / 2; wheels.push(axle);
+      const hub = tube(axle, side * .11, 0, 0, .18, .02, '#bcc7ba'); hub.rotation.z = Math.PI / 2;
+    }
+    box(group, side * .59, .95, 1.77, .4, .22, .04, '#fff2b3');
+    box(group, side * .59, .95, -1.77, .35, .2, .04, '#bf514b');
+  }
+  box(group, 0, .58, 1.79, 1.65, .15, .1, '#263e36');
+  const driver = createPerson('#ef734c', true); driver.group.scale.setScalar(.7); driver.group.position.set(.35, .24, -.1); driver.group.visible = false; group.add(driver.group);
+  return { group, wheels, driver: driver.group };
+}
+
 export interface TrafficCar { group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
 export interface World { chairs: { x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }

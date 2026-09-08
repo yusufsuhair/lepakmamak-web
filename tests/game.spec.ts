@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { vehicle: string; stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
 test('free roam supports riding, settings and no mission prompts', async ({ page }) => {
@@ -178,4 +178,32 @@ test('mobile analog movement supports release and a second finger in both orient
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await context.close();
   }
+});
+
+test('parked car can be entered, driven, braked and exited', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.keyboard.down('s');
+  await expect.poll(async () => (await state(page)).position.z, { timeout: 10000 }).toBeGreaterThan(63);
+  await page.keyboard.up('s');
+  await page.keyboard.down('d');
+  await expect(page.locator('#interaction-text')).toHaveText('Drive your car', { timeout: 12000 });
+  await page.keyboard.up('d');
+  await page.keyboard.press('Enter');
+  expect((await state(page)).vehicle).toBe('car');
+  expect((await state(page)).riding).toBe(true);
+  const startZ = (await state(page)).position.z;
+  await page.keyboard.down('w');
+  await expect.poll(async () => (await state(page)).position.z).toBeLessThan(startZ - 3);
+  await page.keyboard.up('w');
+  await page.screenshot({ path: 'test-results/driving-car.png' });
+  await page.keyboard.down('Space');
+  await expect.poll(async () => Math.abs((await state(page)).speed)).toBeLessThan(.4);
+  await page.keyboard.up('Space');
+  await page.keyboard.press('Enter');
+  expect((await state(page)).riding).toBe(false);
+  const exitX = (await state(page)).position.x;
+  await page.keyboard.down('a');
+  await expect.poll(async () => (await state(page)).position.x).toBeLessThan(exitX - .5);
+  await page.keyboard.up('a');
 });

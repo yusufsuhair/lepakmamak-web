@@ -23,9 +23,9 @@ export function moveWithCollisions(position: Point, dx: number, dz: number, radi
   return hit;
 }
 
-export function safeDismount(position: Point, yaw: number, solids: Solid[]): Point | null {
+export function safeDismount(position: Point, yaw: number, solids: Solid[], distance = 2.2): Point | null {
   for (const offset of [Math.PI / 2, -Math.PI / 2, Math.PI, 0]) {
-    const point = { x: position.x + Math.sin(yaw + offset) * 2.2, z: position.z + Math.cos(yaw + offset) * 2.2 };
+    const point = { x: position.x + Math.sin(yaw + offset) * distance, z: position.z + Math.cos(yaw + offset) * distance };
     if (Math.abs(point.x) < WORLD_LIMIT - 1 && Math.abs(point.z) < WORLD_LIMIT - 1 && !solids.some(s => overlaps(point, 0.48, s))) return point;
   }
   return null;

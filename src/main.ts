@@ -1,6 +1,6 @@
 import './style.css';
 import * as THREE from 'three';
-import { createWorld, createPerson, createBike, applyAppearance } from './world';
+import { createWorld, createPerson, createBike, createDriveableCar, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, displayName, setupAuth } from './auth';
@@ -35,7 +35,7 @@ $('app').innerHTML = `
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
-  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span></span><span>Move normally · M / Esc to close</span></footer></dialog>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -67,6 +67,8 @@ async function init() {
   const world = createWorld(scene);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
+  const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
+  let vehicle: 'bike' | 'car' = 'bike';
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
   const savedMoney = Number((saved as { money?: number }).money);
@@ -94,8 +96,8 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type NetworkPlayer = { vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
@@ -211,9 +213,10 @@ async function init() {
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
+    const car = createDriveableCar(); applyAppearance(car.driver, player.appearance); car.driver.visible = true; car.group.visible = false; group.add(car.group);
     const label = nameTag(player.name); updateNameTagVoice(label, !!player.mic, !!player.speaker); group.add(label);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
+    return { car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     const visibleIds = new Set<string>();
@@ -223,7 +226,8 @@ async function init() {
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
-      entity.target.set(remote.x, (remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated;
+      entity.target.set(remote.x, (remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike';
+      entity.car.group.visible = entity.riding && entity.vehicle === 'car'; entity.person.group.visible = !entity.car.group.visible;
     }
     for (const [id, entity] of remotePlayers) {
       if (visibleIds.has(id)) continue;
@@ -295,7 +299,7 @@ async function init() {
     networkSendTimer += dt;
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
-    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated }));
+    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated, vehicle }));
   }
   function recallSound() {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
@@ -336,7 +340,7 @@ async function init() {
   function start() {
     if (auth && !session) return;
     if (started) return;
-    applyAppearance(player.group, session?.user.user_metadata?.appearance); applyAppearance(bike.rider, session?.user.user_metadata?.appearance);
+    applyAppearance(player.group, session?.user.user_metadata?.appearance); applyAppearance(bike.rider, session?.user.user_metadata?.appearance); applyAppearance(car.driver, session?.user.user_metadata?.appearance);
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
@@ -352,6 +356,7 @@ async function init() {
   signout.onclick = async () => { if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
+    car.group.position.set(-7, .09, 64); car.group.rotation.set(0, Math.PI, 0); car.driver.visible = false; vehicle = 'bike';
     seated = false; jumpHeight = 0; jumpVelocity = 0;
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
     bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
@@ -368,11 +373,12 @@ async function init() {
     if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; walkSpeed = 0; keys.clear(); resetStick(); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
-      const exit = safeDismount(pos, yaw, world.solids);
+      const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => ({ x: c.x, z: c.z, hx: 1.8, hz: 1.8 }))], vehicle === 'car' ? 2.7 : 2.2);
       if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
-      riding = false; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; return;
+      riding = false; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; car.driver.visible = false; return;
     }
-    if (distanceTo(bike.group.position) < 3.8) { riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
+    if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) { vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
+    if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
@@ -421,7 +427,7 @@ async function init() {
     const rect = canvas.getBoundingClientRect();
     const ray = new THREE.Raycaster();
     ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
-    const own = riding ? bike.rider : player.group;
+    const own = riding ? (vehicle === 'car' ? car.driver : bike.rider) : player.group;
     own.userData.profileName = displayName();
     if (localName) localName.userData.profileName = displayName();
     const targets = [own, ...Array.from(remotePlayers.values(), p => p.group), ...(localName ? [localName] : [])];
@@ -480,7 +486,8 @@ async function init() {
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
     for (const z of [-64, 8, 78]) ctx.fillRect(-157, z - 8.5, 314, 17);
     for (const b of world.mapBuildings) { ctx.fillStyle = '#4d6c56'; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
-    if (!riding) { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
+    if (!riding || vehicle !== 'car') { ctx.fillStyle = '#f4a5bf'; ctx.beginPath(); ctx.arc(car.group.position.x, car.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
+    if (!riding || vehicle !== 'bike') { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
     ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-5, -5); ctx.lineTo(0, -2); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     ctx.fillStyle = '#d3dfba'; ctx.font = '600 9px "DM Sans"'; ctx.textAlign = 'center'; ctx.fillText('KLCC', 0, -138);
@@ -500,13 +507,14 @@ async function init() {
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
     $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
-    $('vehicle-label').textContent = riding ? 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
+    $('vehicle-label').textContent = riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
     let hint = '';
-    if (riding) hint = Math.abs(speed) < 1.5 ? 'Get off your kapcai' : '';
+    if (riding) hint = Math.abs(speed) < 1.5 ? vehicle === 'car' ? 'Get out of your car' : 'Get off your kapcai' : '';
+    else if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) hint = 'Drive your car';
     else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
-    $('touch-interact').textContent = seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OFF' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
+    $('touch-interact').textContent = seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     drawMap();
     if (cityMap.open) drawMap(true);
   }
@@ -545,7 +553,8 @@ async function init() {
         if (remote.seated) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
-        remote.group.scale.setScalar(recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1);
+        const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
+        remote.group.scale.setScalar(remote.car.group.visible ? 1 : pulse); remote.car.driver.scale.setScalar(.7 * (remote.car.group.visible ? pulse : 1));
       }
     }
     if (active) {
@@ -553,18 +562,25 @@ async function init() {
       const turn = THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       const dynamicSolids: Solid[] = world.traffic.map(car => ({ x: car.x, z: car.z, hx: car.axis === 'z' ? 1 : 1.9, hz: car.axis === 'z' ? 1.9 : 1 }));
       const solids = [...world.solids, ...dynamicSolids];
+      if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
+      if (!riding || vehicle !== 'car') solids.push({ x: car.group.position.x, z: car.group.position.z, hx: 1.8, hz: 1.8 });
       if (riding) {
         if (keys.has('Space')) speed = THREE.MathUtils.damp(speed, 0, 6, dt);
         else if (forward) speed += forward * (forward * speed < 0 ? 15 : 6.7) * dt;
         else speed = THREE.MathUtils.damp(speed, 0, 1.1, dt);
-        speed = THREE.MathUtils.clamp(speed, -5, 20);
+        speed = THREE.MathUtils.clamp(speed, -5, vehicle === 'car' ? 24 : 20);
         if (Math.abs(speed) < .025) speed = 0;
         const steering = Math.min(1, Math.abs(speed) / 3) * (1.65 - Math.min(1, Math.abs(speed) / 23) * .65);
         yaw += turn * steering * dt * Math.sign(speed);
-        const hit = moveWithCollisions(pos, Math.sin(yaw) * speed * dt, Math.cos(yaw) * speed * dt, .83, solids);
+        const hit = moveWithCollisions(pos, Math.sin(yaw) * speed * dt, Math.cos(yaw) * speed * dt, vehicle === 'car' ? 1.85 : .83, solids);
         if (hit) speed *= Math.exp(-9 * dt);
+        if (vehicle === 'car') {
+          car.group.position.copy(pos); car.group.rotation.y = yaw;
+          car.wheels.forEach(wheel => wheel.rotation.x += speed * dt / .38);
+        } else {
         bikeYaw = yaw; bike.group.position.copy(pos); bike.group.rotation.y = yaw; bike.group.rotation.z = THREE.MathUtils.damp(bike.group.rotation.z, -turn * Math.min(.17, Math.abs(speed) * .012), 6, dt);
         bike.wheels.forEach(wheel => wheel.rotation.x += speed * dt / .4);
+        }
         walkSpeed = 0;
       } else if (seated) {
         player.group.position.set(pos.x, -.22, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
@@ -593,7 +609,8 @@ async function init() {
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
       player.group.scale.setScalar(riding ? 1 : localRecallScale);
-      bike.rider.scale.setScalar(riding ? localRecallScale : 1);
+      bike.rider.scale.setScalar(riding && vehicle === 'bike' ? localRecallScale : 1);
+      car.driver.scale.setScalar(.7 * (riding && vehicle === 'car' ? localRecallScale : 1));
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
       if (riding) cameraHeading = dampAngle(cameraHeading, yaw, 1 - Math.exp(-3 * dt));
       const heading = cameraHeading + orbit;
@@ -633,7 +650,7 @@ async function init() {
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
-      const speaker = id === networkPlayerId ? (riding ? bike.group.position : player.group.position) : remotePlayers.get(id)?.group.position;
+      const speaker = id === networkPlayerId ? (riding ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(id)?.group.position;
       const remaining = bubble.expiresAt - time;
       if (!speaker || remaining <= 0 || !networkConnected) {
         bubble.element.remove(); speechBubbles.delete(id); continue;
@@ -663,7 +680,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);

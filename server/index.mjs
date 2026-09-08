@@ -106,7 +106,7 @@ webSocketServer.on('connection', ws => {
         x: -18,
         z: 52,
         yaw: Math.PI,
-        riding: false,
+        riding: false, vehicle: 'bike',
         speed: 0,
         jumpHeight: 0, seated: false,
         mic: false, speaker: false,
@@ -152,8 +152,9 @@ webSocketServer.on('connection', ws => {
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
-      player.speed = finiteNumber(message.speed, 0, -5, 20);
+      player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
+      player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
       player.seated = !player.riding && message.seated === true;
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;

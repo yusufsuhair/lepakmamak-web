@@ -17,7 +17,7 @@ const sockets = [];
 const errors = [];
 try {
   const pages = [];
-  let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false, customizedPlayerSeen = false;
+  let remoteJumpSeen = false, remotePunchSeen = false, remoteSitSeen = false, customizedPlayerSeen = false, remoteCarSeen = false;
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
     const page = await context.newPage(); pages.push(page);
@@ -31,6 +31,7 @@ try {
       const data = JSON.parse(String(payload));
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.seated)) remoteSitSeen = true;
       if (data.players?.some(player => player.name === "Smoke Player 0" && player.appearance?.gender === "female" && player.appearance?.hair === "#79549b" && player.appearance?.hairstyle === "bob")) customizedPlayerSeen = true;
+      if (data.players?.some(player => player.name === "Smoke Player 0" && player.vehicle === "car" && player.riding)) remoteCarSeen = true;
       if (data.type === "punch") remotePunchSeen = true;
       if (data.players?.some(player => player.name === 'Smoke Player 0' && player.jumpHeight > .3)) remoteJumpSeen = true;
     }));
@@ -106,6 +107,16 @@ try {
   await pages[1].locator('#voice-speaker').click();
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();
+  await pages[0].keyboard.down('s');
+  await pages[0].waitForTimeout(3400);
+  await pages[0].keyboard.up('s');
+  await pages[0].keyboard.down('d');
+  await expect(pages[0].locator('#interaction-text')).toHaveText('Drive your car', { timeout: 12000 });
+  await pages[0].keyboard.up('d');
+  await pages[0].keyboard.press('Enter');
+  await expect.poll(() => remoteCarSeen).toBe(true);
+  await pages[0].getByRole('button', { name: 'Open settings' }).click();
+  await pages[0].getByRole('button', { name: 'Return to Mamak Maju' }).click();
   await pages[0].keyboard.down('a');
   await pages[0].waitForTimeout(2500);
   await pages[0].keyboard.up('a');
