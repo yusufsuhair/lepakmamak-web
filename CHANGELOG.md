@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Moved CITY ONLINE directly beneath the top-left logo on desktop and mobile.
+
 - Added Masjid Lepak, a Hindu shrine and a Chinese shrine in the eastern district, with distinct architecture and map footprints.
 
 - Name banners now fit their text and use translucent backgrounds, including the Game Master banner.
