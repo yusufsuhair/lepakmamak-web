@@ -8,13 +8,14 @@ test('street animals move, avoid buildings and call only within hearing range',a
   const THREE=await import('/node_modules/three/build/three.module.js');
   const scene=new THREE.Scene(),solids=[{x:-12,z:49,hx:3,hz:3}];
   const pets=createStreetAnimals(scene,solids);let calls=0;const sound=()=>calls++;
-  pets.update(1,{x:900,z:900},sound);const far=calls;const before=pets.animals[0].group.position.clone();
+  pets.update(1,{x:900,z:900},sound);const far=calls,farVisible=pets.animals.filter((pet:any)=>pet.group.visible).length;const before=pets.animals[0].group.position.clone();
   pets.update(5,{x:900,z:900},sound);const moved=before.distanceTo(pets.animals[0].group.position)>1;
   let clear=true;for(let t=0;t<32;t+=.5){pets.update(t,{x:900,z:900},sound);for(const pet of pets.animals)for(const s of solids)if(Math.abs(pet.group.position.x-s.x)<s.hx+.3&&Math.abs(pet.group.position.z-s.z)<s.hz+.3)clear=false;}
   pets.update(40,pets.animals[0].group.position,sound);
-  return {count:pets.animals.length,far,moved,clear,near:calls};
+  const cats=pets.animals.filter((pet:any)=>pet.cat).length,dogs=pets.animals.length-cats;
+  return {count:pets.animals.length,cats,dogs,far,farVisible,moved,clear,near:calls};
  });
- expect(result).toMatchObject({count:6,far:0,moved:true,clear:true});expect(result.near).toBeGreaterThan(0);
+ expect(result).toMatchObject({count:20,cats:10,dogs:10,far:0,farVisible:0,moved:true,clear:true});expect(result.near).toBeGreaterThan(0);
 });
 test('preview cat and dog models',async({page})=>{
  await page.goto('/');await page.evaluate(async()=>{

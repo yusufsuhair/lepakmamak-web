@@ -25,23 +25,31 @@ export function createAnimal(cat:boolean,color:string){
  return {group,body,head,legs,tail,cat};
 }
 export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
- const seeds=[[-12,49],[-12,58],[12,34],[65,45],[-68,55],[52,-87]];
+ // Spread pets across the whole city so each neighbourhood has life without
+ // rendering every animal at once on mobile.
+ const seeds=[
+  [-12,49],[-12,58],[12,34],[65,45],[-68,55],[52,-87],
+  [-57,27],[-62,-22],[-21,-35],[23,-44],[54,-21],
+  [103,88],[132,94],[-112,55],[105,-14],[34,94],
+  [-42,132],[-119,-72],[48,-112],[-45,-111],
+ ];
+ const colors=['#e6a34e','#c89c70','#f0e8d8','#f3e4cc','#888f96','#79543e','#d8b27c','#4c4640','#e8d4b8','#b56f4a'];
  const animals=seeds.map(([sx,sz],i)=>{
   let x=sx,z=sz,found=false;
   for(let r=0;r<=18&&!found;r+=3)for(let a=0;a<8&&!found;a++){
    const cx=sx+Math.cos(a*Math.PI/4)*r,cz=sz+Math.sin(a*Math.PI/4)*r;
    if(solids.every(s=>Math.abs(cx-s.x)>s.hx+2.5||Math.abs(cz-s.z)>s.hz+2.5)){x=cx;z=cz;found=true;}
   }
-  const pet=createAnimal(i%2===0,['#e6a34e','#c89c70','#f0e8d8','#f3e4cc','#888f96','#79543e'][i]);
+  const pet=createAnimal(i%2===0,colors[i%colors.length]);pet.group.scale.setScalar((pet.cat?.82:.94)+(i%4)*.045);
   pet.group.name=i%2===0?'Street cat':'Street dog';scene.add(pet.group);
-  return {...pet,x,z,phase:i*5.3,nextSound:0};
+  return {...pet,x,z,phase:i*5.3,nextSound:0,routeRadius:1.25+(i%4)*.32};
  });
  let lastSound=-10;
  return {animals,update(time:number,listener:{x:number;z:number},sound:(cat:boolean,volume:number,pan:number)=>void){
   for(const [i,pet] of animals.entries()){
    const cycle=(time+pet.phase)%32,walking=cycle<18,playing=cycle>=18&&cycle<26;
    const angle=walking?cycle/18*Math.PI*2:0;
-   pet.group.position.set(pet.x+Math.sin(angle)*1.7,.12,pet.z+Math.cos(angle)*1.7);
+   pet.group.position.set(pet.x+Math.sin(angle)*pet.routeRadius,.12,pet.z+Math.cos(angle)*pet.routeRadius);
    pet.group.rotation.y=walking?Math.PI/2+angle:Math.sin(time*.8+i)*.3;
    pet.body.rotation.z=playing?(pet.cat?Math.sin(time*3)*.8:Math.sin(time*6)*.12):0;
    pet.body.position.y=playing?Math.abs(Math.sin(time*3))*.12:walking?Math.abs(Math.sin(time*7))*.025:0;
@@ -49,6 +57,7 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
    pet.tail.rotation.z=Math.sin(time*(pet.cat?3:9))*(pet.cat?.25:.65);
    pet.legs.forEach((leg,j)=>leg.rotation.x=walking?Math.sin(time*7+(j===0||j===3?0:Math.PI))*.45:playing?Math.sin(time*5+j)*.3:0);
    const distance=Math.hypot(listener.x-pet.group.position.x,listener.z-pet.group.position.z);
+   pet.group.visible=distance<68;
    if(distance<14&&time>pet.nextSound&&time-lastSound>2.5){
     pet.nextSound=time+9+i;lastSound=time;sound(pet.cat,Math.pow(1-distance/14,2),Math.max(-1,Math.min(1,(pet.group.position.x-listener.x)/14)));
    }

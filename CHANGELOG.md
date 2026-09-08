@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Expanded the roaming street-animal population to ten cats and ten dogs across the city, with varied colours and sizes, distance culling and shared sound throttling for mobile performance.
+
 - Filled the Busking Santai area with eleven lightweight spectator NPCs: seven seated fans, one camera holder and three animated wavers.
 
 - Added Masjid Kampung Maju across the road from Mamak Maju, with its entrance facing the mamak and a searchable city-map marker.
