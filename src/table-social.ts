@@ -1,7 +1,6 @@
 import {setupLukis} from './lukis';
-import menu from '../shared/mamak-menu.json';
 import locations from '../shared/tables.json';
-export type TableState = { id: string; name: string; hostId: string | null; capacity: number; cheersUntil: number; occupants: {id:string; name:string; chairId:string; hasCup:boolean; order?:string|null}[] };
+export type TableState = { id: string; name: string; hostId: string | null; capacity: number; cheersUntil: number; occupants: {id:string; name:string; chairId:string; hasCup:boolean}[] };
 export type Receipt = {name:string; tableId:string|null; tableName:string; minutes:number; drinksGiven:number; drinksReceived:number; recalls:number; issuedAt:string};
 export function inviteUrl(room: string, tableId?: string | null) {
   const url = new URL(location.origin); url.searchParams.set('room', room); if (tableId) url.searchParams.set('table', tableId); return url.href;
@@ -28,7 +27,7 @@ export function drawReceipt(canvas: HTMLCanvasElement, receipt: Receipt, link: s
 }
 export function setupTableSocial(send:(message:object)=>boolean, room:string, releaseInput:()=>void) {
   const dialog=document.createElement('dialog');dialog.id='table-social';dialog.setAttribute('aria-labelledby','table-social-title');
-  dialog.innerHTML=`<header><div><small>JOM MAMAK</small><h2 id="table-social-title">Meja Kita</h2></div><button id="close-table-social" aria-label="Close Meja Kita">×</button></header><p id="table-social-help">Take a seat. Belanja a friend. Make a memory.</p><div id="table-list"></div><section id="table-detail" hidden><h3 id="table-name"></h3><p id="table-seats"></p><ul id="table-occupants"></ul><form id="table-name-form"><label for="table-name-input">Your table’s name</label><div><input id="table-name-input" maxlength="28" placeholder="Geng Balik Lambat" required /><button>Save</button></div></form><p id="table-host-hint"></p><section class="mamak-menu"><h3>Order at the mamak</h3><p>On the house · One dish or drink at a time.</p><div id="mamak-menu-items"></div><p id="mamak-order-status" role="status"></p><button id="mamak-consume" hidden>Eat</button></section><button id="table-round">Belanja satu meja · Free</button><small>One teh tarik each. Two or more friends? Cheers!</small><label for="table-link">Invite friends to this table</label><div class="table-link-row"><input id="table-link" readonly /><button id="copy-table-link">Copy link</button></div></section><button id="get-receipt">Resit Lepak ↗</button><p id="table-feedback" role="status"></p><section id="receipt-view" hidden><canvas id="receipt-canvas" aria-label="Your LepakMamak session receipt"></canvas><div><button id="download-receipt">Download PNG</button><button id="share-receipt">Share receipt</button></div><small>Only your own session stats. Chat and voice are never included. Counters reset when you reconnect.</small></section>`;
+  dialog.innerHTML=`<header><div><small>JOM MAMAK</small><h2 id="table-social-title">Meja Kita</h2></div><button id="close-table-social" aria-label="Close Meja Kita">×</button></header><p id="table-social-help">Sit with your geng. Play a game. Make a memory.</p><div id="table-list"></div><section id="table-detail" hidden><h3 id="table-name"></h3><p id="table-seats"></p><ul id="table-occupants"></ul><form id="table-name-form"><label for="table-name-input">Your table’s name</label><div><input id="table-name-input" maxlength="28" placeholder="Geng Balik Lambat" required /><button>Save</button></div></form><p id="table-host-hint"></p><button id="table-round">Cheers satu meja · Free</button><small>Two or more friends? Jom main together!</small><label for="table-link">Invite friends to this table</label><div class="table-link-row"><input id="table-link" readonly /><button id="copy-table-link">Copy link</button></div></section><button id="get-receipt">Resit Lepak ↗</button><p id="table-feedback" role="status"></p><section id="receipt-view" hidden><canvas id="receipt-canvas" aria-label="Your LepakMamak session receipt"></canvas><div><button id="download-receipt">Download PNG</button><button id="share-receipt">Share receipt</button></div><small>Only your own session stats. Chat and voice are never included. Counters reset when you reconnect.</small></section>`;
   document.body.append(dialog);
   const lukis=setupLukis(send);dialog.querySelector('#table-detail')!.append(lukis.root);
   const el=<T extends HTMLElement>(id:string)=>dialog.querySelector<T>(`#${id}`)!;
@@ -41,20 +40,15 @@ export function setupTableSocial(send:(message:object)=>boolean, room:string, re
     const list=el('table-list');list.replaceChildren();
     for(const place of locations){const table=tables.find(t=>t.id===place.id);const button=document.createElement('button');button.type='button';button.textContent=`${table?.name||place.name} · ${table?.occupants.length||0}/${table?.capacity|| (place.id==='meja-2'?2:3)}`;button.setAttribute('aria-pressed',String(selected===place.id));button.onclick=()=>{selected=place.id;render(true);};list.append(button);}
     const table=tables.find(t=>t.id===selected);el('table-detail').hidden=!table;
-    el('table-social-help').textContent=online?'Sit at a table to host or belanja. Invite friends with its link.':'Connect to the city to use tables and receipts.';
+    el('table-social-help').textContent=online?'Sit at a table to play with your geng. Invite friends with its link.':'Connect to the city to use tables and games.';
     el<HTMLButtonElement>('get-receipt').disabled=!online;
     if(!table)return;
     const seated=table.occupants.some(p=>p.id===selfId),host=table.hostId===selfId;
     el('table-name').textContent=table.name;el('table-seats').textContent=`${table.occupants.length} / ${table.capacity} seats · ${table.capacity-table.occupants.length} available`;
-    const occupants=el('table-occupants');occupants.replaceChildren();for(const p of table.occupants){const li=document.createElement('li');li.textContent=`${p.name}${p.id===selfId?' (You)':''}${p.id===table.hostId?' · Host':''}${p.hasCup?' · ☕':''}${p.order?' · '+(menu.find(item=>item.id===p.order)?.name||''):''}`;occupants.append(li);}
+    const occupants=el('table-occupants');occupants.replaceChildren();for(const p of table.occupants){const li=document.createElement('li');li.textContent=`${p.name}${p.id===selfId?' (You)':''}${p.id===table.hostId?' · Host':''}${p.hasCup?' · ☕':''}`;occupants.append(li);}
     el('table-name-form').hidden=!host;
     if(document.activeElement!==el('table-name-input'))el<HTMLInputElement>('table-name-input').value=table.name;
     el('table-host-hint').textContent=host?'You host while seated. When you leave, another seated player becomes host.':seated?'The host can name this table.':'Walk to this table and tap Sit on an available chair.';
-    const current=menu.find(item=>item.id===table.occupants.find(p=>p.id===selfId)?.order);
-    const menuItems=el('mamak-menu-items');menuItems.replaceChildren();
-    for(const item of menu){const button=document.createElement('button');button.type='button';button.textContent=`${item.icon} ${item.name}`;button.disabled=!online||!seated||!!current;button.onclick=()=>{if(send({type:'table-order',itemId:item.id}))feedback('Order sent. Sekejap boss!');};menuItems.append(button);}
-    el('mamak-order-status').textContent=current?`${current.icon} ${current.name} is served!`:seated?'Choose something. Your friends can see your order.':'Take a seat at this table to order.';
-    el('mamak-consume').hidden=!current;el('mamak-consume').textContent=current?.kind==='drink'?'Drink · Habiskan':'Eat · Makan';
     el<HTMLButtonElement>('table-round').disabled=!online||!seated||roundPending;
     el<HTMLInputElement>('table-link').value=inviteUrl(room,selected);
   }
@@ -62,7 +56,6 @@ export function setupTableSocial(send:(message:object)=>boolean, room:string, re
   el('close-table-social').onclick=close;
   dialog.addEventListener('keydown',event=>event.stopPropagation());
   el('table-name-form').onsubmit=event=>{event.preventDefault();if(send({type:'table-name',name:el<HTMLInputElement>('table-name-input').value}))feedback('Table name sent.');};
-  el('mamak-consume').onclick=()=>{send({type:'table-consume'});};
   el('table-round').onclick=()=>{if(send({type:'table-round'})){roundPending=true;render(true);feedback('Teh tarik coming up!');setTimeout(()=>{roundPending=false;render(true);},10000);}};
   el('copy-table-link').onclick=async()=>{try{await navigator.clipboard.writeText(inviteUrl(room,selected));feedback('Link copied. Jom, ajak member!');}catch{el<HTMLInputElement>('table-link').select();feedback('Select and copy this invitation link.');}};
   el('get-receipt').onclick=()=>{feedback('Preparing your receipt…');if(!send({type:'receipt'}))feedback('Reconnect to the city first.');};

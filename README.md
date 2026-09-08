@@ -40,6 +40,8 @@ Email confirmation is disabled for the initial friends MVP, so email ownership i
 
 Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. Guest entry is absent from production builds; local development servers still require the explicit `ALLOW_GUESTS=true` alternative. Never place a secret or service-role key in frontend settings.
 
+Wall photo uploads are screened for explicit content through OpenAI's free `omni-moderation-latest` endpoint, which requires `OPENAI_API_KEY` on Railway. The check runs on the decoded bytes before the upload reaches the public bucket, and it fails closed: without the key, or while the endpoint is unreachable, photo posts are rejected rather than published unchecked. Text and voice notes are unaffected. The image path does not cover `sexual/minors`, which that endpoint scores for text only; hash-matching against a service such as PhotoDNA remains the answer for that category.
+
 `node tests/online-smoke.mjs` tests production-built UI served on port 4173 against real services. `TEST_BASE_URL=https://lepakmamak.pages.dev node tests/online-smoke.mjs` tests the live UI. It uses the authenticated Supabase CLI to delete only its temporary accounts and uses an isolated test room. It checks signup, login/logout, incorrect passwords, session restoration, desktop/mobile chat, and unauthenticated rejection.
 
 To redeploy the realtime service from this repository, run `npm run deploy:realtime` while authenticated with Railway. The service listens on Railway's `PORT` and exposes WebSockets at `/ws`.
@@ -69,7 +71,7 @@ The test suite uses an installed Google Chrome through Playwright. On a machine 
 | --- | --- |
 | WASD / arrow keys | Walk; accelerate, reverse and steer the bike |
 | Shift | Run |
-| E | Collect/deliver an order, mount/dismount the bike |
+| E | Reserved for future actions; click or tap a nearby object to interact |
 | Space | Brake on the bike |
 | Drag | Orbit the camera |
 | Scroll | Adjust camera distance |
@@ -77,7 +79,7 @@ The test suite uses an installed Google Chrome through Playwright. On a machine 
 | R | Spam the recall emote (`bzz bzz bzz bzzz`) |
 | Escape | Pause and settings |
 
-Touch devices get directional and interaction buttons. Desktop with a keyboard is the primary target. Pause settings offer rain, engine/delivery sounds, shadows, and a return-to-mamak recovery action. Returning to the mamak preserves an active order and earnings.
+Touch devices get directional and interaction buttons. Desktop with a keyboard is the primary target. Pause settings offer rain, engine sounds, shadows, and a return-to-mamak recovery action.
 
 ## What's implemented
 

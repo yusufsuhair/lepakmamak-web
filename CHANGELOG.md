@@ -1,5 +1,7 @@
 # Changelog
 
+- Removed the table mamak food-order flow and its served food visuals; table interactions now focus on sitting, social play and Lukis Lah.
+
 - Added Lukis Lah at mamak tables: live drawing, secret words, 60-second turns and server-owned guessing scores for seated friends.
 
 - Returning signed-in players now enter the city automatically when opening or refreshing LepakMamak, while expired or missing sessions still show the normal account screen.
@@ -66,7 +68,7 @@
 
 - Remember the last location per account/guest and room on this browser, saving during play and when leaving. Rejoin on foot near the previous chair or vehicle; table invitation links retain their destination.
 
-- Added a free mamak menu with eight dishes and drinks, shared table visuals, Eat/Drink actions, and server-enforced per-diner orders.
+- Removed the table food-order flow so Meja Kita stays focused on social play and mini-games.
 
 - Added account-only editable public profiles (bio, hometown, interests, languages and mamak order), saved in Supabase account metadata and fetched on demand for profile cards. Guests retain name-only cards.
 

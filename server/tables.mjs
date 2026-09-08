@@ -1,4 +1,3 @@
-import menu from '../shared/mamak-menu.json' with { type: 'json' };
 import locations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import { filterChat } from './chat-filter.mjs';
@@ -6,22 +5,21 @@ const tableForChair = new Map(chairs.map(c => [c.id, c.tableId]));
 export function createTableSocial(send) {
   const rooms = new WeakMap(), sessions = new WeakMap();
   function stats(player) {
-    if (!sessions.has(player)) sessions.set(player, { startedAt: Date.now(), given: 0, received: 0, recalls: 0, lastOrder: 0, lastRound: 0, lastRename: 0, lastReceipt: 0, tableId: null });
+    if (!sessions.has(player)) sessions.set(player, { startedAt: Date.now(), given: 0, received: 0, recalls: 0, lastRound: 0, lastRename: 0, lastReceipt: 0, tableId: null });
     return sessions.get(player);
   }
   function room(players) {
-    if (!rooms.has(players)) rooms.set(players, { tables: locations.map(t => ({ ...t, hostId: null, orders: new Map(), cups: new Set(), cheersUntil: 0 })), key: '' });
+    if (!rooms.has(players)) rooms.set(players, { tables: locations.map(t => ({ ...t, hostId: null, cups: new Set(), cheersUntil: 0 })), key: '' });
     return rooms.get(players);
   }
   function snapshot(players) {
     return room(players).tables.map(t => {
       const occupants = [...players.values()].filter(p => tableForChair.get(p.chairId) === t.id);
       if (!occupants.some(p => p.id === t.hostId)) t.hostId = occupants[0]?.id || null;
-      for (const id of t.orders.keys()) if (!occupants.some(p => p.id === id)) t.orders.delete(id);
       for (const id of t.cups) if (!occupants.some(p => p.id === id)) t.cups.delete(id);
       for (const p of occupants) stats(p).tableId = t.id;
       return { id: t.id, name: t.name, hostId: t.hostId, capacity: chairs.filter(c => c.tableId === t.id).length, cheersUntil: t.cheersUntil,
-        occupants: occupants.map(p => ({ id: p.id, name: p.name, chairId: p.chairId, hasCup: t.cups.has(p.id), order: t.orders.get(p.id) || null })) };
+        occupants: occupants.map(p => ({ id: p.id, name: p.name, chairId: p.chairId, hasCup: t.cups.has(p.id) })) };
     });
   }
   function sync(players, force = false) {
@@ -35,7 +33,7 @@ export function createTableSocial(send) {
     join(player) { stats(player); },
     recall(player) { stats(player).recalls++; },
     handle(players, player, message) {
-      if (!['table-name', 'table-round', 'table-order', 'table-consume', 'receipt'].includes(message.type)) return false;
+      if (!['table-name', 'table-round', 'receipt'].includes(message.type)) return false;
       const own = stats(player), now = Date.now();
       if (message.type === 'receipt') {
         if (now - own.lastReceipt < 500) return true;
@@ -48,18 +46,6 @@ export function createTableSocial(send) {
       const table = room(players).tables.find(t => t.id === tableId);
       if (!table) { send(player.ws, { type: 'notice', message: 'Take a seat at a mamak table first.' }); return true; }
       const view = snapshot(players).find(t => t.id === table.id);
-      if (message.type === 'table-consume') {
-        if (table.orders.delete(player.id)) { send(player.ws, {type:'notice',message:'Sedap! Order another whenever you like.'}); sync(players); }
-        return true;
-      }
-      if (message.type === 'table-order') {
-        const item = menu.find(item => item.id === message.itemId);
-        if (!item) return true;
-        if (table.orders.has(player.id)) { send(player.ws, {type:'notice',message:'Finish your current order first.'}); return true; }
-        if (now - own.lastOrder < 3000) { send(player.ws, {type:'notice',message:'Sekejap boss! Try again in a moment.'}); return true; }
-        own.lastOrder=now; table.orders.set(player.id,item.id);
-        send(player.ws,{type:'notice',message:`${item.name} sampai! Enjoy, boss.`}); sync(players); return true;
-      }
       if (message.type === 'table-name') {
         if (view.hostId !== player.id) { send(player.ws, { type: 'notice', message: 'Only the table host can rename it.' }); return true; }
         if (typeof message.name !== 'string' || now - own.lastRename < 1000) return true;
