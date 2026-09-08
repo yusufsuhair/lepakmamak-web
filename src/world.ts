@@ -94,6 +94,27 @@ export function applyAppearance(group: THREE.Group, value: unknown) {
   group.userData.appearance = look;
 }
 
+export function applyAccessories(group: THREE.Group, items: string[]) {
+  const key = [...items].sort().join(','); if (group.userData.accessoryKey === key) return;
+  group.userData.accessoryKey = key;
+  const old = group.getObjectByName('shop-accessories'); if (old) group.remove(old);
+  const accessories = new THREE.Group(); accessories.name = 'shop-accessories'; group.add(accessories);
+  if (items.includes('spectacles')) {
+    for (const side of [-1, 1]) {
+      const x = side * .115;
+      for (const y of [1.845, 1.97]) box(accessories, x, y, .257, .19, .025, .025, '#16251f');
+      for (const dx of [-.085, .085]) box(accessories, x + dx, 1.91, .257, .025, .14, .025, '#16251f');
+      box(accessories, side * .215, 1.93, .1, .025, .025, .32, '#16251f');
+    }
+    box(accessories, 0, 1.93, .267, .065, .025, .025, '#16251f');
+  }
+  if (items.includes('cap')) {
+    const crown = ball(accessories, 0, 2.04, -.02, .27, '#245d46'); crown.scale.y *= .7;
+    box(accessories, 0, 2.025, .22, .43, .04, .36, '#dfff87');
+    box(accessories, 0, 2.12, .21, .08, .09, .02, '#dfff87');
+  }
+}
+
 export function createBike() {
   const group = new THREE.Group(); const wheels: THREE.Mesh[] = [];
   for (const z of [-.8, .8]) {

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an account accessory shop: spectacles and cap at RM5 each, live Stripe Checkout, verified permanent ownership, equipping and multiplayer appearance sync.
+
 - CITY ONLINE now opens a live list of players in the current room, with a marker for your own account.
 
 - Moved interactive mic/speaker controls above the local character, replacing the top-right panel.

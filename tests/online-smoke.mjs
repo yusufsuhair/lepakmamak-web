@@ -76,6 +76,16 @@ try {
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
   for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
+  for (const [index,page] of pages.entries()) {
+    await page.getByRole('button', {name:'Open settings'}).click();
+    await page.getByRole('button', {name:'Shop · Accessories'}).click();
+    await expect(page.locator('#item-shop')).toBeVisible();
+    await expect(page.locator('#item-shop').getByRole('button', {name:'Buy · RM 5'})).toHaveCount(2);
+    await expect(page.locator('#item-shop').getByRole('button', {name:'Buy · RM 5'}).first()).toBeEnabled();
+    await page.locator('#item-shop').screenshot({path:`test-results/shop-${index}.png`});
+    await page.getByRole('button', {name:'Close shop'}).click();
+    await page.locator('#resume').click();
+  }
   await expect.poll(() => customizedPlayerSeen).toBe(true);
   await pages[0].getByRole('button', { name: 'Show online players' }).click();
   await expect(pages[0].locator('#online-players-list')).toContainText('Smoke Player 0');

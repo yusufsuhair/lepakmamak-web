@@ -112,3 +112,13 @@ Mic and speaker buttons are independent and start off. Enabling the mic requests
 The first version relays transient mono 16 kHz PCM audio in 40 ms frames over the existing authenticated WSS connection. No audio is saved. Server routing uses the authenticated player and current room, excludes the sender, honors listener mute, limits audio packet rate, and drops packets for slow sockets. This avoids extra voice services and TURN setup for the initial small hangouts. TCP can add delay on poor connections, and PCM uses more bandwidth than Opus; move to a WebRTC SFU for larger voice crowds. Browser/OS background suspension can interrupt audio despite the game not deliberately pausing.
 
 `tests/voice.spec.ts` uses generated browser audio to test playback between two clients, permission handling, independent mute, and capture cleanup. `tests/online-smoke.mjs` also checks playback through production using temporary accounts and a private test room.
+
+## Accessory shop
+
+Open **Settings → Shop · Accessories**. Spectacles and cap cost RM5 each as permanent account purchases. Stripe hosted Checkout handles payment; players equip purchased items in the shop. Equipment is broadcast to other players and restored on login.
+
+The Railway server requires `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_SPECTACLES`, `STRIPE_PRICE_CAP`, `SUPABASE_SERVICE_ROLE_KEY` and `SHOP_ORIGIN`. These are server secrets/configuration, never Vite variables. The live webhook is `/shop/webhook` on the realtime API. It handles completed/async-success/expired Checkout sessions and full charge refunds. Refunds remove ownership and equipment. Catalog prices are checked against Stripe's session and line items before the service-role RPC grants inventory. Browser writes to inventory are denied by RLS.
+
+Apply `supabase/migrations/202609080001_shop.sql` through the linked Supabase CLI when setting up a new environment. `scripts/configure-shop.mjs` provisions the fixed live catalog and Railway configuration using a securely supplied `STRIPE_SECRET_KEY`. The existing webhook secret must be retained if rerunning setup. Runtime restricted keys need Checkout Sessions read/write, Payment Intents and Charges read; provisioning additionally needs Products, Prices and Webhook Endpoints access.
+
+`npx playwright test tests/shop.spec.ts` checks authorization and payment guards without Stripe calls. `scripts/shop-live-smoke.mjs` is an explicit live integration check requiring a server key: it creates a disposable user, opens and expires an unpaid RM5 Checkout, tests inventory on that disposable account, and cleans it up. It never pays. Do not put keys in files or Git.

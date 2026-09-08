@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { createShop } from './shop.mjs';
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
 const { version } = packageInfo;
@@ -11,6 +12,7 @@ import { WebSocketServer } from 'ws';
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = 24;
 const rooms = new Map();
+const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
 const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
@@ -25,7 +27,7 @@ async function identify(token) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+  return { userId: user.id, accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
 }
 
 function roomFor(name) {
@@ -50,7 +52,7 @@ function releasePassenger(passenger, reset = false) {
   passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -62,7 +64,8 @@ function broadcast(players, message) {
   for (const player of players.values()) if (player.ws.readyState === 1) player.ws.send(payload);
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
+  if (await shop.handle(request, response)) return;
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     response.end(JSON.stringify({ ok: true, version, service: 'lepak-city-realtime', rooms: rooms.size, players: [...rooms.values()].reduce((total, players) => total + players.size, 0) }));
@@ -114,7 +117,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: identity.name,
+        name: identity.name, userId: identity.userId, accessories: identity.accessories || [],
         appearance: cleanAppearance(identity.appearance),
         color: palette[number % palette.length],
         x: -18,

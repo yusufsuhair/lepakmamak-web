@@ -1,9 +1,10 @@
 import './style.css';
+import { setupShop } from './shop';
 import vehicleSeats from '../shared/vehicle-seats.json';
 import { savedLook, setupWardrobe } from './wardrobe';
 import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
-import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAppearance } from './world';
+import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, displayName, setupAuth } from './auth';
@@ -37,7 +38,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -106,7 +107,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -347,6 +348,7 @@ async function init() {
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     roomPlayers = players;
+    const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
     if (self && (self.passengerOf || passengerOf)) {
       passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = self.vehicle || 'bike'; passengerSeat = self.seatIndex || 0;
@@ -364,6 +366,7 @@ async function init() {
         applyAppearance(entity.person.group, remote.appearance); applyAppearance(entity.bike.rider, remote.appearance); applyAppearance(entity.car.driver, remote.appearance);
         entity.group.userData.lookKey = lookKey;
       }
+      for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
       entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       entity.car.group.visible = entity.riding && entity.vehicle === 'car' && !entity.passengerOf; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
@@ -482,16 +485,21 @@ async function init() {
     if (value) { $('resume').focus(); }
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
+  function setAccessories(items: string[]) { for(const model of [player.group,bike.rider,car.driver]) applyAccessories(model,items); }
+  const itemShop = setupShop(setAccessories);
+  $('open-shop').onclick = () => itemShop.open();
   function start() {
     if (auth && !session) return;
     if (started) return;
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
+    void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
     setMap(false); profile.close(); closeOptions();
+    itemShop.close();
     onlinePlayersDialog.close();
     started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
