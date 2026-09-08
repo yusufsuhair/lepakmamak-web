@@ -52,7 +52,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Shop · Accessories</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
@@ -125,9 +125,10 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
+  let afkNote = '';
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
   function clearSpeechBubbles() {
@@ -135,7 +136,7 @@ async function init() {
     speechBubbles.clear();
   }
   function showSpeechBubble(id: string, name: string, text: string) {
-    if (id !== networkPlayerId && !remotePlayers.has(id)) return;
+    if (!id.startsWith('afk:') && id !== networkPlayerId && !remotePlayers.has(id)) return;
     speechBubbles.get(id)?.element.remove();
     const element = document.createElement('div'); element.className = 'speech-bubble'; element.hidden = true;
     element.setAttribute('aria-hidden', 'true'); // The chat log already announces messages.
@@ -144,6 +145,23 @@ async function init() {
     element.append(author, message); $('hud').append(element);
     speechBubbles.set(id, { element, expiresAt: performance.now() + 6500 });
   }
+  function setAfkBubble(id: string, note: string) {
+    const key = `afk:${id}`;
+    const existing = speechBubbles.get(key);
+    if (!note) { existing?.element.remove(); speechBubbles.delete(key); return; }
+    if (existing?.element.querySelector('span')?.textContent === note) return;
+    showSpeechBubble(key, 'AFK', note);
+    const bubble = speechBubbles.get(key)!;
+    bubble.expiresAt = Infinity; bubble.element.classList.add('afk-bubble');
+  }
+  function publishAfk(note: string) {
+    afkNote = note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60);
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'afk-note', text: afkNote }));
+    $<HTMLInputElement>('afk-note').value = afkNote;
+    $('afk-status').textContent = afkNote ? 'AFK note set' : 'AFK note cleared';
+  }
+  $('save-afk').onclick = () => publishAfk($<HTMLInputElement>('afk-note').value);
+  $('clear-afk').onclick = () => publishAfk('');
   let localName: THREE.Sprite | null = null;
   const chat = setupChat(text => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
@@ -380,6 +398,7 @@ async function init() {
     roomPlayers = players;
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
+    if (self?.afkNote !== undefined) afkNote = self.afkNote;
     if (self && (self.passengerOf || passengerOf)) {
       passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = self.vehicle || 'bike'; passengerSeat = self.seatIndex || 0;
       pos.set(self.x, .12, self.z); yaw = self.yaw; speed = self.speed;
@@ -389,6 +408,7 @@ async function init() {
     for (const remote of players) {
       if (!remote.id || remote.id === networkPlayerId) continue;
       visibleIds.add(remote.id);
+      setAfkBubble(remote.id, remote.afkNote || '');
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
       const lookKey = JSON.stringify(remote.appearance);
@@ -452,7 +472,7 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); }
+        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
           const remote = remotePlayers.get(message.id);
@@ -534,6 +554,8 @@ async function init() {
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
+    afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
+    $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
     itemShop.close(); clearGuest();
     onlinePlayersDialog.close();
@@ -948,14 +970,17 @@ async function init() {
     }
 
     camera.updateMatrixWorld();
+    setAfkBubble('self', started ? afkNote : '');
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
-      const speaker = id === networkPlayerId ? (riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(id)?.group.position;
+      const afk = id.startsWith('afk:');
+      const speakerId = afk ? id.slice(4) : id;
+      const speaker = speakerId === 'self' || speakerId === networkPlayerId ? (riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(speakerId)?.group.position;
       const remaining = bubble.expiresAt - time;
-      if (!speaker || remaining <= 0 || !networkConnected) {
+      if (!speaker || remaining <= 0 || (!networkConnected && !afk)) {
         bubble.element.remove(); speechBubbles.delete(id); continue;
       }
-      speechPosition.set(speaker.x, speaker.y + 3.8, speaker.z).project(camera);
+      speechPosition.set(speaker.x, speaker.y + (afk ? 4.5 : 3.8), speaker.z).project(camera);
       bubble.element.hidden = !started || speechPosition.z < -1 || speechPosition.z > 1 || Math.abs(speechPosition.x) > 1 || Math.abs(speechPosition.y) > 1;
       if (!bubble.element.hidden) {
         const width = bubble.element.offsetWidth, height = bubble.element.offsetHeight;

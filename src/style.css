@@ -342,3 +342,11 @@ html, body, #app { touch-action: manipulation; }
 @media (max-width: 600px) and (min-height: 501px) {
   #camera-controls { flex-direction: column; }
 }
+
+#afk-settings { margin: 18px 0; display: grid; gap: 8px; }
+#afk-settings input { width: 100%; min-width: 0; padding: 12px; font: inherit; font-size: 16px; border: 1px solid #99ad89; border-radius: 6px; }
+#afk-settings small, #afk-status { font-size: 12px; }
+#afk-settings > div { display: flex; gap: 8px; }
+#afk-settings button { min-height: 44px; padding: 10px 16px; background: #294e3d; color: #fff8e7; border: 0; border-radius: 6px; }
+.afk-bubble { background: #fff0bc; border-color: #8c7434; }
+.afk-bubble::after { background: #fff0bc; border-color: #8c7434; }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a persistent AFK note above players, editable and clearable in Settings, synchronized to peers and filtered for profanity.
+
 - Improved mobile and desktop usability with camera zoom/reset buttons, larger settings targets, chat keyboard layout and input release, lighter mobile rendering, and browser-engine compatibility checks.
 
 - Added name-only guest entry to the multiplayer city; guests have no shop access, paid accessories or Game Master role.

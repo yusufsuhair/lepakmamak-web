@@ -184,6 +184,11 @@ webSocketServer.on('connection', ws => {
       releasePassenger(player, message.reset === true);
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
+    if (message.type === 'afk-note') {
+      if (typeof message.text !== 'string') return;
+      player.afkNote = filterChat(message.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60));
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
     if (message.type === 'outfit') {
       player.appearance = cleanAppearance({ ...player.appearance, shirt: message.shirt, trousers: message.trousers });
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
