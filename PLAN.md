@@ -10,7 +10,7 @@ A stylised third-person open-world game in a fictional, compressed Kuala Lumpur.
 - Collision against buildings and street furniture, moving traffic, and pedestrians.
 - A complete food delivery: collect at the mamak, deliver outside KLCC, earn RM 25. Repeat deliveries or free roam.
 - A north-up minimap, destination beacon, interaction hints, mission feedback, speedometer, pause/settings, and saved earnings.
-- Optional rain and sound. Desktop keyboard is the primary target; touch controls provide a secondary path.
+- Optional rain, looping music, and sound. Desktop keyboard is the primary target; touch controls provide a secondary path, including a reachable recall emote button.
 
 ## Implementation
 Vite + TypeScript + Three.js. Browser GPU renders every frame. Procedural geometry is bundled with the app, with no external model services. Static meshes are merged by material, geometry/materials reused, device pixel ratio capped, and shadows switchable. Simple substepped circle/AABB collision supports arcade movement without adding a physics engine. Game simulation pauses in menus and on tab blur.
@@ -29,6 +29,6 @@ The user can start, pick up a mission, enter the bike, ride a connected route, d
 Replace selected objects with Blender-authored GLB assets; add character rigging and better bike animation; extend missions and map; improve traffic AI; add pursuit mechanics. Multiplayer, combat, large interiors, and a city-scale map are outside this first slice. Rain is initially a visual weather option, not a traction simulation.
 
 ## Live release and multiplayer direction
-Publish the existing single-player prototype to Cloudflare Pages first. The browser executes the game and stores earnings locally; this version needs neither a game server nor a database.
+The frontend is published on Cloudflare Pages and the realtime service is published on Railway. The browser executes the game and stores earnings locally; multiplayer guest rooms do not need a database yet.
 
-For the next multiplayer milestone, add a Railway-hosted WebSocket game server to coordinate rooms and player movement. Start with temporary guest sessions and in-memory rooms. Add persistent storage when introducing accounts, inventories, or progress that must survive server restarts and follow players between devices. A frontend deployment alone does not make the game multiplayer. Design that next milestone after the live prototype is reviewed.
+The Railway service accepts temporary guest sessions in an in-memory `kampung` room and broadcasts player movement plus recall emotes over WebSockets. The recall action is deliberately lightweight: the client plays the buzz and pulse immediately, while the server relays the event to every other player in the room with a small spam guard. Add persistent storage when introducing accounts, inventories, or progress that must survive server restarts and follow players between devices. A frontend deployment alone does not make the game multiplayer.

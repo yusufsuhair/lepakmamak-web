@@ -62,6 +62,9 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await expect(page.locator('#touch-controls')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Spam recall emote' })).toBeVisible();
+  await page.getByRole('button', { name: 'Spam recall emote' }).click();
+  await expect(page.locator('#toast')).toContainText('BZZ BZZ BZZ BZZ');
   await page.getByRole('button', { name: 'PICK UP', exact: true }).click();
   await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
   await page.getByRole('button', { name: 'Pause and settings' }).click();

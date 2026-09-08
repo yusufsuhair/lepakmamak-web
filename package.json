@@ -7,7 +7,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name lepak-city --branch main"
+    "start": "node server/index.mjs",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name lepak-city --branch main",
+    "deploy:realtime": "railway up --service 9a776d22-a5d8-4151-8059-300149fce72c --detach --yes"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +18,8 @@
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/dm-sans": "^5.3.0",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

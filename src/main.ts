@@ -8,6 +8,7 @@ import { DeliveryMission, PICKUP, DELIVERY } from './mission';
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
   <div id="loading"><strong>LEPAK CITY</strong><p>Setting the tables. Warming up the kapcai.</p></div>
+  <audio id="background-music" src="/background-short.mp3" loop preload="auto" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to Lepak City">
     <div class="intro-top"><div class="brand"><span class="brand-mark">L</span> LEPAK CITY</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
@@ -15,21 +16,24 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>CITY.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Pause and settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>CITY.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Pause and settings"><span></span><span></span></button></div></div>
     <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
     <div id="minimap-wrap"><div class="map-frame"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑</span></div><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
     <div id="interaction" hidden><kbd>E</kbd><span id="interaction-text"></span></div>
-    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Pause</span></div></div>
+    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Pause</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
     <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
-    <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button></div></div>
+    <div id="touch-controls" hidden><div class="touch-pad"><button data-key="KeyW" aria-label="Move forward">↑</button><button data-key="KeyA" aria-label="Turn left">←</button><button data-key="KeyS" aria-label="Move backward">↓</button><button data-key="KeyD" aria-label="Turn right">→</button></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>Your city will be right here.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Bike & delivery sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Pause or resume</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>Your city will be right here.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift / Space</b><span>Run on foot / brake on bike</span><b>E</b><span>Pick up, deliver, mount or dismount</span><b>R</b><span>Send a recall emote</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Pause or resume</span></div></div></section>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
 
 $('reload').onclick = () => location.reload();
+const backgroundMusic = $<HTMLAudioElement>('background-music');
+backgroundMusic.volume = .22;
+backgroundMusic.loop = true;
 function fail(message: string) { $('loading').hidden = true; $('error-message').textContent = message; $('error').hidden = false; }
 
 async function init() {
@@ -61,6 +65,16 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
+  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number };
+  type RemotePlayer = { group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; recallUntil: number };
+  const remotePlayers = new Map<string, RemotePlayer>();
+  let networkSocket: WebSocket | null = null;
+  let networkPlayerId = '';
+  let networkConnected = false;
+  let networkSendTimer = 0;
+  let networkReconnectTimer: number | null = null;
+  let recallUntil = 0;
+  const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
   const keys = new Set<string>();
   const touch = matchMedia('(pointer: coarse)').matches;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -89,6 +103,13 @@ async function init() {
       if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
     } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
   }
+  function startBackgroundMusic() {
+    if (!audioEnabled) return;
+    void backgroundMusic.play().catch(() => {
+      // Browsers can still reject playback when the user starts with the keyboard.
+      // The next user interaction will try again without interrupting the game.
+    });
+  }
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
@@ -100,15 +121,113 @@ async function init() {
     $('toast').replaceChildren(); const strong = document.createElement('strong'); strong.textContent = title; $('toast').append(strong, document.createTextNode(body)); $('toast').hidden = false; toastRemaining = seconds;
   }
   function save() { try { localStorage.setItem('lepak-city-save', JSON.stringify(mission.save())); } catch { toast('Delivery saved for this session', 'Browser storage is unavailable, so earnings may not survive a reload.'); } }
+  function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
+    const status = $('multiplayer-status'); status.dataset.state = state;
+    $('multiplayer-status-text').textContent = label;
+    $('player-count').textContent = `${count} / 24`;
+  }
+  function makeRemotePlayer(player: NetworkPlayer) {
+    const group = new THREE.Group();
+    const person = createPerson(player.color || '#72c8ba');
+    person.group.scale.setScalar(.92); group.add(person.group);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 8), new THREE.MeshBasicMaterial({ color: '#f4f0d7' })); dot.position.y = 2.28; group.add(dot);
+    group.position.set(player.x, .12, player.z); scene.add(group);
+    return { group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, recallUntil: 0 };
+  }
+  function syncRemotePlayers(players: NetworkPlayer[]) {
+    const visibleIds = new Set<string>();
+    for (const remote of players) {
+      if (!remote.id || remote.id === networkPlayerId) continue;
+      visibleIds.add(remote.id);
+      let entity = remotePlayers.get(remote.id);
+      if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
+      entity.target.set(remote.x, .12, remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed;
+    }
+    for (const [id, entity] of remotePlayers) {
+      if (visibleIds.has(id)) continue;
+      entity.group.removeFromParent(); remotePlayers.delete(id);
+    }
+    setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
+  }
+  function disconnectMultiplayer() {
+    if (networkReconnectTimer !== null) { window.clearTimeout(networkReconnectTimer); networkReconnectTimer = null; }
+    if (networkSocket) { networkSocket.close(1000, 'Leaving the city'); networkSocket = null; }
+    networkConnected = false; networkPlayerId = '';
+    for (const entity of remotePlayers.values()) entity.group.removeFromParent();
+    remotePlayers.clear();
+  }
+  function retryMultiplayer() {
+    if (!started || !multiplayerEndpoint || networkReconnectTimer !== null) return;
+    networkReconnectTimer = window.setTimeout(() => { networkReconnectTimer = null; connectMultiplayer(); }, 2500);
+  }
+  function connectMultiplayer() {
+    if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); return; }
+    setNetworkStatus('CONNECTING…', 'connecting', 1);
+    try {
+      const endpoint = multiplayerEndpoint.startsWith('ws') ? multiplayerEndpoint : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${multiplayerEndpoint}`;
+      networkSocket = new WebSocket(`${endpoint}/ws`);
+      networkSocket.addEventListener('open', () => {
+        networkConnected = true;
+        networkSocket?.send(JSON.stringify({ type: 'join', room: 'kampung' }));
+        setNetworkStatus('CITY ONLINE', 'online', remotePlayers.size + 1);
+      });
+      networkSocket.addEventListener('message', event => {
+        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string };
+        try { message = JSON.parse(String(event.data)); } catch { return; }
+        if (message.type === 'welcome' && message.id) networkPlayerId = message.id;
+        if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
+        if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
+        if (message.type === 'error') setNetworkStatus('CITY FULL', 'offline', remotePlayers.size + 1);
+      });
+      networkSocket.addEventListener('close', () => { networkConnected = false; setNetworkStatus('RECONNECTING…', 'connecting', remotePlayers.size + 1); retryMultiplayer(); });
+      networkSocket.addEventListener('error', () => { networkConnected = false; setNetworkStatus('OFFLINE · SOLO', 'offline', 1); });
+    } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
+  }
+  function sendNetworkState(dt: number) {
+    if (!networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
+    networkSendTimer += dt;
+    if (networkSendTimer < .05) return;
+    networkSendTimer = 0;
+    networkSocket.send(JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed }));
+  }
+  function recallSound() {
+    ensureAudio(); if (!audioContext || !audioEnabled) return;
+    const startAt = audioContext.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const at = startAt + i * .13;
+      oscillator.type = 'square'; oscillator.connect(gain); gain.connect(audioContext.destination);
+      oscillator.frequency.setValueAtTime(155 + i * 12, at);
+      oscillator.frequency.exponentialRampToValueAtTime(315 + i * 10, at + .075);
+      gain.gain.setValueAtTime(.045, at); gain.gain.exponentialRampToValueAtTime(.001, at + .115);
+      oscillator.start(at); oscillator.stop(at + .13);
+    }
+  }
+  function triggerRecall(remoteId?: string) {
+    if (remoteId) {
+      const remote = remotePlayers.get(remoteId); if (remote) remote.recallUntil = simTime + .82;
+      return;
+    }
+    recallUntil = simTime + .82; recallSound();
+    for (const id of ['desktop-recall', 'touch-recall']) {
+      const button = $(id); button.classList.remove('recall-active'); void button.offsetWidth; button.classList.add('recall-active');
+      window.setTimeout(() => button.classList.remove('recall-active'), 760);
+    }
+    toast('BZZ BZZ BZZ BZZ', 'Recall spam activated. Your friends can hear it too.', 2.2);
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'recall' }));
+  }
   function setPause(value: boolean) {
     if (!started) return;
     paused = value; $('pause').hidden = !value; keys.clear(); dragging = false;
-    if (value) { $('resume').focus(); if (engineGain && audioContext) engineGain.gain.setTargetAtTime(0, audioContext.currentTime, .03); }
-    else { ensureAudio(); canvas.focus(); }
+    if (value) { $('resume').focus(); backgroundMusic.pause(); if (engineGain && audioContext) engineGain.gain.setTargetAtTime(0, audioContext.currentTime, .03); }
+    else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
   function start() {
     if (started) return; started = true; $('intro').hidden = true; $('hud').hidden = false;
-    ensureAudio(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
+    ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
   }
   function reset() {
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
@@ -132,16 +251,16 @@ async function init() {
     }
     if (distanceTo(bike.group.position) < 3.8) { riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
-  $('start').onclick = start; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact;
+  $('start').onclick = start; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
     rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
     const color = rainEnabled ? '#adbeb8' : '#d6decd'; scene.background = new THREE.Color(color); (scene.fog as THREE.Fog).color.set(color);
     sun.intensity = rainEnabled ? 1.25 : 2.7;
     $('weather-label').textContent = rainEnabled ? '17:42 · Hujan sekejap' : '17:42 · Golden hour';
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) ensureAudio(); };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { backgroundMusic.pause(); } };
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
-  const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyE', 'KeyC']);
+  const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyE', 'KeyC', 'KeyR']);
   window.addEventListener('keydown', event => {
     if (event.code === 'Enter' && !started) { event.preventDefault(); start(); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
@@ -155,10 +274,12 @@ async function init() {
     if (!started || paused || event.ctrlKey || event.metaKey || event.altKey) return;
     if (gameKeys.has(event.code)) event.preventDefault();
     if (event.code === 'KeyE' && !event.repeat) interact();
+    if (event.code === 'KeyR' && !event.repeat) triggerRecall();
     if (event.code === 'KeyC') { orbit = 0; cameraPitch = .35; }
     keys.add(event.code);
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
+  window.addEventListener('beforeunload', disconnectMultiplayer);
   window.addEventListener('blur', () => { keys.clear(); if (started) setPause(true); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) setPause(true); });
   canvas.addEventListener('pointerdown', event => { if (!started || paused) return; dragging = true; lastX = event.clientX; lastY = event.clientY; canvas.setPointerCapture(event.pointerId); });
@@ -245,6 +366,14 @@ async function init() {
         ped.person.leftLeg.rotation.x = Math.sin(simTime * 6 + ped.phase) * .35; ped.person.rightLeg.rotation.x = -ped.person.leftLeg.rotation.x;
         ped.person.leftArm.rotation.x = -ped.person.leftLeg.rotation.x * .65; ped.person.rightArm.rotation.x = ped.person.leftLeg.rotation.x * .65;
       }
+      for (const remote of remotePlayers.values()) {
+        remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
+        remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
+        remote.group.rotation.y = remote.yaw;
+        remote.group.position.y = .12 + Math.abs(Math.sin(simTime * 9 + remote.target.x)) * (remote.speed > .5 ? .045 : 0);
+        const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
+        remote.group.scale.setScalar(recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1);
+      }
     }
     if (active) {
       const forward = Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown'));
@@ -281,6 +410,9 @@ async function init() {
         player.group.position.y = .12 + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
       }
       if (mission.stage === 'delivering') mission.elapsed += dt;
+      const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
+      const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
+      player.group.scale.setScalar(localRecallScale); bike.group.scale.setScalar(localRecallScale);
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
       if (riding) cameraHeading = dampAngle(cameraHeading, yaw, 1 - Math.exp(-3 * dt));
       const heading = cameraHeading + orbit;
@@ -304,6 +436,7 @@ async function init() {
         }
         rainGeometry.attributes.position.needsUpdate = true;
       }
+      sendNetworkState(dt);
     }
     if (!started) {
       const drift = reducedMotion ? 0 : Math.sin(elapsed * .055) * 3;

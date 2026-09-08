@@ -54,6 +54,12 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .district strong { display: block; font-size: 12px; font-weight: 600; }
 .district small { display: block; margin-top: 4px; font-size: 9px; color: #f1ecd8; letter-spacing: .1em; text-transform: uppercase; }
 .hud-right { display: flex; align-items: center; gap: 20px; }
+.multiplayer-status { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid #fff8e72e; border-radius: 4px; background: #17372e7a; font-size: 8px; letter-spacing: .12em; color: #e3ecd5; white-space: nowrap; }
+.multiplayer-status i { width: 6px; height: 6px; border-radius: 50%; background: #9eb09c; box-shadow: 0 0 0 3px #9eb09c2b; }
+.multiplayer-status b { color: var(--lime); font-weight: 700; letter-spacing: .04em; }
+.multiplayer-status[data-state="online"] i { background: var(--lime); box-shadow: 0 0 0 3px #dafa8e2b; }
+.multiplayer-status[data-state="connecting"] i { background: var(--orange); box-shadow: 0 0 0 3px #f6a16c2b; }
+.multiplayer-status[data-state="offline"] i { background: #ed806a; box-shadow: 0 0 0 3px #ed806a2b; }
 .wallet { text-align: right; }
 .wallet small { font-size: 8px; letter-spacing: .16em; display: block; opacity: .75; }
 .wallet strong { font: 600 25px 'Barlow Condensed'; }
@@ -75,6 +81,11 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #controls-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; background: #17372eab; padding: 10px 15px; border-radius: 5px; white-space: nowrap; }
 .control { display: flex; gap: 6px; align-items: center; font-size: 9px; }
 .control kbd { font-size: 9px; min-width: 19px; height: 19px; }
+.recall-button { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #f5b77d99; border-radius: 5px; color: #fff3d4; background: #b9574ccc; padding: 8px 10px; font-size: 9px; font-weight: 800; letter-spacing: .1em; box-shadow: 0 3px 16px #162f2633; transition: transform .12s, background .12s, box-shadow .12s; }
+.recall-button:hover { background: #d16950e8; transform: translateY(-1px); }
+.recall-button kbd { min-width: 19px; height: 19px; border-color: #fff5db66; background: #fff5db1f; font-size: 9px; }
+.recall-button.recall-active { animation: recall-buzz .76s ease-out; background: #f2a36f; color: #2d4938; box-shadow: 0 0 0 5px #f2a36f2e, 0 5px 22px #f2a36f77; }
+@keyframes recall-buzz { 0%, 100% { transform: translateX(0) rotate(0); } 12% { transform: translateX(-3px) rotate(-2deg); } 24% { transform: translateX(3px) rotate(2deg); } 36% { transform: translateX(-3px) rotate(-2deg); } 48% { transform: translateX(3px) rotate(2deg); } 60% { transform: translateX(-2px) rotate(-1deg); } 72% { transform: translateX(2px) rotate(1deg); } }
 #speedometer { position: absolute; bottom: 31px; right: 31px; width: 140px; text-align: right; }
 .speed-number { font: 600 74px/.8 'Barlow Condensed'; letter-spacing: -.035em; }
 .speed-unit { font-size: 8px; letter-spacing: .18em; margin-left: 6px; }
@@ -105,10 +116,12 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 .touch-actions { position: absolute; bottom: 40px; right: 24px; display: flex; gap: 8px; }
 .touch-actions button { width: 60px; height: 52px; font-size: 10px; }
 .touch-actions button:first-child { background: #dff59ae8; color: #284a34; }
+.touch-actions .recall-button { background: #b9574ccc; color: #fff3d4; border-color: #f5b77d99; }
 #error { position: absolute; z-index: 40; inset: 0; display: grid; place-content: center; padding: 30px; background: #203d32; text-align: center; }
 #error h2 { font: 700 45px 'Barlow Condensed'; margin: 0; }
 #error p { max-width: 440px; line-height: 1.7; color: #c7d6bc; }
 @media (max-width: 900px) { .intro-copy { left: 36px; width: 370px; } h1 { font-size: 118px; } #controls-bar { gap: 10px; bottom: 22px; } .control:nth-child(3) { display: none; } #minimap-wrap { width: 150px; bottom: 22px; left: 22px; } #minimap { width: 144px; height: 133px; } #speedometer { width: 110px; right: 22px; bottom: 22px; } .speed-number { font-size: 62px; } }
-@media (max-width: 600px) { .intro-top { top: 24px; left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: 18px; left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } #mission-card { top: 76px; left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; } #interaction { bottom: 170px; left: auto; right: 18px; transform: none; font-size: 10px; gap: 7px; padding: 7px; } #interaction kbd { width: 24px; height: 24px; } #speedometer { bottom: 237px; right: 18px; width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: 245px; } }
+@media (pointer: coarse) { #desktop-recall { display: none; } }
+@media (max-width: 600px) { .intro-top { top: 24px; left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: 18px; left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } .multiplayer-status { padding: 6px 7px; font-size: 7px; gap: 5px; } .multiplayer-status b { display: none; } #mission-card { top: 76px; left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; } #interaction { bottom: 170px; left: auto; right: 18px; transform: none; font-size: 10px; gap: 7px; padding: 7px; } #interaction kbd { width: 24px; height: 24px; } #speedometer { bottom: 237px; right: 18px; width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: 245px; } .touch-actions { right: 14px; bottom: 24px; gap: 6px; } .touch-actions button { width: 58px; height: 50px; } .touch-actions .recall-button { width: 68px; } }
 @media (max-height: 650px) and (min-width: 601px) { .intro-copy { transform: translateY(-43%); } h1 { font-size: 100px; } .intro-description { margin-bottom: 18px; } .intro-kicker { margin-bottom: 13px; } .intro-bottom { bottom: 18px; } .intro-top { top: 22px; } .intro-copy .tagline { margin-top: 18px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
