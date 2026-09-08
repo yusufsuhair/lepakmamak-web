@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added animated roadside guitar/cajon buskers and the supplied looping song, with smooth proximity audio fading to silence at 22 metres and City sounds mute support.
+
 - Added roadside air balang and pisang goreng booths, six free snacks/drinks, proximity ordering, consume buttons and nearby player reactions in Malay.
 
 - Remember the last location per account/guest and room on this browser, saving during play and when leaving. Rejoin on foot near the previous chair or vehicle; table invitation links retain their destination.

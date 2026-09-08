@@ -1,3 +1,4 @@
+import {createBuskers,buskingSpot,buskingVolume} from './busking';
 import {createStallWorld,setupStalls} from './stalls';
 import {locationKey, readLocation, writeLocation} from './location-save';
 import mamakMenu from '../shared/mamak-menu.json';
@@ -93,6 +94,7 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
   createStallWorld(scene,world.solids);
+  const buskers=createBuskers(scene,world.solids);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
   const streetAnimals = createStreetAnimals(scene, world.solids);
@@ -252,6 +254,8 @@ async function init() {
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
   const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'auto';
+  const buskingSong=new Audio('/busking.mp3');buskingSong.loop=true;buskingSong.preload='metadata';
+  let buskingGain:GainNode|null=null;
   let iceCreamGain: GainNode | null = null;
   let citySoundsGain: GainNode | null = null;
   function ensureAudio() {
@@ -260,6 +264,7 @@ async function init() {
       if (!audioContext) {
         audioContext = new AudioContext();
         citySoundsGain = audioContext.createGain(); citySoundsGain.gain.value = .5; citySoundsGain.connect(audioContext.destination);
+        buskingGain=audioContext.createGain();buskingGain.gain.value=0;audioContext.createMediaElementSource(buskingSong).connect(buskingGain);buskingGain.connect(citySoundsGain!);
         iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
         audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(citySoundsGain!);
         engine = audioContext.createOscillator(); engine.type = 'triangle';
@@ -270,6 +275,7 @@ async function init() {
   }
   let musicContext: AudioContext | null = null;
   function startBackgroundMusic() {
+    if(audioEnabled&&started&&buskingGain)void buskingSong.play().catch(()=>{});
     if (audioEnabled && started && iceCreamGain) void iceCreamSong.play().catch(() => {});
     if (!musicEnabled) return;
     try {
@@ -633,7 +639,7 @@ async function init() {
     setMap(false); profile.close(); closeOptions();
     itemShop.close(); profileEditor.close(); clearGuest();
     onlinePlayersDialog.close();
-    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();
+    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -703,7 +709,7 @@ async function init() {
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
     if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
     if (renderer.shadowMap.enabled === enabled) return;
     renderer.shadowMap.enabled = enabled;
@@ -1044,6 +1050,8 @@ async function init() {
     }
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
+    buskers.update(elapsed,reducedMotion);
+    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z)):0,audioContext.currentTime,.2);
     if (iceCreamGain && audioContext) {
       const distance = Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z);
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
@@ -1130,7 +1138,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
