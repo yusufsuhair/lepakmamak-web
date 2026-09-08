@@ -1,3 +1,4 @@
+import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
 import { isGameMaster } from './roles.mjs';
 import { filterChat } from './chat-filter.mjs';
@@ -61,7 +62,7 @@ function releasePassenger(passenger, reset = false) {
   passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -154,7 +155,7 @@ webSocketServer.on('connection', ws => {
         yaw: Math.PI,
         riding: false, vehicle: 'bike', passengerOf: null, seatIndex: null,
         speed: 0,
-        jumpHeight: 0, seated: false,
+        jumpHeight: 0, seated: false, chairId: null,
         mic: false, speaker: false,
         updatedAt: Date.now(),
       };
@@ -182,6 +183,24 @@ webSocketServer.on('connection', ws => {
       if (!player.passengerOf) return;
       if (Math.abs(player.speed) >= 1.5 && !message.reset) { send(ws, { type: 'notice', message: 'Wait for the driver to stop before getting off.' }); return; }
       releasePassenger(player, message.reset === true);
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'chair-sit') {
+      const chair = chairs.find(c => c.id === message.chairId);
+      const occupied = [...currentRoom.players.values()].some(p => p.chairId === message.chairId);
+      if (!chair || occupied || player.riding || player.seated || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
+        send(ws, { type: 'notice', message: occupied ? 'This chair is occupied.' : 'Move closer to an available chair.' }); return;
+      }
+      player.chairStand = { x: player.x, z: player.z };
+      player.chairId = chair.id; player.seated = true;
+      player.x = chair.x; player.z = chair.z; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'chair-stand') {
+      if (!player.chairId) return;
+      const stand = message.reset === true ? { x: -18, z: 52 } : player.chairStand;
+      if (stand) { player.x = stand.x; player.z = stand.z; }
+      player.chairId = null; player.seated = false; delete player.chairStand;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'afk-note') {
@@ -223,14 +242,14 @@ webSocketServer.on('connection', ws => {
       const now = Date.now();
       if (now - lastStateAt < 35) return;
       lastStateAt = now;
-      if (player.passengerOf) return;
+      if (player.passengerOf || player.chairId) return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
-      player.seated = !player.riding && message.seated === true;
+      player.seated = false; // Only chair-sit can claim a seat.
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
       for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) {

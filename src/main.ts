@@ -114,6 +114,7 @@ async function init() {
   cityMap.addEventListener('cancel', event => { event.preventDefault(); setMap(false); });
   cityMap.addEventListener('click', event => { if (event.target === cityMap) { const rect = cityMap.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setMap(false); } });
   let seated = false;
+  let seatedChairId: string | null = null;
   const standPosition = new THREE.Vector3();
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
@@ -125,7 +126,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   let afkNote = '';
@@ -398,6 +399,13 @@ async function init() {
     roomPlayers = players;
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
+    if (self && (self.chairId || seatedChairId)) {
+      const nowSeated = !!self.chairId;
+      if (nowSeated !== seated) chairSound(nowSeated);
+      seated = nowSeated; seatedChairId = self.chairId || null;
+      pos.set(self.x, .12, self.z); yaw = self.yaw; walkSpeed = 0; speed = 0;
+      keys.clear(); resetStick();
+    }
     if (self?.afkNote !== undefined) afkNote = self.afkNote;
     if (self && (self.passengerOf || passengerOf)) {
       passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = self.vehicle || 'bike'; passengerSeat = self.seatIndex || 0;
@@ -434,6 +442,7 @@ async function init() {
     networkSocket.send(JSON.stringify(message)); return true;
   });
   function disconnectMultiplayer() {
+    seatedChairId = null; seated = false;
     voice.connected(false);
     if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
     clearSpeechBubbles();
@@ -493,7 +502,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -568,6 +577,7 @@ async function init() {
   signout.onclick = async () => { if (guestName) { leaveCity(); return; } if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
+    if (seatedChairId && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'chair-stand', reset: true }));
     if (passengerOf && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'passenger-leave', reset: true })); setPause(false); return; }
     car.group.position.set(-7, .09, 64); car.group.rotation.set(0, Math.PI, 0); car.driver.visible = false; vehicle = 'bike';
     seated = false; jumpHeight = 0; jumpVelocity = 0;
@@ -578,6 +588,7 @@ async function init() {
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
+  function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
@@ -586,7 +597,7 @@ async function init() {
     const driver = nearbyDriver();
     if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
     const chair = nearbyChair();
-    if (chair) return { point: chair, height: 1.3, label: 'Sit', disabled: false };
+    if (chair) return { point: chair, height: 1.3, label: chairOccupied(chair.id) ? 'Occupied' : 'Sit', disabled: chairOccupied(chair.id) };
     const vehiclePoint = distanceTo(car.group.position) < distanceTo(bike.group.position) ? car.group.position : bike.group.position;
     if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
     return null;
@@ -595,11 +606,11 @@ async function init() {
     if (!started || paused) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
-    if (seated) { seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
+    if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const driver = !riding && nearbyDriver();
     if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
     const chair = !riding && nearbyChair();
-    if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
+    if (chair) { if (chairOccupied(chair.id)) return; if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { keys.clear(); resetStick(); networkSocket.send(JSON.stringify({ type: 'chair-sit', chairId: chair.id })); return; } if (auth) return; standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
       const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => ({ x: c.x, z: c.z, hx: 1.8, hz: 1.8 }))], vehicle === 'car' ? 2.7 : 2.2);

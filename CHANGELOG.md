@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enforced one player per chair on the multiplayer server, with occupied actions and automatic release on standing or disconnecting.
+
 - Added a persistent AFK note above players, editable and clearable in Settings, synchronized to peers and filtered for profanity.
 
 - Improved mobile and desktop usability with camera zoom/reset buttons, larger settings targets, chat keyboard layout and input release, lighter mobile rendering, and browser-engine compatibility checks.
