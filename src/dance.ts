@@ -1,15 +1,39 @@
+import * as THREE from 'three';
 import type {Person} from './world';
+// Hand-authored from the supplied five-second reference: face flicks/steps,
+// then hands framing the chest with shoulder and chest rolls. Repeat for 10s.
+const poses=[
+// time, left shoulder x/z, right shoulder x/z, left/right elbow, chest x/y/z, left/right step
+ [0,-.55,-.5,-1.3,.2,-1.1,-1.55,0,-.12,.04,.3,-.25],
+ [.35,-.55,-.45,-1.5,.35,-1.0,-1.75,-.05,.12,-.04,-.35,.25],
+ [.7,-.4,-.3,-1.35,.55,-.9,-1.5,.04,-.14,.035,.28,-.32],
+ [1.05,-.6,-.5,-1.5,.22,-1.15,-1.7,-.04,.12,-.04,-.32,.24],
+ [1.4,-.45,-.35,-1.4,.45,-.9,-1.6,.04,-.1,.04,.25,-.3],
+ [1.8,-.7,-.6,-.9,.6,-1.45,-1.45,0,0,0,0,0],
+ [2.2,-.7,-.65,-.7,.65,-1.6,-1.6,-.12,-.14,.06,0,0],
+ [2.65,-.7,-.65,-.7,.65,-1.6,-1.6,.12,.14,-.06,.04,-.04],
+ [3.1,-.7,-.65,-.7,.65,-1.6,-1.6,-.13,-.13,.06,0,0],
+ [3.55,-.7,-.65,-.7,.65,-1.6,-1.6,.12,.13,-.06,.04,-.04],
+ [4,-.7,-.65,-.7,.65,-1.6,-1.6,-.13,-.14,.06,0,0],
+ [4.5,-.7,-.65,-.7,.65,-1.6,-1.6,.12,.14,-.06,.04,-.04],
+ [5,-.55,-.5,-1.3,.2,-1.1,-1.55,0,-.12,.04,.3,-.25],
+];
+type Rig={upper:THREE.Group;parts:{object:THREE.Object3D;y:number}[];elbows:THREE.Group[];forearms:{object:THREE.Object3D;y:number;arm:THREE.Group}[];active:boolean};
+const rigs=new WeakMap<Person,Rig>();
 export function dancePose(person:Person,remaining:number,time:number,reduced=false){
- person.group.rotation.x=person.group.rotation.z=0;person.leftArm.rotation.z=person.rightArm.rotation.z=0;
- const torso=person.group.children[0];torso.rotation.x=0;
- if(remaining<=0)return;
- const beat=time*Math.PI*4,soft=reduced?.35:1;
- person.group.rotation.z=Math.sin(beat*.5)*.07*soft;torso.rotation.x=Math.sin(beat)*.13*soft;
- person.leftArm.rotation.x=-1.1+Math.sin(beat)*.55*soft;person.rightArm.rotation.x=-1.1+Math.sin(beat+Math.PI)*.55*soft;
- person.leftArm.rotation.z=-.6-Math.sin(beat*.5)*.45*soft;person.rightArm.rotation.z=.6-Math.sin(beat*.5)*.45*soft;
- person.leftLeg.rotation.x=Math.sin(beat*.5)*.12*soft;person.rightLeg.rotation.x=-person.leftLeg.rotation.x;
+ let rig=rigs.get(person);
+ if(remaining<=0){
+  if(rig?.active){for(const p of rig.parts){person.group.add(p.object);p.object.position.y=p.y;}for(const p of rig.forearms){p.arm.add(p.object);p.object.position.y=p.y;}rig.upper.removeFromParent();for(const e of rig.elbows)e.removeFromParent();rig.active=false;person.group.rotation.z=0;person.leftArm.rotation.z=person.rightArm.rotation.z=0;}
+  return;
+ }
+ if(!rig){const parts=person.group.children.filter(o=>o!==person.leftLeg&&o!==person.rightLeg).map(object=>({object,y:object.position.y}));const elbows=[new THREE.Group(),new THREE.Group()];const forearms=[person.leftArm,person.rightArm].map(arm=>({object:arm.children[1],y:arm.children[1].position.y,arm}));rig={upper:new THREE.Group(),parts,elbows,forearms,active:false};rig.upper.position.y=1;rigs.set(person,rig);}
+ if(!rig.active){person.group.add(rig.upper);for(const p of rig.parts){rig.upper.add(p.object);p.object.position.y=p.y-1;}rig.forearms.forEach((p,i)=>{const e=rig!.elbows[i];e.position.y=-.34;p.arm.add(e);e.add(p.object);p.object.position.y=p.y+.34;});rig.active=true;}
+ const t=((time%5)+5)%5;let index=0;while(index<poses.length-2&&poses[index+1][0]<t)index++;const a=poses[index],b=poses[index+1];let f=(t-a[0])/(b[0]-a[0]);f=f*f*(3-2*f);const v=(i:number)=>a[i]+(b[i]-a[i])*f;const soft=reduced?.35:1;
+ person.leftArm.rotation.set(v(1),0,v(2));person.rightArm.rotation.set(v(3),0,v(4));rig.elbows[0].rotation.x=v(5);rig.elbows[1].rotation.x=v(6);const chest=Math.min(1,Math.max(0,(t-1.6)/.4))*Math.min(1,(5-t)/.4);rig.elbows[0].rotation.z=chest*.85;rig.elbows[1].rotation.z=-chest*.85;
+ rig.upper.rotation.set(v(7)*soft,v(8)*soft,v(9)*soft);rig.upper.position.z=-Math.sin(t*Math.PI*4)*.025*soft;
+ person.leftLeg.rotation.x=v(10)*soft;person.rightLeg.rotation.x=v(11)*soft;person.group.rotation.z=Math.sin(t*Math.PI*2)*.025*soft;
 }
-export function danceVolume(distance:number){const t=Math.max(0,Math.min(1,(18-distance)/15));return .65*t*t;}
+export function danceVolume(distance:number){const t=Math.max(0,Math.min(1,(18-distance)/15));return .42*t*t;}
 export function createDanceAudio(){
  const clips=new Map<string,{audio:HTMLAudioElement;gain:GainNode;source:MediaElementAudioSourceNode;until:number}>();
  const seen=new Map<string,number>();
