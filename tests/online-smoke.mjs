@@ -56,6 +56,8 @@ try {
     await page.getByRole('button', { name: 'Log in & enter' }).click();
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
+  await pages[0].bringToFront();
+  await pages[0].locator('canvas').first().focus();
   await pages[0].keyboard.press('Space');
   await expect.poll(() => remoteJumpSeen, { timeout: 10000 }).toBe(true);
   for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await page.locator('#chat-toggle').click(); }
