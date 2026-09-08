@@ -6,6 +6,7 @@ import type { Solid } from './physics';
 import { DeliveryMission, PICKUP, DELIVERY } from './mission';
 import { auth, session, displayName, setupAuth } from './auth';
 import { nameTag, setupChat } from './social';
+import { setupVoice } from './voice';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
@@ -192,7 +193,12 @@ async function init() {
     }
     setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
   }
+  const voice = setupVoice(message => {
+    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
+    networkSocket.send(JSON.stringify(message)); return true;
+  });
   function disconnectMultiplayer() {
+    voice.connected(false);
     clearSpeechBubbles();
     if (networkReconnectTimer !== null) { window.clearTimeout(networkReconnectTimer); networkReconnectTimer = null; }
     const oldSocket = networkSocket; networkSocket = null;
@@ -223,15 +229,16 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string };
+        let message: { type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; }
+        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
         if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
           chat.append(message.name, message.text);
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
+        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio);
         if (message.type === 'notice') chat.append('City', message.message || 'Please try again.');
         if (message.type === 'error') {
           setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');
@@ -239,8 +246,8 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', () => { if (socket !== networkSocket) return; networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
-      socket.addEventListener('error', () => { if (socket !== networkSocket) return; networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
+      socket.addEventListener('close', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {

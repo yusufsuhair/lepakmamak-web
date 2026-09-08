@@ -9,7 +9,7 @@ const env = Object.fromEntries(readFileSync('.env.production', 'utf8').trim().sp
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
 const keys = JSON.parse(execFileSync('supabase', ['projects', 'api-keys', '--project-ref', ref, '--output', 'json'], { encoding: 'utf8' }));
 const admin = createClient(env.VITE_SUPABASE_URL, keys.find(k => k.name === 'service_role').api_key, { auth: { persistSession: false, autoRefreshToken: false } });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 const users = new Set();
 const room = `test-${randomUUID().slice(0, 12)}`;
 const base = process.env.TEST_BASE_URL || 'http://localhost:4173';
@@ -21,6 +21,11 @@ try {
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext(i ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
     const page = await context.newPage(); pages.push(page);
+    await page.addInitScript(() => {
+      window.voicePlayCount = 0;
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function(...args) { if (this.buffer?.sampleRate === 16000 && this.buffer.length === 640) window.voicePlayCount++; return start.apply(this, args); };
+    });
     page.on('pageerror', e => errors.push(e.message));
     if (i === 1) page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
       const data = JSON.parse(String(payload));
@@ -56,10 +61,10 @@ try {
     await page.getByRole('button', { name: 'Log in & enter' }).click();
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
+  for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
   await pages[0].bringToFront();
-  await pages[0].locator('canvas').first().focus();
-  await pages[0].keyboard.press('Space');
-  await expect.poll(() => remoteJumpSeen, { timeout: 10000 }).toBe(true);
+  await pages[0].locator('#world').focus();
+  await expect.poll(async () => { if (!remoteJumpSeen) await pages[0].keyboard.press('Space'); return remoteJumpSeen; }, { timeout: 10000, intervals: [1000] }).toBe(true);
   for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); await page.locator('#chat-toggle').click(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
@@ -76,6 +81,15 @@ try {
   await pages[1].screenshot({ path: 'test-results/registration-mobile.png' });
   await expect(pages[1].locator('.speech-bubble')).toHaveCount(0, { timeout: 9000 });
   await expect(pages[1].locator('#chat-messages')).toContainText('Hello from mobile');
+  await pages[1].bringToFront();
+  await pages[1].locator('#voice-speaker').click();
+  await pages[0].bringToFront();
+  await pages[0].locator('#voice-mic').click();
+  await expect(pages[0].locator('#voice-mic')).toHaveText('Mic on');
+  await expect.poll(() => pages[1].evaluate(() => window.voicePlayCount), { timeout: 15000 }).toBeGreaterThan(3);
+  await pages[0].locator('#voice-mic').click();
+  await expect(pages[0].locator('#voice-mic')).toHaveText('Mic off');
+  await pages[1].locator('#voice-speaker').click();
   await pages[0].reload();
   await pages[0].getByRole('button', { name: "Jom, let's go" }).click();
   await expect(pages[0].locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
@@ -87,7 +101,7 @@ try {
     ws.on('error', reject);
   });
   expect(errors).toEqual([]);
-  console.log('PASS: desktop/mobile registration, wrong-password rejection, login/logout, session restore, two-player presence, bidirectional safe-text chat, unauthenticated join rejected.');
+  console.log('PASS: desktop/mobile registration, wrong-password rejection, login/logout, session restore, two-player presence, bidirectional safe-text chat, live voice playback and mic/speaker toggles, unauthenticated join rejected.');
 } finally {
   sockets.forEach(ws => ws.close()); await browser.close();
   for (const id of users) { const { error } = await admin.auth.admin.deleteUser(id); if (error) throw new Error('Failed to remove smoke-test account'); }

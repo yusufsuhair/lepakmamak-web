@@ -71,6 +71,7 @@ webSocketServer.on('connection', ws => {
   let joining = false;
   let lastChatAt = 0;
   let expiresAt = 0;
+  let voiceTokens = 30, voiceAt = Date.now();
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
 
   ws.on('message', async raw => {
@@ -103,6 +104,7 @@ webSocketServer.on('connection', ws => {
         riding: false,
         speed: 0,
         jumpHeight: 0,
+        mic: false, speaker: false,
         updatedAt: Date.now(),
       };
       currentRoom = room;
@@ -114,6 +116,20 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (message.type === 'voice-state') {
+      player.mic = message.mic === true; player.speaker = message.speaker === true;
+      return;
+    }
+    if (message.type === 'voice-audio') {
+      const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
+      if (!player.mic || voiceTokens < 1 || typeof message.audio !== 'string' || message.audio.length !== 1708 || !/^[A-Za-z0-9+/]{1707}=$/.test(message.audio)) return;
+      voiceTokens--;
+      const payload = JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio });
+      for (const listener of currentRoom.players.values()) {
+        if (listener.id !== player.id && listener.speaker && listener.ws.readyState === 1 && listener.ws.bufferedAmount < 65536) listener.ws.send(payload);
+      }
+      return;
+    }
     if (message.type === 'chat') {
       if (typeof message.text !== 'string') return;
       const text = message.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200);

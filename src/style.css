@@ -162,3 +162,12 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #city-map footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; font-size: 10px; line-height: 1.6; }
 .map-bike-key { color: #5ed7c3; }
 @media (max-height: 500px) { #city-map { width: min(600px, calc(100vw - 24px)); } #expanded-map { width: min(100%, 60dvh); margin: auto; } }
+
+#voice-panel { position: absolute; pointer-events: auto; top: 56px; right: 24px; max-width: 300px; }
+.voice-buttons { display: flex; justify-content: flex-end; gap: 6px; }
+.voice-buttons button { color: #fff8e7; background: #173c32f2; border: 1px solid #b1c69588; border-radius: 6px; padding: 10px 12px; min-height: 42px; cursor: pointer; }
+.voice-buttons button[aria-pressed="true"] { color: #173c32; background: #ddf69a; }
+.voice-buttons button:disabled { opacity: .5; }
+#voice-status { display: block; font-size: 10px; line-height: 1.4; padding: 5px 0; text-align: right; }
+#city-chat { top: 135px; }
+@media (max-width: 600px) { #voice-panel { top: 76px; right: 14px; max-width: 130px; } .voice-buttons { flex-direction: column; gap: 4px; } .voice-buttons button { padding: 7px 10px; } #voice-status { font-size: 9px; } #city-chat { top: auto; } }
