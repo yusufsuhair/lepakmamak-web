@@ -812,7 +812,7 @@ async function init() {
     if (iceCreamGain && audioContext) {
       const distance = Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z);
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
-      iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? .6 * proximity * proximity : 0, audioContext.currentTime, .18);
+      iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     camera.updateMatrixWorld();

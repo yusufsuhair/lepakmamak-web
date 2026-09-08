@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Doubled Matkool music gain while preserving distance fade and mute.
+
 - Disabled recall for vehicle drivers and passengers, including server validation.
 
 - Added collapsible chat with unread counts; starts compact on mobile and remembers the preference.
