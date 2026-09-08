@@ -250,10 +250,34 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport';
-export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport'];
+export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1';
+export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1'];
 export function createDriveableCar(style: CarStyle = 'myvi') {
   const group = new THREE.Group(), wheels: THREE.Group[] = [];
+  if (style === 'f1') {
+    const red = '#d9272e', carbon = '#20292c', silver = '#d7dedb';
+    group.userData.model = style;
+    // Low open-wheel body, long nose, cockpit and front/rear aero wings.
+    box(group, 0, .43, -.15, 1.08, .36, 2.85, red);
+    box(group, 0, .38, 1.6, .48, .24, 1.35, red);
+    box(group, 0, .38, 2.28, 1.85, .08, .38, carbon);
+    box(group, 0, .78, -1.65, 1.9, .1, .38, carbon);
+    for (const x of [-.82, .82]) box(group, x, .58, -1.65, .08, .72, .12, carbon);
+    const cockpit = ball(group, 0, .72, -.48, .48, carbon); cockpit.scale.set(1, .62, 1.25);
+    box(group, 0, .88, -.63, .08, .58, .72, silver);
+    box(group, 0, 1.14, -.43, .64, .07, .08, silver);
+    for (const side of [-1, 1]) {
+      const haloSide = box(group, side * .28, 1.02, -.39, .055, .45, .58, silver); haloSide.rotation.z = side * -.34;
+      for (const z of [-1.18, 1.32]) {
+        const axle = new THREE.Group(); axle.position.set(side * .84, .43, z); group.add(axle);
+        const wheel = tube(axle, 0, 0, 0, z < 0 ? .46 : .41, .3, '#151b1d'); wheel.rotation.z = Math.PI / 2; wheels.push(axle);
+        const hub = tube(axle, side * .17, 0, 0, .16, .04, '#e2b63d'); hub.rotation.z = Math.PI / 2;
+      }
+    }
+    sign(group, 'F1', 0, .5, 2.5, .52, .18, '#f5eee0', '#b32027');
+    const driver = createPerson('#ef734c', true); driver.group.scale.setScalar(.5); driver.group.position.set(0, .35, -.5); driver.group.visible = false; group.add(driver.group);
+    return { group, wheels, driver: driver.group };
+  }
   const styles = {
     axia: { color: '#e4bf38', roof: 1.67, cabin: 1.85, length: 3.15, width: 1.64 },
     myvi: { color: '#57a99b', roof: 1.76, cabin: 1.95, length: 3.5, width: 1.8 },
@@ -261,9 +285,11 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
     vellfire: { color: '#eee8dc', roof: 2.17, cabin: 2.68, length: 3.7, width: 1.9 },
     suv: { color: '#3e5364', roof: 2.02, cabin: 2.22, length: 3.65, width: 1.9 },
     sport: { color: '#c44338', roof: 1.38, cabin: 1.5, length: 3.55, width: 1.88 },
+    ferrari: { color: '#d9272e', roof: 1.25, cabin: 1.35, length: 3.78, width: 1.92 },
+    lamborghini: { color: '#efbd27', roof: 1.18, cabin: 1.24, length: 3.82, width: 1.96 },
   };
   const { color, roof, cabin, length, width } = styles[style];
-  const sport = style === 'sport', van = style === 'vellfire';
+  const sport = style === 'sport' || style === 'ferrari' || style === 'lamborghini', van = style === 'vellfire';
   const bodyY = sport ? .65 : .8, belt = sport ? .88 : 1.09;
   group.userData.model = style;
   box(group, 0, bodyY, 0, width, sport ? .5 : .68, length, color);
@@ -294,6 +320,14 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
     for (const x of [-.57, .57]) box(group, x, 1.04, -1.37, .08, .36, .1, '#283d3d');
     box(group, 0, 1.24, -1.4, 1.85, .085, .3, '#263b3c');
     for (const x of [-.23, .23]) box(group, x, bodyY + .26, .98, .18, .025, 1.45, '#eee7cf');
+  }
+  if (style === 'ferrari') {
+    box(group, 0, .47, 1.89, 1.12, .11, .08, '#202b2d');
+    for (const x of [-.63, .63]) { const intake = box(group, x, .62, .86, .36, .2, .07, '#202b2d'); intake.rotation.z = x > 0 ? -.18 : .18; }
+  }
+  if (style === 'lamborghini') {
+    for (const x of [-.7, .7]) { const intake = box(group, x, .62, .88, .34, .28, .08, '#202b2d'); intake.rotation.z = x > 0 ? -.28 : .28; }
+    const rearWing = box(group, 0, 1.05, -1.65, 1.72, .08, .28, '#202b2d'); rearWing.rotation.x = -.08;
   }
   if (style === 'suv' || style === 'avanza') for (const x of [-.62, .62]) box(group, x, roof + .12, -.2, .07, .12, cabin - .2, '#384b50');
   if (van) for (const side of [-1, 1]) box(group, side * width / 2, .81, -.6, .035, .04, 1.35, '#cad6d3');
@@ -656,13 +690,13 @@ export function createWorld(scene: THREE.Scene): World {
   }
 
   const traffic: TrafficCar[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     const model = createDriveableCar(carStyles[i % carStyles.length]);
     const car = model.group; car.userData.wheels = model.wheels;
     const direction = i % 2 ? 1 : -1;
-    const axis = i < 4 ? 'z' : 'x';
-    const x = axis === 'z' ? (i < 2 ? 0 : 76) + direction * 4 : -130 + (i - 4) * 66;
-    const z = axis === 'z' ? -130 + i * 70 : 78 - direction * 4;
+    const axis = i < 6 ? 'z' : 'x';
+    const x = axis === 'z' ? (i < 3 ? 0 : 76) + direction * 4 : -138 + (i - 6) * 52;
+    const z = axis === 'z' ? -142 + i * 56 : 78 - direction * 4;
     car.position.set(x, 0, z); car.rotation.y = axis === 'z' ? direction < 0 ? Math.PI : 0 : direction > 0 ? Math.PI / 2 : -Math.PI / 2;
     scene.add(car); traffic.push({ group: car, x, z, speed: 5 + i % 3, axis, direction });
   }

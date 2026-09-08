@@ -1,5 +1,7 @@
 # Changelog
 
+- Expanded city traffic to twelve vehicles with distinct Ferrari-style and Lamborghini-style supercars plus an open-wheel F1 car with wings, cockpit and halo details.
+
 ## Unreleased
 
 - Expanded the roaming street-animal population to ten cats and ten dogs across the city, with varied colours and sizes, distance culling and shared sound throttling for mobile performance.
