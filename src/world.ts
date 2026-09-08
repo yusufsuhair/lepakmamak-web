@@ -498,7 +498,6 @@ export function createWorld(scene: THREE.Scene): World {
   shop(-36, -12, 19, shopColors[4], 'DOBI LAYAN DIRI');
   shop(-57, -12, 20, shopColors[3], 'KEDAI KOPI');
   shop(-35, -40, 18, shopColors[2], 'PASAR MINI');
-  shop(-56, -40, 19, shopColors[1], 'FARMASI MAJU');
   shop(27, 34, 19, shopColors[0], 'WARUNG KAK ANA');
   shop(49, 34, 22, shopColors[4], 'KEDAI BUKU');
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
@@ -551,6 +550,25 @@ export function createWorld(scene: THREE.Scene): World {
   retail(49,-40,'MR.DIY','#f1c62b','#253d35','diy');
   retail(105,60,'99 SPEEDMART','#df3437','#fff4d9','market');
   retail(129,60,'KK SUPER MART','#c92536','#ffffff','market');
+
+  // Watsons health and beauty shop: a bright turquoise frontage, glazed doors
+  // and compact product displays make it recognisable from the street.
+  {
+    const watsons = shop(-56, -40, 19, '#e4e9df', 'WATSONS');
+    const turquoise = '#00a58f', deep = '#087565', white = '#fffef3';
+    sign(watsons, 'Watsons', 0, 4.05, 6.31, 18.7, 1.3, turquoise, white);
+    box(watsons, 0, 3.18, 7.12, 19, .15, 2.35, turquoise);
+    box(watsons, 0, 1.52, 6.2, 2.25, 3.05, .13, '#a9d4cf');
+    for (const side of [-1, 1]) {
+      box(watsons, side * 1.2, 1.52, 6.3, .1, 3.05, .12, white);
+      for (const y of [.9, 1.55, 2.2]) {
+        box(watsons, side * 5.05, y - .2, 6.33, 6.25, .1, .52, '#d8ded5');
+        for (let i = 0; i < 6; i++) box(watsons, side * (2.62 + i * .98), y + .04, 6.36, .55, .38, .27, ['#8bc8bd', '#efb4b6', '#f3d579', '#f7f4e8'][i % 4]);
+      }
+    }
+    sign(watsons, 'HEALTH · BEAUTY · PHARMACY', 0, .39, 6.35, 17.8, .42, deep, white);
+    sign(watsons, '+', 7.55, 5.35, 6.32, 1.35, 1.35, white, turquoise);
+  }
 
   // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,
   // six pumps and a roadside fuel pylon. The open forecourt remains driveable.

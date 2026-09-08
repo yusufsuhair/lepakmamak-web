@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a Watsons Malaysia storefront and city-map location with the supplied jingle fading in only for nearby players and respecting City sounds.
+
 - Added a numbered notification badge above collapsed City chat for new messages, excluding the player's own messages and system notices, and clearing when chat is opened.
 
 - Added a synchronized six-second Superman motorbike stunt with rider menu, desktop and mobile controls, cancellation, and automatic reset when leaving the bike.

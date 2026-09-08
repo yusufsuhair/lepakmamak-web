@@ -117,5 +117,12 @@
     "x": -31,
     "z": 112,
     "kind": "ibadah"
+  },
+  {
+    "id": "18",
+    "name": "Watsons Malaysia",
+    "x": -56,
+    "z": -40,
+    "kind": "kedai"
   }
 ]
