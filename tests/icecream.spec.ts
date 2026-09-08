@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
 test('ice cream song fades with distance and respects sound settings', async ({ page }) => {
+  await page.addInitScript(() => { const start = performance.now(); Date.now = () => 1800000000000 + performance.now() - start; });
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   const sound = () => page.evaluate(() => (window as any).__lepak.iceCream);
   await expect.poll(async () => (await sound()).playing).toBe(true);
-  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.1);
+  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.03);
+  const vendorZ = await page.evaluate(() => (window as any).__lepak.iceCream.z);
+  await expect.poll(() => page.evaluate(() => (window as any).__lepak.iceCream.z)).toBeGreaterThan(vendorZ + .1);
   await page.screenshot({ path: 'test-results/ice-cream-bike.png' });
   await page.locator('#world').focus();
   await page.keyboard.down('s');
@@ -12,7 +15,7 @@ test('ice cream song fades with distance and respects sound settings', async ({ 
   await page.keyboard.up('s');
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
-  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.1);
+  await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.03);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('Music & city sounds').uncheck();
   expect((await sound()).playing).toBe(false);

@@ -149,9 +149,15 @@ function palm(parent: THREE.Object3D, x: number, z: number, size = 1) {
   }
 }
 
-/** A parked Malaysian ice-cream seller's kapcai, shared at the same spot for everyone. */
+/** Rahim’s ice-cream kapcai, with a seated vendor and animated wheels. */
 export function createIceCreamBike() {
-  const { group } = createBike();
+  const { group, rider, wheels } = createBike();
+  rider.visible = true;
+  applyAppearance(rider, { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#8b583d', shirt: '#628fbb', trousers: '#253a40' });
+  // Rahim wears a yellow helmet and blue work shirt.
+  const helmet = ball(rider, 0, 2.05, -.025, .28, '#ffd735'); helmet.scale.y *= .7;
+  box(rider, 0, 1.76, .225, .22, .12, .06, '#202c2b');
+  group.userData.wheels = wheels;
   const yellow = '#ffd735', blue = '#2263bb';
   // Rear freezer, insulated lid and stainless mounting rack.
   box(group, 0, 1.13, -.98, 1.5, .12, 1.05, '#bdcbd1');
@@ -175,8 +181,7 @@ export function createIceCreamBike() {
     canopy.position.set(.2, 3.55, -.65); canopy.castShadow = true; group.add(canopy);
   }
   ball(group, .2, 3.82, -.65, .085, yellow);
-  // Kickstand keeps the unattended vendor bike upright.
-  const stand = box(group, -.42, .3, -.4, .07, .6, .08, '#34434c'); stand.rotation.z = -.4;
+  sign(group, 'RAHIM · AIS KRIM', 0, 2.23, -1.5, 1.45, .22, blue, '#ffffff', Math.PI);
   return group;
 }
 

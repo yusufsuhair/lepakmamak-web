@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Rahim, a Bangladeshi ice-cream vendor, riding the Matkool bike on a looping route with moving proximity audio.
+
 - Doubled Matkool music gain while preserving distance fade and mute.
 
 - Disabled recall for vehicle drivers and passengers, including server validation.

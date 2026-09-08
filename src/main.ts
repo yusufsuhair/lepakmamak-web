@@ -69,7 +69,7 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
-  world.solids.push({ x: -11, z: 44, hx: .9, hz: 1.8 });
+  const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
   const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
@@ -673,10 +673,19 @@ async function init() {
     const active = started;
     {
       simTime += dt;
+      // A shared clock-based route keeps the vendor in the same area for all players.
+      const vendorPhase = (Date.now() % 90000) / 90000 * Math.PI * 2;
+      const vendorX = -5 * Math.cos(vendorPhase), vendorZ = 44 + 18 * Math.sin(vendorPhase);
+      iceCreamBike.position.set(vendorX, .09, vendorZ);
+      iceCreamBike.rotation.y = Math.atan2(5 * Math.sin(vendorPhase), 18 * Math.cos(vendorPhase));
+      const vendorSpeed = Math.hypot(5 * Math.sin(vendorPhase), 18 * Math.cos(vendorPhase)) * Math.PI * 2 / 90;
+      for (const wheel of iceCreamBike.userData.wheels as THREE.Mesh[]) wheel.rotation.x += vendorSpeed * dt / .45;
+      iceCreamSolid.x = vendorX; iceCreamSolid.z = vendorZ;
+
       for (const car of world.traffic) {
         const coordinate = car.axis; const old = car[coordinate];
         const ahead = new THREE.Vector3(car.x, 0, car.z); ahead[coordinate] += car.direction * 5;
-        const nearPlayer = started && Math.hypot(ahead.x - pos.x, ahead.z - pos.z) < 3.6;
+        const nearPlayer = (started && Math.hypot(ahead.x - pos.x, ahead.z - pos.z) < 3.6) || Math.hypot(ahead.x - vendorX, ahead.z - vendorZ) < 4;
         // Stagger crossing traffic and stop before entering the player's space.
         const crossing = car.axis === 'x' && Math.abs(car.x) < 13 && Math.abs(car.x) > 8 && Math.sin(simTime * .2) < 0;
         if (!nearPlayer && !crossing) car[coordinate] += car.speed * car.direction * dt;
@@ -848,7 +857,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ iceCream: { playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
