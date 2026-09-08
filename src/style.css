@@ -322,3 +322,23 @@ html, body, #app { touch-action: manipulation; }
 #guest-entry { width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 12px; background: #f5efdb; color: #254b3b; }
 #guest-entry::backdrop { background: #102c28aa; }
 #guest-entry .auth-card { width: 100%; max-height: 85dvh; overflow-y: auto; }
+
+/* Comfortable controls on mouse, touch and narrow screens. */
+.menu-btn { width: 44px; height: 44px; }
+#camera-controls { display: flex; gap: 4px; pointer-events: auto; }
+#camera-controls button { width: 44px; height: 44px; padding: 0; border: 1px solid #ffffff38; border-radius: 6px; background: #173c32c9; color: #fff8e7; font-size: 24px; }
+#camera-controls button:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
+.voice-buttons button { min-width: 44px; min-height: 44px; }
+@media (max-width: 600px) {
+  #camera-controls { position: fixed; right: max(18px, env(safe-area-inset-right)); top: 230px; }
+  #camera-controls button { width: 44px; }
+}
+@media (max-height: 500px) and (pointer: coarse) {
+  #camera-controls { position: fixed; right: max(18px, env(safe-area-inset-right)); top: 190px; }
+}
+.touch-device.chat-typing #city-chat { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(var(--keyboard-height, 0px) + 12px); width: auto; z-index: 40; }
+.touch-device.chat-typing #touch-controls, .touch-device.chat-typing #interaction, .touch-device.chat-typing #camera-controls { visibility: hidden; }
+.touch-device.chat-typing #chat-messages { max-height: 64px; }
+@media (max-width: 600px) and (min-height: 501px) {
+  #camera-controls { flex-direction: column; }
+}

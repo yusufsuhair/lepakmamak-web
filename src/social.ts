@@ -100,6 +100,10 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   };
   heading.onkeydown = event => event.stopPropagation();
   render();
+  // Keep the keyboard and panel anchored until the tapped button receives its click.
+  panel.addEventListener('pointerdown', event => {
+    if (document.activeElement === input && event.target instanceof Element && event.target.closest('button')) event.preventDefault();
+  });
   input.onfocus = focus;
   input.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') input.blur(); };
   panel.querySelector('form')!.onsubmit = e => {

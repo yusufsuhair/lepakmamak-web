@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improved mobile and desktop usability with camera zoom/reset buttons, larger settings targets, chat keyboard layout and input release, lighter mobile rendering, and browser-engine compatibility checks.
+
 - Added name-only guest entry to the multiplayer city; guests have no shop access, paid accessories or Game Master role.
 
 - Replaced Enter and the fixed mobile interaction button with contextual Sit, Stand, Enter and Get out actions positioned beside nearby chairs and vehicles.

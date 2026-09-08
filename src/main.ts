@@ -44,7 +44,7 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -72,15 +72,16 @@ async function init() {
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
   catch { fail('This game needs WebGL. Try a recent browser with hardware acceleration enabled.'); return; }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, matchMedia('(any-pointer: coarse)').matches ? 1.25 : 1.6));
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
-  canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Your earned money is saved.'); });
+  canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
   scene.add(new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8));
   const sun = new THREE.DirectionalLight('#ffdfa3', 2.7); sun.position.set(-70, 110, 60); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
+  const shadowSize = matchMedia('(any-pointer: coarse)').matches ? 1024 : 2048;
+  sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
@@ -147,7 +148,7 @@ async function init() {
   const chat = setupChat(text => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify({ type: 'chat', text })); return true;
-  }, () => keys.clear());
+  }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
   let networkPlayerId = '';
   let networkConnected = false;
@@ -606,9 +607,24 @@ async function init() {
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
+  function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = 9; }
+  $('camera-reset').onclick = () => { resetCamera(); canvas.focus(); };
+  $('camera-in').onclick = () => { zoom = Math.max(5, zoom - 2); canvas.focus(); };
+  $('camera-out').onclick = () => { zoom = Math.min(17, zoom + 2); canvas.focus(); };
+  function updateTypingLayout() {
+    const typing = document.activeElement?.id === 'chat-input';
+    document.body.classList.toggle('chat-typing', typing);
+    const viewport = window.visualViewport;
+    const keyboardHeight = viewport ? Math.max(0, innerHeight - viewport.height - viewport.offsetTop) : 0;
+    document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+  }
+  document.addEventListener('focusin', updateTypingLayout);
+  document.addEventListener('focusout', () => queueMicrotask(updateTypingLayout));
+  window.visualViewport?.addEventListener('resize', updateTypingLayout);
+  window.visualViewport?.addEventListener('scroll', updateTypingLayout);
   const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR', 'KeyH']);
   window.addEventListener('keydown', event => {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if (profile.open) return;
@@ -616,7 +632,7 @@ async function init() {
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
     if (paused && event.code === 'Tab') {
-      const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button, input'));
+      const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)')).filter(element => element.getClientRects().length > 0);
       const index = focusable.indexOf(document.activeElement as HTMLElement);
       if (event.shiftKey && index <= 0) { event.preventDefault(); focusable.at(-1)!.focus(); }
       else if (!event.shiftKey && index === focusable.length - 1) { event.preventDefault(); focusable[0].focus(); }
@@ -627,7 +643,7 @@ async function init() {
     if (event.code === 'Space' && !event.repeat) jump();
     if (event.code === 'KeyH' && !event.repeat) honk();
     if (event.code === 'KeyR' && !event.repeat) triggerRecall();
-    if (event.code === 'KeyC') { orbit = 0; cameraPitch = .35; }
+    if (event.code === 'KeyC') resetCamera();
     keys.add(event.code);
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
@@ -964,7 +980,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
