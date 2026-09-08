@@ -31,9 +31,9 @@ $('app').innerHTML = `
     <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <div id="interaction" hidden><kbd>Enter</kbd><span id="interaction-text"></span></div>
-    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
+    <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
-    <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
+    <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
@@ -264,6 +264,26 @@ async function init() {
     oscillator.onended = () => { oscillator.disconnect(); filter.disconnect(); gain.disconnect(); };
     oscillator.start(); oscillator.stop(now + duration + .01);
   }
+  let lastHornAt = -1;
+  function hornSound(kind: string, volume = 1) {
+    if (!started || !audioEnabled || volume <= 0) return;
+    ensureAudio(); if (!audioContext || audioContext.state !== 'running') return;
+    const now = audioContext.currentTime;
+    for (const frequency of kind === 'car' ? [349, 440] : [660]) {
+      const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+      oscillator.type = 'square'; oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.025 * volume, now + .015);
+      gain.gain.setValueAtTime(.025 * volume, now + .2); gain.gain.linearRampToValueAtTime(0, now + .28);
+      oscillator.connect(gain); gain.connect(audioContext.destination);
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+      oscillator.start(); oscillator.stop(now + .29);
+    }
+  }
+  function honk() {
+    if (!started || paused || !riding || passengerOf || simTime - lastHornAt < .4) return;
+    lastHornAt = simTime; hornSound(vehicle);
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'horn' }));
+  }
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
@@ -364,6 +384,10 @@ async function init() {
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); }
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
+        if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
+          const remote = remotePlayers.get(message.id);
+          if (remote) hornSound(remote.vehicle, Math.max(0, 1 - Math.hypot(remote.target.x - pos.x, remote.target.z - pos.z) / 35));
+        }
         if (message.type === 'punch' && message.id && message.id !== networkPlayerId) { const remote = remotePlayers.get(message.id); if (remote) remote.punchUntil = simTime + .38; }
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
         if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
@@ -479,6 +503,7 @@ async function init() {
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers }));
     toast('Looking good, lah', 'Your new outfit is saved.', 2);
   });
+  $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk;
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('touch-interact').onclick = interact; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   $<HTMLInputElement>('rain-toggle').onchange = event => {
     rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
@@ -488,7 +513,7 @@ async function init() {
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { backgroundMusic.pause(); iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
   $<HTMLInputElement>('shadow-toggle').onchange = event => { renderer.shadowMap.enabled = (event.target as HTMLInputElement).checked; scene.traverse(obj => { if (obj instanceof THREE.Mesh) { const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.needsUpdate = true); } }); };
-  const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR']);
+  const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR', 'KeyH']);
   window.addEventListener('keydown', event => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     if (!$('auth-panel').hidden) return;
@@ -508,6 +533,7 @@ async function init() {
     if (event.key === 'Enter') { event.preventDefault(); if (!event.repeat) interact(); return; }
     if (gameKeys.has(event.code)) event.preventDefault();
     if (event.code === 'Space' && !event.repeat) jump();
+    if (event.code === 'KeyH' && !event.repeat) honk();
     if (event.code === 'KeyR' && !event.repeat) triggerRecall();
     if (event.code === 'KeyC') { orbit = 0; cameraPitch = .35; }
     keys.add(event.code);
@@ -617,6 +643,7 @@ async function init() {
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
     $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
+    $('touch-horn').hidden = $('desktop-horn').hidden = !riding || !!passengerOf;
     drawMap();
     if (cityMap.open) drawMap(true);
   }

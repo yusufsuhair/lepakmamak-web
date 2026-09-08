@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added car and motorbike horns: H or the mobile HONK button, audible to nearby players.
+
 - Added distinct chair creaks when sitting down and standing up, respecting mute.
 
 - Added a short punch swoosh, respecting punch cooldown and the sound setting.

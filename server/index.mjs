@@ -83,6 +83,7 @@ webSocketServer.on('connection', ws => {
   let lastStateAt = 0;
   let lastRecallAt = 0;
   let lastPunchAt = 0;
+  let lastHornAt = 0;
   let joining = false;
   let lastChatAt = 0;
   let expiresAt = 0;
@@ -193,6 +194,15 @@ webSocketServer.on('connection', ws => {
         if (player.riding && player.vehicle === 'bike') followDriver(passenger, player); else releasePassenger(passenger);
       }
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
+      return;
+    }
+    if (message.type === 'horn') {
+      const now = Date.now();
+      if (!player.riding || player.passengerOf || now - lastHornAt < 400) return;
+      lastHornAt = now;
+      for (const listener of currentRoom.players.values()) {
+        if (Math.hypot(listener.x - player.x, listener.z - player.z) < 35) send(listener.ws, { type: 'horn', id: player.id, vehicle: player.vehicle });
+      }
       return;
     }
     if (message.type === 'punch') {

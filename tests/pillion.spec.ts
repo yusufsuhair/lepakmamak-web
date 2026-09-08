@@ -23,6 +23,13 @@ test('bike back seat is exclusive, follows only the driver, and releases on driv
     await expect.poll(() => players.filter(p => p.passengerOf === ids[0]).length).toBe(1);
     const passenger = players.find(p => p.passengerOf === ids[0]);
     const passengerSocket = clients[ids.indexOf(passenger.id)];
+    const horns: any[] = [];
+    passengerSocket.on('message', raw => { const message = JSON.parse(String(raw)); if (message.type === 'horn') horns.push(message); });
+    passengerSocket.send(JSON.stringify({ type: 'horn' }));
+    clients[0].send(JSON.stringify({ type: 'horn' }));
+    clients[0].send(JSON.stringify({ type: 'horn' }));
+    await expect.poll(() => horns.length).toBe(1);
+    expect(horns[0]).toMatchObject({ id: ids[0], vehicle: 'bike' });
     await new Promise(r => setTimeout(r, 50));
     clients[0].send(JSON.stringify({ type: 'state', x: -18, z: 40, yaw: 0, riding: true, vehicle: 'bike', speed: 6 }));
     await expect.poll(() => players.find(p => p.id === passenger.id)?.z).toBeCloseTo(39.28);
