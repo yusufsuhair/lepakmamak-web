@@ -41,6 +41,7 @@ if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Err
 
 async function identify(token, guest = false, guestName) {
   if (guest === true && !token) {
+    if (process.env.ALLOW_GUESTS !== 'true') throw new Error('Guest access is disabled.');
     if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
     const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
     if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');

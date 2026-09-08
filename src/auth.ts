@@ -11,10 +11,11 @@ export function clearGuest() { guestName = ''; }
 export const displayName = () => guestName || String(session?.user.user_metadata?.display_name || 'Player').slice(0, 18);
 
 export async function setupAuth(onEnter: () => void, onLeave: () => void) {
+  const guestEnabled = import.meta.env.DEV;
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
-  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Pick a name your friends will see above your character.</p><button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button><label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
+  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
   document.getElementById('app')!.append(overlay);
   const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const password = el<HTMLInputElement>('auth-password');
@@ -22,20 +23,22 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const name = el<HTMLInputElement>('auth-name');
   const submit = el<HTMLButtonElement>('auth-submit');
   const message = el('auth-message');
-  const guestDialog = document.createElement('dialog'); guestDialog.id = 'guest-entry';
-  guestDialog.innerHTML = `<form class="auth-card"><h2>Just lepak.</h2><p>Join with a name. The shop is for registered accounts.</p><label>Guest name<input id="guest-name" minlength="2" maxlength="18" required autocomplete="nickname" /></label><button class="primary" type="submit">Enter as guest</button><button class="secondary" type="button" id="guest-back">Back</button></form>`;
-  document.getElementById('app')!.append(guestDialog);
-  el('auth-guest').onclick = () => { overlay.hidden = true; guestDialog.showModal(); el('guest-name').focus(); };
-  el('guest-back').onclick = () => { guestDialog.close(); overlay.hidden = false; };
-  guestDialog.addEventListener('keydown', event => event.stopPropagation());
-  guestDialog.querySelector('form')!.onsubmit = event => {
-    event.preventDefault();
-    const input = el<HTMLInputElement>('guest-name');
-    const value = input.value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim();
-    if (value.length < 2) { input.setCustomValidity('Enter at least two characters.'); input.reportValidity(); return; }
-    input.setCustomValidity(''); guestName = value.slice(0,18); guestDialog.close(); onEnter();
-  };
-  el('guest-name').oninput = () => el<HTMLInputElement>('guest-name').setCustomValidity('');
+  if(guestEnabled){
+    const guestDialog = document.createElement('dialog'); guestDialog.id = 'guest-entry';
+    guestDialog.innerHTML = `<form class="auth-card"><h2>Just lepak.</h2><p>Join with a name. The shop is for registered accounts.</p><label>Guest name<input id="guest-name" minlength="2" maxlength="18" required autocomplete="nickname" /></label><button class="primary" type="submit">Enter as guest</button><button class="secondary" type="button" id="guest-back">Back</button></form>`;
+    document.getElementById('app')!.append(guestDialog);
+    el('auth-guest').onclick = () => { overlay.hidden = true; guestDialog.showModal(); el('guest-name').focus(); };
+    el('guest-back').onclick = () => { guestDialog.close(); overlay.hidden = false; };
+    guestDialog.addEventListener('keydown', event => event.stopPropagation());
+    guestDialog.querySelector('form')!.onsubmit = event => {
+      event.preventDefault();
+      const input = el<HTMLInputElement>('guest-name');
+      const value = input.value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim();
+      if (value.length < 2) { input.setCustomValidity('Enter at least two characters.'); input.reportValidity(); return; }
+      input.setCustomValidity(''); guestName = value.slice(0,18); guestDialog.close(); onEnter();
+    };
+    el('guest-name').oninput = () => el<HTMLInputElement>('guest-name').setCustomValidity('');
+  }
 
   const labels = { gender: 'Gender', hairstyle: 'Hair style', hair: 'Hair colour', skin: 'Skin tone', shirt: 'Shirt colour', trousers: 'Trouser colour' };
   const choices = el('avatar-choices');

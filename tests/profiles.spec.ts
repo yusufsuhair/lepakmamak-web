@@ -10,7 +10,7 @@ test('public profiles whitelist fields, mask profanity and never expose guest me
 test('profile reads and refreshes trust the authenticated account, not guest or payload claims',async()=>{
  const user={id:'account-a',user_metadata:{display_name:'Member',profile:{bio:'Teh tarik fan',mamakOrder:'Roti telur'}}};
  const authServer=createServer((_req,res)=>{res.setHeader('content-type','application/json');res.end(JSON.stringify(user));});await new Promise<void>(r=>authServer.listen(0,'127.0.0.1',r));
- const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'8087',SUPABASE_URL:`http://127.0.0.1:${(authServer.address() as any).port}`,SUPABASE_PUBLISHABLE_KEY:'test',SUPABASE_SERVICE_ROLE_KEY:''},stdio:'ignore'});const clients:WebSocket[]=[];
+ const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'8087',ALLOW_GUESTS:'true',SUPABASE_URL:`http://127.0.0.1:${(authServer.address() as any).port}`,SUPABASE_PUBLISHABLE_KEY:'test',SUPABASE_SERVICE_ROLE_KEY:''},stdio:'ignore'});const clients:WebSocket[]=[];
  const token=`x.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.x`;
  async function join(payload:any){const ws=new WebSocket('ws://127.0.0.1:8087/ws');clients.push(ws);const messages:any[]=[];await new Promise<void>((r,j)=>{ws.on('error',j);ws.on('open',()=>ws.send(JSON.stringify({type:'join',room:'profiles',...payload})));ws.on('message',raw=>{const m=JSON.parse(String(raw));messages.push(m);if(m.type==='welcome')r();});});return{ws,messages,id:messages.find(m=>m.type==='welcome').id};}
  try{await expect.poll(async()=>{try{return(await fetch('http://127.0.0.1:8087/health')).ok;}catch{return false;}}).toBe(true);

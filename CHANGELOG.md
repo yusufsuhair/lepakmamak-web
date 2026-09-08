@@ -1,5 +1,7 @@
 # Changelog
 
+- Disabled guest entry in production and added a server-side rejection so bypassing the login screen cannot create an unauthenticated city session. Local guest mode remains available only with the explicit development flag.
+
 - Added a visible 15-metre voice radius while the microphone is live and server-confirmed audience feedback naming nearby players whose speakers are on, including a clear No one nearby state.
 
 - Added a responsive exit confirmation dialog for account and guest logout, with Cancel as the safe default and disconnect occurring only after choosing Keluar game.

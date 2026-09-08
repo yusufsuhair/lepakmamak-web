@@ -28,7 +28,7 @@ The realtime server is optional for local development. Persistent storage can be
 
 Multiplayer is enabled in production. The Cloudflare frontend connects to `wss://lepak-city-realtime-production.up.railway.app/ws` and places signed-in players in the shared `kampung` room. The HUD shows `CITY ONLINE` only after the server verifies the account. Players have display names above their avatars. Open City chat to talk to everyone in the room. An optional `?room=my-friends` URL puts players using that same link in a separate room (room names are not access controls). Press `R`, or tap `RECALL` on a phone, to send the recall emote; nearby players hear the buzz.
 
-The in-game Lepak Wall is a public city feed. Guests can read posts and member profiles; registered accounts can publish filtered text, JPG/PNG/WebP photos up to 4 MB, and voice notes up to 30 seconds or 1.5 MB. Railway verifies account tokens and owns all database and Storage writes. Supabase persists the latest posts and serves public Wall media.
+The in-game Lepak Wall is a public city feed for signed-in players. Registered accounts can publish filtered text, JPG/PNG/WebP photos up to 4 MB, and voice notes up to 30 seconds or 1.5 MB. Railway verifies account tokens and owns all database and Storage writes. Supabase persists the latest posts and serves public Wall media.
 
 The realtime service has a `/health` endpoint and uses temporary in-memory state. A Railway restart clears the room; chat is not stored. The browser sends its Supabase access token for join verification; the server broadcasts display names and movement, never emails or tokens. Earnings remain local.
 
@@ -38,7 +38,7 @@ The existing Supabase project (`sbzvvhzibqpozqvojzhe`, dashboard label `LepakCit
 
 Email confirmation is disabled for the initial friends MVP, so email ownership is unverified. Custom SMTP is not configured: password-reset delivery through Supabase's default mail service is limited and is not production-ready. Configure SMTP and test recovery before relying on email recovery or enabling confirmation. No application tables or RLS policies are needed for this release; auth records remain managed by Supabase.
 
-Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. `ALLOW_GUESTS=true` is an explicit local-development alternative. Never place a secret or service-role key in frontend settings.
+Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. Guest entry is absent from production builds; local development servers still require the explicit `ALLOW_GUESTS=true` alternative. Never place a secret or service-role key in frontend settings.
 
 `node tests/online-smoke.mjs` tests production-built UI served on port 4173 against real services. `TEST_BASE_URL=https://lepakmamak.pages.dev node tests/online-smoke.mjs` tests the live UI. It uses the authenticated Supabase CLI to delete only its temporary accounts and uses an isolated test room. It checks signup, login/logout, incorrect passwords, session restoration, desktop/mobile chat, and unauthenticated rejection.
 
