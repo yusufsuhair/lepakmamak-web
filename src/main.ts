@@ -636,6 +636,7 @@ async function init() {
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
+    if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
   }
   function leaveCity() {
     saveLocation();danceAudio.stop();

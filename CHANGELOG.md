@@ -1,5 +1,7 @@
 # Changelog
 
+- Added live Stripe Checkout top-ups for Syiling Lepak with RM5, RM10 and RM20 packs, verified server-side and credited idempotently to signed-in accounts.
+
 - Expanded city traffic to twelve vehicles with distinct Ferrari-style and Lamborghini-style supercars plus an open-wheel F1 car with wings, cockpit and halo details.
 
 ## Unreleased

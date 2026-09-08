@@ -117,7 +117,7 @@ The first version relays transient mono 16 kHz PCM audio in 40 ms frames over th
 
 Open **Settings → Kedai · Skins & Accessories**. Every registered account starts with 500 Syiling Lepak and can claim another 100 every 24 hours. Spectacles, caps and Malaysian outfit skins are permanent account unlocks; owned items can be equipped at any time and appear to other players.
 
-Wallet creation, daily rewards and purchases run through service-role-only Supabase functions. Purchases lock the wallet row, verify the catalog price in the database, prevent duplicate ownership and record an audit transaction before returning the new balance. Browser writes to wallets, transactions and inventory are denied by RLS. No real-money checkout is used.
+Wallet creation, daily rewards and purchases run through service-role-only Supabase functions. Purchases lock the wallet row, verify the catalog price in the database, prevent duplicate ownership and record an audit transaction before returning the new balance. Browser writes to wallets, transactions and inventory are denied by RLS. Signed-in players can top up Syiling Lepak through Stripe-hosted Checkout; the server verifies the Checkout Session and uses its unique Stripe ID to prevent duplicate credits.
 
 Apply `supabase/migrations/202609080001_shop.sql` followed by `supabase/migrations/20260908134952_game_currency_shop.sql` when setting up a new environment. The Railway server only needs the existing Supabase service-role configuration for this shop.
 

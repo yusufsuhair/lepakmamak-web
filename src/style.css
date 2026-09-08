@@ -299,6 +299,13 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 .shop-wallet { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:18px 0; padding:14px; border-radius:10px; background:#173f35; color:#fff7d4; }
 .shop-wallet div { display:flex; flex-direction:column; gap:3px; }.shop-wallet small { color:#b8d5bd; font-size:10px; letter-spacing:.12em; }.shop-wallet strong { font:700 28px/1 'Barlow Condensed'; }
 #shop-daily { min-height:44px; border:0; border-radius:7px; padding:10px 14px; background:#dfff87; color:#173c32; font-weight:700; cursor:pointer; }#shop-daily:disabled{opacity:.48;cursor:default;}
+.coin-topup { margin: 16px 0 20px; padding: 15px; border: 1px solid #d2b65f; border-radius: 10px; background: #fff7d8; }
+.coin-topup > div:first-child small { color:#806a29; font-size:9px; font-weight:700; letter-spacing:.12em; }
+.coin-topup h3 { margin:3px 0 0; font:700 26px/1 'Barlow Condensed'; }.coin-topup p { margin:5px 0 12px; }
+#coin-packs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+#coin-packs button { min-width:0; min-height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:1px solid #b9a24f; border-radius:8px; background:#fffdf0; color:#254b3b; cursor:pointer; }
+#coin-packs button:hover { background:#efffc9; border-color:#64803c; }#coin-packs button:disabled{opacity:.5;cursor:default;}
+#coin-packs span { font-size:8px; font-weight:800; letter-spacing:.07em; color:#85691c; }#coin-packs strong { font:700 20px/1 'Barlow Condensed'; }#coin-packs small { font-size:11px; }
 #shop-items { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 #shop-items article { padding:14px; border:1px solid #bcc6a9; border-radius:10px; }
 #shop-items h3 { font:700 24px 'Barlow Condensed'; margin:12px 0 6px; }
@@ -314,7 +321,7 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 .shop-art.batik i { background:repeating-linear-gradient(55deg,#244f75 0 10px,#e2b94e 11px 15px,#244f75 16px 24px); }
 .shop-art.harimau i { background:repeating-linear-gradient(70deg,#efc62f 0 12px,#202b2d 13px 18px,#efc62f 19px 29px); }
 #shop-message { min-height:20px; }
-@media(max-width:420px){#item-shop{padding:18px;}#shop-items{gap:8px;}#shop-items article{padding:9px;}.shop-wallet{align-items:stretch;flex-direction:column;}#shop-daily{width:100%;}}
+@media(max-width:420px){#item-shop{padding:18px;}#shop-items{gap:8px;}#shop-items article{padding:9px;}.shop-wallet{align-items:stretch;flex-direction:column;}#shop-daily{width:100%;}#coin-packs{grid-template-columns:1fr;}#coin-packs button{min-height:58px;flex-direction:row;justify-content:space-between;padding:8px 12px;}#coin-packs span{width:58px;text-align:left;}}
 
 .brand-status { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 
