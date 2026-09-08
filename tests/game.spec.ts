@@ -181,6 +181,8 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   await page.keyboard.up('d');
   await page.keyboard.press('Enter');
   expect((await state(page)).vehicle).toBe('car');
+  await expect(page.locator('#vehicle-seats')).toContainText('CAR · 1 / 4');
+  await expect(page.locator('#vehicle-seats')).toContainText('Driver:');
   expect((await state(page)).riding).toBe(true);
   const startZ = (await state(page)).position.z;
   await page.keyboard.down('w');

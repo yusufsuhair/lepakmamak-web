@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Cars now seat one driver and three passengers, with a live occupancy and passenger-name panel.
+
 - Added car and motorbike horns: H or the mobile HONK button, audible to nearby players.
 
 - Added distinct chair creaks when sitting down and standing up, respecting mute.

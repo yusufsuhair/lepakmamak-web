@@ -259,3 +259,9 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #wardrobe select { padding: 12px; font: inherit; background: white; color: #254b3b; border: 1px solid #a9b3a2; border-radius: 6px; }
 #wardrobe button { width: 100%; }
 #wardrobe [role="status"] { min-height: 18px; }
+
+#vehicle-seats { position: absolute; top: 88px; left: 20px; width: 190px; padding: 12px; border-radius: 9px; background: #163d35e8; color: #fff4d9; font-size: 12px; pointer-events: none; }
+#vehicle-seats strong { display: block; color: #dfff87; margin-bottom: 7px; }
+#vehicle-seats div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; color: #a7b5a6; }
+#vehicle-seats .occupied { color: #fff4d9; }
+@media (max-width: 700px) { #vehicle-seats { left: 10px; top: 75px; width: 155px; padding: 9px; font-size: 11px; } }

@@ -1,4 +1,5 @@
 import './style.css';
+import vehicleSeats from '../shared/vehicle-seats.json';
 import { savedLook, setupWardrobe } from './wardrobe';
 import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
@@ -32,7 +33,7 @@ $('app').innerHTML = `
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <div id="interaction" hidden><kbd>Enter</kbd><span id="interaction-text"></span></div>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
-    <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
+    <section id="vehicle-seats" aria-label="Car occupants" hidden></section><div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
@@ -74,6 +75,8 @@ async function init() {
   const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
   let vehicle: 'bike' | 'car' = 'bike';
   let passengerOf: string | null = null;
+  let passengerSeat = 0;
+  let roomPlayers: NetworkPlayer[] = [];
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
   const savedMoney = Number((saved as { money?: number }).money);
@@ -101,7 +104,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
@@ -314,9 +317,10 @@ async function init() {
     return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
+    roomPlayers = players;
     const self = players.find(p => p.id === networkPlayerId);
     if (self && (self.passengerOf || passengerOf)) {
-      passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = 'bike';
+      passengerOf = self.passengerOf || null; riding = !!passengerOf; seated = false; vehicle = self.vehicle || 'bike'; passengerSeat = self.seatIndex || 0;
       pos.set(self.x, .12, self.z); yaw = self.yaw; speed = self.speed;
       player.group.visible = true; bike.rider.visible = false; keys.clear(); resetStick();
     }
@@ -332,8 +336,8 @@ async function init() {
         entity.group.userData.lookKey = lookKey;
       }
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
-      entity.target.set(remote.x, (remote.passengerOf ? .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
-      entity.car.group.visible = entity.riding && entity.vehicle === 'car'; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
+      entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
+      entity.car.group.visible = entity.riding && entity.vehicle === 'car' && !entity.passengerOf; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
       entity.person.group.visible = !entity.car.group.visible && !entity.bike.group.visible;
     }
     for (const [id, entity] of remotePlayers) {
@@ -356,7 +360,7 @@ async function init() {
     oldSocket?.close(1000, 'Leaving the city');
     networkConnected = false; networkPlayerId = '';
     for (const entity of remotePlayers.values()) disposeRemote(entity);
-    remotePlayers.clear();
+    remotePlayers.clear(); roomPlayers = [];
   }
   function disposeRemote(entity: RemotePlayer) {
     entity.group.traverse(object => { if (object instanceof THREE.Sprite) { object.material.map?.dispose(); object.material.dispose(); } });
@@ -402,7 +406,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', () => { if (socket !== networkSocket) return; voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', () => { if (socket !== networkSocket) return; voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -476,8 +480,8 @@ async function init() {
     camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', 'Grab a seat, meet your friends, or explore the city.');
   }
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
-  function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && p.vehicle === 'bike' && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
-  function backSeatFull(id: string) { return [...remotePlayers.values()].some(p => p.passengerOf === id) || passengerOf === id; }
+  function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
+  function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function interact() {
@@ -632,18 +636,31 @@ async function init() {
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
     $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
-    $('vehicle-label').textContent = passengerOf ? 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
+    $('vehicle-label').textContent = passengerOf ? vehicle === 'car' ? 'CAR · PASSENGER' : 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
     let hint = '';
     if (riding) hint = Math.abs(speed) < 1.5 ? vehicle === 'car' ? 'Get out of your car' : 'Get off your kapcai' : '';
     else if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) hint = 'Drive your car';
     else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
     const nearbyBikeDriver = !riding && nearbyDriver();
-    if (nearbyBikeDriver) hint = backSeatFull(nearbyBikeDriver.id) ? 'Bike full · 2 / 2' : Math.abs(nearbyBikeDriver.speed) >= 1.5 ? 'Wait for the bike to stop' : 'Ride pillion · 1 / 2';
-    if (passengerOf) hint = Math.abs(speed) < 1.5 ? 'Get off the back seat' : 'Passenger · Driver controls the bike';
+    if (nearbyBikeDriver) hint = backSeatFull(nearbyBikeDriver.id) ? nearbyBikeDriver.vehicle === 'car' ? 'Car full · 4 / 4' : 'Bike full · 2 / 2' : Math.abs(nearbyBikeDriver.speed) >= 1.5 ? 'Wait for the vehicle to stop' : nearbyBikeDriver.vehicle === 'car' ? 'Enter car · Passenger seat' : 'Ride pillion · 1 / 2';
+    if (passengerOf) hint = Math.abs(speed) < 1.5 ? 'Leave passenger seat' : 'Passenger · Driver controls the vehicle';
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
     $('touch-interact').textContent = passengerOf ? 'GET OFF' : nearbyBikeDriver ? backSeatFull(nearbyBikeDriver.id) ? 'FULL' : 'HOP ON' : seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OUT' : distanceTo(car.group.position) < 3.8 ? 'DRIVE' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     $('touch-horn').hidden = $('desktop-horn').hidden = !riding || !!passengerOf;
+    const seatsPanel = $('vehicle-seats');
+    seatsPanel.hidden = !riding || vehicle !== 'car';
+    if (!seatsPanel.hidden) {
+      const driverId = passengerOf || networkPlayerId;
+      const occupants = roomPlayers.filter(p => p.passengerOf === driverId);
+      const names = [passengerOf ? roomPlayers.find(p => p.id === driverId)?.name || 'Driver' : displayName(), ...[0, 1, 2].map(i => occupants.find(p => p.seatIndex === i)?.name || '')];
+      const key = JSON.stringify(names);
+      if (seatsPanel.dataset.seats !== key) {
+        seatsPanel.dataset.seats = key; seatsPanel.replaceChildren();
+        const heading = document.createElement('strong'); heading.textContent = `CAR · ${names.filter(Boolean).length} / 4`; seatsPanel.append(heading);
+        names.forEach((name, i) => { const row = document.createElement('div'); row.textContent = `${i + 1} · ${i === 0 ? 'Driver: ' : ''}${name || 'Empty seat'}`; row.className = name ? 'occupied' : ''; seatsPanel.append(row); });
+      }
+    }
     drawMap();
     if (cityMap.open) drawMap(true);
   }
@@ -678,6 +695,7 @@ async function init() {
         remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
         remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
         remote.group.rotation.y = remote.yaw;
+        remote.person.group.scale.setScalar(remote.passengerOf && remote.vehicle === 'car' ? .7 : 1);
         remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
         if (remote.seated || remote.passengerOf) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
@@ -695,8 +713,11 @@ async function init() {
       if (!riding || vehicle !== 'car') solids.push({ x: car.group.position.x, z: car.group.position.z, hx: 1.8, hz: 1.8 });
       if (passengerOf) {
         const driver = remotePlayers.get(passengerOf);
-        if (driver) { yaw = driver.yaw; pos.set(driver.group.position.x - Math.sin(yaw) * .72, .12, driver.group.position.z - Math.cos(yaw) * .72); speed = driver.speed; }
-        player.group.position.set(pos.x, .42, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
+        if (driver) {
+          yaw = driver.yaw; const [x, z] = vehicleSeats[vehicle][passengerSeat] || vehicleSeats[vehicle][0];
+          pos.set(driver.group.position.x + Math.cos(yaw) * x + Math.sin(yaw) * z, .12, driver.group.position.z - Math.sin(yaw) * x + Math.cos(yaw) * z); speed = driver.speed;
+        }
+        player.group.position.set(pos.x, vehicle === 'car' ? .36 : .42, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
       } else if (riding) {
         if (keys.has('Space')) speed = THREE.MathUtils.damp(speed, 0, 6, dt);
         else if (forward) speed += forward * (forward * speed < 0 ? 15 : 6.7) * dt;
@@ -747,7 +768,7 @@ async function init() {
       if (!riding) punchPose(player, punchUntil);
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
-      player.group.scale.setScalar(riding && !passengerOf ? 1 : localRecallScale);
+      player.group.scale.setScalar((passengerOf && vehicle === 'car' ? .7 : 1) * (riding && !passengerOf ? 1 : localRecallScale));
       bike.rider.scale.setScalar(riding && vehicle === 'bike' ? localRecallScale : 1);
       car.driver.scale.setScalar(.7 * (riding && vehicle === 'car' ? localRecallScale : 1));
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }

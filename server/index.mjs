@@ -1,4 +1,5 @@
 import http from 'node:http';
+import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
 const { version } = packageInfo;
 import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
@@ -39,11 +40,12 @@ function finiteNumber(value, fallback, min, max) {
 }
 
 function followDriver(passenger, driver) {
-  passenger.x = driver.x - Math.sin(driver.yaw) * .72; passenger.z = driver.z - Math.cos(driver.yaw) * .72;
-  passenger.yaw = driver.yaw; passenger.speed = driver.speed; passenger.riding = true; passenger.vehicle = 'bike'; passenger.seated = false; passenger.jumpHeight = 0;
+  const [x, z] = vehicleSeats[driver.vehicle][passenger.seatIndex || 0];
+  passenger.x = driver.x + Math.cos(driver.yaw) * x + Math.sin(driver.yaw) * z; passenger.z = driver.z - Math.sin(driver.yaw) * x + Math.cos(driver.yaw) * z;
+  passenger.yaw = driver.yaw; passenger.speed = driver.speed; passenger.riding = true; passenger.vehicle = driver.vehicle; passenger.seated = false; passenger.jumpHeight = 0;
 }
 function releasePassenger(passenger, reset = false) {
-  passenger.passengerOf = null; passenger.riding = false; passenger.speed = 0;
+  passenger.passengerOf = null; passenger.seatIndex = null; passenger.riding = false; passenger.speed = 0;
   passenger.x = reset ? -18 : Math.max(-151, Math.min(151, passenger.x + Math.cos(passenger.yaw) * 2.4));
   passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
 }
@@ -118,7 +120,7 @@ webSocketServer.on('connection', ws => {
         x: -18,
         z: 52,
         yaw: Math.PI,
-        riding: false, vehicle: 'bike', passengerOf: null,
+        riding: false, vehicle: 'bike', passengerOf: null, seatIndex: null,
         speed: 0,
         jumpHeight: 0, seated: false,
         mic: false, speaker: false,
@@ -135,11 +137,12 @@ webSocketServer.on('connection', ws => {
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
     if (message.type === 'passenger-join') {
       const driver = currentRoom.players.get(message.driverId);
-      const occupied = [...currentRoom.players.values()].some(p => p.passengerOf === message.driverId);
-      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || !driver.riding || driver.vehicle !== 'bike' || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || occupied) {
-        send(ws, { type: 'notice', message: 'The bike must be nearby, stopped, and have a free back seat.' }); return;
+      const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
+      const seatIndex = driver ? vehicleSeats[driver.vehicle].findIndex((_, i) => !occupied.some(p => p.seatIndex === i)) : -1;
+      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
+        send(ws, { type: 'notice', message: 'The vehicle must be nearby, stopped, and have a free passenger seat.' }); return;
       }
-      player.passengerOf = driver.id; followDriver(player, driver);
+      player.passengerOf = driver.id; player.seatIndex = seatIndex; followDriver(player, driver);
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'passenger-leave') {
@@ -191,7 +194,7 @@ webSocketServer.on('connection', ws => {
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
       for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) {
-        if (player.riding && player.vehicle === 'bike') followDriver(passenger, player); else releasePassenger(passenger);
+        if (player.riding && player.vehicle === passenger.vehicle) followDriver(passenger, player); else releasePassenger(passenger);
       }
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
