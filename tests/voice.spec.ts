@@ -10,6 +10,8 @@ const harness = `<div id="hud"></div><script type="module">
 import { setupVoice } from '/src/voice.ts';
 const socket = new WebSocket('ws://127.0.0.1:8095/ws');
 const voice = setupVoice(m => { if (socket.readyState !== 1) return false; socket.send(JSON.stringify(m)); return true; });
+// The game reveals this panel after projecting the character anchor.
+document.getElementById('voice-panel').hidden = false;
 socket.onopen = () => socket.send(JSON.stringify({type:'join',room:'voice-test'}));
 socket.onmessage = e => { const m = JSON.parse(e.data); if(m.type==='welcome') voice.connected(true); if(m.type==='voice-audio') voice.receive(m.id,m.name,m.audio); };
 socket.onclose = () => voice.connected(false);

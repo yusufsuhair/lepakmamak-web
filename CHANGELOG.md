@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Removed legacy corner positioning and visible voice status text; mic and speaker controls appear only as icons above the character.
+
 - Only one active game connection per account across rooms; a new connection replaces the old one, releases vehicle seats and stops the old client reconnecting.
 
 - Chat messages containing common English or Malay profanity are replaced with `***` server-side, including speech bubbles.

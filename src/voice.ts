@@ -2,7 +2,7 @@ const micIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><
 const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string };
 export function setupVoice(send: (message: VoiceMessage) => boolean) {
-  const panel = document.createElement('aside'); panel.id = 'voice-panel';
+  const panel = document.createElement('aside'); panel.id = 'voice-panel'; panel.hidden = true;
   panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
   panel.setAttribute('aria-label', 'Your character voice controls');
