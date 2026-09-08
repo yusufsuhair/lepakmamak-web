@@ -449,7 +449,8 @@ async function init() {
       if (mission.stage === 'delivering') mission.elapsed += dt;
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
-      player.group.scale.setScalar(localRecallScale); bike.group.scale.setScalar(localRecallScale);
+      player.group.scale.setScalar(riding ? 1 : localRecallScale);
+      bike.rider.scale.setScalar(riding ? localRecallScale : 1);
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
       if (riding) cameraHeading = dampAngle(cameraHeading, yaw, 1 - Math.exp(-3 * dt));
       const heading = cameraHeading + orbit;
