@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Moved interactive mic/speaker controls above the local character, replacing the top-right panel.
+
 - Added stylised Axia, Myvi, Avanza, Vellfire, SUV and sports coupe models to traffic; the driveable car now uses the Myvi model.
 
 - Added Speedmart, KK Super Mart, kedai dobi and MR.DIY storefronts with shelves and washing-machine displays.

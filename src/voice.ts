@@ -5,6 +5,9 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const panel = document.createElement('aside'); panel.id = 'voice-panel';
   panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
+  panel.setAttribute('aria-label', 'Your character voice controls');
+  panel.addEventListener('keydown', event => event.stopPropagation());
+  panel.addEventListener('pointerdown', event => event.stopPropagation());
   const micButton = panel.querySelector<HTMLButtonElement>('#voice-mic')!;
   const speakerButton = panel.querySelector<HTMLButtonElement>('#voice-speaker')!;
   const status = panel.querySelector<HTMLElement>('#voice-status')!;

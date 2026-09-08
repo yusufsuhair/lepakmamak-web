@@ -459,7 +459,7 @@ async function init() {
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
-    if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
+    if (!localName) { localName = nameTag(displayName(), true); scene.add(localName); }
   }
   function leaveCity() {
     setMap(false); profile.close(); closeOptions();
@@ -825,6 +825,15 @@ async function init() {
       iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
+    const voicePanel = $('voice-panel');
+    voicePanel.hidden = !started || !localName || paused || cityMap.open || profile.open;
+    if (localName && !voicePanel.hidden) {
+      const anchor = localName.position.clone().add(new THREE.Vector3(0, .35, 0)).project(camera);
+      voicePanel.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
+      voicePanel.style.left = `${(anchor.x + 1) * innerWidth / 2}px`;
+      voicePanel.style.top = `${(1 - anchor.y) * innerHeight / 2}px`;
+    }
+
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {

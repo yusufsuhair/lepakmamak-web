@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function nameTag(name: string) {
+export function nameTag(name: string, interactiveVoice = false) {
   const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 164;
   const ctx = canvas.getContext('2d')!;
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
@@ -12,6 +12,7 @@ export function nameTag(name: string) {
     ctx.font = '600 36px "DM Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ddf69a';
     ctx.fillText(name.slice(0, 18), 256, 117, 460);
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
+      if (interactiveVoice) continue;
       ctx.save(); ctx.translate(x, 35);
       ctx.fillStyle = '#173c32ed'; ctx.beginPath(); ctx.roundRect(-32, -30, 64, 62, 16); ctx.fill();
       ctx.strokeStyle = on ? '#ddf69a' : '#f4a08f'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
