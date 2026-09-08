@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Record changes here as they are made, then move them under the next version before releasing.
+- Added local footsteps for walking/running and jump/landing sounds, controlled by the existing sound setting.
 
 ## 1.0.0 — 2026-09-08
 

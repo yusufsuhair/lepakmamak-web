@@ -95,7 +95,7 @@ async function init() {
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
     if (!started || paused || seated || riding || jumpHeight > 0 || jumpVelocity > 0) return;
-    jumpVelocity = 6.5;
+    jumpVelocity = 6.5; movementSound('jump');
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
@@ -203,6 +203,31 @@ async function init() {
   document.addEventListener('pointerdown', () => {
     if (started && audioEnabled && (iceCreamSong.paused || audioContext?.state === 'suspended')) { ensureAudio(); startBackgroundMusic(); }
   });
+  let footstepDistance = 0;
+  let stepNoise: AudioBuffer | null = null;
+  function movementSound(kind: 'step' | 'jump' | 'land', running = false) {
+    if (!audioEnabled || !started) return;
+    ensureAudio();
+    if (!audioContext || audioContext.state !== 'running') return;
+    // Short filtered noise gives shoes a soft scuff and impact without downloaded audio.
+    if (!stepNoise) {
+      stepNoise = audioContext.createBuffer(1, Math.ceil(audioContext.sampleRate * .22), audioContext.sampleRate);
+      const samples = stepNoise.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+    }
+    const source = audioContext.createBufferSource(), filter = audioContext.createBiquadFilter(), gain = audioContext.createGain();
+    const duration = kind === 'jump' ? .18 : kind === 'land' ? .16 : .09;
+    const now = audioContext.currentTime;
+    source.buffer = stepNoise; source.playbackRate.value = .94 + Math.random() * .12;
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(kind === 'jump' ? 1600 : 700, now);
+    filter.frequency.exponentialRampToValueAtTime(kind === 'jump' ? 450 : 160, now + duration);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(kind === 'land' ? .22 : kind === 'jump' ? .08 : running ? .15 : .11, now + .008);
+    gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+    source.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+    source.start(); source.stop(now + duration + .01);
+  }
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
@@ -622,11 +647,12 @@ async function init() {
       } else {
         if (jumpVelocity !== 0 || jumpHeight > 0) {
           jumpVelocity -= 18 * dt; jumpHeight = Math.max(0, jumpHeight + jumpVelocity * dt);
-          if (jumpHeight === 0) jumpVelocity = 0;
+          if (jumpHeight === 0) { jumpVelocity = 0; movementSound('land'); footstepDistance = 0; }
         }
         const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
         const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
+        const previousX = pos.x, previousZ = pos.z;
         if (input.length()) {
           input.normalize();
           const reference = cameraHeading + orbit;
@@ -635,6 +661,11 @@ async function init() {
           yaw = dampAngle(yaw, Math.atan2(dx, dz), 1 - Math.exp(-14 * dt));
           moveWithCollisions(pos, dx * walkSpeed * dt, dz * walkSpeed * dt, .46, solids);
         }
+        const travelled = Math.hypot(pos.x - previousX, pos.z - previousZ);
+        if (jumpHeight === 0 && travelled > .001) {
+          footstepDistance += travelled;
+          if (footstepDistance >= (running ? 1.65 : 1.15)) { movementSound('step', running); footstepDistance = 0; }
+        } else footstepDistance = 0;
         player.group.position.copy(pos); player.group.rotation.y = yaw;
         const stride = Math.sin(simTime * (running ? 13 : 9)) * Math.min(.7, walkSpeed * .12);
         player.leftLeg.rotation.x = stride; player.rightLeg.rotation.x = -stride; player.leftArm.rotation.x = -stride * .7; player.rightArm.rotation.x = stride * .7;
