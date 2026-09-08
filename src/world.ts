@@ -493,7 +493,6 @@ export function createWorld(scene: THREE.Scene): World {
     box(g, width / 2 - 1.1, 5.65, 6.5, 1.4, .7, .7, '#e1d5b9');
     return g;
   }
-  shop(-59, 32, 17, shopColors[1], 'KEDAI RUNCIT SINAR');
   shop(-60, 58, 18, shopColors[0], 'BENGKEL AZLAN');
   shop(-36, -12, 19, shopColors[4], 'DOBI LAYAN DIRI');
   shop(-57, -12, 20, shopColors[3], 'KEDAI KOPI');
@@ -593,6 +592,38 @@ export function createWorld(scene: THREE.Scene): World {
     }
     sign(familyMart, 'FRESH FOOD · CAFÉ · BAKERY', -1.5, .38, 6.38, 15.8, .42, blue, white);
     sign(familyMart, 'SOFUTO', 8.35, .38, 6.38, 4.4, .42, green, white);
+  }
+
+  // 7-Eleven Malaysia storefront with its striped fascia, glazed entrance,
+  // Fresh to Go panel, CAFé counter and colourful Slurpee display.
+  {
+    const seven = shop(-59, 32, 17, '#f2f0e6', '7-ELEVEN');
+    const green = '#168447', orange = '#f28b22', red = '#d83c2f', white = '#fffdf3', charcoal = '#242b29', glass = '#85b4b2';
+    box(seven, 0, 5.02, 6.28, 17, .44, .2, green);
+    box(seven, 0, 4.63, 6.29, 17, .23, .21, white);
+    box(seven, 0, 4.39, 6.3, 17, .24, .22, orange);
+    box(seven, 0, 4.14, 6.31, 17, .25, .23, red);
+    box(seven, -5.9, 5.75, 6.32, 2.55, 2.05, .22, green);
+    sign(seven, '7', -5.9, 5.75, 6.45, 2.15, 1.65, white, red);
+    sign(seven, 'ELEVEN', 1.65, 5.75, 6.33, 10.8, 1.42, white, green);
+    box(seven, 0, 3.14, 7.12, 17, .14, 2.3, green);
+    box(seven, 0, 2.91, 7.13, 17, .13, 2.31, orange);
+    box(seven, 0, 2.69, 7.14, 17, .13, 2.32, red);
+    box(seven, 0, 1.5, 6.2, 2.35, 3, .13, glass);
+    for (const x of [-6.8, -4.45, -2.1, 2.1, 4.45, 6.8]) {
+      box(seven, x, 1.5, 6.21, 2.05, 3, .13, glass);
+      box(seven, x - 1.03, 1.5, 6.3, .08, 3, .1, white);
+    }
+    box(seven, -5.15, 1.25, 6.39, 5.3, 2.35, .2, charcoal);
+    sign(seven, 'FRESH TO GO', -5.15, 2.05, 6.52, 4.7, .55, charcoal, white);
+    sign(seven, '7CAFÉ', -5.15, 1.3, 6.52, 4.2, .5, charcoal, orange);
+    sign(seven, 'SLURPEE', 5.2, 2.28, 6.45, 4.7, .55, white, green);
+    for (let i = 0; i < 4; i++) {
+      const x = 3.75 + i * .95;
+      box(seven, x, 1.13, 6.43, .62, 1.15, .28, ['#dc4b45', '#58a8d2', '#8f65b7', '#e4c641'][i]);
+      box(seven, x, 1.78, 6.43, .75, .18, .3, white);
+    }
+    sign(seven, 'OPEN 24 HOURS', 0, .38, 6.4, 15.8, .42, green, white);
   }
 
   // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,

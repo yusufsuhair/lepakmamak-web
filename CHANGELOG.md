@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a 7-Eleven Malaysia storefront with its striped fascia, glazed entrance, Fresh to Go, 7CAFé and Slurpee details, plus a city-map location.
+
 - Added a FamilyMart Malaysia storefront with its signature green, white and blue fascia, café and fresh-food displays, a map location and the supplied proximity song.
 
 - Added a Watsons Malaysia storefront and city-map location with the supplied jingle fading in only for nearby players and respecting City sounds.

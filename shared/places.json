@@ -131,5 +131,12 @@
     "x": 49,
     "z": 34,
     "kind": "kedai"
+  },
+  {
+    "id": "20",
+    "name": "7-Eleven Malaysia",
+    "x": -59,
+    "z": 32,
+    "kind": "kedai"
   }
 ]
