@@ -64,6 +64,7 @@ try {
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 20000 });
     await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('button', { name: 'Log out', exact: true }).click();
+    await page.getByRole('button', { name: 'Keluar game', exact: true }).click();
     await expect(page.locator('#intro')).toBeVisible();
     await page.getByRole('button', { name: "Jom, let's go" }).click();
     await page.getByRole('button', { name: 'Already registered? Log in' }).click();

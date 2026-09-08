@@ -26,6 +26,7 @@ import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
+import { setupExitConfirmation } from './exit-confirm';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -708,7 +709,8 @@ async function init() {
   }
   const requestEntry = await setupAuth(start, leaveCity);
   const signout = document.createElement('button'); signout.className = 'secondary'; signout.textContent = 'Log out'; signout.hidden = !auth;
-  signout.onclick = async () => { if (guestName) { leaveCity(); return; } if (auth) { const { error } = await auth.auth.signOut({ scope: 'local' }); if (error) toast('Could not log out', error.message); } };
+  const exitConfirmation=setupExitConfirmation(async()=>{if(guestName){leaveCity();return;}if(auth){const{error}=await auth.auth.signOut({scope:'local'});if(error)throw Error(error.message);}});
+  signout.onclick = () => exitConfirmation.open();
   document.querySelector('.pause-panel')!.append(signout);
   function reset() {
     localSupermanUntil=0;
