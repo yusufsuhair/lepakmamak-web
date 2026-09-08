@@ -1,3 +1,4 @@
+import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
@@ -46,7 +47,7 @@ async function identify(token, guest = false, guestName) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
 }
 
 function roomFor(name) {
@@ -71,7 +72,7 @@ function releasePassenger(passenger, reset = false) {
   passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -114,7 +115,7 @@ webSocketServer.on('connection', ws => {
   let lastPunchAt = 0;
   let lastHornAt = 0;
   let joining = false;
-  let lastChatAt = 0;
+  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0;
   let expiresAt = 0;
   let voiceTokens = 30, voiceAt = Date.now();
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
@@ -162,7 +163,7 @@ webSocketServer.on('connection', ws => {
         id,
         ws,
         name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
-        appearance: cleanAppearance(identity.appearance),
+        appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
         color: palette[number % palette.length],
         x: -18,
         z: 52,
@@ -187,6 +188,23 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (message.type === 'profile-view') {
+      if (Date.now() - lastProfileViewAt < 250) return;
+      lastProfileViewAt = Date.now();
+      const target = currentRoom.players.get(message.id);
+      send(ws, { type: 'profile', profile: target ? publicProfile(target) : null, id: message.id }); return;
+    }
+    if (message.type === 'profile-refresh') {
+      if (!player.userId || player.guest || Date.now() - lastProfileAt < 1500) return;
+      lastProfileAt = Date.now(); const requestingPlayer = player;
+      try {
+        const identity = await identify(message.accessToken);
+        if (player !== requestingPlayer || identity.userId !== player.userId) return;
+        player.profile = identity.profile;
+        broadcast(currentRoom.players, { type: 'profile', profile: publicProfile(player), id: player.id });
+      } catch { send(ws, { type: 'notice', message: 'Profile saved to your account. Rejoin to refresh its public card.' }); }
+      return;
+    }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
       const driver = currentRoom.players.get(message.driverId);

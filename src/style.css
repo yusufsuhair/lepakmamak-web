@@ -380,3 +380,20 @@ html, body, #app { touch-action: manipulation; }
 #receipt-view > div { display:flex; gap:8px; margin:12px 0; }
 #receipt-view > div button { flex:1; }
 @media(max-width:600px){#table-social{padding:18px;}#open-tables{font-size:10px;padding:6px 9px;min-height:38px;}.table-label{max-width:145px;font-size:10px;}}
+
+#player-profile { width:min(420px,calc(100vw - 28px)); max-height:calc(100dvh - 28px); overflow:auto; }
+#profile-details dl { margin:18px 0; }
+#profile-details dt { color:#c7dc99; font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-top:16px; }
+#profile-details dd { margin:5px 0 0; font-size:14px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+.profile-badge { display:inline-block; border:1px solid #dafa8e66; border-radius:20px; color:#ddf69a; padding:5px 10px; font-size:11px; }
+.profile-empty { font-size:13px; color:#dfdfcd; }
+#edit-profile { width:min(440px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; border:0; border-radius:14px; padding:24px; background:#f6f0dc; color:#214939; }
+#edit-profile::backdrop { background:#10271ccc; }
+#edit-profile h2 { font:700 36px 'Barlow Condensed'; margin:0 0 12px; }
+#edit-profile p { font-size:13px; line-height:1.5; }
+#profile-fields label { display:block; margin:15px 0; font-size:12px; font-weight:600; }
+#profile-fields input,#profile-fields textarea { display:block; width:100%; margin-top:7px; padding:11px; font:16px 'DM Sans'; border:1px solid #b0bb9b; border-radius:6px; background:#fffdf4; color:#214939; }
+#profile-fields textarea { min-height:94px; resize:vertical; }
+.profile-editor-actions { display:flex; gap:8px; }
+.profile-editor-actions button { min-height:44px; flex:1; padding:10px; border:0; border-radius:6px; background:#214939; color:#fff8e7; font:600 14px 'DM Sans'; }
+.profile-editor-actions button:disabled { opacity:.5; }

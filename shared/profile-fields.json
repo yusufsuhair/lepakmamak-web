@@ -1,0 +1,7 @@
+[
+  { "key": "bio", "label": "About me", "max": 160, "placeholder": "Usually here for teh tarik and good company." },
+  { "key": "hometown", "label": "Hometown", "max": 40, "placeholder": "e.g. Shah Alam" },
+  { "key": "interests", "label": "Interests", "max": 100, "placeholder": "Gaming, football, food hunting…" },
+  { "key": "languages", "label": "Languages", "max": 60, "placeholder": "Bahasa Melayu, English…" },
+  { "key": "mamakOrder", "label": "My mamak order", "max": 60, "placeholder": "Roti telur + teh tarik kurang manis" }
+]
