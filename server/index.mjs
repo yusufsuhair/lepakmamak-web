@@ -1,3 +1,5 @@
+import { createTableSocial } from './tables.mjs';
+import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
 import { isGameMaster } from './roles.mjs';
@@ -22,6 +24,7 @@ setInterval(() => {
   for (const players of pending) if (players.size) broadcast(players, { type: 'players', players: snapshot(players) });
 }, 50).unref();
 const accountConnections = new Map();
+const tableSocial = createTableSocial(send);
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
@@ -76,6 +79,7 @@ function send(ws, message) {
 }
 
 function broadcast(players, message) {
+  if (message.type === 'players') tableSocial.sync(players);
   const payload = JSON.stringify(message);
   for (const player of players.values()) {
     if (player.ws.readyState !== 1) continue;
@@ -169,16 +173,21 @@ webSocketServer.on('connection', ws => {
         mic: false, speaker: false,
         updatedAt: Date.now(),
       };
+      const invitedTable = tableLocations.find(t => t.id === message.tableId);
+      if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
+      tableSocial.join(player);
       currentRoom = room;
       room.players.set(id, player);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
+      tableSocial.sync(room.players, true);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       return;
     }
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
       const driver = currentRoom.players.get(message.driverId);
       const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
@@ -286,7 +295,7 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'recall') {
       const now = Date.now();
       if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
-      lastRecallAt = now;
+      lastRecallAt = now; tableSocial.recall(player);
       broadcast(currentRoom.players, { type: 'recall', id: player.id });
       return;
     }

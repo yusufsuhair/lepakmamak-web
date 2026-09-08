@@ -354,3 +354,29 @@ html, body, #app { touch-action: manipulation; }
 #graphics-quality { font: inherit; font-size: 16px; padding: 8px; border: 1px solid #99ad89; border-radius: 5px; background: #fffbed; color: #193d33; }
 
 #chat-messages time { color: #b9c9b2; font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+#open-tables { pointer-events:auto; align-self:flex-start; padding:9px 12px; min-height:38px; border:1px solid #dafa8e77; border-radius:5px; background:#214939e8; color:#f8f0d7; font:600 12px 'DM Sans',sans-serif; }
+.table-label { position:absolute; transform:translate(-50%,-100%); pointer-events:auto; padding:9px 12px; max-width:190px; border:1px solid #ddf69a88; border-radius:16px; background:#214939dd; color:#fff8e7; font:600 11px 'DM Sans'; box-shadow:0 2px 8px #0003; }
+#table-social { width:min(520px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:24px; border:1px solid #b9c6a0; border-radius:16px; background:#f6f0dc; color:#214939; box-shadow:0 24px 80px #0005; }
+#table-social::backdrop { background:#10271ccc; }
+#table-social header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#table-social h2 { margin:4px 0; font:700 44px 'Barlow Condensed'; }
+#table-social h3 { font-size:23px; margin:14px 0 5px; overflow-wrap:anywhere; }
+#table-social p { font-size:13px; line-height:1.5; }
+#table-social button { min-height:44px; padding:10px 14px; border:1px solid #21493933; border-radius:7px; background:#214939; color:#fff8e7; font:600 13px 'DM Sans'; }
+#table-social button:disabled { opacity:.5; cursor:default; }
+#table-social input { min-width:0; width:100%; padding:11px; border:1px solid #acb896; border-radius:6px; background:#fffcf2; color:#214939; font-size:16px; }
+#table-social label { display:block; font-size:12px; font-weight:600; margin:15px 0 7px; }
+#table-social small { display:block; font-size:11px; line-height:1.5; margin:7px 0; }
+#table-list { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:18px 0; }
+#table-list button { background:#e8e7d0; color:#214939; overflow-wrap:anywhere; }
+#table-list button[aria-pressed=true] { background:#214939; color:#ddf69a; }
+#table-name-form > div,.table-link-row { display:flex; gap:8px; }
+#table-name-form button,.table-link-row button { flex-shrink:0; }
+#table-occupants { padding-left:20px; font-size:13px; line-height:1.8; }
+#table-round,#get-receipt { width:100%; margin-top:12px; }
+#get-receipt { background:#ddf69a!important; color:#214939!important; }
+#receipt-canvas { width:100%; height:auto; border-radius:6px; }
+#receipt-view > div { display:flex; gap:8px; margin:12px 0; }
+#receipt-view > div button { flex:1; }
+@media(max-width:600px){#table-social{padding:18px;}#open-tables{font-size:10px;padding:6px 9px;min-height:38px;}.table-label{max-width:145px;font-size:10px;}}

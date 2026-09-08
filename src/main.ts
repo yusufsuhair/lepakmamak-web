@@ -1,3 +1,6 @@
+import { setupTableSocial, type TableState, type Receipt } from './table-social';
+import tableLocations from '../shared/tables.json';
+import chairLocations from '../shared/chairs.json';
 import './style.css';
 import {createStreetAnimals, animalSound} from './animals';
 import { setupShop } from './shop';
@@ -44,7 +47,7 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button><button id="open-tables" type="button">Meja Kita ☕</button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -95,6 +98,7 @@ async function init() {
   let passengerOf: string | null = null;
   let passengerSeat = 0;
   let roomPlayers: NetworkPlayer[] = [];
+  let roomTables: TableState[] = [];
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
   const savedMoney = Number((saved as { money?: number }).money);
@@ -176,7 +180,7 @@ async function init() {
   let networkReconnectTimer: number | null = null;
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || cityMap.open || seated || riding || punchUntil > simTime) return;
+    if (!started || paused || tableSocial.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
     punchUntil = simTime + .38; punchCount++; punchSound();
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'punch' }));
   }
@@ -186,6 +190,21 @@ async function init() {
   }
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
+  const invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
+  const tableSocial = setupTableSocial(message => {
+    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
+    networkSocket.send(JSON.stringify(message)); return true;
+  }, roomName, () => { keys.clear(); resetStick(); dragging = false; });
+  $('open-tables').onclick = () => tableSocial.open();
+  const tableCups = chairLocations.map(chair => {
+    const table = tableLocations.find(t=>t.id===chair.tableId)!;
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(.11, .08, .26, 8), new THREE.MeshStandardMaterial({color:'#c58a4c'}));
+    cup.position.set(table.x+(chair.x-table.x)*.42,1.27,table.z+(chair.z-table.z)*.42);cup.visible=false;scene.add(cup);
+    return { cup, chairId: chair.id, tableId: table.id };
+  });
+  const tableLabels = tableLocations.map(table=>{
+    const button=document.createElement('button');button.className='table-label';button.hidden=true;button.onclick=()=>tableSocial.open(table.id);$('hud').append(button);return {table,button};
+  });
   const keys = new Set<string>();
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
@@ -401,6 +420,7 @@ async function init() {
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     roomPlayers = players;
+    tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
     if (self && (self.chairId || seatedChairId)) {
@@ -447,6 +467,7 @@ async function init() {
   });
   function disconnectMultiplayer() {
     seatedChairId = null; seated = false;
+    tableSocial.close(); tableSocial.offline(); roomTables = [];
     voice.connected(false);
     if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
     clearSpeechBubbles();
@@ -479,13 +500,16 @@ async function init() {
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
-        socket.send(JSON.stringify({ type: 'join', room: roomName, accessToken, guest: !!guestName, name: guestName || undefined }));
+        socket.send(JSON.stringify({ type: 'join', room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
+        let message: { tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; message?: string; name?: string; text?: string; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
+        if (message.type === 'welcome' && message.id) { networkPlayerId = message.id; networkConnected = true; if (invitedTableId) { const self = message.players?.find(p=>p.id===message.id); if(self)pos.set(self.x,.12,self.z); } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
+        if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
+        if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
+        if (message.type === 'table-round') toast('Teh tarik sampai!', `${message.from || 'A friend'} belanja ${message.count || 1} cup${message.count === 1 ? '' : 's'}. Jom cheers!`);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
           const remote = remotePlayers.get(message.id);
@@ -506,7 +530,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -610,7 +634,7 @@ async function init() {
     return null;
   }
   function interact() {
-    if (!started || paused) return;
+    if (!started || paused || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
@@ -690,7 +714,7 @@ async function init() {
     if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
-    if (profile.open) return;
+    if (profile.open || tableSocial.opened) return;
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
@@ -1019,6 +1043,16 @@ async function init() {
 
     camera.updateMatrixWorld();
     setAfkBubble('self', started ? afkNote : '');
+    for (const {cup,chairId,tableId} of tableCups) {
+      const table=roomTables.find(t=>t.id===tableId);
+      cup.visible=!!table?.occupants.some(p=>p.chairId===chairId&&p.hasCup);
+      cup.position.y=1.27+(table && table.cheersUntil>Date.now()? Math.sin((table.cheersUntil-Date.now())*.009)*.07+.22:0);
+    }
+    for(const {table,button} of tableLabels){
+      const state=roomTables.find(t=>t.id===table.id);
+      button.hidden=!started||paused||cityMap.open||tableSocial.opened||distanceTo(table)>8;
+      if(!button.hidden){const p=new THREE.Vector3(table.x,2.1,table.z).project(camera);button.hidden=p.z< -1||p.z>1||Math.abs(p.x)>.9||Math.abs(p.y)>.9;button.style.left=`${(p.x+1)*innerWidth/2}px`;button.style.top=`${(1-p.y)*innerHeight/2}px`;const label=`${state?.name||table.name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} ☕`;if(button.textContent!==label)button.textContent=label;}
+    }
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
       const afk = id.startsWith('afk:');
@@ -1048,6 +1082,9 @@ async function init() {
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
+    const cheeringIds = new Set(roomTables.filter(t=>t.cheersUntil>Date.now()).flatMap(t=>t.occupants.map(p=>p.id)));
+    if(seated&&cheeringIds.has(networkPlayerId)) player.rightArm.rotation.x=-1.7;
+    for(const remote of remotePlayers.values()) if(remote.seated&&cheeringIds.has(remote.id))remote.person.rightArm.rotation.x=-1.7;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "meja-1",
+    "name": "Meja 1",
+    "x": -38,
+    "z": 45,
+    "arrivalX": -34.5,
+    "arrivalZ": 45
+  },
+  {
+    "id": "meja-2",
+    "name": "Meja 2",
+    "x": -29,
+    "z": 45,
+    "arrivalX": -25.5,
+    "arrivalZ": 45
+  },
+  {
+    "id": "meja-3",
+    "name": "Meja 3",
+    "x": -39,
+    "z": 51,
+    "arrivalX": -35.5,
+    "arrivalZ": 51
+  },
+  {
+    "id": "meja-4",
+    "name": "Meja 4",
+    "x": -29,
+    "z": 52,
+    "arrivalX": -25.5,
+    "arrivalZ": 52
+  }
+]

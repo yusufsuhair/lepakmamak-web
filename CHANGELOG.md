@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Meja Kita: live table hosts/names, same-room table invitations, free teh tarik rounds and shared cheers. Added downloadable/shareable Resit Lepak images from server-counted session statistics. Saved the social growth roadmap in docs.
+
 - Added server-issued chat timestamps displayed in Malaysia time, with full date/time available on hover.
 
 - Coalesced movement snapshots to 20 Hz per room, suppressed idle movement spam and stale socket queues, added adaptive graphics quality and ambient distance culling, and configured the realtime server for Singapore.
