@@ -77,7 +77,7 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
 
 export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const input = panel.querySelector<HTMLInputElement>('input')!;
   const messages = panel.querySelector<HTMLElement>('#chat-messages')!;
@@ -85,13 +85,15 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const heading = panel.querySelector<HTMLButtonElement>('#chat-heading')!;
   const body = panel.querySelector<HTMLElement>('#chat-body')!;
   const toggleLabel = panel.querySelector<HTMLElement>('#chat-toggle-label')!;
+  const unreadBadge = panel.querySelector<HTMLElement>('#chat-unread-badge')!;
   let collapsed = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches, unread = 0;
   try { const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true'; } catch { /* Preference storage is optional. */ }
   function render() {
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
-    toggleLabel.textContent = collapsed ? `${unread ? `${unread} new · ` : ''}＋` : '−';
+    toggleLabel.textContent = collapsed ? '＋' : '−';
+    unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
   }
   function expand() { collapsed = false; unread = 0; render(); messages.scrollTop = messages.scrollHeight; }
   heading.onclick = () => {
@@ -120,7 +122,7 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
       unread = 0;
       render(); messages.scrollTop = messages.scrollHeight;
     },
-    append(name: string, text: string, sentAt?: string, gameMaster = false) {
+    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true) {
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
       const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
@@ -131,7 +133,7 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
       if (gameMaster) { row.className = 'game-master-chat'; author.textContent = `✦ GM · ${name}: `; }
       row.append(timestamp, document.createTextNode(' '), author, document.createTextNode(text)); messages.append(row);
       while (messages.children.length > 50) messages.firstElementChild!.remove();
-      if (collapsed) { unread++; render(); }
+      if (collapsed && notify) { unread++; render(); }
       else messages.scrollTop = messages.scrollHeight;
     },
   };

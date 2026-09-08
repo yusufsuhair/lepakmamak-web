@@ -293,6 +293,11 @@ kbd { font: 500 10px 'DM Sans'; display: inline-flex; align-items: center; justi
 #chat-heading:focus-visible { outline: 2px solid #dfff87; outline-offset: 2px; }
 #city-chat.chat-collapsed { width: 160px; }
 .chat-collapsed #chat-heading { border-radius: 6px; }
+#chat-unread-badge { position:absolute; z-index:2; top:-10px; right:-10px; min-width:25px; height:25px; box-sizing:border-box; display:grid; place-items:center; padding:0 6px; border:2px solid #f7f3da; border-radius:14px; background:#ef704f; color:#fff; font:800 10px 'DM Sans'; box-shadow:0 4px 14px #10271c66; animation:chat-badge-pop .28s ease-out; pointer-events:none; }
+#chat-unread-badge[hidden] { display:none; }
+#chat-unread-badge::after { content:''; position:absolute; right:1px; bottom:-3px; width:7px; height:7px; transform:rotate(35deg); border-radius:1px; background:#ef704f; }
+@keyframes chat-badge-pop { from { transform:scale(.5); opacity:0; } 70% { transform:scale(1.12); } to { transform:scale(1); opacity:1; } }
+@media(prefers-reduced-motion:reduce){#chat-unread-badge{animation:none}}
 
 /* Only the character anchor positions voice controls; no HUD corner fallback. */
 #voice-panel { position: fixed; pointer-events: auto; top: 0; left: 0; right: auto; bottom: auto; width: 94px; max-width: none; transform: translate(-50%, -100%); z-index: 5; }

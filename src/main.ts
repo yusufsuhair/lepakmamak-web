@@ -558,11 +558,11 @@ async function init() {
         if (message.type === 'punch' && message.id && message.id !== networkPlayerId) { const remote = remotePlayers.get(message.id); if (remote) remote.punchUntil = simTime + .38; }
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
         if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
-          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster);
+          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, message.id !== networkPlayerId);
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
         if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume);
-        if (message.type === 'notice') chat.append('City', message.message || 'Please try again.');
+        if (message.type === 'notice') chat.append('City', message.message || 'Please try again.', undefined, false, false);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {
           setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');

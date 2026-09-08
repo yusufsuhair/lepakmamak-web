@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a numbered notification badge above collapsed City chat for new messages, excluding the player's own messages and system notices, and clearing when chat is opened.
+
 - Added a synchronized six-second Superman motorbike stunt with rider menu, desktop and mobile controls, cancellation, and automatic reset when leaving the bike.
 
 - Redesigned Wardrobe as a visual character studio with a large live avatar stage, Tops and Bottoms tabs, graphical clothing choices, random outfit button and responsive mobile layout.
