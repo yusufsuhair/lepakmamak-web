@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Stop dance to the self context menu; cancellation stops the animation and nearby music for all players.
+
 - Reworked Dance from the supplied video into a five-second step/hand/chest sequence with bent elbows and upper-body rolls, repeated over ten seconds. Reduced dance music gain by 35%.
 
 - Added a self-only Dance context action: ten-second hand/chest dance, synchronized to other players, with supplied audio fading out at 18 metres.

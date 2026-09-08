@@ -803,7 +803,8 @@ async function init() {
     while (object && typeof object.userData.profileName !== 'string') object = object.parent;
     if (!object) return;
     $('dance-action').hidden=object.userData.profileId!==networkPlayerId;
-    $<HTMLButtonElement>('dance-action').disabled=riding||seated||jumpHeight>0||isDancing()||!networkConnected;
+    $('dance-action').textContent=isDancing()?'Stop dance':'Dance · 10s';
+    $<HTMLButtonElement>('dance-action').disabled=!networkConnected||(!isDancing()&&(riding||seated||jumpHeight>0));
     selectedName = object.userData.profileName; selectedProfileId = object.userData.profileId || '';
     keys.clear(); resetStick(); dragging = false;
     options.hidden = false;
@@ -811,7 +812,7 @@ async function init() {
     options.style.top = `${Math.max(8, Math.min(y, innerHeight - options.offsetHeight - 8))}px`;
     $('view-profile').focus();
   }
-  $('dance-action').onclick=()=>{closeOptions();if(riding||seated||jumpHeight>0||isDancing())return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
+  $('dance-action').onclick=()=>{closeOptions();if(isDancing()){if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance-cancel'}));return;}if(riding||seated||jumpHeight>0)return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
   $('view-profile').onclick = () => { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } profile.showModal(); $('close-profile').focus(); };
   $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
   profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });

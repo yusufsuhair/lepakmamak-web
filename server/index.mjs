@@ -313,6 +313,9 @@ webSocketServer.on('connection', ws => {
       }
       return;
     }
+    if(message.type==='dance-cancel'){
+      if(player.danceUntil){player.danceUntil=0;dirtyRooms.add(currentRoom.players);}return;
+    }
     if(message.type==='dance'){
       const now=Date.now();if(player.riding||player.seated||player.passengerOf||player.jumpHeight>0||(player.danceUntil||0)>now)return;
       player.danceUntil=now+10000;player.speed=0;dirtyRooms.add(currentRoom.players);return;
