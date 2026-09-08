@@ -1,5 +1,7 @@
 # Changelog
 
+- Upgraded Lukis Lah with private word choices, progressive hints and answer aliases, speed/placement scoring with artist rewards, synchronized high-resolution drawing, real erasing, undo/redo including clear, correct-answer chimes, mobile controls and a 30-second reconnect grace period.
+
 - Added UNO Lepak with private seven-card hands, shuffle/deal/play/draw animations and sound controls, validated action cards and wild colours, UNO call/catch penalties, timed turns, reconnect grace and 500-point matches.
 
 - Added Werewolf to the table lobby: shared city matchmaking for 7/9 players, private roles and game chat, night actions, accusation/defense/judgment, server timers, reconnect grace and rematches. Nine-player extras include Knight, Princess, Hunter and Mayor.

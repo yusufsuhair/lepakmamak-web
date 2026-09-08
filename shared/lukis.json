@@ -1,0 +1,32 @@
+{
+  "colors": [
+    {"value":"#20382e","label":"Hitam"}, {"value":"#e34b4b","label":"Merah"},
+    {"value":"#327bd1","label":"Biru"}, {"value":"#2caa68","label":"Hijau"},
+    {"value":"#e9b52c","label":"Kuning"}, {"value":"#9b59b6","label":"Ungu"},
+    {"value":"#f08bb4","label":"Merah jambu"}, {"value":"#8b5a2b","label":"Coklat"}
+  ],
+  "sizes": [3,7,14,24],
+  "words": [
+    {"text":"nasi lemak","category":"Makanan"}, {"text":"teh tarik","category":"Minuman"},
+    {"text":"roti canai","category":"Makanan"}, {"text":"durian","category":"Buah"},
+    {"text":"kucing","category":"Haiwan","aliases":["cat"]}, {"text":"payung","category":"Barang","aliases":["umbrella"]},
+    {"text":"basikal","category":"Kenderaan","aliases":["bicycle","bike"]}, {"text":"kereta","category":"Kenderaan","aliases":["car"]},
+    {"text":"KLCC","category":"Tempat","aliases":["petronas twin towers","menara berkembar petronas"]},
+    {"text":"bola sepak","category":"Sukan","aliases":["football","soccer"]}, {"text":"pisang goreng","category":"Makanan","aliases":["goreng pisang"]},
+    {"text":"ikan","category":"Haiwan","aliases":["fish"]}, {"text":"rumah kampung","category":"Tempat"},
+    {"text":"pokok kelapa","category":"Tumbuhan","aliases":["coconut tree"]}, {"text":"ais krim","category":"Makanan","aliases":["ice cream","icecream"]},
+    {"text":"cermin mata","category":"Barang","aliases":["glasses","spectacles"]}, {"text":"selipar","category":"Barang","aliases":["slippers"]},
+    {"text":"kopi","category":"Minuman","aliases":["coffee"]}, {"text":"bunga raya","category":"Tumbuhan","aliases":["hibiscus"]},
+    {"text":"telefon","category":"Barang","aliases":["phone","telephone"]}, {"text":"motosikal","category":"Kenderaan","aliases":["motorbike","motorcycle"]},
+    {"text":"masjid","category":"Tempat","aliases":["mosque"]}, {"text":"wau bulan","category":"Budaya"},
+    {"text":"satay","category":"Makanan","aliases":["sate"]}, {"text":"kompang","category":"Muzik"},
+    {"text":"harimau","category":"Haiwan","aliases":["tiger"]}, {"text":"beca","category":"Kenderaan","aliases":["trishaw"]},
+    {"text":"ketupat","category":"Makanan"}, {"text":"baju melayu","category":"Pakaian"},
+    {"text":"nanas","category":"Buah","aliases":["pineapple"]}, {"text":"gajah","category":"Haiwan","aliases":["elephant"]},
+    {"text":"kapal terbang","category":"Kenderaan","aliases":["airplane","aeroplane","plane"]},
+    {"text":"kereta api","category":"Kenderaan","aliases":["train"]}, {"text":"gitar","category":"Muzik","aliases":["guitar"]},
+    {"text":"pelangi","category":"Alam","aliases":["rainbow"]}, {"text":"rama-rama","category":"Haiwan","aliases":["butterfly"]},
+    {"text":"roti john","category":"Makanan"}, {"text":"cendol","category":"Makanan"},
+    {"text":"menara KL","category":"Tempat","aliases":["KL tower"]}, {"text":"lampu isyarat","category":"Barang","aliases":["traffic light","traffic lights"]}
+  ]
+}
