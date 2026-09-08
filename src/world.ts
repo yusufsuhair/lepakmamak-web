@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { appearance, type Appearance } from './appearance';
 import type { Solid } from './physics';
+import { masjidSpots } from './masjid';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -505,9 +506,10 @@ export function createWorld(scene: THREE.Scene): World {
   // Rotate its entrance toward the mamak while keeping the courtyard clear.
   {
     const mosque = createWorshipLandmark('mosque', 'MASJID KAMPUNG MAJU');
-    mosque.group.position.set(-31, 0, 112); mosque.group.rotation.y = Math.PI; group.add(mosque.group);
-    solid(-31, 112, mosque.width, 28);
-    mapBuildings.push({ x: -31, z: 112, w: mosque.width, d: 28, color: '#438d7b' });
+    const spot = masjidSpots[0];
+    mosque.group.position.set(spot.x, 0, spot.z); mosque.group.rotation.y = Math.PI; group.add(mosque.group);
+    solid(spot.x, spot.z, mosque.width, 28);
+    mapBuildings.push({ x: spot.x, z: spot.z, w: mosque.width, d: 28, color: '#438d7b' });
   }
   // Neighbourhood retail fronts, with displays visible from the pavement.
   function retail(x: number, z: number, label: string, brand: string, ink: string, kind: 'market' | 'diy' | 'laundry') {
@@ -707,7 +709,7 @@ export function createWorld(scene: THREE.Scene): World {
     }
   }
   // Dedicated worship sites replace skyline lots, clear of the roads.
-  for (const [kind, x, z] of [['mosque', 117, -37], ['hindu', 105, 37], ['chinese', 129, 37]] as const) {
+  for (const [kind, x, z] of [['mosque', masjidSpots[1].x, masjidSpots[1].z], ['hindu', 105, 37], ['chinese', 129, 37]] as const) {
     const landmark = createWorshipLandmark(kind); landmark.group.position.set(x, 0, z); group.add(landmark.group);
     solid(x, z, landmark.width, 16);
     mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'mosque' ? '#438d7b' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
