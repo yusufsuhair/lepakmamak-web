@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Renamed the settings return button to Resume, centred its text and removed its arrow.
+
 - Removed the wallet label and money amount from the HUD.
 
 - Moved CITY ONLINE directly beneath the top-left logo on desktop and mobile.

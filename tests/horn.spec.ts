@@ -20,6 +20,6 @@ test('horn is driver-only and responds to H and button while respecting mute', a
   await page.waitForTimeout(450); await page.locator('#desktop-horn').click(); expect(await count()).toBe(2);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('City sounds').uncheck();
-  await page.getByRole('button', { name: 'Back to the streets' }).click();
+  await page.getByRole('button', { name: 'Resume' }).click();
   await page.waitForTimeout(450); await page.keyboard.press('h'); expect(await count()).toBe(2);
 });

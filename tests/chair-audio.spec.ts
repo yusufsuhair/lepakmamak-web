@@ -25,7 +25,7 @@ test('chair sounds play on sit and stand and respect mute', async ({ page }) => 
   expect(await count()).toBe(2);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('City sounds').uncheck();
-  await page.getByRole('button', { name: 'Back to the streets' }).click();
+  await page.getByRole('button', { name: 'Resume' }).click();
   await page.keyboard.press('Enter');
   await expect.poll(seated).toBe(true);
   await page.keyboard.press('Enter');

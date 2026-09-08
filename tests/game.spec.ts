@@ -67,7 +67,7 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.press('w');
   await expect.poll(async () => (await state(page)).simTime).toBeGreaterThan(pausedAt);
   expect((await state(page)).rain).toBe(true);
-  await page.getByRole('button', { name: 'Back to the streets' }).click();
+  await page.getByRole('button', { name: 'Resume' }).click();
   await expect.poll(async () => (await state(page)).paused).toBe(false);
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect(page.locator('#pause')).toBeHidden();

@@ -25,7 +25,7 @@ test('movement audio triggers on footsteps, takeoff and landing and respects mut
   expect(await count()).toBe(stopped + 2);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('City sounds').uncheck();
-  await page.getByRole('button', { name: 'Back to the streets' }).click();
+  await page.getByRole('button', { name: 'Resume' }).click();
   await page.keyboard.press('Space');
   await page.keyboard.down('s');
   await page.waitForTimeout(1000);
