@@ -2,6 +2,7 @@ import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
 import {createPickleball,insidePickleball} from './pickleball';
+import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,buskingVolume} from './busking';
 import {watsonsSpot,watsonsVolume} from './watsons';
 import {familyMartSpot,familyMartVolume} from './familymart';
@@ -123,6 +124,7 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
   const pickleball=createPickleball(scene,world);
+  const basketball=createBasketball(scene,world);
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
   createStallWorld(scene,world.solids);
   const buskers=createBuskers(scene,world.solids);
@@ -238,6 +240,7 @@ async function init() {
   function punch() {
     if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
     if(insidePickleball(pos)){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){punchUntil=simTime+.38;networkSocket.send(JSON.stringify({type:'pickleball-hit'}));}return;}
+    if(insideBasketball(pos)){basketball.action();return;}
     punchUntil = simTime + .38; punchCount++; punchSound();
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'punch' }));
   }
@@ -246,6 +249,7 @@ async function init() {
     if (remaining > 0) person.rightArm.rotation.x = -1.85 * Math.sin(Math.PI * (1 - remaining / .38));
   }
   pickleball.onHit(punch);
+  basketball.connect(message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
   let invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
@@ -598,6 +602,7 @@ async function init() {
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
         if(message.type==='poker-state')tableSocial.poker((message as any).game);
         if(message.type==='pickleball-state')pickleball.state((message as any).game);
+        if(message.type==='basketball-state')basketball.state((message as any).game);
         if(message.type==='pickleball-swing'&&message.id){if(message.id===networkPlayerId)punchUntil=simTime+.38;else{const remote=remotePlayers.get(message.id);if(remote)remote.punchUntil=simTime+.38;}}
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
@@ -1042,6 +1047,7 @@ async function init() {
         if (remote.seated || remote.passengerOf) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
         pickleball.equip(remote.person,!remote.riding&&!remote.seated&&insidePickleball(remote.group.position),Math.max(0,(remote.punchUntil-simTime)/.38));
+        basketball.pose(remote.person,remote.id);
         if (remote.riding) remote.recallUntil = 0;
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
@@ -1111,6 +1117,7 @@ async function init() {
       }
       if (!riding) punchPose(player, punchUntil);
       pickleball.equip(player,!riding&&!seated&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
+      basketball.pose(player,networkPlayerId);
       if (riding) recallUntil = 0;
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
@@ -1239,6 +1246,7 @@ async function init() {
     if(seated&&cheeringIds.has(networkPlayerId)) player.rightArm.rotation.x=-1.7;
     for(const remote of remotePlayers.values()) if(remote.seated&&cheeringIds.has(remote.id))remote.person.rightArm.rotation.x=-1.7;
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
+    basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

@@ -720,7 +720,8 @@ export function createWorld(scene: THREE.Scene): World {
   tube(group, -104, 89, -145, .3, 21, '#d8d2b6');
   for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) streetLamp(group, x, z, x > 0 ? -1 : 1);
   for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 91, 1]]) palm(group, x, z, s);
-  for (const x of [-67, 64, 93, -95]) for (const z of [-79, -23, 22, 92, 135]) tree(group, x, z, .8 + rand() * .45);
+  // Keep the basketball sideline clear of the southern tree canopy.
+  for (const x of [-67, 64, 93, -95]) for (const z of [-79, -23, 22, 92, 135]) tree(group, x, x===64&&z===135?149:z, .8 + rand() * .45);
   for (const [x, z] of [[12, 58], [-12, -35], [59, 48], [-49, 46]]) {
     box(group, x, .45, z, 2, .9, 2, '#bfa687'); ball(group, x, 1.25, z, 1.05, '#688750'); solid(x, z, 2, 2);
   }

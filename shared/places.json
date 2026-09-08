@@ -139,5 +139,6 @@
     "z": 32,
     "kind": "kedai"
   },
-  {"id":"21","name":"Pickleball Lepak","x":35,"z":130,"kind":"sukan"}
+  {"id":"21","name":"Pickleball Lepak","x":35,"z":130,"kind":"sukan"},
+  {"id":"22","name":"Basket Lepak","x":54,"z":129,"kind":"sukan"}
 ]

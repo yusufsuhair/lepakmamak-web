@@ -1,5 +1,7 @@
 # Changelog
 
+- Added Basket Lepak court, shared basketball possession, dribbling, timed shots, rebounds and server-owned player scores; find it at map location 22.
+
 - Added Pickleball Lepak court and map location, automatic paddles on entry, shared arcade rallies, serve/hit controls and first-to-11 scoring.
 
 - Added Poker Kampung at mamak tables: private Hold'em cards, free per-hand chips, fixed-limit betting, timed turns, automatic showdown and rematches on desktop and mobile.

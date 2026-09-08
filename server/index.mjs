@@ -1,6 +1,7 @@
 import { createLukis } from './lukis.mjs';
 import { createPoker } from './poker.mjs';
 import { createPickleball } from './pickleball.mjs';
+import { createBasketball } from './basketball.mjs';
 import {createStalls} from './stalls.mjs';
 const handleStall=createStalls(send);
 import { createChatHistory } from './chat-history.mjs';
@@ -37,6 +38,8 @@ const tableSocial = createTableSocial(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
 const pickleball = createPickleball(send);
+const basketball = createBasketball(send);
+setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
 setInterval(()=>{for(const ps of rooms.values())lukis.tick(ps);},500).unref();
@@ -238,6 +241,7 @@ webSocketServer.on('connection', ws => {
     if (lukis.handle(currentRoom.players, player, message)) return;
     if (poker.handle(currentRoom.players, player, message)) return;
     if (pickleball.handle(currentRoom.players, player, message)) return;
+    if (basketball.handle(currentRoom.players, player, message)) return;
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if (message.type === 'passenger-join') {
       if((player.danceUntil||0)>Date.now())return;
