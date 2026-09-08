@@ -1,0 +1,18 @@
+# Changelog
+
+## Unreleased
+
+Record changes here as they are made, then move them under the next version before releasing.
+
+## 1.0.0 — 2026-09-08
+
+First tagged local release of the existing LepakMamak app.
+
+- Kuala Lumpur world with Mamak Maju, character personalisation and email registration.
+- Multiplayer presence, player names, text bubbles, profiles and optional voice chat.
+- Desktop and mobile analog controls, jumping, punching, seating and recall emotes.
+- Driveable cars and two-seat motorbikes with a driver and passenger.
+- Expandable live map and settings that keep the world running.
+- Matkool ice-cream motorbike with distance-based music.
+- LepakMamak icons, social preview image, SEO metadata and sitemap.
+- Shared app version in Settings and the server health endpoint.

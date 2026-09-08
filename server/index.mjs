@@ -1,4 +1,6 @@
 import http from 'node:http';
+import packageInfo from '../package.json' with { type: 'json' };
+const { version } = packageInfo;
 import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
 const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c' };
 function cleanAppearance(value) { return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, Object.values(appearanceOptions[key]).includes(value?.[key]) ? value[key] : fallback])); }
@@ -61,7 +63,7 @@ function broadcast(players, message) {
 const server = http.createServer((request, response) => {
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(JSON.stringify({ ok: true, service: 'lepak-city-realtime', rooms: rooms.size, players: [...rooms.values()].reduce((total, players) => total + players.size, 0) }));
+    response.end(JSON.stringify({ ok: true, version, service: 'lepak-city-realtime', rooms: rooms.size, players: [...rooms.values()].reduce((total, players) => total + players.size, 0) }));
     return;
   }
   response.writeHead(404, { 'content-type': 'application/json; charset=utf-8' });

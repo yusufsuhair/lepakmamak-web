@@ -1,10 +1,14 @@
 # LepakMamak
 
-A playable, stylised Kuala Lumpur browser prototype. Start at Mamak Maju, collect an order, hop on your kapcai, and deliver it near the twin towers. Earn RM 25, then explore or return for another job.
+A Malaysian multiplayer browser game. Explore Kuala Lumpur, hang out at Mamak Maju, customise your character, chat with friends, and ride bikes or cars.
+
+## Local version control
+
+Git is already initialized on `main`, with no remote. See [VERSIONING.md](VERSIONING.md) for local commits, semantic versions and release tags, and [CHANGELOG.md](CHANGELOG.md) for release notes. The version in `package.json` is shared by Settings and the realtime health endpoint. Commits and tags do not deploy or push anything.
 
 ## Live deployment
 
-Primary domain: https://lepakmamak.my/ (DNS activation pending at rebrand).
+Primary domain: https://lepakmamak.my/.
 Cloudflare fallback: https://lepakmamak.pages.dev/
 Both domains serve the same app and share Supabase accounts and Railway rooms. Sessions and local earnings are browser-origin-specific. The former lepak-city.pages.dev address remains available for existing links.
 

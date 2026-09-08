@@ -9,7 +9,11 @@
     "test": "playwright test",
     "start": "node server/index.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
-    "deploy:realtime": "railway up --service 9a776d22-a5d8-4151-8059-300149fce72c --detach --yes"
+    "deploy:realtime": "railway up --service 9a776d22-a5d8-4151-8059-300149fce72c --detach --yes",
+    "preversion": "npm run build && npm test",
+    "release:patch": "npm version patch -m \"chore(release): v%s\"",
+    "release:minor": "npm version minor -m \"chore(release): v%s\"",
+    "release:major": "npm version major -m \"chore(release): v%s\""
   },
   "keywords": [],
   "author": "",
