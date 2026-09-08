@@ -55,7 +55,7 @@ $('app').innerHTML = `
       <div class="loading-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
       <strong>LEPAK<span>MAMAK.</span></strong>
       <p id="loading-title">Getting the city ready</p>
-      <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8"><i style="width:8%"></i></div>
+      <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8"><i></i></div>
       <small id="loading-detail">Setting the tables. Warming up the kapcai.</small>
     </div>
   </div>
