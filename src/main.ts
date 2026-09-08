@@ -48,7 +48,16 @@ document.addEventListener('dblclick', event => {
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 $('app').innerHTML = `
-  <div id="loading"><strong>LEPAKMAMAK</strong><p>Setting the tables. Warming up the kapcai.</p></div>
+  <div id="loading" role="status" aria-live="polite" aria-busy="true">
+    <div class="loading-card">
+      <img src="/icon-80.png" width="54" height="54" alt="" />
+      <div class="loading-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
+      <strong>LEPAK<span>MAMAK.</span></strong>
+      <p id="loading-title">Getting the city ready</p>
+      <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8"><i style="width:8%"></i></div>
+      <small id="loading-detail">Setting the tables. Warming up the kapcai.</small>
+    </div>
+  </div>
   <audio id="background-music" src="/background-short.mp3" loop preload="auto" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
@@ -77,10 +86,21 @@ $('reload').onclick = () => location.reload();
 const backgroundMusic = $<HTMLAudioElement>('background-music');
 backgroundMusic.volume = .06;
 backgroundMusic.loop = true;
-function fail(message: string) { $('loading').hidden = true; $('error-message').textContent = message; $('error').hidden = false; }
+function showLoading(title: string, detail: string, progress: number) {
+  const value = Math.max(0, Math.min(100, progress));
+  $('loading-title').textContent = title; $('loading-detail').textContent = detail;
+  const bar = $('loading-progress'); bar.setAttribute('aria-valuenow', String(value));
+  (bar.firstElementChild as HTMLElement).style.width = `${value}%`;
+  $('loading').hidden = false; $('loading').setAttribute('aria-busy', 'true');
+}
+function hideLoading() { $('loading').hidden = true; $('loading').setAttribute('aria-busy', 'false'); }
+function fail(message: string) { hideLoading(); $('error-message').textContent = message; $('error').hidden = false; }
 
 async function init() {
+  showLoading('Getting the city ready', 'Loading type and interface…', 12);
   await document.fonts.ready;
+  showLoading('Building Kampung Maju', 'Placing roads, shops and mamak tables…', 34);
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   const canvas = $<HTMLCanvasElement>('world');
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
@@ -98,6 +118,7 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
   createStallWorld(scene,world.solids);
   const buskers=createBuskers(scene,world.solids);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
@@ -195,6 +216,19 @@ async function init() {
   let networkSendTimer = 0, networkIdleTimer = 0;
   let lastNetworkState = '';
   let networkReconnectTimer: number | null = null;
+  let entryLoadingTimer: number | null = null;
+  function finishEntryLoading() {
+    if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
+    hideLoading();
+  }
+  function beginEntryLoading() {
+    showLoading('Entering Kampung Maju', 'Starting your character and joining the city…', 68);
+    if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
+    entryLoadingTimer = window.setTimeout(() => {
+      entryLoadingTimer = null; hideLoading();
+      toast('Still connecting', 'You can explore while the city reconnects.', 4);
+    }, 12000);
+  }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
     if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
@@ -536,7 +570,7 @@ async function init() {
     writeLocation(activeLocationKey,{x,z,yaw});
   }
   async function connectMultiplayer() {
-    if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); return; }
+    if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); finishEntryLoading(); return; }
     setNetworkStatus('CONNECTING…', 'connecting', 1);
     try {
       const accessToken = auth && !guestName ? (await auth.auth.getSession()).data.session?.access_token : undefined;
@@ -545,6 +579,7 @@ async function init() {
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
+        showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 86);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         socket.send(JSON.stringify({ type: 'join', resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
@@ -552,7 +587,7 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
-        if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); }
+        if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if (message.type === 'receipt' && message.receipt) tableSocial.receipt(message.receipt);
@@ -574,14 +609,15 @@ async function init() {
         if (message.type === 'notice') chat.append('City', message.message || 'Please try again.', undefined, false, false);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {
+          finishEntryLoading();
           setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');
           toast('Could not join', message.message || 'Please try again.');
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; streetStalls.state(null,false);streetStalls.close();tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
-      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
-    } catch { setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; streetStalls.state(null,false);streetStalls.close();tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('error', () => { if (socket !== networkSocket) return; finishEntryLoading(); voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
+    } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
     if(Date.now()-locationSavedAt>1000){saveLocation();locationSavedAt=Date.now();}
@@ -642,6 +678,7 @@ async function init() {
   function start() {
     if (auth && !session && !guestName) return;
     if (started) return;
+    beginEntryLoading();
     $('open-edit-profile').hidden = !session || !!guestName;
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
@@ -660,7 +697,7 @@ async function init() {
     setMap(false); profile.close(); closeOptions();
     itemShop.close(); profileEditor.close(); clearGuest();
     onlinePlayersDialog.close();
-    started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();buskingSong.pause();watsonsSong.pause();familyMartSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;
+    finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();buskingSong.pause();watsonsSong.pause();familyMartSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -1197,7 +1234,9 @@ async function init() {
   if (import.meta.env.DEV) {
     Object.defineProperty(window, '__lepak', { get: () => ({ superman:isSuperman(), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
-  $('loading').hidden = true;
+  showLoading('Ready to lepak', 'The city is ready.', 100);
+  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  hideLoading();
   requestAnimationFrame(frame);
 }
 void init().catch(error => { console.error(error); fail('The city could not finish loading. Please reload and try again.'); });

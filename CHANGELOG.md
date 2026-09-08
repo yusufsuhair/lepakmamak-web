@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a responsive loading experience with branded animation, accessible progress, startup phases, account-button feedback and an online-entry state that clears on welcome or recovers from connection failure.
+
 - Removed the permanent Meja Kita button from the top-left HUD; nearby tables now show a clear floating Open action for table features on desktop and mobile.
 
 - Added a 7-Eleven Malaysia storefront with its striped fascia, glazed entrance, Fresh to Go, 7CAFé and Slurpee details, plus a city-map location.

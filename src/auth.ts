@@ -60,6 +60,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   choices.addEventListener('change', preview); preview();
   let mode: 'register'  | 'login' | 'recovery' = 'register';
   let busy = false;
+  const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter' : 'Save password';
   function render() {
     el('avatar-fields').hidden = mode !== 'register';
     el('name-field').hidden = mode !== 'register'; name.required = mode === 'register';
@@ -67,7 +68,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
     password.minLength = mode === 'login' ? 1 : 8;
     el('auth-title').textContent = mode === 'register' ? 'Join the lepak.' : mode === 'login' ? 'Welcome back.' : 'New password.';
-    submit.textContent = mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter' : 'Save password';
+    submit.textContent = submitLabel();
     el('auth-mode').hidden = mode === 'recovery';
     el('auth-mode').textContent = mode === 'register' ? 'Already registered? Log in' : 'New here? Create account';
     el('auth-forgot').hidden = mode !== 'login';
@@ -87,7 +88,8 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   overlay.querySelector('form')!.onsubmit = async event => {
     event.preventDefault(); if (!auth || busy) return;
     if (mode === 'register' && name.value.trim().length < 2) { message.textContent = 'Enter a name with at least 2 characters.'; return; }
-    busy = true; submit.disabled = true; message.textContent = 'One moment…';
+    busy = true; submit.disabled = true; submit.dataset.loading = 'true'; submit.setAttribute('aria-busy','true');
+    submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'login' ? 'Signing in…' : 'Saving password…'; message.textContent = 'One moment…';
     try {
       if (mode === 'recovery') {
         const { error } = await auth.auth.updateUser({ password: password.value });
@@ -103,7 +105,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       }
       password.value = ''; overlay.hidden = true; onEnter();
     } catch (error) { message.textContent = error instanceof Error ? error.message : 'Could not sign in. Please try again.'; }
-    finally { busy = false; submit.disabled = false; }
+    finally { busy = false; submit.disabled = false; delete submit.dataset.loading; submit.setAttribute('aria-busy','false'); submit.textContent = submitLabel(); }
   };
   overlay.addEventListener('keydown', event => {
     event.stopPropagation();
