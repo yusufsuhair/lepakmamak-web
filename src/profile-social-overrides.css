@@ -1,0 +1,9 @@
+.profile-guestbook .profile-guestbook-remove {
+  min-height: 0;
+  padding: 2px 5px;
+  margin-left: auto;
+  background: transparent;
+  color: #687563;
+  font-size: 9px;
+  text-decoration: underline;
+}

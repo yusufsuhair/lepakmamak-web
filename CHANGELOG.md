@@ -1,5 +1,7 @@
 # Changelog
 
+- Expanded signed-in social profiles with favourite hangout and geng fields, server-owned gameplay statistics and achievements, recent Wall/activity highlights, and a moderated public guestbook.
+
 - Replaced the map dropdown with visible place labels and a categorized mall-style directory, including tap-to-highlight directions and a scrollable mobile map.
 
 - Simplified tables to games and current seating only, with fixed Meja 1–6 names; removed renaming, cheers, receipts and invitation controls and disabled legacy server actions.

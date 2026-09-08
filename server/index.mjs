@@ -2,6 +2,7 @@ import { createLukis } from './lukis.mjs';
 import { createPoker } from './poker.mjs';
 import { createPickleball } from './pickleball.mjs';
 import { createBasketball } from './basketball.mjs';
+import {createSocialProfiles} from './social-profiles.mjs';
 import {createStalls} from './stalls.mjs';
 const handleStall=createStalls(send);
 import { createChatHistory } from './chat-history.mjs';
@@ -35,10 +36,11 @@ setInterval(() => {
 }, 50).unref();
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
+const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges})});
 const lukis = createLukis(send);
 const poker = createPoker(send);
 const pickleball = createPickleball(send);
-const basketball = createBasketball(send);
+const basketball = createBasketball(send,Date.now,(player,points)=>socialProfiles.event(player,'basketball_points',points));
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
@@ -113,6 +115,7 @@ const server = http.createServer(async (request, response) => {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Cache-Control', 'no-store');
   if (await shop.handle(request, response)) return;
+  if (await socialProfiles.handle(request,response)) return;
   if (await wall.handle(request,response)) return;
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -209,6 +212,7 @@ webSocketServer.on('connection', ws => {
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
       currentRoom = room;
       room.players.set(id, player);
+      socialProfiles.event(player,'sessions',1,true);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
       send(ws, { type: 'chat-history', messages: recentChat });
@@ -224,7 +228,7 @@ webSocketServer.on('connection', ws => {
       if (Date.now() - lastProfileViewAt < 250) return;
       lastProfileViewAt = Date.now();
       const target = currentRoom.players.get(message.id);
-      send(ws, { type: 'profile', profile: target ? publicProfile(target) : null, id: message.id }); return;
+      send(ws, { type: 'profile', profile: target?.userId ? await socialProfiles.profile(target.userId,publicProfile(target)) : target ? publicProfile(target) : null, id: message.id }); return;
     }
     if (message.type === 'profile-refresh') {
       if (!player.userId || player.guest || Date.now() - lastProfileAt < 1500) return;
@@ -269,6 +273,7 @@ webSocketServer.on('connection', ws => {
       player.chairStand = { x: player.x, z: player.z };
       player.chairId = chair.id; player.seated = true;
       player.x = chair.x; player.z = chair.z; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
+      socialProfiles.event(player,'tables_sat');
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'chair-stand') {
@@ -363,13 +368,14 @@ webSocketServer.on('connection', ws => {
     }
     if(message.type==='dance'){
       const now=Date.now();if(player.riding||player.seated||player.passengerOf||player.jumpHeight>0||(player.danceUntil||0)>now)return;
-      player.danceUntil=now+10000;player.speed=0;dirtyRooms.add(currentRoom.players);return;
+      player.danceUntil=now+10000;player.speed=0;socialProfiles.event(player,'dances');dirtyRooms.add(currentRoom.players);return;
     }
     if (message.type === 'punch') {
       if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
       if (player.riding || player.seated || now - lastPunchAt < 350) return;
       lastPunchAt = now;
+      socialProfiles.event(player,'punches');
       broadcast(currentRoom.players, { type: 'punch', id: player.id }); return;
     }
     if (message.type === 'recall') {
@@ -377,6 +383,7 @@ webSocketServer.on('connection', ws => {
       const now = Date.now();
       if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
       lastRecallAt = now;
+      socialProfiles.event(player,'recalls');
       broadcast(currentRoom.players, { type: 'recall', id: player.id });
       return;
     }

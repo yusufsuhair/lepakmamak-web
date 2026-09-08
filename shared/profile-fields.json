@@ -3,5 +3,7 @@
   { "key": "hometown", "label": "Hometown", "max": 40, "placeholder": "e.g. Shah Alam" },
   { "key": "interests", "label": "Interests", "max": 100, "placeholder": "Gaming, football, food hunting…" },
   { "key": "languages", "label": "Languages", "max": 60, "placeholder": "Bahasa Melayu, English…" },
-  { "key": "mamakOrder", "label": "My mamak order", "max": 60, "placeholder": "Roti telur + teh tarik kurang manis" }
+  { "key": "socialMedia", "label": "Social media", "max": 80, "placeholder": "@yourhandle on IG/TikTok/X" },
+  { "key": "favouriteHangout", "label": "Favourite hangout", "max": 60, "placeholder": "e.g. Mamak Maju, Basket Lepak" },
+  { "key": "geng", "label": "Geng", "max": 40, "placeholder": "e.g. Geng Balik Lambat" }
 ]
