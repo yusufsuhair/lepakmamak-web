@@ -22,6 +22,10 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await expect(page.locator('#player-profile')).not.toBeVisible();
   await page.keyboard.press('m');
   await expect(page.getByRole('dialog', { name: 'Know your streets.' })).toBeVisible();
+  const mapPosition = (await state(page)).position.x;
+  await page.keyboard.down('d');
+  await expect.poll(async () => (await state(page)).position.x).toBeGreaterThan(mapPosition + .5);
+  await page.keyboard.up('d');
   const mapTime = (await state(page)).simTime;
   await expect.poll(async () => (await state(page)).simTime).toBeGreaterThan(mapTime);
   await page.screenshot({ path: 'test-results/expanded-map-desktop.png' });
@@ -150,6 +154,8 @@ test('mobile analog movement supports release and a second finger in both orient
     await page.goto('/');
     await page.getByRole('button', { name: "Jom, let's go" }).click();
     await expect(page.locator('.touch-pad')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open city map' }).tap();
+    await expect(page.locator('#city-map')).toBeVisible();
     const rect = (await page.locator('#move-stick').boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const point = { x: rect.x + rect.width / 2 + 25, y: rect.y + rect.height / 2, id: 1 };

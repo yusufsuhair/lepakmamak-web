@@ -35,7 +35,7 @@ $('app').innerHTML = `
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
-  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span></span><span>M / Esc to close · City stays live</span></footer></dialog>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span></span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -76,9 +76,9 @@ async function init() {
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
   const cityMap = $<HTMLDialogElement>('city-map');
   function setMap(open: boolean) {
-    keys.clear(); resetStick(); dragging = false;
-    if (open && started && !paused) { cityMap.showModal(); drawMap(true); $('close-map').focus(); }
-    else { cityMap.close(); canvas.focus(); }
+    dragging = false;
+    if (open && started && !paused) { cityMap.append($('touch-controls')); cityMap.showModal(); drawMap(true); $('close-map').focus(); }
+    else { cityMap.close(); $('hud').append($('touch-controls')); canvas.focus(); }
   }
   $('open-map').onclick = () => setMap(true);
   $('close-map').onclick = () => setMap(false);
@@ -152,7 +152,7 @@ async function init() {
     thumb.style.transform = `translate(-50%, -50%) translate(${x * scale}px, ${y * scale}px)`;
   }
   stick.addEventListener('pointerdown', event => {
-    if (!started || paused || cityMap.open || stickId !== null || event.button !== 0) return;
+    if (!started || paused || stickId !== null || event.button !== 0) return;
     event.preventDefault(); stickId = event.pointerId; stick.setPointerCapture(stickId); stick.classList.add('active'); moveStick(event);
   });
   stick.addEventListener('pointermove', event => { if (event.pointerId === stickId) { event.preventDefault(); moveStick(event); } });
@@ -342,7 +342,7 @@ async function init() {
     if (!localName && session) { localName = nameTag(displayName()); scene.add(localName); }
   }
   function leaveCity() {
-    cityMap.close(); profile.close(); closeOptions();
+    setMap(false); profile.close(); closeOptions();
     started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause();
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
@@ -390,7 +390,7 @@ async function init() {
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if (profile.open) return;
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
-    if (cityMap.open) { if (event.code === 'Escape') { event.preventDefault(); setMap(false); } return; }
+    if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }
     if (paused && event.code === 'Tab') {
       const focusable = Array.from($('pause').querySelectorAll<HTMLElement>('button, input'));
