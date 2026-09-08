@@ -345,6 +345,7 @@ export function createWorld(scene: THREE.Scene): World {
     const awning = box(g, 0, 3.22, 7.1, width + .1, .13, 2.3, '#c57552'); awning.rotation.x = .13;
     solid(x, z, width, 12); mapBuildings.push({ x, z, w: width, d: 12, color });
     box(g, width / 2 - 1.1, 5.65, 6.5, 1.4, .7, .7, '#e1d5b9');
+    return g;
   }
   shop(-59, 32, 17, shopColors[1], 'KEDAI RUNCIT SINAR');
   shop(-60, 58, 18, shopColors[0], 'BENGKEL AZLAN');
@@ -358,6 +359,41 @@ export function createWorld(scene: THREE.Scene): World {
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
   shop(33, 103, 24, shopColors[1], 'SELAMAT JALAN');
   shop(-32, 107, 24, shopColors[4], 'HOTEL MERDEKA');
+  // Neighbourhood retail fronts, with displays visible from the pavement.
+  function retail(x: number, z: number, label: string, brand: string, ink: string, kind: 'market' | 'diy' | 'laundry') {
+    const g = shop(x, z, 19, '#e2d5b5', label);
+    sign(g, label, 0, 4.02, 6.3, 18.7, 1.22, brand, ink);
+    box(g, 0, 3.18, 7.12, 19, .15, 2.35, brand);
+    box(g, 0, 1.5, 6.18, 2.1, 3, .12, '#a2c5c0');
+    for (const side of [-1, 1]) {
+      box(g, side * 1.12, 1.5, 6.3, .1, 3, .12, '#e7e6d8');
+      box(g, side * .17, 1.4, 6.3, .06, .42, .06, '#34453d');
+    }
+    sign(g, kind === 'laundry' ? 'BASUH · KERING · LIPAT' : kind === 'diy' ? 'BARANG RUMAH & PERKAKAS' : 'BARANGAN KEPERLUAN HARIAN', 0, .38, 6.34, 17.8, .42, brand, ink);
+    for (const side of [-1, 1]) {
+      if (kind === 'laundry') {
+        for (let i = 0; i < 3; i++) {
+          const x = side * (2.7 + i * 2.1);
+          box(g, x, 1.45, 6.3, 1.85, 1.9, .55, '#e6eded');
+          const drum = tube(g, x, 1.36, 6.62, .61, .07, '#697f88'); drum.rotation.x = Math.PI / 2;
+          const glass = tube(g, x, 1.36, 6.68, .43, .08, '#253f54'); glass.rotation.x = Math.PI / 2;
+          box(g, x + .42, 2.13, 6.62, .3, .12, .06, '#80cc9b');
+        }
+      } else {
+        for (const y of [.9, 1.65, 2.4]) {
+          box(g, side * 5.15, y - .22, 6.32, 6.3, .1, .55, '#d8d2be');
+          for (let i = 0; i < 6; i++) {
+            const x = side * (2.7 + i * .95);
+            box(g, x, y + .05, 6.35, .62, .44, .3, (kind === 'diy' ? ['#e9b929', '#263f4a', '#d86b3e'] : ['#c95b49', '#a8bf72', '#dfc35c', '#79b7c4'])[i % (kind === 'diy' ? 3 : 4)]);
+          }
+        }
+      }
+    }
+  }
+  retail(27, 58, '99 SPEEDMART', '#df3437', '#fff4d9', 'market');
+  retail(49, 58, 'KK SUPER MART', '#c92536', '#ffffff', 'market');
+  retail(-35, -90, 'KEDAI DOBI · 24 JAM', '#348cb1', '#ffffff', 'laundry');
+  retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Speedmart, KK Super Mart, kedai dobi and MR.DIY storefronts with shelves and washing-machine displays.
+
 - Added Rahim, a Bangladeshi ice-cream vendor, riding the Matkool bike on a looping route with moving proximity audio.
 
 - Doubled Matkool music gain while preserving distance fade and mute.
