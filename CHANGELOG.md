@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Filled the Busking Santai area with eleven lightweight spectator NPCs: seven seated fans, one camera holder and three animated wavers.
+
 - Added Masjid Kampung Maju across the road from Mamak Maju, with its entrance facing the mamak and a searchable city-map marker.
 
 - Replaced Stripe purchases with Syiling Lepak: 500 starter coins, a 100-coin daily reward, atomic server-side spending, two accessories and two Malaysian outfit skins.
