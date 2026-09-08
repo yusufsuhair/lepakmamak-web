@@ -248,6 +248,22 @@ async function init() {
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
     source.start(); source.stop(now + .16);
   }
+  function chairSound(sitting: boolean) {
+    if (!audioEnabled || !started) return;
+    ensureAudio(); if (!audioContext || audioContext.state !== 'running') return;
+    const oscillator = audioContext.createOscillator(), filter = audioContext.createBiquadFilter(), gain = audioContext.createGain();
+    const now = audioContext.currentTime, duration = sitting ? .24 : .18;
+    // A quiet, filtered creak: descending under weight, rising as the chair unloads.
+    oscillator.type = 'sawtooth';
+    oscillator.frequency.setValueAtTime(sitting ? 190 : 105, now);
+    oscillator.frequency.exponentialRampToValueAtTime(sitting ? 85 : 175, now + duration);
+    filter.type = 'lowpass'; filter.frequency.value = 650;
+    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.035, now + .025);
+    gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+    oscillator.connect(filter); filter.connect(gain); gain.connect(audioContext.destination);
+    oscillator.onended = () => { oscillator.disconnect(); filter.disconnect(); gain.disconnect(); };
+    oscillator.start(); oscillator.stop(now + duration + .01);
+  }
   function chime(success = false) {
     ensureAudio(); if (!audioContext || !audioEnabled) return;
     for (let i = 0; i < (success ? 3 : 1); i++) {
@@ -446,9 +462,9 @@ async function init() {
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     const driver = !riding && nearbyDriver();
     if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
-    if (seated) { seated = false; pos.copy(standPosition); keys.clear(); resetStick(); return; }
+    if (seated) { seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
     const chair = !riding && nearbyChair();
-    if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; walkSpeed = 0; keys.clear(); resetStick(); return; }
+    if (chair) { standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
       const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => ({ x: c.x, z: c.z, hx: 1.8, hz: 1.8 }))], vehicle === 'car' ? 2.7 : 2.2);

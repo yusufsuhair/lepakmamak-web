@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added distinct chair creaks when sitting down and standing up, respecting mute.
+
 - Added a short punch swoosh, respecting punch cooldown and the sound setting.
 
 - Added a Settings wardrobe to preview and save shirt/trouser colours, with live multiplayer updates.
