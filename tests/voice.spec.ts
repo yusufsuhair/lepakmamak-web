@@ -13,7 +13,7 @@ const voice = setupVoice(m => { if (socket.readyState !== 1) return false; socke
 // The game reveals this panel after projecting the character anchor.
 document.getElementById('voice-panel').hidden = false;
 socket.onopen = () => socket.send(JSON.stringify({type:'join',room:'voice-test'}));
-socket.onmessage = e => { const m = JSON.parse(e.data); if(m.type==='welcome') voice.connected(true); if(m.type==='voice-audio') voice.receive(m.id,m.name,m.audio); };
+socket.onmessage = e => { const m = JSON.parse(e.data); if(m.type==='welcome') voice.connected(true); if(m.type==='voice-audio') voice.receive(m.id,m.name,m.audio); if(m.type==='voice-audience') voice.audience(m.count,m.names); };
 socket.onclose = () => voice.connected(false);
 window.disconnectVoice = () => socket.close();
 </script>`;
@@ -48,6 +48,7 @@ test('voice requires opt-in, streams to another player, mutes independently and 
     await sender.locator('#voice-mic').click();
     await expect(sender.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(async () => (await stats(receiver)).plays).toBeGreaterThan(3);
+    await expect(sender.locator('#voice-audience')).toContainText('can hear you');
     await receiver.bringToFront();
     await receiver.locator('#voice-speaker').click();
     const muted = (await stats(receiver)).plays;

@@ -10,6 +10,7 @@ import { isGameMaster } from './roles.mjs';
 import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
+import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
 const { version } = packageInfo;
@@ -126,7 +127,7 @@ webSocketServer.on('connection', ws => {
   let joining = false;
   let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0;
   let expiresAt = 0;
-  let voiceTokens = 30, voiceAt = Date.now();
+  let voiceTokens = 30, voiceAt = Date.now(), lastAudienceAt = 0;
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
 
   function removePlayer() {
@@ -279,12 +280,15 @@ webSocketServer.on('connection', ws => {
       const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
       if (!player.mic || voiceTokens < 1 || typeof message.audio !== 'string' || message.audio.length !== 1708 || !/^[A-Za-z0-9+/]{1707}=$/.test(message.audio)) return;
       voiceTokens--;
+      const audience = [];
       for (const listener of currentRoom.players.values()) {
         const distance = Math.hypot(listener.x - player.x, listener.z - player.z);
-        if (listener.id === player.id || !listener.speaker || distance >= 15 || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
-        const volume = distance <= 5 ? 1 : (15 - distance) / 10;
+        if (listener.id === player.id || !listener.speaker || distance >= voiceConfig.hearingRadius || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
+        const volume = distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
         listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume }));
+        audience.push(listener.name);
       }
+      if (now - lastAudienceAt >= 750) { lastAudienceAt = now; send(ws, { type: 'voice-audience', count: audience.length, names: audience.slice(0, 3) }); }
       return;
     }
     if (message.type === 'chat') {

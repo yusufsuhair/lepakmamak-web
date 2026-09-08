@@ -1,9 +1,11 @@
+import voiceConfig from '../shared/voice.json';
+
 const micIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string };
 export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const panel = document.createElement('aside'); panel.id = 'voice-panel'; panel.hidden = true;
-  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
+  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><strong id="voice-audience" hidden>No one nearby</strong><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
   panel.setAttribute('aria-label', 'Your character voice controls');
   panel.addEventListener('keydown', event => event.stopPropagation());
@@ -11,6 +13,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const micButton = panel.querySelector<HTMLButtonElement>('#voice-mic')!;
   const speakerButton = panel.querySelector<HTMLButtonElement>('#voice-speaker')!;
   const status = panel.querySelector<HTMLElement>('#voice-status')!;
+  const audience = panel.querySelector<HTMLElement>('#voice-audience')!;
   let online = false, mic = false, speaker = false, generation = 0, busy = false;
   let context: AudioContext | undefined, stream: MediaStream | undefined, input: MediaStreamAudioSourceNode | undefined, capture: AudioWorkletNode | undefined;
   let moduleReady: Promise<void> | undefined;
@@ -37,6 +40,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   }
   function stopMic() {
     generation++; busy = false; mic = false;
+    audience.hidden = true; audience.textContent = 'No one nearby';
     stream?.getTracks().forEach(track => track.stop()); stream = undefined;
     input?.disconnect(); input = undefined;
     if (capture) { capture.port.onmessage = null; capture.port.close(); capture.disconnect(); capture = undefined; }
@@ -46,7 +50,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   micButton.onclick = async () => {
     if (mic || busy) { stopMic(); status.textContent = 'Microphone off'; return; }
     if (!online) return;
-    const attempt = ++generation; busy = true; render(); status.textContent = 'Allow microphone access to talk to nearby players (within 15 metres)';
+    const attempt = ++generation; busy = true; render(); status.textContent = `Allow microphone access to talk to nearby players (within ${voiceConfig.hearingRadius} metres)`;
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone access needs a supported browser on HTTPS.');
       const ctx = await audioContext();
@@ -77,16 +81,26 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
     const attempt = generation;
     try {
       await audioContext(); if (!online || attempt !== generation) return;
-      speaker = true; output!.gain.value = 0.8; announce(); status.textContent = 'Speakers on · Listening within 15 metres';
+      speaker = true; output!.gain.value = 0.8; announce(); status.textContent = `Speakers on · Listening within ${voiceConfig.hearingRadius} metres`;
     } catch { status.textContent = 'Could not enable speakers. Tap again to retry.'; }
   };
   render();
   return {
+    get micActive(){return mic;},
     connected(value: boolean) {
       online = value;
       if (!value) { stopMic(); speaker = false; if (output) output.gain.value = 0; stopPlayback(); status.textContent = 'Voice offline · Re-enable after reconnecting'; }
       else status.textContent = 'Turn on speakers to listen · Mic asks permission';
       announce();
+    },
+    audience(count:number,names:string[]=[]){
+      if(!mic)return;
+      const safeCount=Math.max(0,Math.floor(Number.isFinite(count)?count:0));
+      const safeNames=names.filter(name=>typeof name==='string').slice(0,3);
+      audience.hidden=false;
+      audience.classList.toggle('empty',safeCount===0);
+      audience.textContent=safeCount===0?'No one nearby can hear you':safeCount===1?`${safeNames[0]||'1 person'} can hear you`:`${safeNames[0]?`${safeNames[0]} + ${safeCount-1}`:`${safeCount} people`} can hear you`;
+      status.textContent=audience.textContent;
     },
     receive(id: string, name: string, encoded: string, volume = 1) {
       if (!speaker || !context || context.state !== 'running' || !output || encoded.length !== 1708) return;

@@ -27,6 +27,7 @@ import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './s
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
 import { setupExitConfirmation } from './exit-confirm';
+import voiceConfig from '../shared/voice.json';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -537,6 +538,8 @@ async function init() {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   });
+  const voiceRadius=new THREE.Mesh(new THREE.RingGeometry(voiceConfig.hearingRadius-.18,voiceConfig.hearingRadius,72),new THREE.MeshBasicMaterial({color:'#ddf69a',transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false}));
+  voiceRadius.rotation.x=-Math.PI/2;voiceRadius.position.y=.035;voiceRadius.visible=false;scene.add(voiceRadius);
   function disconnectMultiplayer() {
     saveLocation();
     seatedChairId = null; seated = false;
@@ -590,7 +593,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
+        let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; receipt?: Receipt; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
@@ -612,6 +615,7 @@ async function init() {
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
         if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume);
+        if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
         if (message.type === 'notice') chat.append('City', message.message || 'Please try again.', undefined, false, false);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {
@@ -1165,6 +1169,8 @@ async function init() {
       const entity = remotePlayers.get(remote.id);
       if (entity) updateGameMasterTag(entity.label, !!remote.gameMaster, elapsed, reducedMotion);
     }
+    voiceRadius.visible=started&&voice.micActive;
+    if(voiceRadius.visible){voiceRadius.position.set(pos.x,.035,pos.z);voiceRadius.material.opacity=reducedMotion ? .3 : .22+Math.sin(elapsed*3)*.08;}
     camera.updateMatrixWorld();
     const actionButton = $<HTMLButtonElement>('interaction');
     const action = objectAction();

@@ -1,5 +1,7 @@
 # Changelog
 
+- Added a visible 15-metre voice radius while the microphone is live and server-confirmed audience feedback naming nearby players whose speakers are on, including a clear No one nearby state.
+
 - Added a responsive exit confirmation dialog for account and guest logout, with Cancel as the safe default and disconnect occurring only after choosing Keluar game.
 
 - Hardened chat, profiles and Lepak Wall against XSS and SQL-injection payloads with strict Cloudflare CSP/security headers, parameterized database access verification, plain-text rendering tests and file-signature checks for uploaded media.
