@@ -269,7 +269,7 @@ export function createWorld(scene: THREE.Scene): World {
     tube(group, x + .35, 1.23, z, .1, .26, '#c28246');
     tube(group, x - .35, 1.16, z + .12, .27, .04, '#f5efd4');
   }
-  sign(group, 'PICK UP HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
+  sign(group, 'LEPAK HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
   for (const x of [-20, -17]) box(group, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
   const customer = createPerson('#829fac', true); customer.group.position.set(-29, .05, 46.7); customer.group.rotation.y = Math.PI; group.add(customer.group);

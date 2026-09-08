@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-interface GameState { stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; mission: string; money: number; simTime: number; rain: boolean; drawCalls: number }
+interface GameState { stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 
-test('complete a delivery through keyboard controls, pause, and persist the reward', async ({ page }) => {
+test('free roam supports riding, settings and no mission prompts', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.locator('#loading')).toBeHidden();
@@ -37,9 +37,10 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await page.waitForTimeout(300);
   expect((await state(page)).jumpHeight).toBe(0);
   await page.keyboard.up('Space');
-  await expect(page.locator('#interaction-text')).toHaveText('Collect the order');
+  await expect(page.locator('#mission-card')).toHaveCount(0);
+  await expect(page.locator('#interaction')).toBeHidden();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
+  await expect(page.locator('#interaction')).toBeHidden();
   await page.keyboard.down('d');
   await expect.poll(async () => (await state(page)).position.x, { timeout: 15000 }).toBeGreaterThan(-9.6);
   await page.keyboard.up('d');
@@ -65,11 +66,7 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
     await expect.poll(async () => (await state(page)).position.z).toBeGreaterThan(-87);
     await page.keyboard.up('s');
   }
-  await expect(page.locator('#interaction-text')).toHaveText('Deliver the order');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#money')).toHaveText('RM 25');
-  await expect(page.locator('#mission-title')).toHaveText('The city is yours');
-  await page.screenshot({ path: 'test-results/delivery-complete.png' });
+  await expect(page.locator('#money')).toHaveText('RM 0');
   await page.keyboard.press('Escape');
   const pausedAt = (await state(page)).simTime;
   await page.getByLabel('Rain over KL').check();
@@ -84,7 +81,7 @@ test('complete a delivery through keyboard controls, pause, and persist the rewa
   await page.reload();
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
-  await expect(page.locator('#money')).toHaveText('RM 25');
+  await expect(page.locator('#money')).toHaveText('RM 0');
   expect(errors).toEqual([]);
 });
 
@@ -120,12 +117,10 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.getByRole('button', { name: 'Spam recall emote' })).toBeVisible();
   await page.getByRole('button', { name: 'Spam recall emote' }).click();
   await expect(page.locator('#toast')).toContainText('BZZ BZZ BZZ BZZ');
-  await page.getByRole('button', { name: 'PICK UP', exact: true }).click();
-  await expect(page.locator('#mission-title')).toHaveText('Roti to the towers');
+  await expect(page.locator('#mission-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
   await expect(page.locator('#pause')).toBeHidden();
-  expect((await state(page)).mission).toBe('delivering');
   expect((await state(page)).money).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/mobile-game.png' });

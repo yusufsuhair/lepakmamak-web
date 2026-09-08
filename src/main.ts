@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { createWorld, createPerson, createBike, applyAppearance } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
-import { DeliveryMission, PICKUP, DELIVERY } from './mission';
 import { auth, session, displayName, setupAuth } from './auth';
 import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, setupChat } from './social';
@@ -28,17 +27,15 @@ $('app').innerHTML = `
   </section>
   <section id="hud" aria-label="Game information" hidden>
     <div class="hud-top"><div class="hud-left"><div class="game-brand">LEPAK<span>MAMAK.</span></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><div id="multiplayer-status" class="multiplayer-status"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></div><div class="wallet"><small>IN YOUR POCKET</small><strong id="money">RM 0</strong></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
-    <aside id="mission-card"><div class="mission-label"><span id="mission-status">YOUR FIRST JOB</span><span>RM 25</span></div><h2 id="mission-title">Mamak run</h2><p id="mission-description">Uncle has an order ready. Head to the counter at Mamak Maju.</p><div class="mission-footer"><span id="mission-step">01 / PICK UP</span><span id="mission-distance">5 m away</span></div></aside>
-    <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and delivery destination"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU &nbsp; ◆ JOB</span></div></div>
+    <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <div id="interaction" hidden><kbd>Enter</kbd><span id="interaction-text"></span></div>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
-    <div id="destination-label" hidden><span id="beacon-text">MAMAK MAJU</span><b></b></div>
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button id="touch-interact">INTERACT</button><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Back to the streets <span class="arrow">↗</span></button><div class="settings"><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Music & city sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Enter</b><span>Sit, stand, ride, get off or interact</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
-  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike and delivery route"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; ◆ Job &nbsp; <span class="map-bike-key">● Bike</span></span><span>M / Esc to close · City stays live</span></footer></dialog>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><div class="eyebrow">LEPAKMAMAK · LIVE MAP</div><h2 id="city-map-title">Know your streets.</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span></span><span>M / Esc to close · City stays live</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="view-profile" type="button" role="menuitem">View profile</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><button id="close-profile" type="button">Close</button></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -72,7 +69,8 @@ async function init() {
   const bike = createBike(); scene.add(bike.group);
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('lepak-city-save') || '{}') || {}; } catch { /* A damaged or unavailable save doesn't stop the game. */ }
-  const mission = new DeliveryMission(saved);
+  const savedMoney = Number((saved as { money?: number }).money);
+  const money = Number.isFinite(savedMoney) ? Math.max(0, savedMoney) : 0;
   const pos = new THREE.Vector3(-18, .12, 52); let yaw = Math.PI;
   let bikeYaw = Math.PI; bike.group.position.set(-6.5, .09, 54); bike.group.rotation.y = bikeYaw;
   let riding = false, started = false, paused = false, speed = 0, walkSpeed = 0, elapsed = 0;
@@ -166,10 +164,6 @@ async function init() {
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
 
-  const ring = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.7, 48), new THREE.MeshBasicMaterial({ color: '#d9f993', side: THREE.DoubleSide, transparent: true, opacity: .92, depthWrite: false }));
-  ring.rotation.x = -Math.PI / 2; ring.position.y = .15; scene.add(ring);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 5, 32, 1, true), new THREE.MeshBasicMaterial({ color: '#d9f993', transparent: true, opacity: .11, side: THREE.DoubleSide, depthWrite: false })); scene.add(beam);
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(.44), new THREE.MeshStandardMaterial({ color: '#dafa8e', emissive: '#94bd4a', emissiveIntensity: .45 })); scene.add(diamond);
   const rainCount = 1100;
   const rainPositions = new Float32Array(rainCount * 6);
   for (let i = 0; i < rainCount; i++) { const j = i * 6; rainPositions[j] = (Math.random() - .5) * 85; rainPositions[j + 1] = Math.random() * 45; rainPositions[j + 2] = (Math.random() - .5) * 85; }
@@ -204,7 +198,6 @@ async function init() {
   function toast(title: string, body: string, seconds = 4) {
     $('toast').replaceChildren(); const strong = document.createElement('strong'); strong.textContent = title; $('toast').append(strong, document.createTextNode(body)); $('toast').hidden = false; toastRemaining = seconds;
   }
-  function save() { try { localStorage.setItem('lepak-city-save', JSON.stringify(mission.save())); } catch { toast('Delivery saved for this session', 'Browser storage is unavailable, so earnings may not survive a reload.'); } }
   function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
     chat.status(state === 'online');
     const status = $('multiplayer-status'); status.dataset.state = state;
@@ -362,7 +355,7 @@ async function init() {
     seated = false; jumpHeight = 0; jumpVelocity = 0;
     riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
     bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
-    camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', mission.stage === 'delivering' ? 'Your order is still with you. KLCC is north of here.' : 'A fresh start. Your earnings are safe.');
+    camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', 'Grab a seat, meet your friends, or explore the city.');
   }
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
@@ -378,12 +371,6 @@ async function init() {
       const exit = safeDismount(pos, yaw, world.solids);
       if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
       riding = false; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; return;
-    }
-    if (distanceTo(mission.destination) <= 4) {
-      const result = mission.interact(distanceTo(mission.destination), riding);
-      if (result === 'pickup') { chime(); toast('“Hantar ke KLCC, ya!”', 'Two roti canai and a teh tarik. Your kapcai is parked by the road.', 5); }
-      if (result === 'delivered') { save(); chime(true); toast('Terima kasih! + RM 25', 'Delivery complete. Explore the city, or head back to Mamak Maju for another order.', 7); }
-      updateHud(); return;
     }
     if (distanceTo(bike.group.position) < 3.8) { riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
@@ -493,19 +480,12 @@ async function init() {
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
     for (const z of [-64, 8, 78]) ctx.fillRect(-157, z - 8.5, 314, 17);
     for (const b of world.mapBuildings) { ctx.fillStyle = '#4d6c56'; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
-    ctx.strokeStyle = '#d6f28d'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath();
-    ctx.moveTo(pos.x, pos.z);
-    if (mission.stage === 'delivering') { ctx.lineTo(-3, pos.z); ctx.lineTo(-3, DELIVERY.z); ctx.lineTo(DELIVERY.x, DELIVERY.z); }
-    else ctx.lineTo(PICKUP.x, PICKUP.z);
-    ctx.stroke(); ctx.setLineDash([]);
-    for (const [point, color] of [[PICKUP, '#e4b87b'], [DELIVERY, '#a4b79a']] as const) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(point.x, point.z, 3, 0, Math.PI * 2); ctx.fill(); }
-    const d = mission.destination; ctx.fillStyle = '#e5ff9f'; ctx.save(); ctx.translate(d.x, d.z); ctx.rotate(Math.PI / 4); ctx.fillRect(-3.8, -3.8, 7.6, 7.6); ctx.restore();
     if (!riding) { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
     ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-5, -5); ctx.lineTo(0, -2); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     ctx.fillStyle = '#d3dfba'; ctx.font = '600 9px "DM Sans"'; ctx.textAlign = 'center'; ctx.fillText('KLCC', 0, -138);
     if (expanded) {
-      ctx.fillText('MAMAK MAJU', PICKUP.x, PICKUP.z + 14);
+      ctx.fillText('MAMAK MAJU', -32, 65);
       ctx.fillText('N ↑', 140, -145);
       for (const remote of remotePlayers.values()) { ctx.fillStyle = '#e4b87b'; ctx.beginPath(); ctx.arc(remote.group.position.x, remote.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
     }
@@ -514,14 +494,7 @@ async function init() {
   function updateHud() {
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
-    $('money').textContent = `RM ${mission.money.toLocaleString()}`;
-    const delivery = mission.stage === 'delivering', complete = mission.stage === 'complete';
-    $('mission-status').textContent = delivery ? 'ORDER ON BOARD' : complete ? 'NICELY DONE' : 'YOUR FIRST JOB';
-    $('mission-title').textContent = delivery ? 'Roti to the towers' : complete ? 'The city is yours' : 'Mamak run';
-    $('mission-description').textContent = delivery ? 'Take the order to the KLCC entrance. Park up and deliver it on foot.' : complete ? 'RM 25 earned. Go explore, or return to the mamak for another delivery.' : 'Uncle has an order ready. Collect it at Mamak Maju, then find your kapcai.';
-    $('mission-step').textContent = delivery ? '02 / DELIVER' : complete ? 'FREE ROAM / NEXT JOB' : '01 / PICK UP';
-    $('mission-distance').textContent = `${Math.round(distanceTo(mission.destination))} m away`;
-    $('beacon-text').textContent = delivery ? 'KLCC · DROP OFF' : 'MAMAK MAJU';
+    $('money').textContent = `RM ${money.toLocaleString()}`;
     const area = pos.z < -74 ? 'KLCC Park' : pos.z < 9 ? 'Jalan Lepak' : 'Kampung Maju';
     $('district').textContent = area; $('map-area').textContent = area.toUpperCase();
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
@@ -530,16 +503,15 @@ async function init() {
     $('vehicle-label').textContent = riding ? 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
     let hint = '';
     if (riding) hint = Math.abs(speed) < 1.5 ? 'Get off your kapcai' : '';
-    else if (distanceTo(mission.destination) < 4) hint = delivery ? 'Deliver the order' : complete ? 'Pick up another order' : 'Collect the order';
     else if (distanceTo(bike.group.position) < 3.8) hint = 'Ride your kapcai';
     if (seated) hint = 'Stand up'; else if (!riding && nearbyChair()) hint = 'Sit at the mamak';
     $('interaction').hidden = !hint; $('interaction-text').textContent = hint;
-    $('touch-interact').textContent = seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OFF' : distanceTo(mission.destination) < 4 ? delivery ? 'DELIVER' : 'PICK UP' : 'RIDE';
+    $('touch-interact').textContent = seated ? 'STAND' : nearbyChair() && !riding ? 'SIT' : riding ? 'GET OFF' : distanceTo(bike.group.position) < 3.8 ? 'RIDE' : 'INTERACT';
     drawMap();
     if (cityMap.open) drawMap(true);
   }
 
-  const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3(); const projected = new THREE.Vector3();
+  const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3();
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
     const dt = Math.min((time - lastTime) / 1000, .04); lastTime = time; elapsed += dt;
@@ -617,7 +589,6 @@ async function init() {
         player.leftLeg.rotation.x = stride; player.rightLeg.rotation.x = -stride; player.leftArm.rotation.x = -stride * .7; player.rightArm.rotation.x = stride * .7;
         player.group.position.y = .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
       }
-      if (mission.stage === 'delivering') mission.elapsed += dt;
       if (!riding) punchPose(player, punchUntil);
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
       const localRecallScale = localRecallProgress > 0 ? 1 + Math.sin(localRecallProgress * Math.PI) * .16 : 1;
@@ -652,24 +623,12 @@ async function init() {
       const drift = reducedMotion ? 0 : Math.sin(elapsed * .055) * 3;
       camera.position.set(43 + drift, 29, 108); camera.lookAt(-10, 22, -45);
     }
-    const destination = mission.destination;
-    ring.position.x = beam.position.x = diamond.position.x = destination.x;
-    ring.position.z = beam.position.z = diamond.position.z = destination.z;
-    beam.position.y = 2.55; diamond.position.y = 3.4 + (reducedMotion ? 0 : Math.sin(simTime * 2) * .18); diamond.rotation.y = simTime * .6;
     if (engineGain && engine && audioContext) {
       engineGain.gain.setTargetAtTime(audioEnabled && active && riding ? .013 + Math.abs(speed) * .0007 : 0, audioContext.currentTime, .1);
       engine.frequency.setTargetAtTime(48 + Math.abs(speed) * 6, audioContext.currentTime, .1);
     }
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
-    if (started) {
-      projected.set(destination.x, 5, destination.z).project(camera);
-      const screenX = (projected.x * .5 + .5) * innerWidth;
-      const screenY = (-projected.y * .5 + .5) * innerHeight;
-      const visible = projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < .94 && screenY > 110 && screenY < innerHeight - 90;
-      $('destination-label').hidden = !visible || paused;
-      if (visible) { $('destination-label').style.left = `${THREE.MathUtils.clamp(screenX, 85, innerWidth - 85)}px`; $('destination-label').style.top = `${screenY}px`; $('destination-label').style.transform = 'translate(-50%, -100%)'; }
-    }
     if (localName) localName.position.set(pos.x, 3.1 + jumpHeight - (seated ? .34 : 0), pos.z);
     camera.updateMatrixWorld();
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
@@ -704,7 +663,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, mission: mission.stage, money: mission.money, completed: mission.completed, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ started, paused, riding, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   $('loading').hidden = true;
   requestAnimationFrame(frame);
