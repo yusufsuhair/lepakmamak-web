@@ -119,6 +119,7 @@ webSocketServer.on('connection', ws => {
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
     }
     if (message.type === 'voice-audio') {

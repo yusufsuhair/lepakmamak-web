@@ -5,7 +5,7 @@ import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics
 import type { Solid } from './physics';
 import { DeliveryMission, PICKUP, DELIVERY } from './mission';
 import { auth, session, displayName, setupAuth } from './auth';
-import { nameTag, setupChat } from './social';
+import { nameTag, updateNameTagVoice, setupChat } from './social';
 import { setupVoice } from './voice';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
@@ -95,8 +95,8 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   let audioEnabled = true, rainEnabled = false;
-  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type NetworkPlayer = { id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const remotePlayers = new Map<string, RemotePlayer>();
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
@@ -217,9 +217,9 @@ async function init() {
     person.group.scale.setScalar(.92); group.add(person.group);
     const ring = new THREE.Mesh(new THREE.RingGeometry(.62, .73, 24), new THREE.MeshBasicMaterial({ color: player.color || '#72c8ba', side: THREE.DoubleSide, transparent: true, opacity: .8, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
-    group.add(nameTag(player.name));
+    const label = nameTag(player.name); updateNameTagVoice(label, !!player.mic, !!player.speaker); group.add(label);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
+    return { label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     const visibleIds = new Set<string>();
@@ -228,6 +228,7 @@ async function init() {
       visibleIds.add(remote.id);
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
+      updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
       entity.target.set(remote.x, (remote.seated ? -.22 : .12) + (remote.jumpHeight || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated;
     }
     for (const [id, entity] of remotePlayers) {
@@ -237,6 +238,7 @@ async function init() {
     setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
   }
   const voice = setupVoice(message => {
+    if (message.type === 'voice-state' && localName) updateNameTagVoice(localName, !!message.mic, !!message.speaker);
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   });
