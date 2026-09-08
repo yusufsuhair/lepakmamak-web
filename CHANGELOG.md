@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added six roaming street cats and dogs with wagging tails, playful ground animations and distance-faded meow/bark sounds controlled by City sounds.
+
 - Added a separate, remembered Background music toggle in Settings, independent of city sounds and voice.
 
 - Added an exclusive gold, shimmering GAME MASTER name banner for the verified owner account, visible to all players.

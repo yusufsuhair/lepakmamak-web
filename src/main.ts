@@ -1,4 +1,5 @@
 import './style.css';
+import {createStreetAnimals, animalSound} from './animals';
 import { setupShop } from './shop';
 import vehicleSeats from '../shared/vehicle-seats.json';
 import { savedLook, setupWardrobe } from './wardrobe';
@@ -72,6 +73,7 @@ async function init() {
   const world = createWorld(scene);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
+  const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
   const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
@@ -724,6 +726,9 @@ async function init() {
     const active = started;
     {
       simTime += dt;
+      streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
+        if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan);
+      });
       // A shared clock-based route keeps the vendor in the same area for all players.
       const vendorPhase = (Date.now() % 90000) / 90000 * Math.PI * 2;
       const vendorX = -5 * Math.cos(vendorPhase), vendorZ = 44 + 18 * Math.sin(vendorPhase);
