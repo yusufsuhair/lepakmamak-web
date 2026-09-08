@@ -636,7 +636,7 @@ async function init() {
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
     $('speed').textContent = String(kmh).padStart(2, '0'); $('speed-fill').style.width = `${Math.min(100, kmh / 72 * 100)}%`;
-    $('vehicle-label').textContent = passengerOf ? vehicle === 'car' ? 'CAR · PASSENGER' : 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'LEPAK COMPACT · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
+    $('vehicle-label').textContent = passengerOf ? vehicle === 'car' ? 'CAR · PASSENGER' : 'PILLION · PASSENGER' : riding ? vehicle === 'car' ? 'MYVI · CAR' : 'MAJU 110 · KAPCAI' : 'ON FOOT · TAKE IT EASY';
     let hint = '';
     if (riding) hint = Math.abs(speed) < 1.5 ? vehicle === 'car' ? 'Get out of your car' : 'Get off your kapcai' : '';
     else if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) hint = 'Drive your car';
@@ -692,6 +692,7 @@ async function init() {
         if (car[coordinate] > 150) car[coordinate] = -150; if (car[coordinate] < -150) car[coordinate] = 150;
         if (started && Math.hypot(car.x - pos.x, car.z - pos.z) < 2.5) car[coordinate] = old;
         car.group.position.set(car.x, 0, car.z);
+        for (const wheel of (car.group.userData.wheels || []) as THREE.Group[]) wheel.rotation.x += Math.abs(car[coordinate] - old) / .36;
       }
       for (const ped of world.pedestrians) {
         const t = simTime * .12 + ped.phase;

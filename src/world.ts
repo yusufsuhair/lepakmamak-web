@@ -215,23 +215,53 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export function createDriveableCar() {
+export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport';
+export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport'];
+export function createDriveableCar(style: CarStyle = 'myvi') {
   const group = new THREE.Group(), wheels: THREE.Group[] = [];
-  const color = '#57a99b';
-  box(group, 0, .78, 0, 1.8, .65, 3.5, color);
-  box(group, 0, 1.36, -.18, 1.55, .65, 1.83, carGlass);
-  box(group, 0, 1.73, -.18, 1.65, .12, 1.9, color);
+  const styles = {
+    axia: { color: '#e4bf38', roof: 1.67, cabin: 1.85, length: 3.15, width: 1.64 },
+    myvi: { color: '#57a99b', roof: 1.76, cabin: 1.95, length: 3.5, width: 1.8 },
+    avanza: { color: '#c1c9cc', roof: 2.02, cabin: 2.4, length: 3.6, width: 1.78 },
+    vellfire: { color: '#eee8dc', roof: 2.17, cabin: 2.68, length: 3.7, width: 1.9 },
+    suv: { color: '#3e5364', roof: 2.02, cabin: 2.22, length: 3.65, width: 1.9 },
+    sport: { color: '#c44338', roof: 1.38, cabin: 1.5, length: 3.55, width: 1.88 },
+  };
+  const { color, roof, cabin, length, width } = styles[style];
+  const sport = style === 'sport', van = style === 'vellfire';
+  const bodyY = sport ? .65 : .8, belt = sport ? .88 : 1.09;
+  group.userData.model = style;
+  box(group, 0, bodyY, 0, width, sport ? .5 : .68, length, color);
+  box(group, 0, (belt + roof) / 2, -.2, width - .22, roof - belt, cabin, carGlass);
+  box(group, 0, roof, -.2, width - .14, .12, cabin, color);
+  // Windshield surround, door pillars, mirrors and handles.
   for (const side of [-1, 1]) {
-    box(group, side * .78, 1.35, -.15, .08, .77, .12, color);
-    for (const z of [-1.1, 1.08]) {
-      const axle = new THREE.Group(); axle.position.set(side * .92, .42, z); group.add(axle);
-      const wheel = tube(axle, 0, 0, 0, .38, .19, '#283a37'); wheel.rotation.z = Math.PI / 2; wheels.push(axle);
-      const hub = tube(axle, side * .11, 0, 0, .18, .02, '#bcc7ba'); hub.rotation.z = Math.PI / 2;
+    for (const z of [-.2 - cabin / 2, -.16, -.2 + cabin / 2]) box(group, side * (width / 2 - .08), (belt + roof) / 2, z, .075, roof - belt, .09, color);
+    box(group, side * (width / 2 + .08), belt + .12, .65, .21, .12, .23, color);
+    for (const z of sport ? [-.15] : [-.7, .35]) box(group, side * (width / 2 + .01), belt - .06, z, .035, .06, .22, '#c9d2d2');
+    for (const z of [-length * .32, length * .31]) {
+      const axle = new THREE.Group(); axle.position.set(side * width / 2, .4, z); group.add(axle);
+      const wheel = tube(axle, 0, 0, 0, .36, .19, '#243034'); wheel.rotation.z = Math.PI / 2; wheels.push(axle);
+      const hub = tube(axle, side * .105, 0, 0, sport ? .26 : .2, .025, sport ? '#b9c6c8' : '#96a5aa'); hub.rotation.z = Math.PI / 2;
+      for (let i = 0; i < 5; i++) { const spoke = box(axle, side * .125, 0, 0, .026, .43, .04, '#dce0d8'); spoke.rotation.x = i * Math.PI / 5; }
     }
-    box(group, side * .59, .95, 1.77, .4, .22, .04, '#fff2b3');
-    box(group, side * .59, .95, -1.77, .35, .2, .04, '#bf514b');
+    const light = box(group, side * width * .32, belt - .13, length / 2 + .025, width * .24, sport ? .08 : van ? .1 : .18, .055, '#fff3cb');
+    if (style === 'axia' || sport) light.rotation.z = side * -.16;
+    box(group, side * width * .35, belt - .18, -length / 2 - .025, van || style === 'avanza' ? .14 : .36, van || style === 'avanza' ? .49 : .16, .055, '#d84d42');
   }
-  box(group, 0, .58, 1.79, 1.65, .15, .1, '#263e36');
+  const grilleHeight = van ? .72 : style === 'suv' ? .48 : .27;
+  box(group, 0, bodyY, length / 2 + .03, width * .52, grilleHeight, .05, '#24383d');
+  for (let i = 0; i < (van ? 5 : 2); i++) box(group, 0, bodyY - grilleHeight / 2 + (i + .5) * grilleHeight / (van ? 5 : 2), length / 2 + .065, width * .5, .04, .03, '#c9d3d3');
+  box(group, 0, .44, length / 2 + .04, width * .89, .1, .1, '#2b3b3c');
+  sign(group, style.toUpperCase(), 0, .57, length / 2 + .105, .66, .16, '#172923', '#fff8e4');
+  sign(group, style.toUpperCase(), 0, .59, -length / 2 - .06, .66, .16, '#172923', '#fff8e4', Math.PI);
+  if (sport) {
+    for (const x of [-.57, .57]) box(group, x, 1.04, -1.37, .08, .36, .1, '#283d3d');
+    box(group, 0, 1.24, -1.4, 1.85, .085, .3, '#263b3c');
+    for (const x of [-.23, .23]) box(group, x, bodyY + .26, .98, .18, .025, 1.45, '#eee7cf');
+  }
+  if (style === 'suv' || style === 'avanza') for (const x of [-.62, .62]) box(group, x, roof + .12, -.2, .07, .12, cabin - .2, '#384b50');
+  if (van) for (const side of [-1, 1]) box(group, side * width / 2, .81, -.6, .035, .04, 1.35, '#cad6d3');
   const driver = createPerson('#ef734c', true); driver.group.scale.setScalar(.7); driver.group.position.set(.35, .24, -.1); driver.group.visible = false; group.add(driver.group);
   return { group, wheels, driver: driver.group };
 }
@@ -457,14 +487,8 @@ export function createWorld(scene: THREE.Scene): World {
 
   const traffic: TrafficCar[] = [];
   for (let i = 0; i < 8; i++) {
-    const car = new THREE.Group(); const color = ['#bd6950', '#d8d3ba', '#d5af4c', '#7eaaa1'][i % 4];
-    box(car, 0, .83, 0, 1.8, .72, 3.5, color); box(car, 0, 1.38, -.18, 1.57, .69, 1.83, '#547f80');
-    box(car, 0, 1.76, -.18, 1.62, .1, 1.83, color);
-    for (const side of [-1, 1]) {
-      box(car, side * .79, 1.38, -.15, .09, .77, .1, color);
-      for (const z of [-1.09, 1.08]) { const wheel = tube(car, side * .91, .49, z, .38, .18, '#283a37'); wheel.rotation.z = Math.PI / 2; }
-      box(car, side * .59, .97, 1.77, .38, .21, .04, '#f1e5ae'); box(car, side * .59, .97, -1.77, .35, .19, .04, '#a94738');
-    }
+    const model = createDriveableCar(carStyles[i % carStyles.length]);
+    const car = model.group; car.userData.wheels = model.wheels;
     const direction = i % 2 ? 1 : -1;
     const axis = i < 4 ? 'z' : 'x';
     const x = axis === 'z' ? (i < 2 ? 0 : 76) + direction * 4 : -130 + (i - 4) * 66;
