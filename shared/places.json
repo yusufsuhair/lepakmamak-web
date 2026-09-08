@@ -1,0 +1,107 @@
+[
+  {
+    "id": "1",
+    "name": "Mamak Maju",
+    "x": -32,
+    "z": 45,
+    "kind": "lepak"
+  },
+  {
+    "id": "2",
+    "name": "99 Speedmart",
+    "x": 27,
+    "z": 58,
+    "kind": "kedai"
+  },
+  {
+    "id": "3",
+    "name": "KK Super Mart",
+    "x": 49,
+    "z": 58,
+    "kind": "kedai"
+  },
+  {
+    "id": "4",
+    "name": "MR.DIY",
+    "x": -56,
+    "z": -90,
+    "kind": "kedai"
+  },
+  {
+    "id": "5",
+    "name": "Dobi 24 Jam",
+    "x": -35,
+    "z": -90,
+    "kind": "kedai"
+  },
+  {
+    "id": "6",
+    "name": "Kedai Aceh",
+    "x": 27,
+    "z": -40,
+    "kind": "kedai"
+  },
+  {
+    "id": "7",
+    "name": "MR.DIY Jalan Lepak",
+    "x": 49,
+    "z": -40,
+    "kind": "kedai"
+  },
+  {
+    "id": "8",
+    "name": "99 Speedmart Timur",
+    "x": 105,
+    "z": 60,
+    "kind": "kedai"
+  },
+  {
+    "id": "9",
+    "name": "KK Super Mart Timur",
+    "x": 129,
+    "z": 60,
+    "kind": "kedai"
+  },
+  {
+    "id": "10",
+    "name": "Dataran Santai",
+    "x": 112,
+    "z": -14,
+    "kind": "lepak"
+  },
+  {
+    "id": "11",
+    "name": "Laman Lepak",
+    "x": -110,
+    "z": 60,
+    "kind": "lepak"
+  },
+  {
+    "id": "12",
+    "name": "Air Balang Pak Din",
+    "x": -16,
+    "z": 60,
+    "kind": "gerai"
+  },
+  {
+    "id": "13",
+    "name": "Pisang Goreng Mak Cik",
+    "x": -25,
+    "z": 65,
+    "kind": "gerai"
+  },
+  {
+    "id": "14",
+    "name": "Busking Santai",
+    "x": -40,
+    "z": 64,
+    "kind": "lepak"
+  },
+  {
+    "id": "15",
+    "name": "KLCC",
+    "x": 0,
+    "z": -122,
+    "kind": "lepak"
+  }
+]

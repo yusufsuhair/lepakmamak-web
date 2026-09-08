@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added four Malaysian retail fronts, two sheltered hangouts with six usable seats, and a numbered map directory with location selection, distance and direction.
+
 - Added animated roadside guitar/cajon buskers and the supplied looping song, with smooth proximity audio fading to silence at 22 metres and City sounds mute support.
 
 - Added roadside air balang and pisang goreng booths, six free snacks/drinks, proximity ordering, consume buttons and nearby player reactions in Malay.

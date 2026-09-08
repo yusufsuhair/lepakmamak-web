@@ -412,7 +412,7 @@ export function createWorld(scene: THREE.Scene): World {
   box(group, -39, 1.04, 37, 7, 1.8, 1.8, '#b3c3b6'); solid(-39, 37, 7, 1.8);
   box(group, -39, 2.02, 37, 7.3, .13, 2.1, '#e2ddc5');
   for (let i = 0; i < 5; i++) { tube(group, -41.3 + i * 1.14, 2.19, 37, .43, .23, '#899f99'); tube(group, -41.3 + i * 1.14, 2.34, 37, .1, .09, '#485f56'); }
-  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52]]) {
+  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60]]) {
     tube(group, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(group, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
     for (const a of [0, 2.1, 4.2]) {
       const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a; group.add(chair);
@@ -493,6 +493,16 @@ export function createWorld(scene: THREE.Scene): World {
   retail(49, 58, 'KK SUPER MART', '#c92536', '#ffffff', 'market');
   retail(-35, -90, 'KEDAI DOBI · 24 JAM', '#348cb1', '#ffffff', 'laundry');
   retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');
+  retail(27,-40,'KEDAI ACEH · SERBANEKA','#317e62','#fff0ce','market');
+  retail(49,-40,'MR.DIY','#f1c62b','#253d35','diy');
+  retail(105,60,'99 SPEEDMART','#df3437','#fff4d9','market');
+  retail(129,60,'KK SUPER MART','#c92536','#ffffff','market');
+  for(const [x,z,label] of [[112,-14,'DATARAN SANTAI'],[-110,60,'LAMAN LEPAK']] as const){
+    box(group,x,.02,z,13,.04,10,'#c6b891');
+    sign(group,label,x,2.5,z-3.8,6,1,'#376b55','#fff0ce');
+    for(const side of [-1,1]){box(group,x+side*3,1.2,z-3.8,.1,2.4,.1,'#6b7759');palm(group,x+side*5,z-2,.5);solid(x+side*5,z-2,.6,.6);}
+    box(group,x,3.8,z,6,.12,5,'#bc875b');for(const side of [-1,1])for(const front of [-1,1]){box(group,x+side*2.8,1.9,z+front*2.3,.12,3.8,.12,'#755741');solid(x+side*2.8,z+front*2.3,.15,.15);}
+  }
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {

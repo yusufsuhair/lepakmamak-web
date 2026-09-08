@@ -1,0 +1,6 @@
+import {test,expect} from '@playwright/test';
+import places from '../shared/places.json' with {type:'json'};
+import chairs from '../shared/chairs.json' with {type:'json'};
+import tables from '../shared/tables.json' with {type:'json'};
+test('new hangouts have three distinct seats and matching map locations',()=>{for(const id of ['meja-5','meja-6']){const t=tables.find(t=>t.id===id)!;expect(chairs.filter(c=>c.tableId===id)).toHaveLength(3);expect(places.some(p=>p.x===t.x&&p.z===t.z)).toBe(true);}expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);});
+for(const width of [390,1280])test(`map directory finds shops and hangouts at ${width}px`,async({page})=>{await page.setViewportSize({width,height:844});await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.keyboard.press('m');await expect(page.locator('#city-map')).toBeVisible();await page.locator('#map-place').selectOption('6');await expect(page.locator('#map-place-info')).toContainText('Kedai Aceh');await expect(page.locator('#map-place-info')).toContainText('m dari anda');await page.locator('#map-place').selectOption('10');await expect(page.locator('#map-place-info')).toContainText('Dataran Santai');await page.screenshot({path:`test-results/map-places-${width}.png`});});

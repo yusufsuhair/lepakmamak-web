@@ -406,3 +406,5 @@ html, body, #app { touch-action: manipulation; }
 #street-stall {width:min(400px,calc(100vw - 32px));max-height:80dvh;overflow:auto;border:1px solid #b9af87;border-radius:18px;background:#fff7df;color:#244738;padding:22px;}
 #street-stall::backdrop{background:#132b2266}#street-stall button{min-height:48px;border-radius:10px;padding:12px;border:1px solid #a2ad8d;background:#e3ebcf;color:#244738;font:inherit;}#stall-menu{display:grid;gap:10px}#stall-close{width:100%;margin-top:12px}#street-snack{max-width:240px;white-space:normal;padding:8px;border-radius:8px;background:#f4d78e;color:#244738;border:0;min-height:44px;}
 #street-snack { pointer-events:auto; }
+
+.map-place-picker{display:flex;flex-direction:column;gap:6px;font-size:12px}.map-place-picker select{font:16px sans-serif;padding:10px;border-radius:8px;width:100%;color:#173c32;background:#fff8df;}#map-place-info{font-size:12px;line-height:1.5;}

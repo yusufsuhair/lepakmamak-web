@@ -30,5 +30,21 @@
     "z": 52,
     "arrivalX": -25.5,
     "arrivalZ": 52
+  },
+  {
+    "id": "meja-5",
+    "name": "Dataran Santai",
+    "x": 112,
+    "z": -14,
+    "arrivalX": 115.5,
+    "arrivalZ": -14
+  },
+  {
+    "id": "meja-6",
+    "name": "Laman Lepak",
+    "x": -110,
+    "z": 60,
+    "arrivalX": -106.5,
+    "arrivalZ": 60
   }
 ]
