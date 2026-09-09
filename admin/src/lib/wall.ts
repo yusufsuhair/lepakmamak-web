@@ -44,12 +44,7 @@ export async function deleteWallPost(
   const found = await client.from("social_posts").select("*").eq("id", postId).single();
   if (found.error || !found.data) throw new Error("That post no longer exists.");
 
-  const removal = await client.from("social_posts").delete().eq("id", postId);
-  if (removal.error) throw new Error(`Could not delete the post: ${removal.error.message}`);
-
-  // Storage is cleaned after the row so a failed delete never orphans a live post's image.
-  if (found.data.media_path) await client.storage.from(BUCKET).remove([found.data.media_path]);
-
+  // Audited before anything is destroyed: if this write fails, nothing has been deleted yet.
   await recordAudit(client, {
     actor,
     action: "wall.delete",
@@ -57,4 +52,16 @@ export async function deleteWallPost(
     targetId: postId,
     detail: { author: found.data.author_name, mediaPath: found.data.media_path ?? null },
   });
+
+  const removal = await client.from("social_posts").delete().eq("id", postId);
+  if (removal.error) throw new Error(`Could not delete the post: ${removal.error.message}`);
+
+  if (found.data.media_path) {
+    const storageResult = await client.storage.from(BUCKET).remove([found.data.media_path]);
+    if (storageResult.error) {
+      throw new Error(
+        `Post deleted but its file could not be removed from storage: ${found.data.media_path} (${storageResult.error.message})`,
+      );
+    }
+  }
 }

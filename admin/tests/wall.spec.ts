@@ -27,25 +27,32 @@ test('an audio post resolves mediaType and mediaUrl',async()=>{
  expect(posts[0]).toMatchObject({mediaType:'audio',mediaPath:'u3/note.webm',mediaUrl:'https://cdn.test/u3/note.webm'});
 });
 
-function deleteHarness(post:any){
- const removed:string[]=[], audits:any[]=[]; let deleted=false;
+function deleteHarness(post:any, opts:{auditFails?:boolean;storageFails?:boolean}={}){
+ const removed:string[]=[], audits:any[]=[]; let deleted=false; let deletedId:string|undefined;
  const client:any={
   from(table:string){
-   if(table==='admin_audit_log')return{insert:async(value:any)=>{audits.push(value);return{error:null};}};
+   if(table==='admin_audit_log')return{insert:async(value:any)=>{
+    if(opts.auditFails)return{error:{message:'audit insert failed'}};
+    audits.push(value);return{error:null};
+   }};
    return{
     select(){return{eq(){return{single:async()=>post?{data:post,error:null}:{data:null,error:{message:'missing'}}};}};},
-    delete(){return{eq:async()=>{deleted=true;return{error:null};}};},
+    delete(){return{eq:async(_col:string,value:string)=>{deleted=true;deletedId=value;return{error:null};}};},
    };
   },
-  storage:{from(){return{remove:async(paths:string[])=>{removed.push(...paths);return{error:null};}};}},
+  storage:{from(){return{remove:async(paths:string[])=>{
+   if(opts.storageFails)return{error:{message:'network blip'}};
+   removed.push(...paths);return{error:null};
+  }};}},
  };
- return {client,removed,audits,wasDeleted:()=>deleted};
+ return {client,removed,audits,wasDeleted:()=>deleted,deletedId:()=>deletedId};
 }
 
 test('deleting a post removes its row, its stored file and writes an audit entry',async()=>{
  const h=deleteHarness({id:'p1',user_id:'u1',author_name:'Aina',media_path:'u1/x.png'});
  await deleteWallPost(h.client,'p1','yusufmohdsuhair@gmail.com');
  expect(h.wasDeleted()).toBe(true);
+ expect(h.deletedId()).toBe('p1');
  expect(h.removed).toEqual(['u1/x.png']);
  expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'yusufmohdsuhair@gmail.com'});
 });
@@ -54,6 +61,7 @@ test('a text-only post deletes without touching storage',async()=>{
  const h=deleteHarness({id:'p2',user_id:'u1',author_name:'Aina',media_path:null});
  await deleteWallPost(h.client,'p2','yusufmohdsuhair@gmail.com');
  expect(h.wasDeleted()).toBe(true);
+ expect(h.deletedId()).toBe('p2');
  expect(h.removed).toEqual([]);
 });
 
@@ -61,4 +69,18 @@ test('deleting a post that does not exist throws and writes no audit entry',asyn
  const h=deleteHarness(null);
  await expect(deleteWallPost(h.client,'nope','yusufmohdsuhair@gmail.com')).rejects.toThrow();
  expect(h.audits).toEqual([]);
+});
+
+test('when the audit write fails, the post row is not deleted',async()=>{
+ const h=deleteHarness({id:'p4',user_id:'u1',author_name:'Aina',media_path:'u1/y.png'},{auditFails:true});
+ await expect(deleteWallPost(h.client,'p4','yusufmohdsuhair@gmail.com')).rejects.toThrow();
+ expect(h.wasDeleted()).toBe(false);
+ expect(h.removed).toEqual([]);
+});
+
+test('a storage removal failure throws naming the orphaned path, after the row is deleted and audited',async()=>{
+ const h=deleteHarness({id:'p5',user_id:'u1',author_name:'Aina',media_path:'u1/z.png'},{storageFails:true});
+ await expect(deleteWallPost(h.client,'p5','yusufmohdsuhair@gmail.com')).rejects.toThrow(/u1\/z\.png/);
+ expect(h.wasDeleted()).toBe(true);
+ expect(h.audits.length).toBe(1);
 });
