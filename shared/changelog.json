@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.12.0",
+  "date": "2026-09-10",
+  "title": "Chakra GM tak hilang atas lantai mamak",
+  "notes": [
+   "The glowing seal under the Game Master used to disappear the moment he stepped off the road onto the mamak floor, because that floor stands a little higher than the street. It now draws on top of whatever he is standing on."
+  ]
+ },
+ {
   "version": "1.11.0",
   "date": "2026-09-10",
   "title": "Mesej peribadi ada tempat sendiri",

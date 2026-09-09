@@ -47,22 +47,28 @@ function buildWing(dark: boolean) {
 }
 
 // The seal underfoot is a slow-turning ring rather than a real light, so it reads at night
-// without adding another light to a scene that only has two.
+// without adding another light to a scene that only has two. It also ignores depth: the
+// mamak floor is a slab whose top sits above the road, and a depth-tested seal disappears
+// inside it the moment the Game Master steps in off the street.
 function buildSeal() {
   const seal = new THREE.Group();
   const disc = new THREE.Mesh(
     new THREE.CircleGeometry(1.05, 28),
-    new THREE.MeshBasicMaterial({color: '#c9a6ff', transparent: true, opacity: .22, depthWrite: false}),
+    new THREE.MeshBasicMaterial({color: '#c9a6ff', transparent: true, opacity: .22, depthWrite: false, depthTest: false}),
   );
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(.72, .92, 24),
-    new THREE.MeshBasicMaterial({color: '#e6d2ff', transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false}),
+    new THREE.MeshBasicMaterial({color: '#e6d2ff', transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false, depthTest: false}),
   );
   const inner = new THREE.Mesh(
     new THREE.RingGeometry(.3, .38, 3),
-    new THREE.MeshBasicMaterial({color: '#fff0c2', transparent: true, opacity: .7, side: THREE.DoubleSide, depthWrite: false}),
+    new THREE.MeshBasicMaterial({color: '#fff0c2', transparent: true, opacity: .7, side: THREE.DoubleSide, depthWrite: false, depthTest: false}),
   );
-  for (const [mesh, y] of [[disc, .02], [ring, .03], [inner, .04]] as const) { mesh.rotation.x = -Math.PI / 2; mesh.position.y = y; }
+  for (const [mesh, y, order] of [[disc, .02, 3], [ring, .03, 4], [inner, .04, 5]] as const) {
+    mesh.rotation.x = -Math.PI / 2; mesh.position.y = y;
+    // Depth is off, so the draw order is what keeps the ring above its own disc.
+    mesh.renderOrder = order;
+  }
   seal.add(disc, ring, inner);
   return {seal, ring, inner};
 }

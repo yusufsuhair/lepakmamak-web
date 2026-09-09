@@ -44,11 +44,16 @@ test('the aura is wings over a seal, and adds no light to a two-light scene',asy
   aura.group.traverse((o:any)=>{ if(o.isMesh) meshes++; if(o.isLight) lights++; });
   const before=aura.group.children[0].rotation.z;
   aura.update(2.4);
-  return {groups:aura.group.children.length, meshes, lights, moved:aura.group.children[0].rotation.z!==before};
+  const seal=aura.group.children[2] as any;
+  const buried=seal.children.some((m:any)=>m.material.depthTest||m.renderOrder===0);
+  return {groups:aura.group.children.length, meshes, lights, buried, moved:aura.group.children[0].rotation.z!==before};
  });
  expect(built.groups).toBe(3);          // two wings and the seal
  expect(built.meshes).toBeGreaterThan(10);
  // Eighty street lamps taught us what happens when scenery brings its own lights.
  expect(built.lights).toBe(0);
+ // The mamak floor is a slab standing proud of the road; a depth-tested seal vanishes
+ // inside it the moment he walks in off the street.
+ expect(built.buried).toBe(false);
  expect(built.moved).toBe(true);
 });
