@@ -999,7 +999,7 @@ async function init() {
   function drawMap(expanded = false) {
     if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);$('map-place-info').textContent='3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
-    const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.06;
+    const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.13;
     ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
     ctx.fillStyle = '#82907a';
@@ -1016,8 +1016,11 @@ async function init() {
     if(expanded){drawPlaceLabels(ctx,mapDirectory.labels,selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'All locations are shown. Tap a map label or directory name to highlight the way.';}
     if (!riding || vehicle !== 'car') { ctx.fillStyle = '#f4a5bf'; ctx.beginPath(); ctx.arc(car.group.position.x, car.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
     if (!riding || vehicle !== 'bike') { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
-    ctx.save(); ctx.translate(pos.x, pos.z); ctx.rotate(-yaw); ctx.fillStyle = '#fff9db'; ctx.strokeStyle = '#274735'; ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-5, -5); ctx.lineTo(0, -2); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+    const arrowSize=expanded?1:1.75;
+    ctx.save();ctx.translate(pos.x,pos.z);
+    ctx.fillStyle='#173c32aa';ctx.strokeStyle='#dff092';ctx.lineWidth=expanded?1.4:2.3;ctx.beginPath();ctx.arc(0,0,expanded?5:10,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.rotate(-yaw);ctx.fillStyle='#fff9db';ctx.strokeStyle='#173c32';ctx.lineWidth=expanded?1.4:2.2;
+    ctx.beginPath();ctx.moveTo(0,7*arrowSize);ctx.lineTo(-5*arrowSize,-5*arrowSize);ctx.lineTo(0,-2*arrowSize);ctx.lineTo(5*arrowSize,-5*arrowSize);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
     ctx.fillStyle = '#d3dfba'; ctx.font = '600 9px "Oxanium"'; ctx.textAlign = 'center'; if(!expanded)ctx.fillText('KLCC', 0, -138);
     if (expanded) {
       ctx.fillText('N ↑', 140, -145);
