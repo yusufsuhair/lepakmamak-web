@@ -125,6 +125,17 @@ function send(ws, message) {
 // player's name, appearance and accessories 20 times a second and gives back about 96%.
 // Built at most once per broadcast, and only for clients that told us they can inflate.
 const PACK_THRESHOLD = 1024;
+// Opus costs about a tenth of the raw PCM this used to relay, but the server cannot
+// transcode, so the room drops to PCM if a single player cannot decode it. One old browser
+// therefore costs everyone the saving.
+// ponytail: room-wide codec, encode both formats on the speaker if mixed rooms turn out common
+function voiceCodecFor(players) {
+  for (const player of players.values()) if (!player.opus) return 'pcm';
+  return 'opus';
+}
+function syncVoiceCodec(players) {
+  if (players.size) broadcast(players, { type: 'voice-codec', codec: voiceCodecFor(players) });
+}
 function broadcast(players, message) {
   if (message.type === 'players') tableSocial.sync(players);
   const payload = JSON.stringify(message);
@@ -196,6 +207,7 @@ webSocketServer.on('connection', ws => {
     party.remove(currentRoom.players, player);
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
+    syncVoiceCodec(currentRoom.players);
     if (!currentRoom.players.size) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
     player = null; currentRoom = null;
   }
@@ -245,6 +257,7 @@ webSocketServer.on('connection', ws => {
         jumpHeight: 0, seated: false, chairId: null,
         mic: false, speaker: false,
         deflate: message.deflate === true,
+        opus: message.opus === true,
         supermanUntil: 0,
         updatedAt: Date.now(),
       };
@@ -267,6 +280,7 @@ webSocketServer.on('connection', ws => {
     const standing = announcements.get(room.name);
     if (standing) send(ws, standing);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
+      syncVoiceCodec(room.players);
       return;
     }
 
@@ -367,7 +381,11 @@ webSocketServer.on('connection', ws => {
     }
     if (message.type === 'voice-audio') {
       const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
-      if (!player.mic || voiceTokens < 1 || typeof message.audio !== 'string' || message.audio.length !== 1708 || !/^[A-Za-z0-9+/]{1707}=$/.test(message.audio)) return;
+      const opus = message.codec === 'opus';
+      const wellFormed = typeof message.audio === 'string' && (opus
+        ? message.audio.length > 0 && message.audio.length <= 512 && /^[A-Za-z0-9+/]+={0,2}$/.test(message.audio)
+        : message.audio.length === 1708 && /^[A-Za-z0-9+/]{1707}=$/.test(message.audio));
+      if (!player.mic || voiceTokens < 1 || !wellFormed) return;
       voiceTokens--;
       const audience = [];
       for (const listener of currentRoom.players.values()) {
@@ -379,7 +397,7 @@ webSocketServer.on('connection', ws => {
         if (player.micScope === 'party' ? !together : distance >= voiceConfig.hearingRadius) continue;
         if (listener.speakerScope === 'party' && !together) continue;
         const volume = player.micScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
-        listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume }));
+        listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume, codec: opus ? 'opus' : 'pcm' }));
         audience.push(listener.name);
       }
       if (now - lastAudienceAt >= 750) { lastAudienceAt = now; send(ws, { type: 'voice-audience', count: audience.length, names: audience.slice(0, 3) }); }

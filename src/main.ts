@@ -708,11 +708,11 @@ async function init() {
         if (socket !== networkSocket) return;
         showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 86);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
-        socket.send(JSON.stringify({ type: 'join', deflate: canInflate, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
+        socket.send(JSON.stringify({ type: 'join', deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
-        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
+        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
         try { message = JSON.parse(raw); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
@@ -775,7 +775,8 @@ async function init() {
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
-        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') { voice.receive(message.id, message.name || 'Player', message.audio, message.volume); speaking.heard(message.id, message.name || 'Player'); }
+        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') { voice.receive(message.id, message.name || 'Player', message.audio, message.volume, message.codec === 'opus' ? 'opus' : 'pcm'); speaking.heard(message.id, message.name || 'Player'); }
+        if(message.type==='voice-codec')voice.codec(message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {
