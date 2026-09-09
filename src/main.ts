@@ -383,6 +383,8 @@ async function init() {
       if (audioContext.state === 'suspended') void audioContext.resume().catch(() => {});
     } catch { audioEnabled = false; $<HTMLInputElement>('sound-toggle').checked = false; }
   }
+  // Table games have their own foley; songs would fight it. Duck them while one is open.
+  let musicDuck = 1;
   let musicContext: AudioContext | null = null;
   function startBackgroundMusic() {
     if(audioEnabled&&started&&buskingGain)void buskingSong.play().catch(()=>{});
@@ -1117,7 +1119,8 @@ async function init() {
     document.body.classList.toggle('on-lrt',lrtId!=null);
     locationArrival.update(pos.x,pos.z,started&&lrtId==null,audioEnabled);
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1);
+    musicDuck += ((tableSocial.playing ? 0 : 1) - musicDuck) * .08;
+    backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
     const area = pos.z < -74 ? 'KLCC Park' : pos.z < 9 ? 'Jalan Lepak' : 'Kampung Maju';
@@ -1344,14 +1347,14 @@ async function init() {
     villageNearby=started&&!paused&&!riding&&!cityMap.open&&!villageDialog.open?villageResidents.find(p=>Math.hypot(pos.x-villageOrigin.x-p.x,pos.z-villageOrigin.z-p.z)<2.6):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
-    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
-    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
-    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
-    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
+    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
+    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
+    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
+    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
     if (iceCreamGain && audioContext) {
       const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
-      iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
+      iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:0) + 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);

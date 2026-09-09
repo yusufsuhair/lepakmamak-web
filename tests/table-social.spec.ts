@@ -12,3 +12,25 @@ for(const width of [390,1280])test(`only current table and games at ${width}px`,
  await expect(page.locator('#table-name')).toHaveText('Meja 2');await expect(page.locator('#table-seats')).toContainText('Anda duduk di Meja 2');await expect(page.locator('.table-game-grid')).toBeVisible();await expect(page.locator('.lukis')).toBeHidden();await expect(page.locator('.poker')).toBeHidden();await expect(page.locator('#table-name-form, #table-round, #get-receipt, #table-link, #table-list')).toHaveCount(0);
  await page.evaluate(()=>(window as any).tableUI.state([],'self',true));await expect(page.locator('#table-detail')).toBeHidden();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+test('songs duck while a table game is open and return when it closes',async({page})=>{
+ await page.route('**/table-quiet',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css">'}));
+ await page.goto('/table-quiet');
+ await page.evaluate(async()=>{
+  const {setupTableSocial}=await import('/src/table-social.ts');
+  const ui=setupTableSocial(()=>true,'geng',()=>{},()=>{});(window as any).ui=ui;
+  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);
+ });
+ const playing=()=>page.evaluate(()=>(window as any).ui.playing);
+ expect(await playing()).toBe(false);                       // dialog shut
+ await page.evaluate(()=>(window as any).ui.open('meja-1'));
+ expect(await playing()).toBe(false);                       // open, but still on the game menu
+ await page.locator('[data-select="lukis"]').click();
+ expect(await playing()).toBe(true);                        // actually playing -> songs duck
+ await page.getByText('← Semua permainan').click();
+ expect(await playing()).toBe(false);                       // back to the menu -> songs return
+ await page.locator('[data-select="uno"]').click();
+ expect(await playing()).toBe(true);
+ await page.evaluate(()=>(window as any).ui.close());
+ expect(await playing()).toBe(false);                       // closed -> songs return
+});
