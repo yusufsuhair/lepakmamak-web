@@ -142,3 +142,21 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
     },
   };
 }
+
+// Shout above an NPC (e.g. the driver whose car you just cilok). Deliberately not
+// a nameTag: this is speech, and must not read as another player's nameplate.
+export function shoutTag(text: string) {
+  const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d')!;
+  ctx.font = '700 34px "Oxanium", sans-serif';
+  const width = Math.min(500, Math.ceil(ctx.measureText(text).width + 44)), left = (512 - width) / 2;
+  ctx.fillStyle = '#7c1d12e6'; ctx.strokeStyle = '#ff9c6b'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(left, 30, width, 68, 18); ctx.fill(); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffe9d6';
+  ctx.fillText(text, 256, 64);
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+  sprite.scale.set(3.9, .98, 1); sprite.position.y = 3.5;
+  sprite.userData.text = text;
+  return sprite;
+}

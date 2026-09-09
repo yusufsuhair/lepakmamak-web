@@ -50,6 +50,8 @@ test('Cilok button takes control, drives, and exits in the browser',async({page}
  const button=page.locator('#interaction'),bounds=await button.boundingBox();await page.mouse.move(bounds!.x+bounds!.width/2,bounds!.y+bounds!.height/2);await page.mouse.down();const pressed=await button.boundingBox();advanceTraffic();await page.waitForTimeout(180);expect((await button.boundingBox())!.x).toBe(pressed!.x);await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.vehicle)).toBe('car');
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.riding)).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.angry)).not.toEqual([]);
+ expect((await page.evaluate(()=>(window as any).__lepak.angry))[0]).toMatch(/kereta aku|Turun sekarang/i);
  await page.keyboard.down('KeyW');await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.speed)).toBeGreaterThan(1);await page.keyboard.up('KeyW');
  await page.keyboard.down('Space');await expect(page.locator('#interaction')).toHaveText('Get out');await page.keyboard.up('Space');await page.locator('#interaction').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.riding)).toBe(false);

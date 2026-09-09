@@ -36,7 +36,7 @@ import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
 import { appearance, type Appearance } from './appearance';
-import { nameTag, updateNameTagName, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
+import { shoutTag, nameTag, updateNameTagName, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
 import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
@@ -162,15 +162,18 @@ async function init() {
   const personalCar=car;
   let fleetId:string|null=null, claimPendingUntil=0;
   let pressedCarId:string|null=null,interactionPressUntil=0;
-  const angryVoice=fetch('/audio/angry-driver.wav').then(r=>r.arrayBuffer()).catch(()=>null);
+  const angryVoice=fetch('/audio/angry.mp3').then(r=>r.arrayBuffer()).catch(()=>null);
+  const ANGRY_LINES=['Woi! Kereta aku tu!','Eh, cilok kereta aku?!','Woi! Turun sekarang!'];
   let angryBuffer:Promise<AudioBuffer|null>|null=null;
-  const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
+  const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;line:string;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
   function angryDriver(x:number,z:number,heading:number){
     if(!started||Math.hypot(pos.x-x,pos.z-z)>35)return;
     const npc=createPerson('#ef734c');
     const exit=safeDismount(new THREE.Vector3(x,.12,z),heading,world.solids,3);
     npc.group.position.set(exit?.x??x,.12,exit?.z??z);scene.add(npc.group);
-    const actor:typeof angryDrivers[number]={person:npc,until:simTime+8};angryDrivers.push(actor);
+    const line=ANGRY_LINES[Math.floor(Math.random()*ANGRY_LINES.length)];
+    npc.group.add(shoutTag(line));
+    const actor:typeof angryDrivers[number]={person:npc,until:simTime+8,line};angryDrivers.push(actor);
     if(audioEnabled&&audioContext&&citySoundsGain){
       const ctx=audioContext;angryBuffer??=angryVoice.then(data=>data?ctx.decodeAudioData(data):null).catch(()=>null);
       void angryBuffer.then(buffer=>{if(!buffer||!started||simTime>=actor.until||!audioEnabled)return;
@@ -1185,7 +1188,7 @@ async function init() {
       }
       for(let i=angryDrivers.length-1;i>=0;i--){
         const actor=angryDrivers[i],npc=actor.person,left=actor.until-simTime;
-        if(left<=0||!started){actor.source?.stop();actor.source?.disconnect();actor.gain?.disconnect();npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
+        if(left<=0||!started){actor.source?.stop();actor.source?.disconnect();actor.gain?.disconnect();npc.group.traverse(o=>{if(o instanceof THREE.Sprite){o.material.map?.dispose();o.material.dispose();}});npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
         const distance=distanceTo(npc.group.position);
         if(actor.gain)actor.gain.gain.value=audioEnabled?Math.max(0,1-distance/25)*.9:0;
         npc.group.rotation.y=Math.atan2(pos.x-npc.group.position.x,pos.z-npc.group.position.z);
@@ -1442,7 +1445,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
