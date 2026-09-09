@@ -1,3 +1,4 @@
+import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
@@ -600,6 +601,8 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
+        if(message.type==='teleported'&&message.id)finishTeleport(message.id);
+        if(message.type==='teleport-denied'){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
@@ -646,6 +649,7 @@ async function init() {
     } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
+    if(teleportPending)return;
     if(Date.now()-locationSavedAt>1000){saveLocation();locationSavedAt=Date.now();}
     if (!networkConnected || !networkSocket || networkSocket.readyState !== WebSocket.OPEN) return;
     networkSendTimer += dt; networkIdleTimer += dt;
@@ -937,7 +941,25 @@ async function init() {
   window.addEventListener('resize', () => { resetStick(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
   let selectedMapPlace='';
-  const mapDirectory=setupCityDirectory($('city-directory'),$<HTMLCanvasElement>('expanded-map'),id=>{selectedMapPlace=id;mapDirectory.selected(id);drawMap(true);});
+  let teleportPending=false;
+  const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.textContent='Choose a destination';teleportButton.disabled=true;
+  $('city-directory').prepend(teleportButton);
+  function finishTeleport(id:string){
+    const destination=teleports.find(p=>p.id===id);if(!destination)return;
+    teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
+    seated=false;seatedChairId=null;jumpHeight=0;jumpVelocity=0;speed=0;walkSpeed=0;localSupermanUntil=0;
+    pos.set(destination.x,.12,destination.z);player.group.position.copy(pos);keys.clear();resetStick();
+    camera.position.set(pos.x+2,pos.y+5,pos.z+9);setMap(false);sendNetworkState(1);
+    toast('Teleported',mapPlaces.find(p=>p.id===id)?.name||'You have arrived.');
+  }
+  teleportButton.onclick=()=>{
+    if(!started||teleportPending||!selectedMapPlace)return;
+    if(riding||passengerOf){toast('Leave your vehicle first','Get out, then choose your teleport destination.');return;}
+    if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){teleportPending=true;teleportButton.disabled=true;teleportButton.textContent='Teleporting…';networkSocket.send(JSON.stringify({type:'teleport',id:selectedMapPlace}));setTimeout(()=>{if(teleportPending){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';}},5000);}
+
+    else toast('City offline','Reconnect before teleporting.');
+  };
+  const mapDirectory=setupCityDirectory($('city-directory'),$<HTMLCanvasElement>('expanded-map'),id=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);});
   function drawMap(expanded = false) {
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.06;

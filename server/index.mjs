@@ -1,4 +1,5 @@
 import {createWeather} from './weather.mjs';
+import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
@@ -262,6 +263,12 @@ webSocketServer.on('connection', ws => {
     if (pickleball.handle(currentRoom.players, player, message)) return;
     if (basketball.handle(currentRoom.players, player, message)) return;
     if (tableSocial.handle(currentRoom.players, player, message)) return;
+    if(message.type==='teleport'){
+      const destination=teleportPlayer(player,message);
+      if(!destination){send(ws,{type:'teleport-denied',message:'Leave your vehicle first, or wait a moment before teleporting again.'});return;}
+      send(ws,{type:'teleported',id:destination.id});
+      broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});return;
+    }
     if (message.type === 'passenger-join') {
       if((player.danceUntil||0)>Date.now())return;
       const driver = currentRoom.players.get(message.driverId);

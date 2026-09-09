@@ -1,5 +1,7 @@
 # Changelog
 
+- Added map teleporting to 22 validated destinations on the original map, with server-owned arrivals, chair release and a short cooldown. Drivers and passengers must exit first.
+
 - Added four seating-only tables and twelve chairs near the two mosques. These seats support sitting and chatting but cannot enter any table mini-game.
 
 - Upgraded Lukis Lah with private word choices, progressive hints and answer aliases, speed/placement scoring with artist rewards, synchronized high-resolution drawing, real erasing, undo/redo including clear, correct-answer chimes, mobile controls and a 30-second reconnect grace period.
