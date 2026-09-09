@@ -6,11 +6,13 @@ export function nameTag(name: string, interactiveVoice = false) {
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
   label.scale.set(3.8, 1.22, 1); label.position.y = 3.15;
+  label.userData.name = name;
   label.userData.drawVoice = (mic: boolean, speaker: boolean) => {
     label.userData.mic = mic; label.userData.speaker = speaker;
     ctx.clearRect(0, 0, 512, 164);
     ctx.font = label.userData.gameMaster ? '700 30px "DM Sans", sans-serif' : '600 36px "DM Sans", sans-serif';
-    const nameWidth = ctx.measureText(name.slice(0, 18)).width;
+    const shownName=String(label.userData.name||'Player').slice(0,18);
+    const nameWidth = ctx.measureText(shownName).width;
     ctx.font = '700 16px "DM Sans", sans-serif';
     const titleWidth = label.userData.gameMaster ? ctx.measureText('✦  GAME MASTER  ✦').width : 0;
     const width = Math.min(496, Math.ceil(Math.max(nameWidth, titleWidth) + 40));
@@ -29,13 +31,13 @@ export function nameTag(name: string, interactiveVoice = false) {
       ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillStyle = '#ffe8a3';
       ctx.fillText('✦  GAME MASTER  ✦', 256, 94);
       ctx.font = '700 30px "DM Sans", sans-serif'; ctx.fillStyle = '#fff5d1';
-      ctx.fillText(name.slice(0, 18), 256, 128, 440);
+      ctx.fillText(shownName, 256, 128, 440);
       ctx.beginPath(); ctx.roundRect(left + 2, 78, width - 4, 76, 18); ctx.clip();
       const x = left - 80 + (label.userData.shine || 0) * (width + 160);
       const shine = ctx.createLinearGradient(x - 70, 76, x + 70, 156);
       shine.addColorStop(0, '#ffffff00'); shine.addColorStop(.5, '#fff4ba66'); shine.addColorStop(1, '#ffffff00');
       ctx.fillStyle = shine; ctx.fillRect(left, 76, width, 80); ctx.restore();
-    } else ctx.fillText(name.slice(0, 18), 256, 117, 460);
+    } else ctx.fillText(shownName, 256, 117, 460);
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;
       ctx.save(); ctx.translate(x, 35);
@@ -58,6 +60,8 @@ export function nameTag(name: string, interactiveVoice = false) {
   updateNameTagVoice(label, false, false);
   return label;
 }
+
+export function updateNameTagName(label:THREE.Sprite,name:string){label.userData.name=name.slice(0,18);label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);}
 
 export function updateNameTagVoice(label: THREE.Sprite, mic: boolean, speaker: boolean) {
   const state = `${mic}:${speaker}`;

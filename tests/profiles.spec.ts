@@ -29,16 +29,16 @@ test('profile reads and refreshes trust the authenticated account, not guest or 
 test('profile editor saves optional account fields, reloads them and renders safely on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.route('**/profile-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="profile-details"></div>'}));
- await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export let guestName='';export let session={user:{id:'member'}};export const auth={auth:{getUser:async()=>({data:{user:{id:'member',user_metadata:{profile:JSON.parse(localStorage.getItem('test-profile')||'{}')}}}}),updateUser:async({data})=>{localStorage.setItem('test-profile',JSON.stringify(data.profile));return {error:null};}}};`}));
+ await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export let guestName='';export let session={user:{id:'member'}};export const auth={auth:{getUser:async()=>({data:{user:{id:'member',user_metadata:{display_name:localStorage.getItem('test-name')||'Member',profile:JSON.parse(localStorage.getItem('test-profile')||'{}')}}}}),updateUser:async({data})=>{localStorage.setItem('test-name',data.display_name);localStorage.setItem('test-profile',JSON.stringify(data.profile));return {error:null};}}};`}));
  const open=async()=>{await page.evaluate(async()=>{const m=await import('/src/profile.ts');(window as any).profileModule=m;const editor=m.setupProfileEditor(async()=>{});await editor.open();});};
- await page.goto('/profile-harness');await open();await page.locator('#profile-bio').fill('Here for good company');await page.locator('#profile-socialMedia').fill('@tehtarikfan');await page.getByRole('button',{name:'Save profile',exact:true}).click();await expect(page.locator('#edit-profile')).not.toBeVisible();
- await page.reload();await open();await expect(page.locator('#profile-bio')).toHaveValue('Here for good company');await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.goto('/profile-harness');await open();await page.locator('#profile-display-name').fill('Aina Baru');await page.locator('#profile-bio').fill('Here for good company');await page.locator('#profile-socialMedia').fill('@tehtarikfan');await page.getByRole('button',{name:'Save profile',exact:true}).click();await expect(page.locator('#edit-profile')).not.toBeVisible();
+ await page.reload();await open();await expect(page.locator('#profile-display-name')).toHaveValue('Aina Baru');await expect(page.locator('#profile-bio')).toHaveValue('Here for good company');await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.evaluate(()=>{(window as any).profileModule.renderProfile(document.getElementById('profile-details'),{id:'member',name:'Member',registered:true,details:{bio:'<img src=x onerror=alert(1)>',socialMedia:'@tehtarikfan'}});});
  await expect(page.locator('#profile-details img')).toHaveCount(0);await expect(page.locator('#profile-details')).toContainText('@tehtarikfan');
 });
 
-test('guests have no profile editor in settings',async({page})=>{
- await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#menu').click();await expect(page.locator('#open-edit-profile')).toBeHidden();
+test('signed-out players have no profile editor in settings',async({page})=>{
+ await page.goto('/');await expect(page.locator('#open-edit-profile')).toBeHidden();
 });
 test('complete social profile renders achievements, activity and a safe guestbook on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.route('**/social-profile-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="profile-details"></div>'}));await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export let guestName='';export let session={access_token:'token',user:{id:'viewer'}};export const auth=null;`}));await page.goto('/social-profile-harness');

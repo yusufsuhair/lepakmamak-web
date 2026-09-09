@@ -32,7 +32,7 @@ import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
 import { appearance, type Appearance } from './appearance';
-import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
+import { nameTag, updateNameTagName, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
 import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
@@ -704,11 +704,13 @@ async function init() {
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
   function setAccessories(items: string[]) { for(const model of [player.group,bike.rider,car.driver]) applyAccessories(model,items); }
-  const profileEditor = setupProfileEditor(async () => {
+  const profileEditor = setupProfileEditor(async newName => {
     const token = (await auth?.auth.getSession())?.data.session?.access_token;
     if (token && networkConnected && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'profile-refresh',accessToken:token}));
-    toast('Profile saved', 'Your mamak friends can get to know you better.');
+    if(localName)updateNameTagName(localName,newName);
+    toast('Profile saved', `${newName} is now your display name.`);
   });
+  $('open-edit-profile').textContent = 'Edit profile & display name';
   $('open-edit-profile').onclick = () => profileEditor.open();
   const itemShop = setupShop(setAccessories);
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;});

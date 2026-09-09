@@ -19,26 +19,28 @@ export function renderProfile(container:HTMLElement, profile:PlayerProfile) {
  const guestSection=document.createElement('section');guestSection.className='profile-section profile-guestbook';const head=document.createElement('div'),heading=document.createElement('h4'),countLabel=document.createElement('span');heading.textContent='Guestbook';countLabel.textContent=String(profile.guestbook?.length||0);head.append(heading,countLabel);guestSection.append(head);const entries=document.createElement('div');entries.className='profile-guestbook-list';function appendEntry(entry:NonNullable<PlayerProfile['guestbook']>[number],first=false){const article=document.createElement('article'),meta=document.createElement('div'),author=document.createElement('strong'),time=document.createElement('time'),body=document.createElement('p');author.textContent=entry.author;time.dateTime=entry.createdAt;time.textContent=when(entry.createdAt);body.textContent=entry.text;meta.append(author,time);if(session&&!guestName&&(entry.authorId===session.user.id||profile.id===session.user.id)){const remove=document.createElement('button');remove.type='button';remove.className='profile-guestbook-remove';remove.textContent='Remove';remove.setAttribute('aria-label',`Remove message from ${entry.author}`);remove.onclick=async()=>{remove.disabled=true;try{const response=await fetch(`${base}/profiles/${profile.id}/guestbook/${entry.id}`,{method:'DELETE',headers:{Authorization:`Bearer ${session!.access_token}`}});if(!response.ok){const data=await response.json();throw Error(data.error);}article.remove();countLabel.textContent=String(Math.max(0,Number(countLabel.textContent||0)-1));if(!entries.children.length){const empty=document.createElement('p');empty.className='profile-empty';empty.textContent='Be the first to leave a message.';entries.append(empty);}}catch(error){remove.disabled=false;remove.textContent=error instanceof Error?error.message:'Could not remove';}};meta.append(remove);}article.append(meta,body);if(first)entries.prepend(article);else entries.append(article);}for(const entry of profile.guestbook||[])appendEntry(entry);if(!entries.children.length){const empty=document.createElement('p');empty.className='profile-empty';empty.textContent='Be the first to leave a message.';entries.append(empty);}guestSection.append(entries);
  if(session&&!guestName){const form=document.createElement('form'),input=document.createElement('input'),button=document.createElement('button'),status=document.createElement('small');input.maxLength=160;input.placeholder=profile.id===session.user.id?'Leave a note on your profile…':'Say something nice…';button.type='submit';button.textContent='Write';status.setAttribute('role','status');form.append(input,button,status);form.onsubmit=async event=>{event.preventDefault();const text=input.value.trim();if(!text||!base)return;button.disabled=input.disabled=true;status.textContent='Posting…';try{const response=await fetch(`${base}/profiles/${profile.id}/guestbook`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session!.access_token}`},body:JSON.stringify({text})}),data=await response.json();if(!response.ok)throw Error(data.error);entries.querySelector('.profile-empty')?.remove();appendEntry(data.entry,true);input.value='';countLabel.textContent=String(Number(countLabel.textContent||0)+1);status.textContent='Message added.';}catch(error){status.textContent=error instanceof Error?error.message:'Could not post.';}finally{button.disabled=input.disabled=false;}};guestSection.append(form);}container.append(guestSection);
 }
-export function setupProfileEditor(onSave:()=>Promise<void>) {
+export function setupProfileEditor(onSave:(displayName:string)=>Promise<void>) {
  const dialog=document.createElement('dialog');dialog.id='edit-profile';dialog.setAttribute('aria-labelledby','edit-profile-title');
- dialog.innerHTML='<form><h2 id="edit-profile-title">A little about you.</h2><p>Help your mamak friends get to know you. All fields are optional and visible to other players.</p><div id="profile-fields"></div><p id="profile-save-status" role="status"></p><div class="profile-editor-actions"><button type="submit">Save profile</button><button type="button">Cancel</button></div></form>';
+ dialog.innerHTML='<form><h2 id="edit-profile-title">Edit your profile</h2><p>Your display name appears above your character and in chat. The other details are optional and visible to players.</p><div id="profile-fields"></div><p id="profile-save-status" role="status"></p><div class="profile-editor-actions"><button type="submit">Save profile</button><button type="button">Cancel</button></div></form>';
  const form=dialog.querySelector('form')!, status=dialog.querySelector<HTMLElement>('[role=status]')!, save=form.querySelector<HTMLButtonElement>('[type=submit]')!, cancel=form.querySelector<HTMLButtonElement>('[type=button]')!;
  const inputs=new Map<string,HTMLInputElement|HTMLTextAreaElement>();
+ const nameLabel=document.createElement('label');nameLabel.textContent='Display name';const nameInput=document.createElement('input');nameInput.id='profile-display-name';nameInput.name='displayName';nameInput.minLength=2;nameInput.maxLength=18;nameInput.required=true;nameInput.setAttribute('autocomplete','nickname');nameInput.placeholder='Your name in LepakMamak';nameLabel.htmlFor=nameInput.id;nameLabel.append(nameInput);dialog.querySelector('#profile-fields')!.append(nameLabel);
  for(const field of fields){const label=document.createElement('label');label.textContent=field.label;const input=field.key==='bio'?document.createElement('textarea'):document.createElement('input');input.id=`profile-${field.key}`;input.name=field.key;input.maxLength=field.max;input.placeholder=field.placeholder;label.htmlFor=input.id;label.append(input);inputs.set(field.key,input);dialog.querySelector('#profile-fields')!.append(label);}
  document.body.append(dialog);let busy=false,generation=0,loaded=false;
- function lock(value:boolean){busy=value;save.disabled=cancel.disabled=value;for(const input of inputs.values())input.disabled=value;}
+ function lock(value:boolean){busy=value;save.disabled=cancel.disabled=value;nameInput.disabled=value;for(const input of inputs.values())input.disabled=value;}
  function close(){generation++;dialog.close();}
  cancel.onclick=close;dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();else generation++;});dialog.addEventListener('keydown',event=>event.stopPropagation());
  form.onsubmit=async event=>{
   event.preventDefault();if(busy||!loaded||!auth||!session||guestName)return;
-  const id=session.user.id,attempt=generation;
+  const id=session.user.id,attempt=generation;const displayName=nameInput.value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18);
+  if(displayName.length<2){nameInput.setCustomValidity('Enter at least two characters.');nameInput.reportValidity();return;}nameInput.setCustomValidity('');
   const profile=Object.fromEntries(fields.map(({key,max})=>[key,inputs.get(key)!.value.trim().slice(0,max)]));
   lock(true);status.textContent='Saving…';
   try{
-   const {error}=await auth.auth.updateUser({data:{profile}});if(error)throw error;
+   const {error}=await auth.auth.updateUser({data:{display_name:displayName,profile}});if(error)throw error;
    if(attempt!==generation)return;
    if(session?.user.id!==id||guestName)throw Error('Your session changed. Reopen your profile.');
-   await onSave();close();
+   await onSave(displayName);close();
   }catch(error){if(attempt===generation)status.textContent=error instanceof Error?error.message:'Could not save. Please try again.';}
   finally{lock(false);}
  };
@@ -46,9 +48,10 @@ export function setupProfileEditor(onSave:()=>Promise<void>) {
   if(!auth||!session||guestName)return;
   const id=session.user.id,attempt=++generation;loaded=false;status.textContent='Loading your profile…';lock(true);if(!dialog.open)dialog.showModal();
   try{const {data,error}=await auth.auth.getUser();if(error)throw error;if(attempt!==generation)return;if(data.user?.id!==id||session?.user.id!==id||guestName)throw Error('Please log in again.');
+   nameInput.value=String(data.user.user_metadata?.display_name||'').slice(0,18);
    for(const {key,max} of fields){const value=data.user.user_metadata?.profile?.[key];inputs.get(key)!.value=typeof value==='string'?value.slice(0,max):'';}
    loaded=true;status.textContent='';
   }catch(error){if(attempt===generation)status.textContent=error instanceof Error?error.message:'Could not load profile.';}
-  finally{if(attempt===generation){lock(false);save.disabled=!loaded;inputs.get('bio')!.focus();}}
+  finally{if(attempt===generation){lock(false);save.disabled=!loaded;nameInput.focus();}}
  }};
 }

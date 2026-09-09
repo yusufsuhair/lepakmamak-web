@@ -251,8 +251,9 @@ webSocketServer.on('connection', ws => {
       try {
         const identity = await identify(message.accessToken);
         if (player !== requestingPlayer || identity.userId !== player.userId) return;
-        player.profile = identity.profile;
+        player.profile = identity.profile; player.name = identity.name;
         broadcast(currentRoom.players, { type: 'profile', profile: publicProfile(player), id: player.id });
+        broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       } catch { send(ws, { type: 'notice', message: 'Profile saved to your account. Rejoin to refresh its public card.' }); }
       return;
     }
