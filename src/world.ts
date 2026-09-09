@@ -736,6 +736,33 @@ export function createWorld(scene: THREE.Scene): World {
     sign(tower118,'MERDEKA 118',-8.58,4.3,0,11,1.45,'#394f50','#f2df9c',-Math.PI/2);
     solid(x,z,17,17);mapBuildings.push({x,z,w:17,d:17,color:'#7f9697'});
   }
+  // Saloma Link: raised pedestrian deck with its distinctive illuminated faceted canopy.
+  {
+    const x=55,z=-125,bridge=new THREE.Group();bridge.position.set(x,0,z);group.add(bridge);
+    box(bridge,0,4,0,48,.65,5.2,'#d9d5c4');
+    box(bridge,0,4.38,0,46,.12,4.45,'#466d68');
+    for(const side of [-1,1])box(bridge,0,5.05,side*2.3,48,1.45,.18,'#728b84');
+    for(const bx of [-22,-11,0,11,22]){
+      for(const side of [-1,1])tube(bridge,bx,2,side*2.15,.2,4,'#52665f');
+      const rib=new THREE.Group();rib.position.x=bx;bridge.add(rib);
+      for(const side of [-1,1]){
+        const slope=box(rib,0,7.05,side*1.35,.16,4.7,.16,'#8ce2d0');slope.rotation.x=side*.62;
+        box(rib,0,9.02,0,.18,1.15,.18,'#b4f2de');
+      }
+    }
+    // A crystalline roof made from alternating facets gives the bridge its night-time silhouette.
+    for(let bx=-20;bx<=20;bx+=4){
+      const high=(Math.floor((bx+20)/4)%2===0);
+      for(const side of [-1,1]){
+        const facet=box(bridge,bx,high?8.05:7.55,side*1.25,4.25,.11,3.1,high?'#4fd3c2':'#7ee7d0');
+        facet.rotation.x=side*(high?.4:.28);facet.rotation.z=high?.08:-.08;
+      }
+    }
+    // Short approaches keep the deck readable as a pedestrian bridge from ground level.
+    for(const side of [-1,1])for(let step=0;step<6;step++)box(bridge,side*(24.8+step*1.15),3.65-step*.58,0,2.4,.45,5.2,'#d9d5c4');
+    sign(bridge,'SALOMA LINK',0,6.05,-2.72,10,1.15,'#1b5b55','#d9fff4',Math.PI);
+    solid(x,z,48,5.2);mapBuildings.push({x,z,w:48,d:5.2,color:'#55cdbd'});
+  }
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {

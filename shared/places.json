@@ -194,5 +194,12 @@
     "x": 118,
     "z": -95,
     "kind": "mercu"
+  },
+  {
+    "id": "29",
+    "name": "Jambatan Saloma",
+    "x": 55,
+    "z": -125,
+    "kind": "mercu"
   }
 ]
