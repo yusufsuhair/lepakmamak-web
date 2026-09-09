@@ -70,7 +70,7 @@ export function createParty(send, now = Date.now) {
         const party = partyOf(players, player);
         if (party && (party.leader !== player.id || party.members.size >= PARTY_LIMIT)) return true;
         invites.set(invitee.id, {from: player.id, at: now(), partyId: party?.id || null});
-        send(invitee.ws, {type: 'party-invited', from: {id: player.id, name: player.name}});
+        send(invitee.ws, {type: 'party-invited', inviter: {id: player.id, name: player.name}});
         return true;
       }
 

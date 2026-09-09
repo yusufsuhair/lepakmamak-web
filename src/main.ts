@@ -92,7 +92,7 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-shop" type="button">Kedai · Skins & Accessories</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-wardrobe" type="button">Wardrobe · Change clothes</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button></div>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -233,6 +233,21 @@ async function init() {
   const supermanUntil=()=>Math.max(localSupermanUntil,Number(roomPlayers.find(p=>p.id===networkPlayerId)?.supermanUntil)||0);
   const isSuperman=()=>riding&&!passengerOf&&vehicle==='bike'&&supermanUntil()>Date.now();
   const remotePlayers = new Map<string, RemotePlayer>();
+  let partyMembers = new Set<string>();
+  const partyInvite = document.createElement('aside'); partyInvite.id = 'party-invite'; partyInvite.hidden = true;
+  partyInvite.innerHTML = '<p id="party-invite-text"></p><div><button type="button" id="party-accept">Jom</button><button type="button" id="party-decline">Tak nak</button></div>';
+  let inviteTimer = 0;
+  function answerInvite(type: 'party-accept' | 'party-decline') {
+    window.clearTimeout(inviteTimer); partyInvite.hidden = true;
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type}));
+  }
+  function showPartyInvite(name: string) {
+    partyInvite.querySelector('#party-invite-text')!.textContent = `${name} ajak anda masuk geng.`;
+    partyInvite.hidden = false;
+    // The server drops the invite after a minute; the banner should not outlive it.
+    window.clearTimeout(inviteTimer); inviteTimer = window.setTimeout(() => { partyInvite.hidden = true; }, 60000);
+  }
+  let peerDots: {x: number; z: number; party: boolean}[] = [];
   let afkNote = '';
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
@@ -269,9 +284,9 @@ async function init() {
   $('clear-afk').onclick = () => publishAfk('');
   let localName: THREE.Sprite | null = null;
   const chatPop=setupChatSound();
-  const chat = setupChat(text => {
+  const chat = setupChat((text, channel, to) => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
-    networkSocket.send(JSON.stringify({ type: 'chat', text })); return true;
+    networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
   }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
   let networkPlayerId = '';
@@ -551,6 +566,7 @@ async function init() {
     return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
+    peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!)}));
     roomPlayers = players;
     weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
@@ -661,7 +677,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
+        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; inviter?: {id:string;name:string} };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
@@ -694,6 +710,12 @@ async function init() {
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
+        if (message.type === 'party-state') {
+          partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id));
+          chat.party(message.party?.members || null);
+          voice.party(partyMembers.size > 0);
+        }
+        if (message.type === 'party-invited' && message.inviter) showPartyInvite(message.inviter.name);
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if(message.type==='wall-new'&&message.post)wall.receive(message.post);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
@@ -704,7 +726,12 @@ async function init() {
         if (message.type === 'punch' && message.id && message.id !== networkPlayerId) { const remote = remotePlayers.get(message.id); if (remote) remote.punchUntil = simTime + .38; }
         if (message.type === 'recall' && message.id && message.id !== networkPlayerId) triggerRecall(message.id);
         if (message.type === 'chat' && typeof message.name === 'string' && typeof message.text === 'string') {
-          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, message.id !== networkPlayerId);
+          const own = message.id === networkPlayerId;
+          // A private thread is named after the other person, whichever end sent it.
+          const thread = message.channel === 'dm'
+            ? (own ? {id: message.to as string, name: message.toName as string} : {id: message.id as string, name: message.name as string})
+            : undefined;
+          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all', thread);
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
@@ -961,6 +988,10 @@ async function init() {
   window.addEventListener('blur', () => { keys.clear(); resetStick(); dragging = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocation(); keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');
+  $('hud').append(partyInvite);
+  $('party-accept').onclick = () => answerInvite('party-accept');
+  $('party-decline').onclick = () => answerInvite('party-decline');
+  partyInvite.addEventListener('keydown', event => event.stopPropagation());
   const profile = $<HTMLDialogElement>('player-profile');
   profile.prepend($('close-profile'));
   let selectedName = '', selectedProfileId = '';
@@ -990,6 +1021,11 @@ async function init() {
     $('dance-action').textContent=isDancing()?'Stop dance':'Dance · 10s';
     $<HTMLButtonElement>('dance-action').disabled=!networkConnected||(!isDancing()&&(riding||seated||jumpHeight>0));
     $('superman-action').hidden=object.userData.profileId!==networkPlayerId||!riding||!!passengerOf||vehicle!=='bike';
+    const targetId=object.userData.profileId||'', mine=targetId===networkPlayerId;
+    // You cannot invite yourself, someone already in your geng, or nobody in particular.
+    $('invite-party').hidden=mine||!targetId||!networkConnected||partyMembers.has(targetId)||partyMembers.size>=6;
+    $('message-player').hidden=mine||!targetId||!networkConnected;
+    $('leave-party').hidden=!mine||!partyMembers.size;
     $('superman-action').textContent=isSuperman()?'Stop Superman':'Superman · 6s';
     selectedName = object.userData.profileName; selectedProfileId = object.userData.profileId || '';
     keys.clear(); resetStick(); dragging = false;
@@ -1002,6 +1038,9 @@ async function init() {
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
   function openSelectedProfile() { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; profile.showModal(); $('close-profile').focus(); }
   $('view-profile').onclick = openSelectedProfile;
+  $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-invite',id:selectedProfileId})); };
+  $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
+  $('leave-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-leave'})); };
   $('open-my-profile').onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
   $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
   profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });
@@ -1106,6 +1145,10 @@ async function init() {
     if(expanded){drawPlaceLabels(ctx,mapDirectory.labels,selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'All locations are shown. Tap a map label or directory name to highlight the way.';}
     if (!riding || vehicle !== 'car') { ctx.fillStyle = '#f4a5bf'; ctx.beginPath(); ctx.arc(car.group.position.x, car.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
     if (!riding || vehicle !== 'bike') { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
+    for (const peer of [...peerDots].sort((a, b) => Number(a.party) - Number(b.party))) {
+      ctx.fillStyle = peer.party ? '#ff5a4f' : '#49cfff';
+      ctx.beginPath(); ctx.arc(peer.x, peer.z, expanded ? 3.2 : 2.6, 0, Math.PI * 2); ctx.fill();
+    }
     const arrowSize=expanded?1:1.75;
     ctx.save();ctx.translate(pos.x,pos.z);
     ctx.fillStyle='#173c32aa';ctx.strokeStyle='#dff092';ctx.lineWidth=expanded?1.4:2.3;ctx.beginPath();ctx.arc(0,0,expanded?5:10,0,Math.PI*2);ctx.fill();ctx.stroke();

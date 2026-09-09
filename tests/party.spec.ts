@@ -16,7 +16,7 @@ test('an invite becomes a party only once the other person accepts',()=>{
  const ali=add('ali'), mei=add('mei');
  party.handle(players,ali,{type:'party-invite',id:'mei'});
  expect(ali.partyId).toBeFalsy();
- expect(last('mei','party-invited')?.from.name).toBe('ALI');
+ expect(last('mei','party-invited')?.inviter.name).toBe('ALI');
 
  party.handle(players,mei,{type:'party-accept'});
  expect(mei.partyId).toBeTruthy();

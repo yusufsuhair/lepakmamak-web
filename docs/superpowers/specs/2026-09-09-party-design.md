@@ -19,7 +19,7 @@ that is what feeds the map dots.
 | in | out |
 | --- | --- |
 | `party-invite {id}` | `party-state {party \| null}` → members |
-| `party-accept` / `party-decline` | `party-invited {partyId, from:{id,name}}` → invitee |
+| `party-accept` / `party-decline` | `party-invited {inviter:{id,name}}` → invitee |
 | `party-leave` | |
 
 Rules:
@@ -43,8 +43,8 @@ Two independent scopes, one per existing button, both carried on `voice-state`.
 A listener receives a packet when both sides agree:
 
 ```
-(speaker.scope === 'party' ? sameParty : distance < hearingRadius)
-&& (listener.scope === 'party' ? sameParty : true)
+(speaker.micScope === 'party' ? sameParty : distance < hearingRadius)
+&& (listener.speakerScope === 'party' ? sameParty : true)
 ```
 
 Proximity audio keeps its existing distance curve. Party audio is flat at volume 1.

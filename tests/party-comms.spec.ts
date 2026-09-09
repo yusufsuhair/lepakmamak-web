@@ -40,7 +40,7 @@ test('party chat and private messages reach exactly the right people',async()=>{
 
   ali.ws.send(JSON.stringify({type:'party-invite',id:mei.id}));
   await expect.poll(()=>mei.invited.length).toBe(1);
-  expect(mei.invited[0].from.name).toBe('Ali');
+  expect(mei.invited[0].inviter.name).toBe('Ali');
   mei.ws.send(JSON.stringify({type:'party-accept'}));
   await expect.poll(()=>ali.party.at(-1)?.party?.members?.length).toBe(2);
   expect(sara.party).toHaveLength(0);
@@ -94,7 +94,7 @@ test('party voice crosses the whole city while proximity voice does not',async()
   expect(mei.voice).toHaveLength(0);
 
   // Party scope: the distant member hears at full volume, the neighbour hears nothing more.
-  ali.ws.send(JSON.stringify({type:'voice-state',mic:true,speaker:true,scope:'party'}));
+  ali.ws.send(JSON.stringify({type:'voice-state',mic:true,speaker:true,micScope:'party'}));
   await settle();
   ali.ws.send(JSON.stringify({type:'voice-audio',audio:AUDIO}));
   await expect.poll(()=>mei.voice.length).toBe(1);
@@ -115,7 +115,7 @@ test('a party-only listener stops hearing the street',async()=>{
   ali.ws.send(JSON.stringify({type:'state',x:0,z:0}));
   sara.ws.send(JSON.stringify({type:'state',x:2,z:0}));
   // Sara only wants her party, and she has none, so the street goes quiet for her.
-  sara.ws.send(JSON.stringify({type:'voice-state',mic:true,speaker:true,scope:'party'}));
+  sara.ws.send(JSON.stringify({type:'voice-state',mic:true,speaker:true,speakerScope:'party'}));
   await settle();
   ali.ws.send(JSON.stringify({type:'voice-audio',audio:AUDIO}));
   await settle();

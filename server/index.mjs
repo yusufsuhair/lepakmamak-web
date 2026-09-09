@@ -332,7 +332,8 @@ webSocketServer.on('connection', ws => {
     }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
-      player.voiceScope = message.scope === 'party' ? 'party' : 'all';
+      player.micScope = message.micScope === 'party' ? 'party' : 'all';
+      player.speakerScope = message.speakerScope === 'party' ? 'party' : 'all';
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
     }
@@ -347,9 +348,9 @@ webSocketServer.on('connection', ws => {
         // Both ends have to agree: a party-scoped mouth only reaches the party, and a
         // party-scoped ear only opens for it. Party audio ignores distance entirely.
         const together = party.shares(player, listener);
-        if (player.voiceScope === 'party' ? !together : distance >= voiceConfig.hearingRadius) continue;
-        if (listener.voiceScope === 'party' && !together) continue;
-        const volume = player.voiceScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
+        if (player.micScope === 'party' ? !together : distance >= voiceConfig.hearingRadius) continue;
+        if (listener.speakerScope === 'party' && !together) continue;
+        const volume = player.micScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
         listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume }));
         audience.push(listener.name);
       }

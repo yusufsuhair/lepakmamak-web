@@ -2,10 +2,11 @@ import voiceConfig from '../shared/voice.json';
 
 const micIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
-type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string };
+type VoiceScope = 'all' | 'party';
+type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string; micScope?: VoiceScope; speakerScope?: VoiceScope };
 export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const panel = document.createElement('aside'); panel.id = 'voice-panel'; panel.hidden = true;
-  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><strong id="voice-audience" hidden>No one nearby</strong><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
+  panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><div class="voice-scopes"><button id="mic-scope" type="button" hidden></button><button id="speaker-scope" type="button" hidden></button></div><strong id="voice-audience" hidden>No one nearby</strong><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
   panel.setAttribute('aria-label', 'Your character voice controls');
   panel.addEventListener('keydown', event => event.stopPropagation());
@@ -15,6 +16,20 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   const status = panel.querySelector<HTMLElement>('#voice-status')!;
   const audience = panel.querySelector<HTMLElement>('#voice-audience')!;
   let online = false, mic = false, speaker = false, generation = 0, busy = false;
+  let micScope: VoiceScope = 'all', speakerScope: VoiceScope = 'all', inParty = false;
+  const micScopeButton = panel.querySelector<HTMLButtonElement>('#mic-scope')!;
+  const speakerScopeButton = panel.querySelector<HTMLButtonElement>('#speaker-scope')!;
+  function renderScopes() {
+    // Without a party there is no second audience to choose between.
+    micScopeButton.hidden = !inParty; speakerScopeButton.hidden = !inParty;
+    micScopeButton.textContent = micScope === 'party' ? 'Cakap: GENG' : 'Cakap: SEMUA';
+    speakerScopeButton.textContent = speakerScope === 'party' ? 'Dengar: GENG' : 'Dengar: SEMUA';
+    micScopeButton.setAttribute('aria-label', micScope === 'party' ? 'Speaking to your party only' : 'Speaking to everyone nearby');
+    speakerScopeButton.setAttribute('aria-label', speakerScope === 'party' ? 'Hearing your party only' : 'Hearing everyone nearby');
+    micScopeButton.dataset.scope = micScope; speakerScopeButton.dataset.scope = speakerScope;
+  }
+  micScopeButton.onclick = () => { micScope = micScope === 'party' ? 'all' : 'party'; renderScopes(); announce(); };
+  speakerScopeButton.onclick = () => { speakerScope = speakerScope === 'party' ? 'all' : 'party'; renderScopes(); announce(); };
   let context: AudioContext | undefined, stream: MediaStream | undefined, input: MediaStreamAudioSourceNode | undefined, capture: AudioWorkletNode | undefined;
   let moduleReady: Promise<void> | undefined;
   let output: GainNode | undefined;
@@ -30,7 +45,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
     speakerButton.title = speaker ? 'Speakers on' : 'Speakers off';
     speakerButton.setAttribute('aria-pressed', String(speaker));
   }
-  function announce() { send({ type: 'voice-state', mic, speaker }); render(); }
+  function announce() { send({ type: 'voice-state', mic, speaker, micScope, speakerScope }); render(); renderScopes(); }
   async function audioContext() {
     if (!context) {
       context = new AudioContext({ latencyHint: 'interactive' });
@@ -88,6 +103,13 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   render();
   return {
     get micActive(){return mic;},
+    party(value: boolean) {
+      if (inParty === value) return;
+      inParty = value;
+      // Leaving the geng must not leave you muted to a party that no longer exists.
+      if (!value) { micScope = 'all'; speakerScope = 'all'; announce(); }
+      renderScopes();
+    },
     connected(value: boolean) {
       online = value;
       if (!value) { stopMic(); speaker = false; if (output) output.gain.value = 0; stopPlayback(); status.textContent = 'Voice offline · Re-enable after reconnecting'; }
