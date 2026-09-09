@@ -933,6 +933,10 @@ async function init() {
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if(wall.opened){if(event.code==='Escape'){event.preventDefault();wall.close();}return;}
     if (profile.open || tableSocial.opened || streetStalls.opened) return;
+    // Enter is the chat key, the way it is in every other game. The guard above already
+    // excluded every open modal, and this listener bails on input targets, so a second
+    // Enter lands on the composer's own form rather than reopening it.
+    if (event.code === 'Enter' && started && !paused && !cityMap.open) { event.preventDefault(); chat.open(); return; }
     if (event.code === 'KeyM' && started && !paused && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); if (!event.repeat) setMap(!cityMap.open); return; }
     if (cityMap.open && event.code === 'Escape') { event.preventDefault(); setMap(false); return; }
     if (event.code === 'Escape') { event.preventDefault(); setPause(!paused); return; }

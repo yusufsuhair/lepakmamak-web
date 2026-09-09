@@ -81,7 +81,7 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
 
 export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><form id="chat-form"><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" required autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-messages" role="log" aria-live="polite" aria-label="City chat messages"></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const input = panel.querySelector<HTMLInputElement>('input')!;
   const messages = panel.querySelector<HTMLElement>('#chat-messages')!;
@@ -90,18 +90,28 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
   const body = panel.querySelector<HTMLElement>('#chat-body')!;
   const toggleLabel = panel.querySelector<HTMLElement>('#chat-toggle-label')!;
   const unreadBadge = panel.querySelector<HTMLElement>('#chat-unread-badge')!;
-  let collapsed = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches, unread = 0;
+  const form = panel.querySelector<HTMLFormElement>('#chat-form')!;
+  const compose = panel.querySelector<HTMLButtonElement>('#chat-compose')!;
+  const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
+  compose.textContent = coarse ? '' : 'Click or press enter to type';
+  let collapsed = false, composing = false, unread = 0;
   try { const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true'; } catch { /* Preference storage is optional. */ }
   function render() {
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
+    form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
     toggleLabel.textContent = collapsed ? '＋' : '−';
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
   }
   function expand() { collapsed = false; unread = 0; render(); messages.scrollTop = messages.scrollHeight; }
+  // Enter (or a tap on the pill) is the only way in; sending or Escape is the way out.
+  function openComposer() { if (collapsed) expand(); composing = true; render(); input.focus(); }
+  function closeComposer() { composing = false; render(); input.blur(); }
+  compose.onclick = openComposer;
+  compose.onkeydown = event => event.stopPropagation();
   heading.onclick = () => {
-    if (collapsed) expand(); else { collapsed = true; input.blur(); render(); }
+    if (collapsed) expand(); else { collapsed = true; composing = false; input.blur(); render(); }
     try { localStorage.setItem('lepak-chat-collapsed', String(collapsed)); } catch { /* Keep working without storage. */ }
   };
   heading.onkeydown = event => event.stopPropagation();
@@ -111,14 +121,16 @@ export function setupChat(send: (text: string) => boolean, focus: () => void) {
     if (document.activeElement === input && event.target instanceof Element && event.target.closest('button')) event.preventDefault();
   });
   input.onfocus = focus;
-  input.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') input.blur(); };
+  input.onkeydown = e => { e.stopPropagation(); if (e.key === 'Escape') closeComposer(); };
   panel.querySelector('form')!.onsubmit = e => {
-    e.preventDefault(); const text = input.value.trim(); if (!text) return;
-    if (send(text)) { input.value = ''; status.textContent = 'Visible to everyone in this city'; }
+    e.preventDefault(); const text = input.value.trim();
+    // An empty Enter dismisses the composer instead of sending nothing.
+    if (!text) { closeComposer(); return; }
+    if (send(text)) { input.value = ''; status.textContent = 'Visible to everyone in this city'; closeComposer(); }
     else status.textContent = 'Reconnecting — your message was not sent. Try again when online.';
   };
   return {
-    open() { expand(); input.focus(); },
+    open() { openComposer(); },
     status(online: boolean) { status.textContent = online ? 'Visible to everyone in this city' : 'Connecting to the city…'; },
     history(history: {name:string;text:string;sentAt?:string;gameMaster?:boolean}[]) {
       messages.replaceChildren(); unread = 0;

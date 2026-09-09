@@ -18,7 +18,7 @@ test('restored chat history replaces stale rows, keeps timestamps and does not c
  await expect(page.locator('#chat-messages p')).toHaveCount(2);
  await expect(page.locator('#chat-messages')).not.toContainText('Not from this room');
  await expect(page.locator('#chat-messages')).toContainText('Ali: Assalamualaikum');
- await expect(page.locator('#chat-heading')).toHaveAttribute('aria-label','Expand city chat');
+ await expect(page.locator('#chat-heading')).toHaveAttribute('aria-label','Collapse city chat');
 });
 
 test('verified Game Master messages have a compact gold banner in live and restored chat',async({page})=>{
