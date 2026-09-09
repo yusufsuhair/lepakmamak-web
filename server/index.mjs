@@ -209,7 +209,7 @@ webSocketServer.on('connection', ws => {
       let room = roomFor(message.room);
       const previous = identity.userId ? accountConnections.get(identity.userId) : null;
       const replacingInRoom = previous?.room.name === room.name ? 1 : 0;
-      if (room.players.size - replacingInRoom >= maxPlayers) { send(ws, { type: 'error', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
+      if (room.players.size - replacingInRoom >= maxPlayers) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
       if (previous) {
         send(previous.ws, { type: 'error', code: 'SESSION_REPLACED', message: 'Your account joined from another tab or device. This session has ended.' });
         previous.ws.close(4002, 'Session replaced');
