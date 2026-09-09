@@ -964,7 +964,7 @@ async function init() {
 
   let selectedMapPlace='';
   let teleportPending=false;
-  const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.id='map-teleport';teleportButton.textContent='Teleport · Select a place on the map';teleportButton.disabled=true;
+  const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.id='map-teleport';teleportButton.textContent='Teleport';teleportButton.title='Select a place on the map first';teleportButton.disabled=true;
   const teleportBar=document.createElement('div');teleportBar.className='map-teleport-bar';teleportBar.append(teleportButton);$('map-place-info').before(teleportBar);
   function finishTeleport(id:string){
     const destination=teleports.find(p=>p.id===id);if(!destination)return;
@@ -988,7 +988,9 @@ async function init() {
   const overview=createMapOverview(scene,expandedCanvas,selectMapPlace);
   const viewControls=document.createElement('div');viewControls.className='map-view-controls';viewControls.setAttribute('role','group');viewControls.setAttribute('aria-label','Map view');
   for(const mode of ['2d','3d'] as const){const button=document.createElement('button');button.type='button';button.textContent=mode.toUpperCase();button.setAttribute('aria-pressed',String(mode===mapMode));button.onclick=()=>{mapMode=mode;expandedCanvas.dataset.mode=mode;document.querySelector('.city-map-hint')!.textContent=mode==='3d'?'Angled city overview · Numbered pins match the directory.':'N ↑ · On mobile, swipe the map to explore.';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));drawMap(true);};viewControls.append(button);}
-  $('map-place-info').before(viewControls);
+  const mapViewport=document.querySelector<HTMLElement>('.city-map-viewport')!;
+  const mapFrame=document.createElement('div');mapFrame.className='map-frame';mapViewport.before(mapFrame);mapFrame.append(mapViewport);
+  const mapToolbar=document.createElement('div');mapToolbar.className='map-toolbar';mapToolbar.append(viewControls,teleportBar);mapFrame.append(mapToolbar);
   expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
 
   function drawMap(expanded = false) {
