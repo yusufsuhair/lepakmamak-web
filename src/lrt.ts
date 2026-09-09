@@ -1,8 +1,20 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {box,material} from './world';
 import {stations,trackPoint,trackLength,trainState,railHeight} from '../shared/lrt.mjs';
 import type {Solid} from './physics';
 import './lrt.css';
+
+function batchStatic(group:THREE.Group,dynamic:THREE.Object3D[]=[]){
+ group.updateMatrixWorld(true);const inverse=group.matrixWorld.clone().invert(),batches=new Map<THREE.Material,THREE.BufferGeometry[]>(),sources:THREE.Mesh[]=[];
+ group.traverse(obj=>{if(!(obj instanceof THREE.Mesh)||Array.isArray(obj.material)||obj.material instanceof THREE.MeshBasicMaterial)return;
+  for(let parent:THREE.Object3D|null=obj;parent&&parent!==group;parent=parent.parent)if(dynamic.includes(parent))return;
+  const geometry=obj.geometry.clone().applyMatrix4(inverse.clone().multiply(obj.matrixWorld));
+  if(!batches.has(obj.material))batches.set(obj.material,[]);batches.get(obj.material)!.push(geometry);sources.push(obj);
+ });
+ for(const mesh of sources)mesh.removeFromParent();
+ for(const [mat,geometries] of batches){const merged=mergeGeometries(geometries);if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.receiveShadow=true;group.add(mesh);}geometries.forEach(g=>g.dispose());}
+}
 
 function label(parent:THREE.Group,text:string,x:number,y:number,z:number,w:number,h:number){
  const c=document.createElement('canvas');c.width=768;c.height=128;const ctx=c.getContext('2d')!;
@@ -30,7 +42,7 @@ export function createLrt(scene:THREE.Scene,solids:Solid[]){
   solids.push({x:p.x+Math.cos(p.yaw)*11.8,z:p.z-Math.sin(p.yaw)*11.8,hx:Math.abs(Math.cos(p.yaw))*1.15+Math.abs(Math.sin(p.yaw))*1.75,hz:Math.abs(Math.sin(p.yaw))*1.15+Math.abs(Math.cos(p.yaw))*1.75});
   const ground=label(g,`LRT ${String(index+1).padStart(2,'0')} · ${station.name}`,9,3.8,0,7,1.1);ground.rotation.y=Math.PI/2;
   label(g,`Rapid KL  ·  ${station.name}`,4.9,railHeight+3.1,0,5.3,.8).rotation.y=Math.PI/2;
-  return g;
+  batchStatic(g);return g;
  });
  const trains=[0,1].map(id=>Array.from({length:4},(_,i)=>{
   const g=new THREE.Group();g.name=`LRT ${id+1} coach ${i+1}`;scene.add(g);
@@ -49,7 +61,7 @@ export function createLrt(scene:THREE.Scene,solids:Solid[]){
    label(g,'Rapid KL',0,1.4,front*5.99,2.6,.48);label(g,'LRT · LEPAK LOOP',0,3.48,front*6,2.9,.3);
    for(const side of [-1,1])box(g,side*1.25,1,front*5.99,.4,.17,.1,i===0?'#fff3bc':'#eb4c4c');
   }else box(g,0,1.6,6,1.8,2.1,.7,'#414b50');
-  return{g,roof,doors};
+  batchStatic(g,[roof,...doors]);return{g,roof,doors};
  }));
  return {update(now:number,viewer:{x:number;z:number},aboard:number|null){
   stationGroups.forEach(g=>g.visible=Math.hypot(g.position.x-viewer.x,g.position.z-viewer.z)<145);
