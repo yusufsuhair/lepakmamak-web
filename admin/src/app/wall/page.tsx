@@ -1,5 +1,6 @@
 import { adminClient } from "@/lib/supabase";
 import { listWallPosts } from "@/lib/wall";
+import { removePost } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default async function WallPage() {
               <audio controls preload="metadata" src={post.mediaUrl} />
             </div>
           )}
+          <form action={removePost}>
+            <input type="hidden" name="postId" value={post.id} />
+            <button type="submit" style={{ marginTop: 8, color: "#a13f31" }}>Delete post</button>
+          </form>
         </article>
       ))}
     </main>

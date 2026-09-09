@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {listWallPosts} from '../src/lib/wall';
+import {listWallPosts,deleteWallPost} from '../src/lib/wall';
 
 function fakeClient(rows:any[]){
  return {
@@ -25,4 +25,40 @@ test('an audio post resolves mediaType and mediaUrl',async()=>{
  ]);
  const posts=await listWallPosts(client);
  expect(posts[0]).toMatchObject({mediaType:'audio',mediaPath:'u3/note.webm',mediaUrl:'https://cdn.test/u3/note.webm'});
+});
+
+function deleteHarness(post:any){
+ const removed:string[]=[], audits:any[]=[]; let deleted=false;
+ const client:any={
+  from(table:string){
+   if(table==='admin_audit_log')return{insert:async(value:any)=>{audits.push(value);return{error:null};}};
+   return{
+    select(){return{eq(){return{single:async()=>post?{data:post,error:null}:{data:null,error:{message:'missing'}}};}};},
+    delete(){return{eq:async()=>{deleted=true;return{error:null};}};},
+   };
+  },
+  storage:{from(){return{remove:async(paths:string[])=>{removed.push(...paths);return{error:null};}};}},
+ };
+ return {client,removed,audits,wasDeleted:()=>deleted};
+}
+
+test('deleting a post removes its row, its stored file and writes an audit entry',async()=>{
+ const h=deleteHarness({id:'p1',user_id:'u1',author_name:'Aina',media_path:'u1/x.png'});
+ await deleteWallPost(h.client,'p1','yusufmohdsuhair@gmail.com');
+ expect(h.wasDeleted()).toBe(true);
+ expect(h.removed).toEqual(['u1/x.png']);
+ expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'yusufmohdsuhair@gmail.com'});
+});
+
+test('a text-only post deletes without touching storage',async()=>{
+ const h=deleteHarness({id:'p2',user_id:'u1',author_name:'Aina',media_path:null});
+ await deleteWallPost(h.client,'p2','yusufmohdsuhair@gmail.com');
+ expect(h.wasDeleted()).toBe(true);
+ expect(h.removed).toEqual([]);
+});
+
+test('deleting a post that does not exist throws and writes no audit entry',async()=>{
+ const h=deleteHarness(null);
+ await expect(deleteWallPost(h.client,'nope','yusufmohdsuhair@gmail.com')).rejects.toThrow();
+ expect(h.audits).toEqual([]);
 });
