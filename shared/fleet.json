@@ -1,0 +1,222 @@
+[
+  {
+    "id": "traffic-0",
+    "style": "axia",
+    "x": -4,
+    "z": -142,
+    "axis": "z",
+    "direction": -1,
+    "speed": 5,
+    "npc": true
+  },
+  {
+    "id": "traffic-1",
+    "style": "myvi",
+    "x": 4,
+    "z": -86,
+    "axis": "z",
+    "direction": 1,
+    "speed": 6,
+    "npc": true
+  },
+  {
+    "id": "traffic-2",
+    "style": "avanza",
+    "x": -4,
+    "z": -30,
+    "axis": "z",
+    "direction": -1,
+    "speed": 7,
+    "npc": true
+  },
+  {
+    "id": "traffic-3",
+    "style": "vellfire",
+    "x": 80,
+    "z": 26,
+    "axis": "z",
+    "direction": 1,
+    "speed": 5,
+    "npc": true
+  },
+  {
+    "id": "traffic-4",
+    "style": "suv",
+    "x": 72,
+    "z": 82,
+    "axis": "z",
+    "direction": -1,
+    "speed": 6,
+    "npc": true
+  },
+  {
+    "id": "traffic-5",
+    "style": "sport",
+    "x": 80,
+    "z": 138,
+    "axis": "z",
+    "direction": 1,
+    "speed": 7,
+    "npc": true
+  },
+  {
+    "id": "traffic-6",
+    "style": "ferrari",
+    "x": -138,
+    "z": 82,
+    "axis": "x",
+    "direction": -1,
+    "speed": 5,
+    "npc": true
+  },
+  {
+    "id": "traffic-7",
+    "style": "lamborghini",
+    "x": -86,
+    "z": 74,
+    "axis": "x",
+    "direction": 1,
+    "speed": 6,
+    "npc": true
+  },
+  {
+    "id": "traffic-8",
+    "style": "f1",
+    "x": -34,
+    "z": 82,
+    "axis": "x",
+    "direction": -1,
+    "speed": 7,
+    "npc": true
+  },
+  {
+    "id": "traffic-9",
+    "style": "model-y",
+    "x": 18,
+    "z": 74,
+    "axis": "x",
+    "direction": 1,
+    "speed": 5,
+    "npc": true
+  },
+  {
+    "id": "traffic-10",
+    "style": "cybertruck",
+    "x": 70,
+    "z": 82,
+    "axis": "x",
+    "direction": -1,
+    "speed": 6,
+    "npc": true
+  },
+  {
+    "id": "traffic-11",
+    "style": "axia",
+    "x": 122,
+    "z": 74,
+    "axis": "x",
+    "direction": 1,
+    "speed": 7,
+    "npc": true
+  },
+  {
+    "id": "parked-0",
+    "style": "myvi",
+    "x": -146,
+    "z": 134,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-1",
+    "style": "axia",
+    "x": -141.2,
+    "z": 134,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-2",
+    "style": "vellfire",
+    "x": -136.4,
+    "z": 134,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-3",
+    "style": "avanza",
+    "x": -131.6,
+    "z": 134,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-4",
+    "style": "suv",
+    "x": -126.8,
+    "z": 134,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-5",
+    "style": "model-y",
+    "x": -146,
+    "z": 142,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-6",
+    "style": "cybertruck",
+    "x": -141.2,
+    "z": 142,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-7",
+    "style": "myvi",
+    "x": -136.4,
+    "z": 142,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-8",
+    "style": "axia",
+    "x": -131.6,
+    "z": 142,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  },
+  {
+    "id": "parked-9",
+    "style": "vellfire",
+    "x": -126.8,
+    "z": 142,
+    "axis": "z",
+    "direction": 1,
+    "speed": 0,
+    "npc": false
+  }
+]

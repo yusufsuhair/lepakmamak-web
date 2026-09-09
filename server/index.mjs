@@ -1,4 +1,5 @@
 import {createWeather} from './weather.mjs';
+import {createFleet} from './fleet.mjs';
 import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import { createUno } from './uno.mjs';
@@ -113,12 +114,15 @@ function broadcast(players, message) {
   const payload = JSON.stringify(message);
   for (const player of players.values()) {
     if (player.ws.readyState !== 1) continue;
+    if(message.type==='fleet'&&player.ws.bufferedAmount>=65536)continue;
     if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { dirtyRooms.add(players); continue; }
     player.ws.send(payload);
   }
 }
 
 const weather=createWeather();
+const fleet=createFleet(send,broadcast);
+setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
 const server = http.createServer(async (request, response) => {
   if(request.url==='/weather' && request.method==='GET'){
@@ -163,6 +167,7 @@ webSocketServer.on('connection', ws => {
   function removePlayer() {
     clearTimeout(joinTimeout);
     if (!player || !currentRoom) return;
+    fleet.release(currentRoom.players,player);
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
     currentRoom.players.delete(player.id);
@@ -230,6 +235,7 @@ webSocketServer.on('connection', ws => {
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
       weatherControls.sync(room.players,ws);
+      fleet.sync(room.players,ws);
       send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
@@ -238,6 +244,7 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if(fleet.handle(currentRoom.players,player,message))return;
     if(handleStall(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if (message.type === 'profile-view') {
       if (Date.now() - lastProfileViewAt < 250) return;
@@ -354,12 +361,15 @@ webSocketServer.on('connection', ws => {
       if (now - lastStateAt < 35) return;
       lastStateAt = now;
       if (player.passengerOf || player.chairId || (player.danceUntil||0)>Date.now()) return;
+      if(player.fleetId&&message.fleetId!==player.fleetId)return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
+      fleet.updatePlayer(currentRoom.players,player);
+      if(!player.fleetId)player.carStyle='myvi';
       if (!player.riding || player.vehicle !== 'bike') player.supermanUntil = 0;
       player.seated = false; // Only chair-sit can claim a seat.
       player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);

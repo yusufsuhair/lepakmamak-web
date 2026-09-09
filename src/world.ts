@@ -1,4 +1,5 @@
 import quietTables from '../shared/quiet-tables.json';
+import fleetSeeds from '../shared/fleet.json';
 import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
 import * as THREE from 'three';
@@ -409,7 +410,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   return { group, wheels, driver: driver.group };
 }
 
-export interface TrafficCar { group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
+export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
 export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }
 
@@ -921,7 +922,7 @@ export function createWorld(scene: THREE.Scene): World {
     for(const x of [-12,-8,8,12]){box(r,x,.5,12.5,2.4,1,1.4,'#4b5040');ball(r,x,1.3,12.5,.9,'#55774c');}
     solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
     // Parked Malaysian cars and premium MPVs leave the central approach open.
-    for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;const car=createDriveableCar((['myvi','axia','vellfire','avanza','suv','model-y','cybertruck'] as CarStyle[])[i%7]);car.group.position.set(x,.1,z);group.add(car.group);solid(x,z,2.8,5.6);box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
+    for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
     for(const x of [-147,-94])palm(group,x,119,.8);
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
@@ -998,15 +999,13 @@ export function createWorld(scene: THREE.Scene): World {
   }
 
   const traffic: TrafficCar[] = [];
-  for (let i = 0; i < 12; i++) {
-    const model = createDriveableCar(carStyles[i % carStyles.length]);
+  for (const seed of fleetSeeds) {
+    const model = createDriveableCar(seed.style as CarStyle);
     const car = model.group; car.userData.wheels = model.wheels;
-    const direction = i % 2 ? 1 : -1;
-    const axis = i < 6 ? 'z' : 'x';
-    const x = axis === 'z' ? (i < 3 ? 0 : 76) + direction * 4 : -138 + (i - 6) * 52;
-    const z = axis === 'z' ? -142 + i * 56 : 78 - direction * 4;
+    const {direction,x,z}=seed; const axis=seed.axis as 'x'|'z';
     car.position.set(x, 0, z); car.rotation.y = axis === 'z' ? direction < 0 ? Math.PI : 0 : direction > 0 ? Math.PI / 2 : -Math.PI / 2;
-    scene.add(car); traffic.push({ group: car, x, z, speed: 5 + i % 3, axis, direction });
+    model.driver.visible=seed.npc;
+    scene.add(car); traffic.push({ id:seed.id,model,owner:null,npc:seed.npc,yaw:car.rotation.y,group: car, x, z, speed:seed.speed, axis, direction });
   }
   const pedestrians: Pedestrian[] = [];
   // Keep the restaurant crowd outside the static batches so their limbs can animate.

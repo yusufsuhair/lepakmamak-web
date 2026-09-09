@@ -29,7 +29,7 @@ import vehicleSeats from '../shared/vehicle-seats.json';
 import { savedLook, setupWardrobe } from './wardrobe';
 import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
-import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance } from './world';
+import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -151,7 +151,19 @@ async function init() {
   const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
-  const car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
+  let car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
+  const personalCar=car;
+  let fleetId:string|null=null, claimPendingUntil=0;
+  const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;audio:HTMLAudioElement}[]=[];
+  function angryDriver(x:number,z:number,heading:number){
+    if(!started||Math.hypot(pos.x-x,pos.z-z)>35)return;
+    const npc=createPerson('#ef734c');
+    const exit=safeDismount(new THREE.Vector3(x,.12,z),heading,world.solids,3);
+    npc.group.position.set(exit?.x??x,.12,exit?.z??z);scene.add(npc.group);
+    const audio=new Audio('/audio/angry-driver.wav');audio.volume=0;
+    angryDrivers.push({person:npc,until:simTime+8,audio});
+    if(audioEnabled)void audio.play().catch(()=>{});
+  }
   let vehicle: 'bike' | 'car' = 'bike';
   let passengerOf: string | null = null;
   let passengerSeat = 0;
@@ -194,7 +206,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { supermanUntil?:number; danceUntil?:number; snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -544,6 +556,12 @@ async function init() {
       setAfkBubble(remote.id, remote.afkNote || '');
       let entity = remotePlayers.get(remote.id);
       if (!entity) { entity = makeRemotePlayer(remote); remotePlayers.set(remote.id, entity); }
+      const style=remote.carStyle&&carStyles.includes(remote.carStyle)?remote.carStyle:'myvi';
+      if(entity.car.group.userData.model!==style){
+        const cache:Map<string,ReturnType<typeof createDriveableCar>>=entity.group.userData.carCache??=new Map();
+        cache.set(entity.car.group.userData.model,entity.car);entity.car.group.removeFromParent();
+        entity.car=cache.get(style)??createDriveableCar(style);entity.group.add(entity.car.group);entity.car.driver.visible=true;entity.group.userData.lookKey=null;
+      }
       const lookKey = JSON.stringify(remote.appearance);
       if (entity.group.userData.lookKey !== lookKey) {
         applyAppearance(entity.person.group, remote.appearance); applyAppearance(entity.bike.rider, remote.appearance); applyAppearance(entity.car.driver, remote.appearance);
@@ -621,8 +639,16 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
+        let message: { cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
+        if(message.type==='fleet'&&message.cars){for(const state of message.cars){const item=world.traffic.find(c=>c.id===state.id);if(item)Object.assign(item,state);}}
+        if(message.type==='car-angry')angryDriver(message.x!,message.z!,message.yaw!);
+        if(message.type==='car-claimed'&&message.car){
+          const item=world.traffic.find(c=>c.id===message.car!.id);claimPendingUntil=0;
+          if(item){car.driver.visible=false;car=item.model;fleetId=item.id;item.owner=networkPlayerId;
+            vehicle='car';riding=true;player.group.visible=false;car.group.visible=true;car.driver.visible=true;applyAppearance(car.driver,savedLook());
+            pos.set(message.car.x,.12,message.car.z);yaw=message.car.yaw;car.group.position.copy(pos);car.group.rotation.y=yaw;speed=0;orbit=0;keys.clear();resetStick();chime();}
+        }
         if(message.type==='teleported'&&message.id)finishTeleport(message.id);
         if(message.type==='teleport-denied'){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
@@ -679,7 +705,7 @@ async function init() {
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
     if (networkSocket.bufferedAmount >= 16384) return;
-    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated, vehicle });
+    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, yaw, riding, speed, jumpHeight, seated, vehicle, fleetId });
     if (state === lastNetworkState && networkIdleTimer < .5) return;
     lastNetworkState = state; networkIdleTimer = 0; networkSocket.send(state);
   }
@@ -774,6 +800,7 @@ async function init() {
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
+  function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
@@ -782,7 +809,9 @@ async function init() {
     if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
     const chair = nearbyChair();
     if (chair) return { point: chair, height: 1.3, label: chairOccupied(chair.id) ? 'Occupied' : 'Sit', disabled: chairOccupied(chair.id) };
-    const vehiclePoint = distanceTo(car.group.position) < distanceTo(bike.group.position) ? car.group.position : bike.group.position;
+    const trafficCar=nearbyCar();
+    if(trafficCar)return {point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
+    const vehiclePoint = distanceTo(personalCar.group.position) < distanceTo(bike.group.position) ? personalCar.group.position : bike.group.position;
     if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
     return null;
   }
@@ -801,7 +830,9 @@ async function init() {
       if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
       riding = false; localSupermanUntil=0; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; car.driver.visible = false; return;
     }
-    if (distanceTo(car.group.position) < 3.8 && distanceTo(car.group.position) < distanceTo(bike.group.position)) { localSupermanUntil=0; vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
+    const trafficCar=nearbyCar();
+    if(trafficCar){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN&&performance.now()>=claimPendingUntil){claimPendingUntil=performance.now()+2000;networkSocket.send(JSON.stringify({type:'car-claim',id:trafficCar.id}));}return;}
+    if (distanceTo(personalCar.group.position) < 3.8 && distanceTo(personalCar.group.position) < distanceTo(bike.group.position)) { car=personalCar;fleetId=null;localSupermanUntil=0; vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
     if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
   $('open-wardrobe').onclick = setupWardrobe(look => {
@@ -1104,18 +1135,25 @@ async function init() {
       for (const wheel of iceCreamBike.userData.wheels as THREE.Mesh[]) wheel.rotation.x += vendorSpeed * dt / .45;
       iceCreamSolid.x = vendorX; iceCreamSolid.z = vendorZ;
 
-      for (const car of world.traffic) {
-        const coordinate = car.axis; const old = car[coordinate];
-        const ahead = new THREE.Vector3(car.x, 0, car.z); ahead[coordinate] += car.direction * 5;
-        const nearPlayer = (started && Math.hypot(ahead.x - pos.x, ahead.z - pos.z) < 3.6) || Math.hypot(ahead.x - vendorX, ahead.z - vendorZ) < 4;
-        // Stagger crossing traffic and stop before entering the player's space.
-        const crossing = car.axis === 'x' && Math.abs(car.x) < 13 && Math.abs(car.x) > 8 && Math.sin(simTime * .2) < 0;
-        if (!nearPlayer && !crossing) car[coordinate] += car.speed * car.direction * dt;
-        if (car[coordinate] > 150) car[coordinate] = -150; if (car[coordinate] < -150) car[coordinate] = 150;
-        if (started && Math.hypot(car.x - pos.x, car.z - pos.z) < 2.5) car[coordinate] = old;
-        car.group.visible = Math.hypot(car.x - pos.x, car.z - pos.z) < 100;
-        car.group.position.set(car.x, 0, car.z);
-        for (const wheel of (car.group.userData.wheels || []) as THREE.Group[]) wheel.rotation.x += Math.abs(car[coordinate] - old) / .36;
+      for (const item of world.traffic) {
+        if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;
+        item.group.visible=!item.owner&&Math.hypot(item.x-pos.x,item.z-pos.z)<100;
+        item.model.driver.visible=item.npc;
+        const distance=item.group.position.distanceTo(new THREE.Vector3(item.x,.12,item.z));
+        if(distance>20)item.group.position.set(item.x,.12,item.z);
+        else item.group.position.lerp(new THREE.Vector3(item.x,.12,item.z),1-Math.exp(-14*dt));
+        item.group.rotation.y=item.yaw;
+        for(const wheel of item.model.wheels)wheel.rotation.x+=Math.min(distance,1)*dt*14/.36;
+      }
+      for(let i=angryDrivers.length-1;i>=0;i--){
+        const actor=angryDrivers[i],npc=actor.person,left=actor.until-simTime;
+        if(left<=0||!started){actor.audio.pause();npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
+        const distance=distanceTo(npc.group.position);
+        actor.audio.volume=audioEnabled?Math.max(0,1-distance/25)*.45:0;
+        npc.group.rotation.y=Math.atan2(pos.x-npc.group.position.x,pos.z-npc.group.position.z);
+        npc.leftArm.rotation.x=-1.7+Math.sin(simTime*15)*.3;npc.rightArm.rotation.x=-1.4+Math.cos(simTime*13)*.35;
+        npc.group.position.y=.12+Math.abs(Math.sin(simTime*8))*.08;
+        npc.group.scale.setScalar(Math.min(1,left));
       }
       for (const ped of world.pedestrians) {
         const t = simTime * .12 + ped.phase;
@@ -1145,10 +1183,10 @@ async function init() {
     if (active) {
       const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
       const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
-      const dynamicSolids: Solid[] = world.traffic.map(car => ({ x: car.x, z: car.z, hx: car.axis === 'z' ? 1 : 1.9, hz: car.axis === 'z' ? 1.9 : 1 }));
+      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => ({ x: c.x, z: c.z, hx: 1.2+Math.abs(Math.sin(c.yaw))*1.1, hz: 1.2+Math.abs(Math.cos(c.yaw))*1.1 }));
       const solids = [...world.solids, ...dynamicSolids];
       if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
-      if (!riding || vehicle !== 'car') solids.push({ x: car.group.position.x, z: car.group.position.z, hx: 1.8, hz: 1.8 });
+      if (!riding || vehicle !== 'car'||car!==personalCar) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
       if (passengerOf) {
         const driver = remotePlayers.get(passengerOf);
         if (driver) {
