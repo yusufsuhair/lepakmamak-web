@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.16.0",
+  "date": "2026-09-10",
+  "title": "Security: tukar kata laluan, padam akaun",
+  "notes": [
+   "Settings has a Security panel now. You can change your password there — it asks for your current one first, so a browser somebody left open cannot lock you out of your own account.",
+   "You can also delete your account. It removes your account, your items, your posts, your guestbook entries and your messages, and it cannot be undone, so you have to type DELETE to confirm. Guests do not see the panel; there is no account to change."
+  ]
+ },
+ {
   "version": "1.15.0",
   "date": "2026-09-10",
   "title": "Hujan boleh dibuka balik, tetapan senang dicapai",
