@@ -24,3 +24,11 @@ test('first visit celebrates, revisit stays quiet',async({page})=>{
  await expect(page.locator('#location-arrival')).toHaveClass('known visible');
  await expect(page.locator('#location-arrival small')).toHaveText('Hangout');
 });
+
+test('game setup can suppress the initial spawn banner',async({page})=>{
+ await page.route('**/arrival-harness',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css">'}));await page.goto('/arrival-harness');
+ await page.evaluate(async()=>{const{setupLocationArrival}=await import('/src/location-arrival.ts');(window as any).arrival=setupLocationArrival(true);(window as any).arrival.update(-32,45);});
+ await expect(page.locator('#location-arrival')).not.toHaveClass('visible');
+ await page.evaluate(()=>(window as any).arrival.update(0,-120));
+ await expect(page.locator('#location-arrival')).toHaveClass('visible');
+});

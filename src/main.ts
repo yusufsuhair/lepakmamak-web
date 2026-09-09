@@ -183,7 +183,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   const vehicleRadio=setupVehicleRadio();
-  const locationArrival=setupLocationArrival();
+  const locationArrival=setupLocationArrival(true);
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
@@ -274,7 +274,7 @@ async function init() {
   const tableSocial = setupTableSocial(message => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify(message)); return true;
-  }, roomName, () => { keys.clear(); resetStick(); dragging = false; });
+  }, roomName, () => { keys.clear(); resetStick(); dragging = false; }, (title, body) => toast(title, body, 6));
   const streetStalls=setupStalls($('hud'),message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},()=>{keys.clear();resetStick();dragging=false;});
   const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
   $('open-wall').onclick=()=>wall.open();

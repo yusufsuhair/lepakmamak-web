@@ -28,15 +28,16 @@ function createArrivalSting(){
  };
 }
 
-export function setupLocationArrival(){
+export function setupLocationArrival(suppressInitial=false){
  const banner=document.createElement('div');banner.id='location-arrival';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');banner.innerHTML='<small></small><strong></strong><i></i>';document.body.append(banner);
  let visited:Set<string>;try{visited=new Set<string>(JSON.parse(localStorage.getItem(VISITED_KEY)||'[]'));}catch{visited=new Set<string>();}
  const sting=createArrivalSting();
- let current='',timer:ReturnType<typeof setTimeout>|undefined;
+ let current='',timer:ReturnType<typeof setTimeout>|undefined,suppressNext=suppressInitial;
  return{
   update(x:number,z:number,enabled=true,soundEnabled=true){
    if(!enabled)return;
    const location=locationAt(x,z);if(location.key===current)return;current=location.key;
+   if(suppressNext){suppressNext=false;return;}
    const first=!visited.has(location.key);
    if(first){visited.add(location.key);try{localStorage.setItem(VISITED_KEY,JSON.stringify([...visited]));}catch{}}
    banner.querySelector('small')!.textContent=first?`Discovered · ${location.subtitle}`:location.subtitle;
@@ -46,6 +47,6 @@ export function setupLocationArrival(){
    if(first){if(soundEnabled)sting();try{navigator.vibrate?.([14,44,24]);}catch{}}
    clearTimeout(timer);timer=setTimeout(()=>banner.classList.remove('visible'),first?3600:1800);
   },
-  reset(){current='';clearTimeout(timer);banner.classList.remove('visible');}
+  reset(){current='';suppressNext=suppressInitial;clearTimeout(timer);banner.classList.remove('visible');}
  };
 }
