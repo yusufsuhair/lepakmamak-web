@@ -1,3 +1,4 @@
+import {setupVehicleRadio} from './vehicle-radio';
 import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import teleports from '../shared/teleports.json';
@@ -172,6 +173,7 @@ async function init() {
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
+  const vehicleRadio=setupVehicleRadio();
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
@@ -726,6 +728,7 @@ async function init() {
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
   }
   function leaveCity() {
+    vehicleRadio.update(false);
     saveLocation();danceAudio.stop();localSupermanUntil=0;
     streetStalls.close();streetStalls.state(null,false);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
@@ -798,6 +801,7 @@ async function init() {
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
+    vehicleRadio.update(started && (riding || !!passengerOf) && musicEnabled);
     if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; } };
@@ -1023,6 +1027,8 @@ async function init() {
     ctx.restore();
   }
   function updateHud() {
+    vehicleRadio.update(started && (riding || !!passengerOf) && musicEnabled);
+    backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1);
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
     const area = pos.z < -74 ? 'KLCC Park' : pos.z < 9 ? 'Jalan Lepak' : 'Kampung Maju';
