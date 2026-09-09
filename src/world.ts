@@ -841,7 +841,9 @@ export function createWorld(scene: THREE.Scene): World {
     for(const side of [-1,1]){const roof=box(r,side*7.8,15,0,18.8,.65,24,'#202c2c');roof.rotation.z=-side*Math.atan2(10,15);}
     for(let x=-14;x<=14;x+=3.5){const h=20-Math.abs(x)*2/3;box(r,x,h/2,11.3,.15,h,.18,'#263632');}
     for(const y of [3,6,9,12,15])box(r,0,y,11.32,Math.min(28,(20-y)*3),.12,.18,'#263632');
-    sign(r,'Rembayung',0,11.6,11.55,18,2.4,'#bd8130','#ffe77c');
+    const wordmark=new THREE.TextureLoader().load('/rembayung-wordmark.png');wordmark.colorSpace=THREE.SRGBColorSpace;
+    const lettering=new THREE.Mesh(new THREE.PlaneGeometry(20,20/3),new THREE.MeshBasicMaterial({map:wordmark,transparent:true,alphaTest:.05,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+    lettering.position.set(0,11.7,11.55);r.add(lettering);
     box(r,0,2,11.5,3.5,4,.12,'#624f37');
     for(const x of [-12,-8,8,12]){box(r,x,.5,12.5,2.4,1,1.4,'#4b5040');ball(r,x,1.3,12.5,.9,'#55774c');}
     solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
