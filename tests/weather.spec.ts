@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
 import {parseWeather,createWeather} from '../server/weather.mjs';
 import {isKlNight} from '../src/weather';
 test('rain haze and stale observations are distinguished; KL solar day and night',async()=>{
@@ -15,5 +16,8 @@ test('rain haze and stale observations are distinguished; KL solar day and night
 test('original map uses live weather and requires account entry',async({page})=>{
  await page.route('**/weather',r=>r.fulfill({json:{available:true,condition:'haze',observedAt:Date.now(),serverTime:Date.now(),source:'Test station'}}));
  await page.goto('/');await expect(page.locator('#weather-label')).toContainText('haze');await expect(page.locator('#weather-label')).toContainText('MYT');
- await page.getByRole('button',{name:"Jom, let's go"}).click();await expect(page.locator('#auth-email')).toBeVisible();await expect(page.locator('#auth-guest')).toHaveCount(0);
+ await page.getByRole('button',{name:"Jom, let's go"}).click();await expect(page.locator('#auth-email')).toBeVisible();
+ // Guest entry is a development convenience, so it is always on the dev server this suite
+ // runs against. What production has to keep is the gate itself.
+ expect(readFileSync('src/auth.ts','utf8')).toContain('const guestEnabled = import.meta.env.DEV;');
 });

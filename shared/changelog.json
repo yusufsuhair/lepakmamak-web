@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.15.0",
+  "date": "2026-09-10",
+  "title": "Hujan boleh dibuka balik, tetapan senang dicapai",
+  "notes": [
+   "The Rain over KL switch is back. The Game Master weather panel had been taking its place in settings, which quietly removed the switch for everyone. Once you touch it, it stays where you put it instead of following the live weather, and the sky matches what is falling.",
+   "Apa yang baharu now shows the newest three releases with a button for the older ones. The full list had grown long enough to push Return to Mamak Maju off the bottom of a phone screen."
+  ]
+ },
+ {
   "version": "1.14.0",
   "date": "2026-09-10",
   "title": "Scroll bar ikut gaya game",

@@ -47,8 +47,14 @@ test('settings shows the version, when it last changed, and what changed',async(
  // The newest release is open, so progress is visible without a click.
  await expect(page.locator('.release').first()).toContainText(changelog[0].title);
  await expect(page.locator('.release').first()).toContainText(changelog[0].notes[0].slice(0,30));
- // Every past release is listed, so someone can scroll the whole story.
+ // Only the newest few are on screen: this panel is a phone-height column, and a list
+ // that grows with every release pushes the buttons under it out of reach.
+ await expect(page.locator('.release')).toHaveCount(3);
+ // The whole story is still one click away.
+ await page.getByRole('button',{name:/kemas kini lama/}).click();
  await expect(page.locator('.release')).toHaveCount(changelog.length);
+ await expect(page.getByRole('button',{name:/kemas kini lama/})).toHaveCount(0);
+ await expect(page.locator('.release').last()).toContainText(changelog.at(-1)!.title);
 });
 
 test('an older release stays collapsed until you ask for it',async({page})=>{

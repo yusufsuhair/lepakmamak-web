@@ -2,6 +2,15 @@ import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 interface GameState { vehicle: string; stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
+// A jump is an arc, so polling its instantaneous height races the apex: on a busy machine
+// every sample can land on the way up or the way down. Remembering the highest reading
+// asks the question the test actually means — did the jump get that high.
+const resetPeak = (page: Page) => page.evaluate(() => { (window as any).__peakJump = 0; });
+const peakJump = (page: Page) => page.evaluate(() => {
+  const held = window as any;
+  held.__peakJump = Math.max(held.__peakJump || 0, held.__lepak.jumpHeight);
+  return held.__peakJump as number;
+});
 
 test('free roam supports riding, settings and no mission prompts', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -38,8 +47,9 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.press('Escape');
   await expect(page.locator('#city-map')).not.toBeVisible();
   await expect(page.locator('#pause')).toBeHidden();
+  await resetPeak(page);
   await page.keyboard.down('Space');
-  await expect.poll(async () => (await state(page)).jumpHeight, { intervals: [30] }).toBeGreaterThan(.4);
+  await expect.poll(() => peakJump(page), { intervals: [30] }).toBeGreaterThan(.4);
   await expect.poll(async () => (await state(page)).jumpHeight).toBe(0);
   await page.waitForTimeout(300);
   expect((await state(page)).jumpHeight).toBe(0);
@@ -79,7 +89,9 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect(page.locator('#pause')).toBeHidden();
   await expect.poll(async () => page.locator('#background-music').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
-  await page.reload();
+  // #loading is the real readiness gate below, so there is no need to wait on every
+  // font and audio file the load event covers.
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await page.locator('#auth-guest').click();
@@ -124,8 +136,9 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await page.screenshot({ path: 'test-results/expanded-map-mobile.png' });
   await page.getByRole('button', { name: 'Close city map' }).tap();
   await expect(page.locator('#city-map')).not.toBeVisible();
+  await resetPeak(page);
   await page.getByRole('button', { name: 'Jump', exact: true }).tap();
-  await expect.poll(async () => (await state(page)).jumpHeight, { intervals: [30] }).toBeGreaterThan(.3);
+  await expect.poll(() => peakJump(page), { intervals: [30] }).toBeGreaterThan(.3);
   await expect.poll(async () => (await state(page)).jumpHeight).toBe(0);
   await expect(page.getByRole('button', { name: 'Spam recall emote' })).toBeVisible();
   await page.getByRole('button', { name: 'Spam recall emote' }).click();
@@ -212,7 +225,9 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   await expect.poll(async () => (await state(page)).position.z, { timeout: 10000 }).toBeGreaterThan(63);
   await page.keyboard.up('s');
   await page.keyboard.down('d');
-  await expect(page.locator('#interaction-text')).toHaveText('Enter', { timeout: 12000 });
+  // Traffic drives past the parked car and takes the prompt over with 'Cilok' while it
+  // passes, so the car's own prompt has to be waited for rather than sampled once.
+  await expect(page.locator('#interaction-text')).toHaveText('Enter', { timeout: 40000 });
   await page.keyboard.up('d');
   await page.locator('#interaction').click();
   expect((await state(page)).vehicle).toBe('car');

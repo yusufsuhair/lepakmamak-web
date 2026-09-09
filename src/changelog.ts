@@ -2,7 +2,10 @@ import './changelog.css';
 import releases from '../shared/changelog.json';
 
 // What players get told about their own game. The notes are written for them, not copied
-// from commit messages, and every past release stays on the list so progress is visible.
+// from commit messages. Every past release is kept, but only the newest few are on screen:
+// the settings panel is a phone-height column, and a list that grows with every release
+// pushes the buttons underneath it out of reach.
+const VISIBLE = 3;
 export function createWhatsNew(container: HTMLElement) {
   const latest = releases[0];
   const when = new Date(latest.date);
@@ -14,7 +17,7 @@ export function createWhatsNew(container: HTMLElement) {
   root.id = 'whats-new';
   root.innerHTML = `<header><h3>Apa yang baharu</h3><p><b id="whats-new-version">v${latest.version}</b> · dikemas kini <time id="whats-new-date" datetime="${latest.date}">${stamp}</time></p></header>`;
 
-  for (const [index, release] of releases.entries()) {
+  const build = (release: typeof releases[number], index: number) => {
     const item = document.createElement('details');
     item.className = 'release';
     // The newest one is open, so you see the latest without hunting for it.
@@ -30,9 +33,23 @@ export function createWhatsNew(container: HTMLElement) {
       list.append(line);
     }
     item.append(summary, list);
-    root.append(item);
+    return item;
+  };
+
+  for (const [index, release] of releases.slice(0, VISIBLE).entries()) root.append(build(release, index));
+  if (releases.length > VISIBLE) {
+    const more = document.createElement('button');
+    more.type = 'button'; more.id = 'whats-new-more';
+    more.textContent = `Lihat ${releases.length - VISIBLE} kemas kini lama`;
+    more.onclick = () => {
+      for (const [index, release] of releases.slice(VISIBLE).entries()) root.append(build(release, index + VISIBLE));
+      more.remove();
+    };
+    root.append(more);
   }
 
-  container.append(root);
+  // Below the buttons, so a growing list never pushes Resume or Return out of reach.
+  const controls = container.querySelector('.pause-controls');
+  if (controls) container.insertBefore(root, controls); else container.append(root);
   return {root, version: latest.version, updated: latest.date};
 }
