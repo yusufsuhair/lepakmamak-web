@@ -79,92 +79,123 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
   label.userData.drawVoice(!!label.userData.mic, !!label.userData.speaker);
 }
 
+
 type Member = {id: string; name: string};
-type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?: string; name?: string;
-               tab: HTMLButtonElement; count: HTMLElement; log: HTMLElement; wrap: HTMLElement; unread: number};
+type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
 
 export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', to?: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-tabs" role="tablist" aria-label="Chat channels"></div><div id="chat-logs"></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
   const heading = el<HTMLButtonElement>('chat-heading'), body = el('chat-body');
   const toggleLabel = el('chat-toggle-label'), unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
-  const tabs = el('chat-tabs'), logs = el('chat-logs');
+  const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand');
+  const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
   const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
   compose.textContent = coarse ? '' : 'Click or press enter to type';
 
-  let collapsed = false, composing = false, active = 'all';
+  let collapsed = false, composing = false, expanded = false, menuOpen = false, active = 'all';
   const threads = new Map<string, Thread>();
 
   function build(key: string, label: string, channel: Thread['channel'], options: {to?: string; name?: string; closable?: boolean} = {}) {
-    const wrap = document.createElement('span'); wrap.className = 'chat-tab-wrap';
-    const tab = document.createElement('button'); tab.type = 'button'; tab.setAttribute('role', 'tab');
-    tab.textContent = label;
-    const count = document.createElement('span'); count.className = 'tab-unread'; count.hidden = true;
-    tab.append(count); wrap.append(tab);
-    if (options.closable) {
-      const close = document.createElement('button'); close.type = 'button'; close.className = 'chat-tab-close';
-      close.setAttribute('aria-label', `Close chat with ${options.name}`); close.textContent = '×';
-      close.onclick = event => { event.stopPropagation(); wrap.remove(); log.remove(); threads.delete(key); if (active === key) select('all'); render(); };
-      wrap.append(close);
-    }
     const log = document.createElement('div'); log.className = 'chat-log'; log.setAttribute('role', 'log');
     log.setAttribute('aria-live', 'polite'); log.setAttribute('aria-label', `${label} messages`);
     if (key === 'all') log.id = 'chat-messages';
     logs.append(log);
-    const thread: Thread = {key, label, channel, to: options.to, name: options.name, tab, count, log, wrap, unread: 0};
-    tab.onclick = () => select(key);
-    tab.onkeydown = event => event.stopPropagation();
-    threads.set(key, thread); tabs.append(wrap);
+    const thread: Thread = {key, label, channel, to: options.to, name: options.name, log, unread: 0, closable: !!options.closable};
+    threads.set(key, thread);
     return thread;
   }
 
   const all = build('all', 'ALL', 'all');
-  const party = build('party', 'PARTY', 'party'); party.wrap.hidden = true;
+  let party: Thread | null = null;
 
   function select(key: string) {
     if (!threads.has(key)) key = 'all';
     active = key;
-    const thread = threads.get(key)!;
-    thread.unread = 0;
-    if (collapsed) expand();
+    threads.get(key)!.unread = 0;
+    if (collapsed) collapsed = false;
+    closeMenu();
     render();
-    thread.log.scrollTop = thread.log.scrollHeight;
+    threads.get(key)!.log.scrollTop = threads.get(key)!.log.scrollHeight;
+  }
+
+  function closeThread(key: string) {
+    const thread = threads.get(key);
+    if (!thread?.closable) return;
+    thread.log.remove(); threads.delete(key);
+    if (active === key) select('all'); else render();
   }
 
   const totalUnread = () => [...threads.values()].reduce((sum, thread) => sum + thread.unread, 0);
+  function closeMenu() { menuOpen = false; menu.hidden = true; selector.setAttribute('aria-expanded', 'false'); }
+
+  // The list drops upward out of the composer, so it never covers what you are reading.
+  function renderMenu() {
+    menu.replaceChildren();
+    for (const thread of threads.values()) {
+      const row = document.createElement('div'); row.className = 'chat-channel-row';
+      const option = document.createElement('button');
+      option.type = 'button'; option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', String(thread.key === active));
+      option.textContent = thread.label;
+      if (thread.unread) { const count = document.createElement('span'); count.className = 'opt-unread'; count.textContent = String(thread.unread); option.append(count); }
+      option.onclick = () => select(thread.key);
+      row.append(option);
+      if (thread.closable) {
+        const close = document.createElement('button');
+        close.type = 'button'; close.className = 'chat-thread-close';
+        close.setAttribute('aria-label', `Close chat with ${thread.name}`); close.textContent = '×';
+        close.onclick = event => { event.stopPropagation(); closeThread(thread.key); };
+        row.append(close);
+      }
+      menu.append(row);
+    }
+  }
 
   function render() {
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
+    panel.classList.toggle('chat-expanded', expanded);
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
+    expand.textContent = expanded ? '⤡' : '⤢';
+    expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
     toggleLabel.textContent = collapsed ? '＋' : '−';
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
-    for (const thread of threads.values()) {
-      const chosen = thread.key === active;
-      thread.log.hidden = !chosen;
-      thread.tab.setAttribute('aria-selected', String(chosen));
-      thread.tab.classList.toggle('active', chosen);
-      thread.count.hidden = !thread.unread; thread.count.textContent = thread.unread ? String(thread.unread) : '';
-    }
-    input.setAttribute('aria-label', active === 'all' ? 'Message to the city' : `Message to ${threads.get(active)!.label}`);
+    for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
+    const current = threads.get(active)!;
+    selector.textContent = current.label;
+    if (current.unread) { const count = document.createElement('span'); count.className = 'opt-unread'; count.textContent = String(current.unread); selector.append(count); }
+    selector.setAttribute('aria-label', `Channel: ${current.label}. Choose who sees your message`);
+    input.setAttribute('aria-label', active === 'all' ? 'Message to the city' : `Message to ${current.label}`);
+    if (menuOpen) renderMenu();
   }
 
-  function expand() { collapsed = false; render(); }
+  selector.onclick = () => {
+    menuOpen = !menuOpen; menu.hidden = !menuOpen;
+    selector.setAttribute('aria-expanded', String(menuOpen));
+    if (menuOpen) renderMenu();
+  };
+  selector.onkeydown = event => event.stopPropagation();
+  menu.addEventListener('keydown', event => event.stopPropagation());
+  expand.onclick = () => { expanded = !expanded; render(); };
+  expand.onkeydown = event => event.stopPropagation();
+
+  function expandPanel() { collapsed = false; render(); }
   // Enter (or a tap on the pill) is the only way in; sending or Escape is the way out.
-  function openComposer() { if (collapsed) expand(); composing = true; render(); input.focus(); }
-  function closeComposer() { composing = false; render(); input.blur(); }
+  function openComposer() { if (collapsed) expandPanel(); composing = true; render(); input.focus(); }
+  function closeComposer() { composing = false; closeMenu(); render(); input.blur(); }
   compose.onclick = openComposer;
   compose.onkeydown = event => event.stopPropagation();
 
   heading.onclick = () => {
-    if (collapsed) { expand(); threads.get(active)!.unread = 0; render(); }
-    else { collapsed = true; composing = false; input.blur(); render(); }
+    if (collapsed) { expandPanel(); threads.get(active)!.unread = 0; render(); }
+    else { collapsed = true; composing = false; closeMenu(); input.blur(); render(); }
     try { localStorage.setItem('lepak-chat-collapsed', String(collapsed)); } catch { /* Keep working without storage. */ }
   };
   heading.onkeydown = event => event.stopPropagation();
@@ -202,8 +233,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     openDm(id: string, name: string) { openDm(id, name); select(`dm:${id}`); },
     party(members: Member[] | null) {
       // The server deletes a party the moment it drops below two, so any list means a party.
-      party.wrap.hidden = !members?.length;
-      if (party.wrap.hidden) { party.unread = 0; if (active === 'party') select('all'); }
+      if (members?.length) party ??= build('party', 'PARTY', 'party');
+      else if (party) { const key = party.key; party.log.remove(); threads.delete(key); party = null; if (active === key) active = 'all'; }
       render();
     },
     status(value: boolean) { online = value; status.textContent = statusText(); },
@@ -214,7 +245,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       render(); all.log.scrollTop = all.log.scrollHeight;
     },
     append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' = 'all', thread?: Member) {
-      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? party : all;
+      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : all;
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
       const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();

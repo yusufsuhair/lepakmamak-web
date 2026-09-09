@@ -521,19 +521,42 @@ html, body, #app { touch-action: manipulation; }
 #vehicle-seats{position:static;width:180px;max-width:42vw;padding:0;pointer-events:auto;overflow:hidden;background:#163d35ed}#vehicle-seats summary{cursor:pointer;min-height:44px;box-sizing:border-box;padding:13px 12px;color:#e1f6ac;font-weight:600;font-size:11px;list-style-position:inside}#vehicle-seats summary:focus-visible{outline:2px solid #f4d17d;outline-offset:-3px}#vehicle-seats details>div{padding:7px 12px;font-size:11px}#vehicle-seats details>div:last-child{padding-bottom:12px}@media(max-width:600px){#vehicle-seats{width:155px;max-width:42vw}.hud-left{align-items:flex-start}}
 .village-talk{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:12;padding:14px 22px;border:1px solid #e9da93;border-radius:24px;background:#315a43;color:#fff0bd;font:700 15px 'Oxanium';cursor:pointer}.village-talk[hidden]{display:none}.village-dialog{max-width:min(420px,85vw);border:1px solid #adbf85;border-radius:16px;padding:24px;background:#f0ecd6;color:#274a37}.village-dialog::backdrop{background:#102d2877}.village-dialog p{line-height:1.6}.village-dialog button{min-height:44px;padding:10px 18px;border:0;border-radius:8px;background:#315a43;color:#fff0bd}
 
-/* Chat channel tabs: the strip above the log that routes what the composer sends. */
-#chat-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
-#chat-tabs [hidden] { display: none !important; }
-.chat-tab-wrap { display: inline-flex; align-items: center; }
-#chat-tabs button[role="tab"] { background: #ffffff14; color: #cdd8c0; border: 0; border-radius: 4px 4px 0 0; padding: 4px 8px; font-size: 10px; letter-spacing: .06em; cursor: pointer; }
-#chat-tabs button[role="tab"].active { background: #ddf69a; color: #193d33; }
-#chat-tabs .tab-unread { display: inline-block; margin-left: 5px; min-width: 14px; padding: 0 3px; border-radius: 7px; background: #e5644f; color: #fff5dc; font-size: 9px; text-align: center; }
-#chat-tabs button[role="tab"].active .tab-unread { background: #193d33; color: #ddf69a; }
-.chat-tab-close { background: none; border: 0; color: #9fb094; cursor: pointer; padding: 2px 4px; font-size: 12px; line-height: 1; }
-.chat-tab-close:hover { color: #ffd0c4; }
+/* The channel selector drops upward out of the composer, so it never covers the log. */
+#chat-logs { position: relative; }
 .chat-log { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
+.chat-log[hidden] { display: none; }
 .chat-log p { margin: 0 0 9px; line-height: 1.5; }
 .chat-log strong { color: #ddf69a; }
+
+.chat-channel-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+#chat-channel { background: #ffffff1f; color: #ddf69a; border: 1px solid #99ad8966; border-radius: 4px; padding: 0 8px; font-size: 10px; letter-spacing: .06em; cursor: pointer; white-space: nowrap; }
+#chat-channel-menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 150px; background: #12332bf5; border: 1px solid #99ad8966; border-radius: 6px; padding: 4px; display: grid; gap: 2px; z-index: 3; }
+#chat-channel-menu[hidden] { display: none; }
+.chat-channel-row { display: flex; align-items: center; gap: 2px; }
+.chat-channel-row [role="option"] { flex: 1; display: flex; align-items: center; gap: 6px; background: none; border: 0; color: #cdd8c0; text-align: left; padding: 6px 8px; border-radius: 4px; font-size: 11px; letter-spacing: .05em; cursor: pointer; }
+.chat-channel-row [role="option"]:hover { background: #ffffff14; }
+.chat-channel-row [role="option"][aria-selected="true"] { background: #ddf69a; color: #173c32; }
+.opt-unread { margin-left: auto; min-width: 15px; padding: 0 4px; border-radius: 8px; background: #e5644f; color: #fff5dc; font-size: 9px; text-align: center; }
+[aria-selected="true"] .opt-unread, #chat-channel .opt-unread { background: #173c32; color: #ddf69a; margin-left: 6px; }
+.chat-thread-close { background: none; border: 0; color: #9fb094; cursor: pointer; padding: 4px 5px; font-size: 12px; line-height: 1; }
+.chat-thread-close:hover { color: #ffd0c4; }
+
+/* Desktop only: a proper reading window rather than a corner strip. */
+#chat-expand { position: absolute; top: 4px; right: 24px; background: #ffffff14; color: #cdd8c0; border: 0; border-radius: 4px; padding: 2px 7px; font-size: 12px; cursor: pointer; z-index: 2; }
+#chat-expand:hover { background: #ffffff2b; color: #ddf69a; }
+#city-chat.chat-expanded { left: 50%; right: auto; top: auto; bottom: 84px; transform: translateX(-50%); width: min(720px, 82vw); }
+#city-chat.chat-expanded #chat-body { padding: 16px; }
+#city-chat.chat-expanded .chat-log { height: min(56vh, 430px); max-height: none; font-size: 13px; }
+@media (max-width: 600px) { #chat-expand { display: none; } }
+
+/* #chat-form button styles every button in the composer by id, which outranks a bare
+   class, so the selector and its list need id-scoped rules of their own. */
+#chat-form #chat-channel { background: #ffffff1f; color: #ddf69a; border: 1px solid #99ad8966; border-radius: 4px; padding: 0 8px; font-size: 10px; }
+#chat-form .chat-channel-row [role="option"] { background: none; color: #cdd8c0; border-radius: 4px; padding: 6px 8px; font-size: 11px; }
+#chat-form .chat-channel-row [role="option"]:hover { background: #ffffff14; }
+#chat-form .chat-channel-row [role="option"][aria-selected="true"] { background: #ddf69a; color: #173c32; }
+#chat-form .chat-thread-close { background: none; color: #9fb094; border-radius: 0; padding: 4px 5px; font-size: 12px; }
+#chat-form .chat-thread-close:hover { color: #ffd0c4; }
 .voice-scopes { display: flex; gap: 4px; margin-top: 5px; }
 .voice-scopes button { background: #ffffff1a; color: #cdd8c0; border: 0; border-radius: 4px; padding: 3px 7px; font-size: 9px; letter-spacing: .05em; cursor: pointer; }
 .voice-scopes button[data-scope="party"] { background: #e5644f; color: #fff5dc; }

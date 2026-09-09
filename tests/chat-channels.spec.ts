@@ -9,73 +9,107 @@ const mount=async(page:any,route:string)=>{
   (window as any).chat=setupChat((text:string,channel:string,to?:string)=>{(window as any).sent.push({text,channel,to});return true;},()=>{});
  });
 };
+const openComposer=(page:any)=>page.locator('#chat-compose').click();
 
-test('the party tab appears only while you are in a party',async({page})=>{
- await mount(page,'tabs-harness');
- await expect(page.getByRole('tab',{name:'ALL'})).toBeVisible();
- await expect(page.getByRole('tab',{name:'PARTY'})).toBeHidden();
+test('the channel selector lives inside the composer and opens upward',async({page})=>{
+ await mount(page,'selector-harness');
+ // Nothing above the log: the old tab strip is gone.
+ await expect(page.locator('#chat-tabs')).toHaveCount(0);
+ await openComposer(page);
 
- await page.evaluate(()=>(window as any).chat.party([{id:'a',name:'Ali'},{id:'b',name:'Mei'}]));
- await expect(page.getByRole('tab',{name:'PARTY'})).toBeVisible();
+ const selector=page.locator('#chat-channel');
+ await expect(selector).toBeVisible();
+ await expect(selector).toHaveText(/ALL/);
+ // It sits before the text field, not after it.
+ const order=await page.evaluate(()=>{
+  const form=document.getElementById('chat-form')!;
+  const kids=[...form.querySelectorAll('#chat-channel, #chat-input')].map(e=>e.id);
+  return kids;
+ });
+ expect(order).toEqual(['chat-channel','chat-input']);
 
- await page.evaluate(()=>(window as any).chat.party(null));
- await expect(page.getByRole('tab',{name:'PARTY'})).toBeHidden();
+ await expect(page.locator('#chat-channel-menu')).toBeHidden();
+ await selector.click();
+ await expect(page.locator('#chat-channel-menu')).toBeVisible();
+ await expect(selector).toHaveAttribute('aria-expanded','true');
+ // Drop-up: the menu sits above the button it belongs to.
+ const above=await page.evaluate(()=>{
+  const menu=document.getElementById('chat-channel-menu')!.getBoundingClientRect();
+  const button=document.getElementById('chat-channel')!.getBoundingClientRect();
+  return menu.bottom<=button.top+1;
+ });
+ expect(above).toBe(true);
 });
 
-test('the active tab decides where a message goes',async({page})=>{
+test('party appears in the list only while you are in one, and choosing it routes the message',async({page})=>{
  await mount(page,'route-harness');
+ await openComposer(page);
+ await page.locator('#chat-channel').click();
+ await expect(page.getByRole('option',{name:/PARTY/})).toHaveCount(0);
+
  await page.evaluate(()=>(window as any).chat.party([{id:'a',name:'Ali'}]));
+ await expect(page.getByRole('option',{name:/PARTY/})).toBeVisible();
+ await page.getByRole('option',{name:/PARTY/}).click();
+ await expect(page.locator('#chat-channel')).toHaveText(/PARTY/);
+ await expect(page.locator('#chat-channel-menu')).toBeHidden();
 
- await page.locator('#chat-compose').click();
- await page.locator('#chat-input').fill('to everyone');
- await page.keyboard.press('Enter');
-
- await page.getByRole('tab',{name:'PARTY'}).click();
- await page.locator('#chat-compose').click();
  await page.locator('#chat-input').fill('geng only');
  await page.keyboard.press('Enter');
-
- await page.evaluate(()=>(window as any).chat.openDm('u1','Aina'));
- await page.getByRole('tab',{name:'@Aina'}).click();
- await page.locator('#chat-compose').click();
- await page.locator('#chat-input').fill('psst');
- await page.keyboard.press('Enter');
-
- expect(await page.evaluate(()=>(window as any).sent)).toEqual([
-  {text:'to everyone',channel:'all'},
-  {text:'geng only',channel:'party'},
-  {text:'psst',channel:'dm',to:'u1'},
- ]);
+ expect(await page.evaluate(()=>(window as any).sent)).toEqual([{text:'geng only',channel:'party'}]);
 });
 
-test('an incoming message lands in its own tab and counts as unread there',async({page})=>{
- await mount(page,'incoming-harness');
+test('a private thread joins the list and can be closed from it',async({page})=>{
+ await mount(page,'dm-harness');
+ await page.evaluate(()=>(window as any).chat.openDm('u1','Aina'));
+ await openComposer(page);
+ await expect(page.locator('#chat-channel')).toHaveText(/@Aina/);
+
+ await page.locator('#chat-input').fill('psst');
+ await page.keyboard.press('Enter');
+ expect(await page.evaluate(()=>(window as any).sent)).toEqual([{text:'psst',channel:'dm',to:'u1'}]);
+
+ // The selector lives inside the composer, so sending closes it along with the form.
+ await openComposer(page);
+ await page.locator('#chat-channel').click();
+ await page.getByRole('button',{name:'Close chat with Aina'}).click();
+ await expect(page.getByRole('option',{name:/@Aina/})).toHaveCount(0);
+ await expect(page.locator('#chat-channel')).toHaveText(/ALL/);
+});
+
+test('unread piles up per channel and shows against its entry in the list',async({page})=>{
+ await mount(page,'unread-harness');
  await page.evaluate(()=>{
   const chat=(window as any).chat;
   chat.party([{id:'a',name:'Ali'}]);
   chat.append('Ali','geng talk',undefined,false,true,'party');
   chat.append('Aina','private hello',undefined,false,true,'dm',{id:'u1',name:'Aina'});
  });
-
- // ALL is still the active tab, so neither message is showing yet.
  await expect(page.locator('#chat-messages')).not.toContainText('geng talk');
- await expect(page.getByRole('tab',{name:/PARTY/})).toContainText('1');
- await expect(page.getByRole('tab',{name:/@Aina/})).toContainText('1');
 
- await page.getByRole('tab',{name:/PARTY/}).click();
+ await openComposer(page);
+ await page.locator('#chat-channel').click();
+ await expect(page.getByRole('option',{name:/PARTY/})).toContainText('1');
+ await expect(page.getByRole('option',{name:/@Aina/})).toContainText('1');
+
+ await page.getByRole('option',{name:/PARTY/}).click();
  await expect(page.locator('.chat-log:not([hidden])')).toContainText('Ali: geng talk');
- await expect(page.getByRole('tab',{name:/PARTY/})).not.toContainText('1');
-
- await page.getByRole('tab',{name:/@Aina/}).click();
- await expect(page.locator('.chat-log:not([hidden])')).toContainText('Aina: private hello');
+ await page.locator('#chat-channel').click();
+ await expect(page.getByRole('option',{name:/PARTY/})).not.toContainText('1');
 });
 
-test('a private thread can be closed, and the public tab can never be',async({page})=>{
- await mount(page,'close-harness');
- await page.evaluate(()=>(window as any).chat.openDm('u1','Aina'));
- await expect(page.getByRole('tab',{name:'@Aina'})).toBeVisible();
- await page.getByRole('button',{name:'Close chat with Aina'}).click();
- await expect(page.getByRole('tab',{name:'@Aina'})).toHaveCount(0);
- await expect(page.getByRole('tab',{name:'ALL'})).toBeVisible();
- await expect(page.getByRole('button',{name:/Close chat with ALL/})).toHaveCount(0);
+test('desktop can blow the chat up into a popup, and phones are not offered it',async({page})=>{
+ await mount(page,'expand-harness');
+ await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
+ await page.getByRole('button',{name:'Expand chat to a larger window'}).click();
+ await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
+
+ // The point of it is a bigger reading area.
+ const grew=await page.evaluate(()=>document.querySelector('.chat-log')!.getBoundingClientRect().height>260);
+ expect(grew).toBe(true);
+
+ await page.getByRole('button',{name:'Shrink chat back'}).click();
+ await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
+
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.getByRole('button',{name:'Expand chat to a larger window'})).toBeHidden();
 });
