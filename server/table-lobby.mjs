@@ -11,7 +11,7 @@ export const LOBBY_RULES = {
   lukis: {min: 2, max: 8, scope: 'table'},
   poker: {min: 2, max: 3, scope: 'table'},
   uno: {min: 2, max: 4, scope: 'table'},
-  werewolf: {min: 7, max: 9, scope: 'city'},
+  werewolf: {min: 5, max: 9, scope: 'city'},
 };
 export const COUNTDOWN = 3000;
 export const REACTIONS = ['😂', '👏', '🔥', '😱'];
@@ -74,9 +74,10 @@ export function createTableLobby(send, games, now = Date.now) {
     const seated = lobby.members.map(member => players.get(member.id)).filter(Boolean);
     if (!seated.length) return;
     if (ROSTER_GAMES[lobby.game]) {
-      // Werewolf deals to an exact headcount, so tell it how big this village is.
-      if (lobby.game === 'werewolf') game.handle(players, seated[0], {type: 'werewolf-size', size: lobby.members.length});
       for (const player of seated) game.handle(players, player, {type: `${lobby.game}-join`});
+      // Werewolf deals to an exact headcount. This has to follow the joins, because the
+      // game has no host to accept the size from until the first player is in.
+      if (lobby.game === 'werewolf') game.handle(players, seated[0], {type: 'werewolf-size', size: seated.length});
     }
     game.handle(players, seated[0], {type: `${lobby.game}-start`});
   }

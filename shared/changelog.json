@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-09-10",
+    "title": "Werewolf lima orang pun boleh",
+    "notes": [
+      "Werewolf now plays with as few as five people instead of seven, with one wolf against four and both the seer and the doctor still in.",
+      "Any group from five to nine works, so nobody is turned away for being an awkward number.",
+      "An empty seat at a table now invites your geng straight into your party chat.",
+      "The big table at Mamak Maju sits on proper paving instead of the grass beside it."
+    ]
+  },
+  {
     "version": "1.7.1",
     "date": "2026-09-10",
     "title": "Pembetulan meja dan pengumuman",

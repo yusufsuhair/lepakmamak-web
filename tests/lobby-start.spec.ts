@@ -51,13 +51,13 @@ test('SEDIA deals a real UNO hand, not an empty game',async()=>{
  } finally { clients.forEach(c=>c.ws.close()); server.kill(); }
 });
 
-test('a Werewolf village started by the lobby has everybody in it',async()=>{
+test('a village of five started by the lobby has everybody in it, with roles dealt',async()=>{
  const server=spawnServer(); const clients:Client[]=[];
  try{
   await healthy();
   // Werewolf gathers city-wide, so spread them over whatever seats exist.
   const seats=[...seatsAt('meja-9'),...seatsAt('meja-1'),...seatsAt('meja-3')];
-  for(let i=0;i<7;i++){
+  for(let i=0;i<5;i++){
    const c=await join('ww-real',`P${i}`);
    clients.push(c);
    const seat=seatOf(seats[i]);
@@ -68,7 +68,7 @@ test('a Werewolf village started by the lobby has everybody in it',async()=>{
   await settle(600);
   for(const c of clients) c.ws.send(JSON.stringify({type:'lobby-join',game:'werewolf'}));
   await settle();
-  expect(last(clients[0],'lobby-state')?.lobby?.members?.length).toBe(7);
+  expect(last(clients[0],'lobby-state')?.lobby?.members?.length).toBe(5);
 
   for(const c of clients) c.ws.send(JSON.stringify({type:'lobby-ready',ready:true}));
   await expect.poll(()=>last(clients[0],'lobby-state')?.lobby?.phase,{timeout:10000}).toBe('playing');

@@ -5,6 +5,26 @@ import {filterChat} from './chat-filter.mjs';
 const key=p=>p.userId||p.id;
 const seated=p=>chairs.some(c=>c.id===p.chairId && c.games!==false && !!c.tableId);
 const evil=role=>role==='werewolf'||role==='alpha';
+export const WEREWOLF_SIZES=[5,6,7,8,9];
+
+// Any village from five to nine, because the lobby sizes itself from whoever turned up and
+// a group of six must not land on a role set that does not exist. One wolf below seven: two
+// of five reach parity on the first night and the village never gets a turn. The seer and
+// doctor are always in, since a village with no information at all is a coin toss.
+export function werewolfRoles(size,pick){
+ if(size===9){
+  const extras=['knight','princess','hunter','mayor'];
+  const first=extras.splice(pick(extras.length),1)[0],second=extras[pick(extras.length)];
+  return ['werewolf','werewolf','alpha','doctor','seer','villager','villager',first,second];
+ }
+ if(size===7)return ['werewolf','werewolf','doctor','seer','villager','villager','villager'];
+ // Five, six and eight pad villagers around the same core. One wolf below seven: two of
+ // five reach parity on the first night and the village never gets a turn.
+ const roles=[...Array(size<7?1:2).fill('werewolf'),'doctor','seer'];
+ while(roles.length<size)roles.push('villager');
+ return roles;
+}
+
 export const WEREWOLF_TIMES={night:35000,discussion:60000,vote:25000,defense:20000,judgment:20000};
 export function createWerewolf(send,now=Date.now,pick=randomInt){
  const rooms=new WeakMap();
@@ -27,9 +47,9 @@ export function createWerewolf(send,now=Date.now,pick=randomInt){
   if(m.type==='werewolf-open'){reply();return true;}
   if(m.type==='werewolf-join'&&g.phase==='lobby'){if(!me&&g.players.length<g.size){g.players.push({id,name:p.name,alive:true,role:null,used:false,missingAt:0});g.host??=id;publish(ps,g);}else reply();return true;}
   if(m.type==='werewolf-leave'&&me){if(g.phase==='lobby'){g.players=g.players.filter(q=>q!==me);if(g.host===id)g.host=g.players[0]?.id||null;}else if(g.phase!=='finished'&&me.alive){eliminate(g,me,'keluar');finish(g);}publish(ps,g);return true;}
-  if(m.type==='werewolf-size'&&g.phase==='lobby'&&g.host===id&&[7,9].includes(m.size)&&g.players.length<=m.size){g.size=m.size;publish(ps,g);return true;}
+  if(m.type==='werewolf-size'&&g.phase==='lobby'&&g.host===id&&WEREWOLF_SIZES.includes(m.size)&&g.players.length<=m.size){g.size=m.size;publish(ps,g);return true;}
   if(m.type==='werewolf-rematch'&&g.phase==='finished'&&(g.host===id||!presentHost(ps,g.host))){g=fresh();rooms.set(ps,g);publish(ps,g);return true;}
-  if(m.type==='werewolf-start'&&g.phase==='lobby'&&g.host===id&&g.players.length===g.size){let roles=['werewolf','werewolf','doctor','seer','villager','villager','villager'];if(g.size===9){const extras=['knight','princess','hunter','mayor'];const first=extras.splice(pick(extras.length),1)[0],second=extras[pick(extras.length)];roles=['werewolf','werewolf','alpha','doctor','seer','villager','villager',first,second];}for(let i=roles.length-1;i>0;i--){const j=pick(i+1);[roles[i],roles[j]]=[roles[j],roles[i]];}g.players.forEach((q,i)=>q.role=roles[i]);log(g,'Peranan telah dibahagi. Rahsiakan kad anda.');phase(g,'night');publish(ps,g);return true;}
+  if(m.type==='werewolf-start'&&g.phase==='lobby'&&g.host===id&&g.players.length===g.size){let roles=werewolfRoles(g.size,pick);for(let i=roles.length-1;i>0;i--){const j=pick(i+1);[roles[i],roles[j]]=[roles[j],roles[i]];}g.players.forEach((q,i)=>q.role=roles[i]);log(g,'Peranan telah dibahagi. Rahsiakan kad anda.');phase(g,'night');publish(ps,g);return true;}
   if(m.type==='werewolf-chat'&&me&&typeof m.text==='string'&&m.text.length<=240){if(now()-(me.chatAt||0)<900)return true;let channel=g.phase==='lobby'||g.phase==='finished'?'day':!me.alive?'ghosts':g.phase==='night'&&evil(me.role)?'wolves':['discussion','vote','judgment'].includes(g.phase)||g.phase==='defense'&&g.accused===id?'day':null;if(channel){const text=filterChat(m.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim());if(text){me.chatAt=now();g.chat.push({name:me.name,text,channel});g.chat=g.chat.slice(-120);publish(ps,g);}}return true;}
   if(!me?.alive||m.gameId!==g.id||m.revision!==g.revision)return true;
   if(m.type==='werewolf-action'){const target=entry(g,m.target);if(g.phase==='night'&&target?.alive&&(evil(me.role)&&!evil(target.role)||me.role==='doctor'||me.role==='seer'&&target.id!==id)){g.actions[id]=target.id;reply();}else if(g.phase==='vote'&&(m.target==='skip'||target?.alive&&target.id!==id)){g.votes[id]=m.target;reply();}else if(g.phase==='judgment'&&g.accusers.includes(id)&&g.accused!==id&&['kill','spare'].includes(m.target)){g.judgments[id]=m.target;reply();}}return true;}};

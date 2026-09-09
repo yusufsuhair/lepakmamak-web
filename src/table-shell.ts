@@ -42,7 +42,7 @@ export function createTableShell(send: (message: object) => boolean) {
     reactionBar.append(button);
   }
 
-  let lobby: LobbyState | null = null, self = '', anchored = 0;
+  let lobby: LobbyState | null = null, self = '', anchored = 0, partySize = 0;
 
   const mine = () => lobby?.members.find(member => member.id === self);
 
@@ -78,7 +78,23 @@ export function createTableShell(send: (message: object) => boolean) {
         const name = document.createElement('b'); name.textContent = member.name;
         const tick = document.createElement('i'); tick.textContent = member.ready ? '✓' : '';
         seat.append(face, name, tick);
-      } else seat.textContent = '+ Ajak';
+      } else {
+        // An empty seat is the natural place to pull your geng in. Party chat already
+        // exists, so this needs nothing new from the server.
+        const invite = document.createElement('button');
+        invite.type = 'button'; invite.className = 'seat-invite';
+        invite.textContent = '+ Ajak';
+        invite.disabled = partySize < 1;
+        invite.title = partySize < 1 ? 'Masuk geng dahulu untuk ajak member.' : 'Ajak geng anda ke meja ini.';
+        invite.onclick = () => {
+          if (!lobby || partySize < 1) return;
+          const where = lobby.scope === 'city' ? 'bandar' : 'meja';
+          send({type: 'chat', channel: 'party', text: `Jom main ${TITLES[lobby.game] || lobby.game} di ${where} ni!`});
+          invite.textContent = 'Dah ajak ✓';
+          window.setTimeout(() => { invite.textContent = '+ Ajak'; }, 2500);
+        };
+        seat.append(invite);
+      }
       ring.append(seat);
     }
 
@@ -101,6 +117,7 @@ export function createTableShell(send: (message: object) => boolean) {
     root, stage,
     get playing() { return lobby?.phase === 'playing'; },
     get game() { return lobby?.game || ''; },
+    party(size: number) { partySize = size; render(); },
     state(value: LobbyState | null, selfId: string) {
       // Anchor the count-in to arrival, so it ticks down without a server round trip.
       if (value?.phase === 'countdown' && lobby?.phase !== 'countdown') anchored = performance.now();

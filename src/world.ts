@@ -529,6 +529,9 @@ export function createWorld(scene: THREE.Scene): World {
   // Mamak, open ground floor and striped canopy, facing the courtyard to the south.
   const mx = -29, mz = 34;
   box(group, mx, .08, 41, 37, .25, 30, '#d7c7a7');
+    // The nine-seat table sits past the south edge of that slab, so the paving reaches out
+    // to meet it rather than leaving it stranded on bare ground.
+    box(group, -34, .08, 59, 15, .25, 13, '#d7c7a7');
   block(mx, mz - 4, 30, 8.8, 9, '#e7c78c');
   box(group, mx, 8.95, mz - 4, 31, .4, 10, '#ab8d66');
   for (const x of [-39, -29, -19]) {

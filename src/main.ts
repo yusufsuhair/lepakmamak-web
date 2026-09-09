@@ -741,6 +741,7 @@ async function init() {
           partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id));
           chat.party(message.party?.members || null);
           voice.party(partyMembers.size > 0);
+          tableSocial.party(partyMembers.size);
         }
         if (message.type === 'party-invited' && message.inviter) showPartyInvite(message.inviter.name);
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);

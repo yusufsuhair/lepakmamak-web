@@ -61,3 +61,6 @@
 }
 #table-social .table-actions button.on, .table-shell .table-actions button.on { background: #ddf69a; color: #173c32; }
 #table-social .table-actions button:disabled, .table-shell .table-actions button:disabled { opacity: .45; }
+.seat-invite { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+.seat-invite:disabled { cursor: not-allowed; opacity: .75; }
+#table-social .seat-invite, .table-shell .seat-invite { background: none; color: #7d8b75; padding: 0; min-height: 0; }

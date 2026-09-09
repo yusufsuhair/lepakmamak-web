@@ -70,3 +70,25 @@ test('a city lobby says so, instead of pretending to be this table',async({page}
  // Nine seats, not the three at this table.
  await expect(page.locator('.table-seat')).toHaveCount(9);
 });
+
+test('an empty seat pulls your geng in, and says so when you have none',async({page})=>{
+ await mount(page,'invite-harness');
+ await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
+
+ // No party yet: the seat must not pretend it can do anything.
+ const idle=page.locator('.table-seat.empty button');
+ await expect(idle).toBeDisabled();
+ await expect(idle).toHaveAttribute('title',/geng dahulu/);
+
+ await page.evaluate(()=>(window as any).shell.party(2));
+ await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
+ const invite=page.locator('.table-seat.empty button');
+ await expect(invite).toBeEnabled();
+ await invite.click();
+
+ // It rides the party chat channel that already exists, so no new server message.
+ const sent=await page.evaluate(()=>(window as any).sent);
+ expect(sent.at(-1)).toMatchObject({type:'chat',channel:'party'});
+ expect(sent.at(-1).text).toContain('Lukis Lah!');
+ await expect(page.locator('.table-seat.empty button')).toContainText('Dah ajak');
+});
