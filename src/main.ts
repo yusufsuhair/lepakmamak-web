@@ -751,6 +751,7 @@ async function init() {
   signout.onclick = () => exitConfirmation.open();
   document.querySelector('.pause-panel')!.append(signout);
   $('reset').remove();
+  document.querySelector('.pause-controls')!.remove();
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
