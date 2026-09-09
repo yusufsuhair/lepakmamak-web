@@ -11,14 +11,14 @@ test('teleport validates destinations, releases chairs, rejects drivers/passenge
 test('all map arrivals avoid solid objects and map offers teleport for selected place',async({page})=>{
  await page.goto('/');const blocked=await page.evaluate(async points=>{const {createWorld}=await import('/src/world.ts');const world=createWorld({add(){}} as any);return points.filter(p=>world.solids.some(s=>Math.abs(p.x-s.x)<s.hx+.7&&Math.abs(p.z-s.z)<s.hz+.7)).map(p=>p.id);},destinations);expect(blocked).toEqual([]);
  await page.evaluate(()=>{document.querySelector<HTMLDialogElement>('#city-map')!.showModal();});
- await page.locator('#city-directory button').filter({hasText:'Mamak Maju'}).click();await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'1 Mamak Maju',exact:true}).click();await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
 });
 test('3D map renders actual city and preserves directory selection across view modes',async({page})=>{
  await page.goto('/');await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  await page.getByRole('button',{name:'3D',exact:true}).click();
  await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','3d');
- await page.locator('#city-directory button').filter({hasText:'Mamak Maju'}).click();
+ await page.getByRole('button',{name:'1 Mamak Maju',exact:true}).click();
  await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
  await page.setViewportSize({width:390,height:844});
  const size=await page.locator('#expanded-map').boundingBox();expect(size!.width).toBeLessThan(390);

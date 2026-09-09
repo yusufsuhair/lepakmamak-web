@@ -1,5 +1,6 @@
 import {createWeather} from './weather.mjs';
 import {createFleet} from './fleet.mjs';
+import {createLrt} from './lrt.mjs';
 import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import { createUno } from './uno.mjs';
@@ -122,6 +123,8 @@ function broadcast(players, message) {
 
 const weather=createWeather();
 const fleet=createFleet(send,broadcast);
+const lrt=createLrt(send);
+setInterval(()=>{for(const players of rooms.values()){lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
 const server = http.createServer(async (request, response) => {
@@ -236,6 +239,7 @@ webSocketServer.on('connection', ws => {
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
       weatherControls.sync(room.players,ws);
       fleet.sync(room.players,ws);
+      send(ws,{type:'lrt-clock',serverTime:Date.now()});
       send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
@@ -244,6 +248,7 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if(lrt.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(fleet.handle(currentRoom.players,player,message))return;
     if(handleStall(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if (message.type === 'profile-view') {
@@ -280,6 +285,7 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'passenger-join') {
       if((player.danceUntil||0)>Date.now())return;
       const driver = currentRoom.players.get(message.driverId);
+      if(driver?.lrtId!=null)return;
       const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
       const seatIndex = driver ? vehicleSeats[driver.vehicle].findIndex((_, i) => !occupied.some(p => p.seatIndex === i)) : -1;
       if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || Number(driver.supermanUntil) > Date.now() || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
