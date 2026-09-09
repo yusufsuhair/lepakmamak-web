@@ -6,8 +6,8 @@ import city from '../shared/city.json' with {type:'json'};
 
 const PORT='8128';
 
-test('the city holds forty people',()=>{
- expect(city.maxPlayers).toBe(40);
+test('the city holds a hundred people',()=>{
+ expect(city.maxPlayers).toBe(100);
 });
 
 test('the HUD counts against the shared limit rather than a literal of its own',()=>{
