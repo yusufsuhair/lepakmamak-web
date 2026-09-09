@@ -32,6 +32,21 @@ The in-game Lepak Wall is a public city feed for signed-in players. Registered a
 
 The realtime service has a `/health` endpoint and uses temporary in-memory state. A Railway restart clears the room; chat is not stored. The browser sends its Supabase access token for join verification; the server broadcasts display names and movement, never emails or tokens. Earnings remain local.
 
+### Watching the realtime service
+
+`GET /health` reports what the instance is doing right now: open `sockets`, `players`, a `rooms` array with the socket count and outbound bytes per second for each room, `bytesInPerSecond` and `bytesOutPerSecond`, `voicePacketsInPerSecond` and `voicePacketsOutPerSecond`, `droppedFramesPerSecond`, `residentMegabytes` and `uptimeSeconds`. Rates cover the last completed second. Byte counts are WebSocket payload bytes, so they read a few percent under what Railway bills.
+
+`saturated` turns true after several consecutive seconds in which the server dropped frames because a socket was too far behind to take them. `/health` still answers HTTP 200 while saturated. Railway's `healthcheckPath` is unset today, but if it is ever pointed here a 503 would restart the instance and wipe the rooms it was complaining about, and the test suite already reads the status code as readiness. The body's `ok` field is the one that goes false.
+
+Alerting is off until these are set on Railway:
+
+| Variable | What it does |
+| --- | --- |
+| `ALERT_WEBHOOK_URL` | POSTed `{"content":…,"text":…}` when saturation starts, when it clears, and when the process is going down. Works as-is with a Discord or Slack webhook. |
+| `HEARTBEAT_URL` | Pinged every `HEARTBEAT_SECONDS` (default 60). Point it at a dead-man's-switch service: a process that has already died cannot page anybody, so only a missing heartbeat catches a hard kill. |
+| `ALERT_BYTES_PER_SECOND` | Optional second saturation trigger. Off by default, because nobody has measured what this instance actually tops out at. |
+| `ALERT_SAMPLES` | Seconds a condition must hold before it pages, and before a recovery counts. Default 5. |
+
 ## Accounts
 
 The existing Supabase project (`sbzvvhzibqpozqvojzhe`, dashboard label `LepakCity`) stores accounts. Registration asks for a display name, email, and password (minimum 8 characters). Supabase handles passwords and sessions. Railway verifies access tokens through Supabase Auth before joining; it derives the display name from the verified user, not the join payload. Display names are cosmetic and are not unique identity or authorization markers. Log out is in settings. Existing project identifiers, realtime hostname, and the `lepak-city-save` storage key are retained for compatibility.
@@ -102,6 +117,7 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 - `src/mission.ts`: delivery state and rewards.
 - `src/style.css`: start screen, HUD, and responsive controls.
 - `server/index.mjs`: Railway WebSocket room service and health endpoint.
+- `server/metrics.mjs`: live traffic counters behind `/health`, and the saturation and shutdown alerts.
 - `tests/`: collision and mission tests, desktop delivery end-to-end test, mobile UI smoke test.
 - `PLAN.md`: scope and next milestones.
 

@@ -36,10 +36,12 @@ function cleanAppearance(value) { return Object.fromEntries(Object.entries(defau
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { WebSocketServer } from 'ws';
+import { createMetrics } from './metrics.mjs';
 
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = city.maxPlayers;
 const rooms = new Map();
+const metrics = createMetrics();
 const dirtyRooms = new Set();
 // Coalesce movement from all players into at most one snapshot per room per tick.
 setInterval(() => {
@@ -145,8 +147,8 @@ function broadcast(players, message) {
   let packed;
   for (const player of players.values()) {
     if (player.ws.readyState !== 1) continue;
-    if(message.type==='fleet'&&player.ws.bufferedAmount>=65536)continue;
-    if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { dirtyRooms.add(players); continue; }
+    if(message.type==='fleet'&&player.ws.bufferedAmount>=65536){metrics.countDrop();continue;}
+    if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { metrics.countDrop(); dirtyRooms.add(players); continue; }
     if (player.deflate && payload.length >= PACK_THRESHOLD) {
       packed ||= zlib.deflateSync(payload, { level: 1 });
       player.ws.send(packed);
@@ -175,7 +177,7 @@ const server = http.createServer(async (request, response) => {
   if (await accounts.handle(request,response)) return;
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(JSON.stringify({ ok: true, version, service: 'lepak-city-realtime', rooms: rooms.size, players: [...rooms.values()].reduce((total, players) => total + players.size, 0) }));
+    response.end(JSON.stringify(metrics.report({ rooms, sockets: webSocketServer.clients.size, version })));
     return;
   }
   response.writeHead(404, { 'content-type': 'application/json; charset=utf-8' });
@@ -190,6 +192,12 @@ server.on('upgrade', (request, socket, head) => {
 });
 
 webSocketServer.on('connection', ws => {
+  // Every byte this process sends leaves through ws.send, so it gets counted once, here,
+  // rather than at each of the three places that call it.
+  const sendFrame = ws.send.bind(ws);
+  ws.send = (data, ...rest) => { metrics.countOut(typeof data === 'string' ? Buffer.byteLength(data) : data.length, ws.roomName); sendFrame(data, ...rest); };
+  // Registered before the handler below so bytes count even for messages that get dropped.
+  ws.on('message', raw => metrics.countIn(raw.length));
   let currentRoom = null;
   let player = null;
   let lastStateAt = 0;
@@ -211,6 +219,7 @@ webSocketServer.on('connection', ws => {
     tableLobby.remove(currentRoom.players, player);
     party.remove(currentRoom.players, player);
     currentRoom.players.delete(player.id);
+    ws.roomName = null;
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
     syncVoiceCodec(currentRoom.players);
     if (!currentRoom.players.size) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
@@ -273,6 +282,7 @@ webSocketServer.on('connection', ws => {
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
       currentRoom = room;
+      ws.roomName = room.name;
       room.players.set(id, player);
       socialProfiles.event(player,'sessions',1,true);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
@@ -394,19 +404,24 @@ webSocketServer.on('connection', ws => {
         : message.audio.length === 1708 && /^[A-Za-z0-9+/]{1707}=$/.test(message.audio));
       if (!player.mic || voiceTokens < 1 || !wellFormed) return;
       voiceTokens--;
+      metrics.countVoiceIn();
       const audience = [];
       for (const listener of currentRoom.players.values()) {
         const distance = Math.hypot(listener.x - player.x, listener.z - player.z);
-        if (listener.id === player.id || !listener.speaker || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
+        if (listener.id === player.id || !listener.speaker || listener.ws.readyState !== 1) continue;
         // Both ends have to agree: a party-scoped mouth only reaches the party, and a
         // party-scoped ear only opens for it. Party audio ignores distance entirely.
         const together = party.shares(player, listener);
         if (player.micScope === 'party' ? !together : distance >= voiceConfig.hearingRadius) continue;
         if (listener.speakerScope === 'party' && !together) continue;
+        // Counted as a drop only down here, where this listener was going to hear it. Out of
+        // earshot and backed up is not a drop, and counting it would page for silence.
+        if (listener.ws.bufferedAmount >= 65536) { metrics.countDrop(); continue; }
         const volume = player.micScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
         listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume, codec: opus ? 'opus' : 'pcm' }));
         audience.push(listener.name);
       }
+      metrics.countVoiceOut(audience.length);
       if (now - lastAudienceAt >= 750) { lastAudienceAt = now; send(ws, { type: 'voice-audience', count: audience.length, names: audience.slice(0, 3) }); }
       return;
     }

@@ -1,5 +1,7 @@
 # Changelog
 
+- Made `/health` report live traffic: sockets, players, per-room socket counts and outbound bytes, bytes in and out per second, voice packet rates in and out, dropped frames, resident memory and uptime. Added optional saturation, shutdown and heartbeat alerts via `ALERT_WEBHOOK_URL` and `HEARTBEAT_URL`.
+
 - Added map teleporting to 22 validated destinations on the original map, with server-owned arrivals, chair release and a short cooldown. Drivers and passengers must exit first.
 
 - Added four seating-only tables and twelve chairs near the two mosques. These seats support sitting and chatting but cannot enter any table mini-game.
