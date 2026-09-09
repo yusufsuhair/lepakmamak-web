@@ -898,6 +898,13 @@ async function init() {
     if (value) { $('resume').focus(); }
     else { ensureAudio(); startBackgroundMusic(); canvas.focus(); }
   }
+  // Tapping the darkness around the panel closes settings, the way any modal behaves.
+  // The press and the release both have to land outside, so dragging a scrollbar or
+  // selecting text inside the panel never dismisses it by accident.
+  let pressedOutsidePause = false;
+  $('pause').addEventListener('pointerdown', event => { pressedOutsidePause = event.target === $('pause'); });
+  $('pause').addEventListener('click', event => { if (pressedOutsidePause && event.target === $('pause')) setPause(false); });
+
   function setAccessories(items: string[]) { for(const model of [player.group,bike.rider,car.driver]) applyAccessories(model,items); }
   const profileEditor = setupProfileEditor(async newName => {
     const token = (await auth?.auth.getSession())?.data.session?.access_token;
