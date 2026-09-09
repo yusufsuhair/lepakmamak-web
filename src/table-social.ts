@@ -27,7 +27,7 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  dialog.querySelector<HTMLButtonElement>('#close-table-social')!.onclick=close;
  dialog.addEventListener('keydown',event=>event.stopPropagation());
  return {open(tableId?:string){selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},close,
-  get opened(){return dialog.open;},state(value:TableState[],id:string,connected:boolean){const before=own()?.id;tables=value;selfId=id;online=connected;render();if(own()&&!before){releaseInput();if(!dialog.open)dialog.showModal();}},
+  get opened(){return dialog.open;},state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
   uno(value:any){if(!value||value.tableId===own()?.id)uno.state(value);},werewolf(value:any){werewolf.state(value);},game(value:any){if(!value||value.tableId===own()?.id)lukis.state(value,selfId);},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id)poker.state(value,selfId);},
   offline(){online=false;tables=[];lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
 }
