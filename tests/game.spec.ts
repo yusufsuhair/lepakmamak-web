@@ -24,7 +24,7 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.press('Escape');
   await expect(page.locator('#player-profile')).not.toBeVisible();
   await page.keyboard.press('m');
-  await expect(page.getByRole('dialog', { name: 'Know your streets.' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'City map' })).toBeVisible();
   const mapPosition = (await state(page)).position.x;
   await page.keyboard.down('d');
   await expect.poll(async () => (await state(page)).position.x).toBeGreaterThan(mapPosition + .5);
@@ -46,8 +46,12 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.keyboard.up('Space');
   await expect(page.locator('#mission-card')).toHaveCount(0);
   await expect(page.locator('#interaction')).toBeHidden();
+  // Enter opens the chat composer, which then owns the keyboard until it is dismissed.
   await page.keyboard.press('Enter');
+  await expect(page.locator('#chat-form')).toBeVisible();
   await expect(page.locator('#interaction')).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#chat-form')).toBeHidden();
   await page.keyboard.down('d');
   await expect.poll(async () => (await state(page)).position.x, { timeout: 15000 }).toBeGreaterThan(-9.6);
   await page.keyboard.up('d');
@@ -103,8 +107,14 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await page.waitForTimeout(600);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await page.getByRole('menuitem', { name: 'View profile' }).tap();
+  // toBeEmpty passes on a hidden element, so check the dialog actually opened.
+  await expect(page.locator('#player-profile')).toBeVisible();
   await expect(page.locator('#profile-name')).not.toBeEmpty();
-  await page.getByRole('button', { name: 'Close', exact: true }).tap();
+  // Addressed by id: the role query does not settle against the modal dialog on mobile.
+  // The label is still asserted, so a rename does not slip through.
+  const closeProfile = page.locator('#close-profile');
+  await expect(closeProfile).toHaveText('Close');
+  await closeProfile.tap();
   expect((await state(page)).punchCount).toBe(1);
   await page.getByRole('button', { name: 'Open city map' }).tap();
   await expect(page.locator('#city-map')).toBeVisible();
@@ -164,6 +174,10 @@ test('mobile analog movement supports release and a second finger in both orient
     await expect(page.locator('.touch-pad')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open city map' }).tap();
     await expect(page.locator('#city-map')).toBeVisible();
+    // The map deliberately takes the screen: the stick is hidden while it is open.
+    await expect(page.locator('#move-stick')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#city-map')).toBeHidden();
     const rect = (await page.locator('#move-stick').boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const point = { x: rect.x + rect.width / 2 + 25, y: rect.y + rect.height / 2, id: 1 };
@@ -202,7 +216,9 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   await page.keyboard.up('d');
   await page.locator('#interaction').click();
   expect((await state(page)).vehicle).toBe('car');
-  await expect(page.locator('#vehicle-seats')).toContainText('CAR · 1 / 4');
+  // The seat panel now lists each seat and who is in it, rather than a bare count.
+  await expect(page.locator('#vehicle-seats')).toContainText('Car · 1/4 seats');
+  await expect(page.locator('#vehicle-seats')).toContainText('Driver: Tester');
   await expect(page.locator('#vehicle-seats')).toContainText('Driver:');
   expect((await state(page)).riding).toBe(true);
   const startZ = (await state(page)).position.z;
@@ -226,6 +242,8 @@ test('mobile object action taps sit and stand without punching', async ({browser
  const page=await context.newPage();
  try{
  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).tap();
+ await page.locator('#auth-guest').tap();await page.locator('#guest-name').fill('Tester');
+ await page.getByRole('button',{name:'Enter as guest',exact:true}).tap();
  await page.keyboard.down('a');await expect.poll(async()=>(await state(page)).position.x).toBeLessThan(-26);await page.keyboard.up('a');
  const punches=(await state(page)).punchCount;
  await expect(page.locator('#interaction')).toHaveText('Sit');
