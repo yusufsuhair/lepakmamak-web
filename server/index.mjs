@@ -249,6 +249,7 @@ webSocketServer.on('connection', ws => {
       send(ws,{type:'lrt-clock',serverTime:Date.now()});
       send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
+    if (room.announcement) send(ws, room.announcement);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       return;
     }
@@ -374,8 +375,15 @@ webSocketServer.on('connection', ws => {
       const announcement = gmAnnouncement(player, text);
       if (announcement) {
         if (!announcement.allowed) { send(ws, { type: 'notice', message: 'Only the Game Master can announce to the city.' }); return; }
+        if (announcement.clear) {
+          currentRoom.announcement = null;
+          broadcast(currentRoom.players, { type: 'gm-announce', text: '' });
+          return;
+        }
         const clean = filterChat(announcement.text), at = new Date().toISOString();
-        broadcast(currentRoom.players, { type: 'gm-announce', text: clean, name: player.name, sentAt: at });
+        // Kept on the room so it is still there for whoever walks in afterwards.
+        currentRoom.announcement = { type: 'gm-announce', text: clean, name: player.name, sentAt: at };
+        broadcast(currentRoom.players, currentRoom.announcement);
         // The crawl scrolls away, so the same line is kept in city chat.
         try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
         broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: clean, sentAt: at, gameMaster: true, channel: 'all' });

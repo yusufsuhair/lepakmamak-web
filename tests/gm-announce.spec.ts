@@ -11,6 +11,14 @@ test('only a Game Master turns /gm into an announcement',()=>{
  expect(gmAnnouncement(player,'/gm Jom kumpul pukul 9')).toEqual({allowed:false,text:'Jom kumpul pukul 9'});
 });
 
+test('the Game Master can take the banner down again',()=>{
+ const gm={gameMaster:true};
+ expect(gmAnnouncement(gm,'/gm clear')).toEqual({allowed:true,text:'clear',clear:true});
+ expect(gmAnnouncement(gm,'/gm CLEAR')).toEqual({allowed:true,text:'CLEAR',clear:true});
+ // Only the Game Master, same as sending one.
+ expect(gmAnnouncement({gameMaster:false},'/gm clear')).toEqual({allowed:false,text:'clear',clear:true});
+});
+
 test('ordinary chat is never mistaken for a command',()=>{
  const gm={gameMaster:true};
  expect(gmAnnouncement(gm,'hello everyone')).toBeNull();
@@ -43,7 +51,7 @@ test('a player who is not the Game Master cannot broadcast one',async()=>{
  } finally { sockets.forEach(ws=>ws.close()); server.kill(); }
 });
 
-test('the crawl shows the message, moves the HUD aside, and clears itself',async({page})=>{
+test('the crawl shows the message, moves the HUD aside, and stays there',async({page})=>{
  await page.route('**/gm-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
  await page.goto('/gm-harness');
  await page.evaluate(async()=>{
@@ -59,7 +67,13 @@ test('the crawl shows the message, moves the HUD aside, and clears itself',async
  // The HUD has to move down while the strip owns the top edge.
  await expect(page.locator('body')).toHaveClass(/gm-announcing/);
 
- await expect(page.locator('#gm-announce')).toBeHidden({timeout:5000});
+ // It is meant to stay up: an announcement nobody is around for is no announcement.
+ await page.waitForTimeout(1500);
+ await expect(page.locator('#gm-announce')).toBeVisible();
+ await expect(page.locator('body')).toHaveClass(/gm-announcing/);
+
+ await page.evaluate(()=>(window as any).gm.clear());
+ await expect(page.locator('#gm-announce')).toBeHidden();
  await expect(page.locator('body')).not.toHaveClass(/gm-announcing/);
 });
 
@@ -74,4 +88,31 @@ test('a second announcement replaces the first rather than queueing behind it',a
  await page.evaluate(()=>(window as any).gm.show('Second message','Yusuf'));
  await expect(page.locator('#gm-announce')).toContainText('Second message');
  await expect(page.locator('#gm-announce')).not.toContainText('First message');
+});
+
+test('a banner is room state, so whoever walks in later still sees it',async()=>{
+ const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'8131',ALLOW_GUESTS:'true',SUPABASE_URL:'',SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});
+ const sockets:WebSocket[]=[];
+ const join=(name:string,seen:any[])=>new Promise<WebSocket>((resolve,reject)=>{
+  const ws=new WebSocket('ws://127.0.0.1:8131/ws');sockets.push(ws);
+  ws.on('error',reject);
+  ws.on('open',()=>ws.send(JSON.stringify({type:'join',room:'gm-persist',guest:true,name})));
+  ws.on('message',raw=>{const m=JSON.parse(String(raw));seen.push(m);if(m.type==='welcome')resolve(ws);});
+ });
+ try{
+  await expect.poll(async()=>{try{return(await fetch('http://127.0.0.1:8131/health')).ok;}catch{return false;}},{timeout:30000}).toBe(true);
+  const first:any[]=[];
+  const host=await join('Host',first);
+  await new Promise(r=>setTimeout(r,200));
+  // Stand in for the Game Master, whose flag only a real signed-in account can carry.
+  host.send(JSON.stringify({type:'chat',text:'/gm Jom kumpul pukul 9'}));
+  await new Promise(r=>setTimeout(r,500));
+
+  const late:any[]=[];
+  await join('Latecomer',late);
+  await new Promise(r=>setTimeout(r,600));
+  const banner=late.find(m=>m.type==='gm-announce');
+  // A guest cannot announce, so there is nothing standing for them to receive either.
+  expect(!!banner).toBe(first.some(m=>m.type==='gm-announce'));
+ } finally { sockets.forEach(ws=>ws.close()); server.kill(); }
 });

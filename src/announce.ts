@@ -34,8 +34,9 @@ export function createAnnouncer(hud: HTMLElement, crawlMs = CRAWL_MS) {
       void crawl.offsetWidth;
       crawl.style.animation = '';
       crawl.style.animationDuration = `${crawlMs}ms`;
+      // No timer: an announcement stays up until it is replaced or taken down, so
+      // somebody who looks up a minute later has not missed it.
       window.clearTimeout(timer);
-      timer = window.setTimeout(clear, crawlMs * 2);
     },
   };
 }

@@ -8,5 +8,7 @@ export function gmAnnouncement(player, text) {
   if (typeof text !== 'string' || !text.startsWith(ANNOUNCE_PREFIX)) return null;
   const body = text.slice(ANNOUNCE_PREFIX.length).trim();
   if (!body) return null;
-  return {allowed: player?.gameMaster === true, text: body};
+  const allowed = player?.gameMaster === true;
+  // "/gm clear" takes the banner down; anything else puts one up.
+  return body.trim().toLowerCase() === 'clear' ? {allowed, text: body, clear: true} : {allowed, text: body};
 }

@@ -734,7 +734,7 @@ async function init() {
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
         if (message.type === 'pong' && message.t === pingSentAt) netStatus.sample(Date.now() - pingSentAt);
-        if (message.type === 'gm-announce' && typeof message.text === 'string') announcer.show(message.text, message.name);
+        if (message.type === 'gm-announce' && typeof message.text === 'string') { if (message.text) announcer.show(message.text, message.name); else announcer.clear(); }
         if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
         if (message.type === 'lobby-react') tableSocial.react(message);
         if (message.type === 'party-state') {
