@@ -154,15 +154,22 @@ async function init() {
   let car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
   const personalCar=car;
   let fleetId:string|null=null, claimPendingUntil=0;
-  const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;audio:HTMLAudioElement}[]=[];
+  const angryVoice=fetch('/audio/angry-driver.wav').then(r=>r.arrayBuffer()).catch(()=>null);
+  let angryBuffer:Promise<AudioBuffer|null>|null=null;
+  const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
   function angryDriver(x:number,z:number,heading:number){
     if(!started||Math.hypot(pos.x-x,pos.z-z)>35)return;
     const npc=createPerson('#ef734c');
     const exit=safeDismount(new THREE.Vector3(x,.12,z),heading,world.solids,3);
     npc.group.position.set(exit?.x??x,.12,exit?.z??z);scene.add(npc.group);
-    const audio=new Audio('/audio/angry-driver.wav');audio.volume=0;
-    angryDrivers.push({person:npc,until:simTime+8,audio});
-    if(audioEnabled)void audio.play().catch(()=>{});
+    const actor:typeof angryDrivers[number]={person:npc,until:simTime+8};angryDrivers.push(actor);
+    if(audioEnabled&&audioContext&&citySoundsGain){
+      const ctx=audioContext;angryBuffer??=angryVoice.then(data=>data?ctx.decodeAudioData(data):null).catch(()=>null);
+      void angryBuffer.then(buffer=>{if(!buffer||!started||simTime>=actor.until||!audioEnabled)return;
+        actor.gain=ctx.createGain();actor.gain.gain.value=0;actor.gain.connect(citySoundsGain!);
+        actor.source=ctx.createBufferSource();actor.source.buffer=buffer;actor.source.connect(actor.gain);actor.source.start();
+      });
+    }
   }
   let vehicle: 'bike' | 'car' = 'bike';
   let passengerOf: string | null = null;
@@ -684,7 +691,6 @@ async function init() {
         }
         if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume);
         if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
-        if (message.type === 'notice') chat.append('City', message.message || 'Please try again.', undefined, false, false);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
         if (message.type === 'error') {
           finishEntryLoading();
@@ -1147,9 +1153,9 @@ async function init() {
       }
       for(let i=angryDrivers.length-1;i>=0;i--){
         const actor=angryDrivers[i],npc=actor.person,left=actor.until-simTime;
-        if(left<=0||!started){actor.audio.pause();npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
+        if(left<=0||!started){actor.source?.stop();actor.source?.disconnect();actor.gain?.disconnect();npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
         const distance=distanceTo(npc.group.position);
-        actor.audio.volume=audioEnabled?Math.max(0,1-distance/25)*.45:0;
+        if(actor.gain)actor.gain.gain.value=audioEnabled?Math.max(0,1-distance/25)*.9:0;
         npc.group.rotation.y=Math.atan2(pos.x-npc.group.position.x,pos.z-npc.group.position.z);
         npc.leftArm.rotation.x=-1.7+Math.sin(simTime*15)*.3;npc.rightArm.rotation.x=-1.4+Math.cos(simTime*13)*.35;
         npc.group.position.y=.12+Math.abs(Math.sin(simTime*8))*.08;
