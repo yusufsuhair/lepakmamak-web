@@ -8,6 +8,7 @@ import {SALOMA,salomaGround} from './bridge';
 import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
+import {createSiren} from './siren';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
@@ -295,6 +296,7 @@ async function init() {
   const netStatus=createNetStatus(document.querySelector('.brand-status') as HTMLElement);
   const speaking=createSpeakingList($('hud'));
   let pingSentAt=0;
+  let siren: ReturnType<typeof createSiren> | null = null;
   // A stamp out and the same stamp back is the whole measurement.
   window.setInterval(() => {
     if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) {
@@ -409,7 +411,8 @@ async function init() {
         watsonsGain=audioContext.createGain();watsonsGain.gain.value=0;audioContext.createMediaElementSource(watsonsSong).connect(watsonsGain);watsonsGain.connect(citySoundsGain!);
         familyMartGain=audioContext.createGain();familyMartGain.gain.value=0;audioContext.createMediaElementSource(familyMartSong).connect(familyMartGain);familyMartGain.connect(citySoundsGain!);
         masjidGain=audioContext.createGain();masjidGain.gain.value=0;audioContext.createMediaElementSource(masjidSong).connect(masjidGain);masjidGain.connect(citySoundsGain!);
-        iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
+        siren ??= createSiren(audioContext, audioContext.destination);
+    iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
         audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(citySoundsGain!);
         engine = audioContext.createOscillator(); engine.type = 'triangle';
         engineGain = audioContext.createGain(); engineGain.gain.value = 0; engine.connect(engineGain); engineGain.connect(citySoundsGain!); engine.start();
@@ -1426,7 +1429,15 @@ async function init() {
     if (iceCreamGain && audioContext) {
       const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
-      iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
+      if (siren) {
+      let nearest = Infinity;
+      for (const car of world.traffic) {
+        if (car.group.userData.model !== 'police') continue;
+        nearest = Math.min(nearest, Math.hypot(car.group.position.x - pos.x, car.group.position.z - pos.z));
+      }
+      siren.set(nearest, started && audioEnabled && !tableSocial.playing);
+    }
+    iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:0) + 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);

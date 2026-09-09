@@ -254,10 +254,12 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck';
-export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck'];
+export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police';
+export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police'];
 export function createDriveableCar(style: CarStyle = 'myvi') {
   const group = new THREE.Group(), wheels: THREE.Group[] = [];
+  // An officer at the wheel, decided before any branch narrows the style.
+  const driverShirt = style === 'police' ? '#1f3f78' : '#ef734c';
   if(style==='model-y'||style==='cybertruck'){
     const truck=style==='cybertruck',w=truck?2.05:1.92,l=truck?4.8:4.25,color=truck?'#a5adb1':'#eceeea';
     group.userData.model=style;
@@ -291,7 +293,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
     }
     box(group,0,.65,l/2+.03,w*.65,.15,.04,'#263032');
     sign(group,truck?'CYBERTRUCK':'MODEL Y',0,.7,-l/2-.06,.78,.16,'#182c28','#faf5e3',Math.PI);
-    const driver=createPerson('#ef734c',true);driver.group.scale.setScalar(.7);driver.group.position.set(.35,.24,-.1);driver.group.visible=false;group.add(driver.group);
+    const driver=createPerson(driverShirt,true);driver.group.scale.setScalar(.7);driver.group.position.set(.35,.24,-.1);driver.group.visible=false;group.add(driver.group);
     return{group,wheels,driver:driver.group};
   }
   if (style === 'f1') {
@@ -315,7 +317,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
       }
     }
     sign(group, 'F1', 0, .5, 2.5, .52, .18, '#f5eee0', '#b32027');
-    const driver = createPerson('#ef734c', true); driver.group.scale.setScalar(.5); driver.group.position.set(0, .35, -.5); driver.group.visible = false; group.add(driver.group);
+    const driver = createPerson(driverShirt, true); driver.group.scale.setScalar(.5); driver.group.position.set(0, .35, -.5); driver.group.visible = false; group.add(driver.group);
     return { group, wheels, driver: driver.group };
   }
   const styles = {
@@ -327,11 +329,22 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
     sport: { color: '#c44338', roof: 1.38, cabin: 1.5, length: 3.55, width: 1.88 },
     ferrari: { color: '#d9272e', roof: 1.25, cabin: 1.35, length: 3.78, width: 1.92 },
     lamborghini: { color: '#efbd27', roof: 1.18, cabin: 1.24, length: 3.82, width: 1.96 },
+    // Patrol car: an SUV shell in white, with the livery added below.
+    police: { color: '#f3f5f6', roof: 2.02, cabin: 2.22, length: 3.65, width: 1.9 },
   };
   const { color, roof, cabin, length, width } = styles[style];
   const sport = style === 'sport' || style === 'ferrari' || style === 'lamborghini', van = style === 'vellfire';
   const bodyY = sport ? .65 : .8, belt = sport ? .88 : 1.09;
   group.userData.model = style;
+  if (style === 'police') {
+    // Dark side flashes, a light bar of two lamps, and POLIS across the doors.
+    for (const side of [-1, 1]) box(group, side * (width / 2 + .01), .95, .1, .04, .42, length * .52, '#12305e');
+    for (const [offset, colour] of [[-.34, '#2f6de0'], [.34, '#e2483c']] as [number, string][]) {
+      const lamp = box(group, offset, cabin + .12, -.1, .58, .16, .34, colour);
+      lamp.userData.sirenLight = true;
+    }
+    box(group, 0, cabin + .04, -.1, 1.34, .08, .38, '#243040');
+  }
   const perodua=style==='myvi'||style==='axia';
   box(group, 0, bodyY, 0, width, sport ? .5 : .68, length, color);
   if(perodua){
@@ -406,7 +419,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   }
   if (style === 'suv' || style === 'avanza') for (const x of [-.62, .62]) box(group, x, roof + .12, -.2, .07, .12, cabin - .2, '#384b50');
   if (van) for (const side of [-1, 1]) box(group, side * width / 2, .81, -.6, .035, .04, 1.35, '#cad6d3');
-  const driver = createPerson('#ef734c', true); driver.group.scale.setScalar(.7); driver.group.position.set(.35, .24, -.1); driver.group.visible = false; group.add(driver.group);
+  const driver = createPerson(driverShirt, true); driver.group.scale.setScalar(.7); driver.group.position.set(.35, .24, -.1); driver.group.visible = false; group.add(driver.group);
   return { group, wheels, driver: driver.group };
 }
 
