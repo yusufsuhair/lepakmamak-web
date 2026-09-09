@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import catalog from '../shared/shop.json' with { type: 'json' };
 import currencyPacks from '../shared/currency-packs.json' with { type: 'json' };
 import crypto from 'node:crypto';
+import { origins } from '../shared/origins.mjs';
 
 export function createShop(onEquip = () => {}, services = {}) {
   const db = services.db || (process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,10 +13,6 @@ export function createShop(onEquip = () => {}, services = {}) {
     ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-07-29.dahlia' })
     : null);
   const webhookSecret = services.webhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET;
-  const origins = new Set([
-    'https://lepakmamak.my', 'https://lepakmamak.pages.dev', 'https://lepak-city.pages.dev',
-    'http://localhost:5173', 'http://localhost:4173',
-  ]);
   const check = result => { if (result.error) throw Error('Database operation failed'); return result.data; };
   const inventory = async userId => db ? check(await db.from('shop_inventory').select('sku,equipped').eq('user_id', userId)) : [];
   const accessories = async userId => (await inventory(userId)).filter(item => item.equipped).map(item => item.sku);

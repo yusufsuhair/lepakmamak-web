@@ -22,7 +22,7 @@ function matchesMime(bytes,mime){
  if(mime==='audio/mp4')return bytes.length>=12&&bytes.toString('ascii',4,8)==='ftyp';
  return false;
 }
-const origins=new Set(['https://lepakmamak.my','https://lepakmamak.pages.dev','https://lepak-city.pages.dev','http://localhost:5173','http://localhost:4173']);
+import {origins} from '../shared/origins.mjs';
 export function cleanWallText(value){const text=typeof value==='string'?value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,500):'';return text?filterChat(text):'';}
 
 export function createWall(services={}){

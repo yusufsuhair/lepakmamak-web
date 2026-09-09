@@ -4,7 +4,7 @@
 @import '@fontsource/oxanium/latin-700.css';
 @import '@fontsource/oxanium/latin-800.css';
 
-:root { font-family: 'Oxanium', sans-serif; color: #fff8e7; background: #243d35; font-synthesis: none; --lime: #ddf69a; --ink: #193d33; --cream: #fff8e7; --orange: #f6a16c; }
+:root { font-family: 'Oxanium', sans-serif; color: #fff8e7; background: #243d35; font-synthesis: none; --lime: #ddf69a; --ink: #193d33; --cream: #fff8e7; --orange: #f6a16c; --safe-top: env(safe-area-inset-top, 0px); }
 * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 body { margin: 0; overflow: hidden; }
@@ -28,8 +28,9 @@ body { margin: 0; overflow: hidden; }
 /* Phones and tablets get a slimmer rail: the finger is the scrollbar, this is only a hint. */
 @media (pointer: coarse) { ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { border-width: 1px; } }
 
-#auth-panel { position: absolute; inset: 0; z-index: 20; background: #122e26cc; backdrop-filter: blur(8px); display: grid; place-items: center; padding: 18px; }
-.auth-card { width: min(400px, 100%); max-height: calc(100dvh - 36px); overflow: auto; border-radius: 12px; background: #f5efdb; color: #254b3b; padding: 28px; }
+/* Safe-area aware: the native shell puts this under a notch. */
+#auth-panel { position: absolute; inset: 0; z-index: 20; background: #122e26cc; backdrop-filter: blur(8px); display: grid; place-items: center; padding: calc(18px + var(--safe-top)) 18px 18px; }
+.auth-card { width: min(400px, 100%); max-height: calc(100dvh - 36px - var(--safe-top)); overflow: auto; border-radius: 12px; background: #f5efdb; color: #254b3b; padding: 28px; }
 .auth-card h2 { font: 700 44px/1 'Oxanium'; margin: 12px 0; }
 .auth-card p { font-size: 12px; line-height: 1.6; }
 .auth-card label { display: grid; gap: 6px; margin: 13px 0; font-size: 12px; font-weight: 600; }
@@ -37,7 +38,7 @@ body { margin: 0; overflow: hidden; }
 .auth-card .primary { width: 100%; justify-content: center; background: #294e3d; color: #fff8e7; }
 .auth-card button:disabled { opacity: .6; cursor: wait; }
 #auth-message { min-height: 20px; }
-#city-chat { position: absolute; right: 24px; top: 90px; width: min(300px, calc(100% - 36px)); pointer-events: auto; text-shadow: none; }
+#city-chat { position: absolute; right: 24px; top: calc(90px + var(--safe-top)); width: min(300px, calc(100% - 36px)); pointer-events: auto; text-shadow: none; }
 #chat-body { background: #173c32f2; padding: 12px; border-radius: 6px; margin-top: 6px; }
 #chat-messages { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
 #chat-messages p { margin: 0 0 9px; line-height: 1.5; }
@@ -80,7 +81,7 @@ button, a { touch-action: manipulation; }
 @keyframes loading-dots{to{height:12px;background:#f3d38b}}@keyframes loading-float{50%{transform:translateY(-5px)}}
 @media(prefers-reduced-motion:reduce){.loading-card>img,.loading-spinner i{animation:none}.loading-progress i{transition:none}}
 #intro { position: absolute; inset: 0; z-index: 5; background: linear-gradient(90deg, rgba(19,43,35,.96) 0%, rgba(24,47,37,.78) 28%, rgba(30,49,36,.18) 58%, transparent 78%); }
-.intro-top { position: absolute; top: 32px; left: 44px; right: 40px; display: flex; justify-content: space-between; align-items: center; }
+.intro-top { position: absolute; top: calc(32px + var(--safe-top)); left: 44px; right: 40px; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
 .brand-mark { width: 28px; height: 28px; display: block; object-fit: contain; }
 .place-tag { border: 1px solid #fff8e740; border-radius: 4px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; background: #2541384d; font-size: 10px; letter-spacing: .13em; }
@@ -105,7 +106,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .postcard strong { display: block; font: 600 24px 'Oxanium'; letter-spacing: .015em; }
 .postcard span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }
 #hud { background: linear-gradient(180deg, #142f2c60, transparent 110px), linear-gradient(0deg, #142f2c50, transparent 180px); position: absolute; inset: 0; pointer-events: none; text-shadow: 0 1px 9px #0e282652; }
-.hud-top { position: absolute; top: 27px; left: 30px; right: 30px; display: flex; align-items: flex-start; justify-content: space-between; }
+.hud-top { position: absolute; top: calc(27px + var(--safe-top)); left: 30px; right: 30px; display: flex; align-items: flex-start; justify-content: space-between; }
 .hud-left { display: flex; align-items: center; gap: 16px; }
 .hud-divider { width: 1px; height: 27px; background: #fff5da55; }
 .district strong { display: block; font-size: 12px; font-weight: 600; }
@@ -121,7 +122,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .multiplayer-status[data-state="offline"] i { background: #ed806a; box-shadow: 0 0 0 3px #ed806a2b; }
 .menu-btn { pointer-events: auto; color: var(--cream); background: #1c3b32bf; border: 1px solid #ffffff26; border-radius: 5px; width: 38px; height: 38px; display: grid; place-content: center; gap: 4px; }
 .menu-btn span { display: block; width: 13px; height: 2px; background: var(--cream); }
-#mission-card { position: absolute; top: 292px; left: 30px; width: 265px; padding: 17px 19px 18px; background: #173c32ed; border-radius: 5px; border-top: 2px solid var(--lime); box-shadow: 0 6px 30px #172b2817; text-shadow: none; }
+#mission-card { position: absolute; top: calc(292px + var(--safe-top)); left: 30px; width: 265px; padding: 17px 19px 18px; background: #173c32ed; border-radius: 5px; border-top: 2px solid var(--lime); box-shadow: 0 6px 30px #172b2817; text-shadow: none; }
 .mission-label { font-size: 8px; letter-spacing: .17em; color: var(--lime); font-weight: 700; display: flex; justify-content: space-between; }
 #mission-title { font: 600 27px 'Oxanium'; margin: 8px 0 5px; }
 #mission-description { color: #c7d4bd; font-size: 11px; line-height: 1.7; margin: 0; }
@@ -153,7 +154,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 #destination-label { white-space: nowrap; width: max-content; position: absolute; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 #destination-label span { background: #def49e; color: #2f4a36; padding: 6px 9px; border-radius: 3px; font-size: 10px; font-weight: 700; text-shadow: none; }
 #destination-label b { width: 7px; height: 7px; background: #def49e; transform: rotate(45deg); }
-#toast { position: absolute; top: 93px; left: 50%; transform: translateX(-50%); width: min(390px, calc(100% - 40px)); text-align: center; background: #f5edcf; color: #244636; padding: 14px 20px; border-radius: 5px; box-shadow: 0 5px 35px #122f2733; z-index: 7; font-size: 12px; line-height: 1.6; }
+#toast { position: absolute; top: calc(93px + var(--safe-top)); left: 50%; transform: translateX(-50%); width: min(390px, calc(100% - 40px)); text-align: center; background: #f5edcf; color: #244636; padding: 14px 20px; border-radius: 5px; box-shadow: 0 5px 35px #122f2733; z-index: 7; font-size: 12px; line-height: 1.6; }
 #toast strong { display: block; font: 600 24px 'Oxanium'; }
 #pause { position: absolute; inset: 0; z-index: 10; background: #122e26b8; backdrop-filter: blur(9px); display: grid; place-items: center; }
 .pause-panel { background: #f5efdb; color: #254b3b; border-radius: 9px; padding: 34px; width: min(430px, calc(100% - 32px)); max-height: calc(100dvh - 40px); overflow-y: auto; box-shadow: 0 20px 80px #0e27265e; }
@@ -176,7 +177,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 #error p { max-width: 440px; line-height: 1.7; color: #c7d6bc; }
 @media (max-width: 900px) { .intro-copy { left: 36px; width: 370px; } h1 { font-size: 118px; } #controls-bar { gap: 10px; bottom: 22px; } .control:nth-child(4) { display: none; } #minimap-wrap { width: 150px; bottom: 22px; left: 22px; } #minimap { width: 144px; height: 133px; } #speedometer { width: 110px; right: 22px; bottom: 22px; } .speed-number { font-size: 62px; } }
 @media (pointer: coarse) { #desktop-recall { display: none; } }
-@media (max-width: 600px) { .intro-top { top: 24px; left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: 18px; left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } .multiplayer-status { padding: 6px 7px; font-size: 8px; gap: 5px; } #mission-card { top: 196px; left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; }   #speedometer { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 62px); right: max(14px, env(safe-area-inset-right)); width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: 245px; } .touch-actions { right: 14px; bottom: 24px; gap: 6px; } .touch-actions button { width: 58px; height: 50px; } .touch-actions .recall-button { width: 68px; } }
+@media (max-width: 600px) { .intro-top { top: calc(24px + var(--safe-top)); left: 24px; right: 24px; } .place-tag { display: none; } #intro { background: linear-gradient(90deg, #163a30ed, #18392dad 55%, #193c2d26); } .intro-copy { left: 28px; width: calc(100% - 56px); } h1 { font-size: 115px; } .intro-description { font-size: 12px; max-width: 270px; } .intro-bottom { left: 28px; right: 28px; bottom: 23px; } .intro-bottom > p { display: none; } .postcard strong { font-size: 19px; } .postcard span { font-size: 8px; } .hud-top { top: calc(18px + var(--safe-top)); left: 18px; right: 18px; } .district { display: none; } .hud-divider { display: none; } .multiplayer-status { padding: 6px 7px; font-size: 8px; gap: 5px; } #mission-card { top: calc(196px + var(--safe-top)); left: 18px; width: 218px; padding: 13px 15px; } #mission-title { font-size: 24px; } #mission-description { font-size: 10px; } #minimap-wrap { left: 18px; bottom: 163px; width: 117px; } #minimap { width: 111px; height: 104px; } .map-caption { font-size: 6px; } #controls-bar { display: none; }   #speedometer { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 62px); right: max(14px, env(safe-area-inset-right)); width: 86px; } .speed-number { font-size: 49px; } .vehicle-label { font-size: 7px; } #toast { top: calc(245px + var(--safe-top)); } .touch-actions { right: 14px; bottom: 24px; gap: 6px; } .touch-actions button { width: 58px; height: 50px; } .touch-actions .recall-button { width: 68px; } }
 @media (max-height: 650px) and (min-width: 601px) { .intro-copy { transform: translateY(-43%); } h1 { font-size: 100px; } .intro-description { margin-bottom: 18px; } .intro-kicker { margin-bottom: 13px; } .intro-bottom { bottom: 18px; } .intro-top { top: 22px; } .intro-copy .tagline { margin-top: 18px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
 
@@ -206,7 +207,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 #chat-heading span { color: #c7d4bd; font-size: 9px; }
 #chat-body { margin-top: 0; border-radius: 0 0 6px 6px; }
 #chat-messages { max-height: 150px; }
-#minimap-wrap { top: 27px; left: 30px; bottom: auto; right: auto; }
+#minimap-wrap { top: calc(27px + var(--safe-top)); left: 30px; bottom: auto; right: auto; }
 /* Map owns the top-left corner; the online count sits under it. */
 .hud-left { margin-top: 202px; }
 @media (min-width: 601px) and (max-width: 900px) {
@@ -214,7 +215,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
   #city-chat { left: 22px; bottom: 82px; width: 270px; }
 }
 @media (max-width: 600px) {
-  #minimap-wrap { top: 18px; left: 18px; right: auto; bottom: auto; }
+  #minimap-wrap { top: calc(18px + var(--safe-top)); left: 18px; right: auto; bottom: auto; }
   .hud-left { margin-top: 138px; }
   #city-chat { left: 18px; right: auto; bottom: 164px; width: min(240px, calc(100vw - 130px)); }
   #chat-messages { max-height: 90px; font-size: 11px; }
@@ -246,7 +247,7 @@ body.map-open #touch-controls { display: none; }
   #city-chat { left: 152px; bottom: 18px; width: 230px; }
   #chat-messages { max-height: 50px; }
   #chat-status, #chat-heading span { display: none; }
-  #minimap-wrap { top: 14px; width: 117px; left: 18px; right: auto; }
+  #minimap-wrap { top: calc(14px + var(--safe-top)); width: 117px; left: 18px; right: auto; }
   .hud-left { margin-top: 128px; }
   #minimap { width: 111px; height: 104px; }
   .voice-buttons { flex-direction: row; }
@@ -257,7 +258,7 @@ body.map-open #touch-controls { display: none; }
 
 }
 @media (max-height: 500px) and (pointer: coarse) {
-  .intro-copy { top: 58px; left: max(24px, env(safe-area-inset-left)); transform: none; width: min(440px, 65vw); }
+  .intro-copy { top: calc(58px + var(--safe-top)); left: max(24px, env(safe-area-inset-left)); transform: none; width: min(440px, 65vw); }
   h1 { font-size: 64px; margin-bottom: 12px; }
   .intro-copy .tagline { font-size: 16px; margin: 10px 0; }
   .intro-description, .intro-bottom { display: none; }
@@ -382,10 +383,10 @@ html, body, #app { touch-action: manipulation; }
 .wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button { height: 44px; min-height: 44px; border: 1px solid #ffffff38; border-radius: 8px; background: #173c32e8; color: #fff8e7; }
 @media (max-width: 600px) {
   #camera-controls button { width: 44px; }
-  #voice-panel { top: 72px; right: max(18px, env(safe-area-inset-right)); }
+  #voice-panel { top: calc(72px + var(--safe-top)); right: max(18px, env(safe-area-inset-right)); }
 }
 @media (max-height: 500px) and (pointer: coarse) {
-  #voice-panel { top: 66px; right: max(18px, env(safe-area-inset-right)); }
+  #voice-panel { top: calc(66px + var(--safe-top)); right: max(18px, env(safe-area-inset-right)); }
 }
 .touch-device.chat-typing #city-chat { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(var(--keyboard-height, 0px) + 12px); width: auto; z-index: 40; }
 .touch-device.chat-typing #touch-controls, .touch-device.chat-typing #interaction, .touch-device.chat-typing #camera-controls { visibility: hidden; }

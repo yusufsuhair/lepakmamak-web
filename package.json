@@ -14,13 +14,18 @@
     "preversion": "npm run build && npm test",
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
-    "release:major": "npm version major -m \"chore(release): v%s\""
+    "release:major": "npm version major -m \"chore(release): v%s\"",
+    "app:ios": "npm run build && cap sync ios && cap run ios",
+    "app:android": "npm run build && cap sync android && cap run android"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "@fontsource/oxanium": "^5.3.0",
     "@supabase/supabase-js": "2.116.0",
     "stripe": "^22.4.0",
@@ -28,6 +33,7 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@playwright/test": "^1.63.0",
     "@types/three": "^0.185.4",
     "typescript": "^7.0.2",

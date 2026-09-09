@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LepakMamak</string>
+    <string name="title_activity_main">LepakMamak</string>
+    <string name="package_name">my.lepakmamak.app</string>
+    <string name="custom_url_scheme">my.lepakmamak.app</string>
+</resources>

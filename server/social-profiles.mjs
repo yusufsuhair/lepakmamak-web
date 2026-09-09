@@ -3,7 +3,7 @@ import {filterChat} from './chat-filter.mjs';
 import {cleanProfile} from './profiles.mjs';
 import {isGameMaster} from './roles.mjs';
 import {clientKey,createRateLimiter} from './limits.mjs';
-const origins=new Set(['https://lepakmamak.my','https://lepakmamak.pages.dev','https://lepak-city.pages.dev','http://localhost:5173','http://localhost:4173']);
+import {origins} from '../shared/origins.mjs';
 export const achievements={first_lepak:{name:'First Lepak',detail:'Entered LepakMamak with an account'},regular:{name:'Mamak Regular',detail:'Joined the city 7 times'},recall_rider:{name:'Recall Legend',detail:'Used recall 50 times'},dance_floor:{name:'Dance Floor',detail:'Danced 10 times'},street_fighter:{name:'Jaga Kampung',detail:'Threw 25 playful punches'},table_regular:{name:'Table Regular',detail:'Sat at mamak tables 10 times'},hoops:{name:'Hoops!',detail:'Scored 25 basketball points'}};
 const rules={first_lepak:s=>s.sessions>=1,regular:s=>s.sessions>=7,recall_rider:s=>s.recalls>=50,dance_floor:s=>s.dances>=10,street_fighter:s=>s.punches>=25,table_regular:s=>s.tables_sat>=10,hoops:s=>s.basketball_points>=25};
 export const earnedAchievementIds=stats=>Object.entries(rules).filter(([,rule])=>rule(stats)).map(([id])=>id);

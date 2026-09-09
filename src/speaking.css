@@ -1,9 +1,9 @@
 /* Under the map, and only while somebody is actually talking. */
-#speaking { position: absolute; top: 152px; left: 24px; display: grid; gap: 4px; pointer-events: none; z-index: 3; }
+#speaking { position: absolute; top: calc(152px + var(--safe-top)); left: 24px; display: grid; gap: 4px; pointer-events: none; z-index: 3; }
 #speaking:empty { display: none; }
 .speaker { display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border-radius: 20px; background: #12332be6; border: 1px solid #7fd08a88; animation: speaker-in .16s ease-out; }
 .speaker-face { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #7fd08a; color: #12332b; font-size: 11px; font-weight: 700; }
 .speaker b { font-size: 11px; color: #eaf3dd; font-weight: 600; }
 @keyframes speaker-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
-@media (max-width: 600px) { #speaking { top: 138px; left: 18px; } .speaker b { font-size: 10px; } }
+@media (max-width: 600px) { #speaking { top: calc(138px + var(--safe-top)); left: 18px; } .speaker b { font-size: 10px; } }
 @media (prefers-reduced-motion: reduce) { .speaker { animation: none; } }

@@ -1,0 +1,8 @@
+{
+  "appId": "my.lepakmamak.app",
+  "appName": "LepakMamak",
+  "webDir": "dist",
+  "backgroundColor": "#172b27",
+  "ios": { "backgroundColor": "#172b27" },
+  "android": { "backgroundColor": "#172b27" }
+}

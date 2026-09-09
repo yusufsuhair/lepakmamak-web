@@ -1,7 +1,7 @@
 /* The GM crawl owns the top edge while it runs, so the HUD steps down to make room
    rather than being covered by it. */
 #gm-announce {
-  position: fixed; top: 0; left: 0; right: 0; height: 30px;
+  position: fixed; top: var(--safe-top); left: 0; right: 0; height: 30px;
   display: flex; align-items: center; overflow: hidden;
   background: linear-gradient(90deg, #12332b, #1d4f42 50%, #12332b);
   border-bottom: 1px solid #ddf69a55;
