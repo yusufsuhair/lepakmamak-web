@@ -690,6 +690,12 @@ async function init() {
     const z=table?table.arrivalZ:pos.z-(riding?Math.sin(yaw)*2.4:0);
     writeLocation(activeLocationKey,{x,z,yaw});
   }
+  // Old browsers without DecompressionStream keep getting plain JSON.
+  const canInflate = typeof DecompressionStream === 'function';
+  async function inflateFrame(buffer: ArrayBuffer): Promise<string> {
+    const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('deflate'));
+    return await new Response(stream).text();
+  }
   async function connectMultiplayer() {
     if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); finishEntryLoading(); return; }
     setNetworkStatus('CONNECTING…', 'connecting', 1);
@@ -702,12 +708,12 @@ async function init() {
         if (socket !== networkSocket) return;
         showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 86);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
-        socket.send(JSON.stringify({ type: 'join', resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
+        socket.send(JSON.stringify({ type: 'join', deflate: canInflate, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
-      socket.addEventListener('message', event => {
+      const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
         let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
-        try { message = JSON.parse(String(event.data)); } catch { return; }
+        try { message = JSON.parse(raw); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
         if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;riding=true;vehicle='car';orbit=.65;const p=passengerPoint(lrtId,lrtSeat,lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
@@ -779,6 +785,16 @@ async function init() {
           toast('Could not join', message.message || 'Please try again.');
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
+      };
+      // Snapshots arrive deflated from the server because Railway's edge strips the
+      // WebSocket's own compression. Inflating is asynchronous, so every frame goes through
+      // one queue: without it a slow inflate could apply an older snapshot after a newer one.
+      socket.binaryType = 'arraybuffer';
+      let frames: Promise<void> = Promise.resolve();
+      socket.addEventListener('message', event => {
+        if (socket !== networkSocket) return;
+        const data = event.data;
+        frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
       });
       socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite

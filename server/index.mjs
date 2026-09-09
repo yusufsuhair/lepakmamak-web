@@ -32,6 +32,7 @@ import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
 const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c' };
 function cleanAppearance(value) { return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, Object.values(appearanceOptions[key]).includes(value?.[key]) ? value[key] : fallback])); }
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 import { WebSocketServer } from 'ws';
 
 const port = Number(process.env.PORT || 8080);
@@ -119,14 +120,23 @@ function send(ws, message) {
   if (ws.readyState === 1) ws.send(JSON.stringify(message));
 }
 
+// Railway's edge strips permessage-deflate, so a compressed snapshot has to travel as an
+// ordinary binary frame the proxy has no opinion about. The room snapshot repeats every
+// player's name, appearance and accessories 20 times a second and gives back about 96%.
+// Built at most once per broadcast, and only for clients that told us they can inflate.
+const PACK_THRESHOLD = 1024;
 function broadcast(players, message) {
   if (message.type === 'players') tableSocial.sync(players);
   const payload = JSON.stringify(message);
+  let packed;
   for (const player of players.values()) {
     if (player.ws.readyState !== 1) continue;
     if(message.type==='fleet'&&player.ws.bufferedAmount>=65536)continue;
     if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { dirtyRooms.add(players); continue; }
-    player.ws.send(payload);
+    if (player.deflate && payload.length >= PACK_THRESHOLD) {
+      packed ||= zlib.deflateSync(payload, { level: 1 });
+      player.ws.send(packed);
+    } else player.ws.send(payload);
   }
 }
 
@@ -234,6 +244,7 @@ webSocketServer.on('connection', ws => {
         speed: 0,
         jumpHeight: 0, seated: false, chairId: null,
         mic: false, speaker: false,
+        deflate: message.deflate === true,
         supermanUntil: 0,
         updatedAt: Date.now(),
       };
