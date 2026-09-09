@@ -1035,7 +1035,7 @@ async function init() {
     ctx.restore();
   }
   function updateHud() {
-    locationArrival.update(pos.x,pos.z,started);
+    locationArrival.update(pos.x,pos.z,started,audioEnabled);
     vehicleRadio.update(started && (riding || !!passengerOf) && musicEnabled);
     backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1);
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;

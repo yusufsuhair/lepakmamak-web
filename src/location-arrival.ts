@@ -9,15 +9,42 @@ export function locationAt(x:number,z:number){
  return{key:`district:${name}`,name,subtitle:'District'};
 }
 
+const VISITED_KEY='lepak-visited';
+
+// Rising three-note sting; own context so arrivals work before the world audio graph exists.
+function createArrivalSting(){
+ let context:AudioContext|undefined;
+ const unlock=()=>{try{context??=new AudioContext();void context.resume().catch(()=>{});}catch{}};
+ document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
+ return()=>{
+  if(context?.state!=='running')return;const now=context.currentTime;
+  [523.25,784,1046.5].forEach((frequency,index)=>{
+   const at=now+index*.1,oscillator=context!.createOscillator(),gain=context!.createGain();
+   oscillator.type='triangle';oscillator.frequency.value=frequency;
+   gain.gain.setValueAtTime(.001,at);gain.gain.exponentialRampToValueAtTime(.055,at+.02);gain.gain.exponentialRampToValueAtTime(.001,at+.42);
+   oscillator.connect(gain);gain.connect(context!.destination);oscillator.start(at);oscillator.stop(at+.44);
+   oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
+  });
+ };
+}
+
 export function setupLocationArrival(){
  const banner=document.createElement('div');banner.id='location-arrival';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');banner.innerHTML='<small></small><strong></strong><i></i>';document.body.append(banner);
+ let visited:Set<string>;try{visited=new Set<string>(JSON.parse(localStorage.getItem(VISITED_KEY)||'[]'));}catch{visited=new Set<string>();}
+ const sting=createArrivalSting();
  let current='',timer:ReturnType<typeof setTimeout>|undefined;
  return{
-  update(x:number,z:number,enabled=true){
+  update(x:number,z:number,enabled=true,soundEnabled=true){
    if(!enabled)return;
    const location=locationAt(x,z);if(location.key===current)return;current=location.key;
-   banner.querySelector('small')!.textContent=location.subtitle;banner.querySelector('strong')!.textContent=location.name;
-   banner.classList.remove('visible');void banner.offsetWidth;banner.classList.add('visible');clearTimeout(timer);timer=setTimeout(()=>banner.classList.remove('visible'),3600);
+   const first=!visited.has(location.key);
+   if(first){visited.add(location.key);try{localStorage.setItem(VISITED_KEY,JSON.stringify([...visited]));}catch{}}
+   banner.querySelector('small')!.textContent=first?`Discovered · ${location.subtitle}`:location.subtitle;
+   banner.querySelector('strong')!.textContent=location.name;
+   banner.classList.toggle('known',!first);
+   banner.classList.remove('visible');void banner.offsetWidth;banner.classList.add('visible');
+   if(first){if(soundEnabled)sting();try{navigator.vibrate?.([14,44,24]);}catch{}}
+   clearTimeout(timer);timer=setTimeout(()=>banner.classList.remove('visible'),first?3600:1800);
   },
   reset(){current='';clearTimeout(timer);banner.classList.remove('visible');}
  };
