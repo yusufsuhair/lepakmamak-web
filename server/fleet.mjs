@@ -25,7 +25,7 @@ export function createFleet(send,broadcast){
     if(car.owner){if(!players.has(car.owner)){car.owner=null;car.npc=false;car.speed=0;}continue;}
     if(!car.npc)continue;
     const ax=car.x+(car.axis==='x'?car.direction*6:0),az=car.z+(car.axis==='z'?car.direction*6:0);
-    if([...players.values()].some(p=>Math.hypot(p.x-ax,p.z-az)<5)||cars(players).some(c=>c!==car&&Math.hypot(c.x-ax,c.z-az)<3.8))continue;
+    if([...players.values()].some(p=>p.lrtId==null&&Math.hypot(p.x-ax,p.z-az)<5)||cars(players).some(c=>c!==car&&Math.hypot(c.x-ax,c.z-az)<3.8))continue;
     car[car.axis]+=car.speed*car.direction*dt;
     if(car[car.axis]>150)car[car.axis]=-150;if(car[car.axis]<-150)car[car.axis]=150;
   }sync(players);}
