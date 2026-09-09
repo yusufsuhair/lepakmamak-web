@@ -337,6 +337,7 @@ webSocketServer.on('connection', ws => {
       player.appearance = cleanAppearance({ ...player.appearance, shirt: message.shirt, trousers: message.trousers });
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
+    if (message.type === 'ping') { send(ws, { type: 'pong', t: message.t }); return; }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
       player.micScope = message.micScope === 'party' ? 'party' : 'all';

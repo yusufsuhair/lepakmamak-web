@@ -1,0 +1,12 @@
+/* Signal bars and the round trip, sat with the rest of the connection state. */
+#net-status { display: inline-flex; align-items: center; gap: 6px; pointer-events: none; }
+#net-status .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+#net-status .bar { width: 3px; border-radius: 1px; background: #ffffff33; }
+#net-status .bar-1 { height: 4px; } #net-status .bar-2 { height: 7px; }
+#net-status .bar-3 { height: 10px; } #net-status .bar-4 { height: 13px; }
+#net-status .bar.on { background: #7fd08a; }
+#net-status[data-grade="poor"] .bar.on { background: #f0c05a; }
+#net-status[data-grade="bad"] .bar.on { background: #e5644f; }
+#net-ping { font-size: 10px; letter-spacing: .04em; color: #cdd8c0; font-weight: 600; }
+#net-status[data-grade="bad"] #net-ping { color: #ffb9ae; }
+#net-status[data-grade="none"] #net-ping { color: #93a48c; }
