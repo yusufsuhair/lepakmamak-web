@@ -106,16 +106,16 @@
   },
   {
     "id": "16",
-    "name": "PETRONAS · Kedai Mesra",
-    "x": 117,
-    "z": 106,
+    "name": "PETRONAS \u00b7 Kedai Mesra",
+    "x": -31,
+    "z": 103,
     "kind": "minyak"
   },
   {
     "id": "17",
     "name": "Masjid Kampung Maju",
-    "x": -31,
-    "z": 112,
+    "x": 117,
+    "z": 115,
     "kind": "ibadah"
   },
   {
@@ -139,6 +139,18 @@
     "z": 32,
     "kind": "kedai"
   },
-  {"id":"21","name":"Pickleball Lepak","x":35,"z":130,"kind":"sukan"},
-  {"id":"22","name":"Basket Lepak","x":54,"z":129,"kind":"sukan"}
+  {
+    "id": "21",
+    "name": "Pickleball Lepak",
+    "x": 35,
+    "z": 130,
+    "kind": "sukan"
+  },
+  {
+    "id": "22",
+    "name": "Basket Lepak",
+    "x": 54,
+    "z": 129,
+    "kind": "sukan"
+  }
 ]

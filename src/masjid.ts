@@ -1,5 +1,5 @@
 export const masjidSpots = [
-  { name: 'Masjid Kampung Maju', x: -31, z: 112 },
+  { name: 'Masjid Kampung Maju', x: 117, z: 115 },
   { name: 'Masjid Lepak', x: 117, z: -37 },
 ] as const;
 

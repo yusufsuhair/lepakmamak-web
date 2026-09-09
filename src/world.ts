@@ -503,7 +503,7 @@ export function createWorld(scene: THREE.Scene): World {
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
   shop(33, 103, 24, shopColors[1], 'SELAMAT JALAN');
-  // Masjid Kampung Maju sits directly across the road from Mamak Maju.
+  // Masjid Kampung Maju occupies the former PETRONAS site.
   // Rotate its entrance toward the mamak while keeping the courtyard clear.
   {
     const mosque = createWorshipLandmark('mosque', 'MASJID KAMPUNG MAJU');
@@ -632,7 +632,7 @@ export function createWorld(scene: THREE.Scene): World {
   // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,
   // six pumps and a roadside fuel pylon. The open forecourt remains driveable.
   {
-    const px = 117, pz = 115;
+    const px = -31, pz = 112;
     const station = new THREE.Group(); station.position.set(px, 0, pz); group.add(station);
     const stationSolid = (x: number, z: number, w: number, d: number) => solid(px + x, pz + z, w, d);
     const green = '#00a58f', darkGreen = '#087565', white = '#f5f4e9', charcoal = '#293d3b';
