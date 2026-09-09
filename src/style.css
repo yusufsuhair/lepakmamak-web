@@ -8,6 +8,26 @@
 * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 body { margin: 0; overflow: hidden; }
+
+/* One scrollbar for the whole game. Every panel that scrolls — chat, inventory, settings,
+   the wall, the map — used to fall back to the browser's own chrome, which reads as a web
+   page rather than a game. Dark brass rail by default, a lighter one on the cream panels. */
+* { scrollbar-width: thin; scrollbar-color: #c9ad6bcc #0d221d99; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0d221d99; border-radius: 7px; }
+::-webkit-scrollbar-thumb { border: 2px solid transparent; background: #c9ad6bcc; background-clip: padding-box; border-radius: 7px; }
+::-webkit-scrollbar-thumb:hover { background: #e6cd90e6; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:active { background: #ffe9b5; background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+.pause-panel, .auth-card, .village-dialog, .light-scroll { scrollbar-color: #7d9463 #dfd7bb; }
+.pause-panel::-webkit-scrollbar-track, .auth-card::-webkit-scrollbar-track, .village-dialog::-webkit-scrollbar-track, .light-scroll::-webkit-scrollbar-track { background: #dfd7bb; }
+.pause-panel::-webkit-scrollbar-thumb, .auth-card::-webkit-scrollbar-thumb, .village-dialog::-webkit-scrollbar-thumb, .light-scroll::-webkit-scrollbar-thumb { background: #7d9463; background-clip: padding-box; }
+.pause-panel::-webkit-scrollbar-thumb:hover, .auth-card::-webkit-scrollbar-thumb:hover, .village-dialog::-webkit-scrollbar-thumb:hover, .light-scroll::-webkit-scrollbar-thumb:hover { background: #5f7a4c; background-clip: padding-box; }
+
+/* Phones and tablets get a slimmer rail: the finger is the scrollbar, this is only a hint. */
+@media (pointer: coarse) { ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { border-width: 1px; } }
+
 #auth-panel { position: absolute; inset: 0; z-index: 20; background: #122e26cc; backdrop-filter: blur(8px); display: grid; place-items: center; padding: 18px; }
 .auth-card { width: min(400px, 100%); max-height: calc(100dvh - 36px); overflow: auto; border-radius: 12px; background: #f5efdb; color: #254b3b; padding: 28px; }
 .auth-card h2 { font: 700 44px/1 'Oxanium'; margin: 12px 0; }

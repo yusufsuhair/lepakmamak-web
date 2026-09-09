@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.14.0",
+  "date": "2026-09-10",
+  "title": "Scroll bar ikut gaya game",
+  "notes": [
+   "Every panel that scrolls — chat, inventory, settings, the wall, the map — now uses one brass rail that matches the game instead of the browser's plain grey bar. The cream panels get a lighter version of it, and phones and tablets get a slimmer one."
+  ]
+ },
+ {
   "version": "1.13.0",
   "date": "2026-09-10",
   "title": "Tekan luar untuk tutup tetapan",
