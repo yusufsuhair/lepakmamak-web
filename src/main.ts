@@ -1,5 +1,6 @@
 import {setupChatSound} from './chat-sound';
 import {setupVehicleRadio} from './vehicle-radio';
+import {setupLocationArrival} from './location-arrival';
 import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import teleports from '../shared/teleports.json';
@@ -175,6 +176,7 @@ async function init() {
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   const vehicleRadio=setupVehicleRadio();
+  const locationArrival=setupLocationArrival();
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
@@ -734,6 +736,7 @@ async function init() {
   }
   function leaveCity() {
     vehicleRadio.update(false);
+    locationArrival.reset();
     saveLocation();danceAudio.stop();localSupermanUntil=0;
     streetStalls.close();streetStalls.state(null,false);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
@@ -1029,6 +1032,7 @@ async function init() {
     ctx.restore();
   }
   function updateHud() {
+    locationArrival.update(pos.x,pos.z,started);
     vehicleRadio.update(started && (riding || !!passengerOf) && musicEnabled);
     backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1);
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
