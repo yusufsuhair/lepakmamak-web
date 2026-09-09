@@ -1,4 +1,5 @@
 import {createWeather} from './weather.mjs';
+import {createWeatherControls} from './weather-controls.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
@@ -117,6 +118,7 @@ function broadcast(players, message) {
 }
 
 const weather=createWeather();
+const weatherControls=createWeatherControls(send,broadcast);
 const server = http.createServer(async (request, response) => {
   if(request.url==='/weather' && request.method==='GET'){
     const report=await weather();
@@ -226,6 +228,7 @@ webSocketServer.on('connection', ws => {
       socialProfiles.event(player,'sessions',1,true);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
+      weatherControls.sync(room.players,ws);
       send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
@@ -400,6 +403,7 @@ webSocketServer.on('connection', ws => {
       broadcast(currentRoom.players, { type: 'recall', id: player.id });
       return;
     }
+    if(weatherControls.handle(currentRoom.players,player,message))return;
     if (message.type === 'ping') send(ws, { type: 'pong', now: Date.now() });
   });
 

@@ -497,6 +497,7 @@ async function init() {
   function syncRemotePlayers(players: NetworkPlayer[]) {
     streetStalls.state(players.find(p=>p.id===networkPlayerId)?.snack||null,networkConnected);
     roomPlayers = players;
+    weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
@@ -599,6 +600,7 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
+        if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
@@ -783,7 +785,7 @@ async function init() {
   });
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
-  setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;});
+  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
