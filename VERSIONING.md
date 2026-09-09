@@ -34,3 +34,13 @@ Review `git status` and `git diff`, stage only the intended files, then commit w
 The preversion build validates the old version before npm changes it. Run `npm run build` again when preparing artifacts for the new release. Frontend and backend deployment are separate, explicit steps; both must be deployed to display the same version in production.
 
 Inspect any saved release with `git show v1.0.0`. Preserve published tags; create a new version for subsequent fixes.
+
+## Release notes players can read
+
+`shared/changelog.json` holds the player-facing notes, newest first, as
+`{version, date, title, notes[]}`. Settings renders it under "Apa yang baharu"
+with the current version and when it last changed.
+
+Every release bumps `package.json` and adds an entry. `tests/changelog.spec.ts`
+fails when the two disagree, so a version cannot ship without notes, and the
+notes are checked for developer language so they stay written for players.

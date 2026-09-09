@@ -1,0 +1,15 @@
+/* What's new, inside Settings. The pause panel is cream, so this reads dark on light. */
+#whats-new { margin-top: 18px; border-top: 1px solid #173c3222; padding-top: 14px; text-align: left; }
+#whats-new header h3 { margin: 0; font-size: 13px; letter-spacing: .05em; color: #173c32; }
+#whats-new header p { margin: 3px 0 10px; font-size: 11px; color: #5c7266; }
+#whats-new-version { color: #173c32; }
+.release { border: 1px solid #d8ddc9; border-radius: 6px; margin-bottom: 6px; background: #ffffff; }
+.release summary { display: flex; align-items: baseline; gap: 8px; padding: 8px 10px; cursor: pointer; list-style: none; }
+.release summary::-webkit-details-marker { display: none; }
+.release summary::before { content: '▸'; color: #7d8b75; font-size: 10px; }
+.release[open] summary::before { content: '▾'; }
+.release summary b { font-size: 12px; color: #173c32; }
+.release summary small { margin-left: auto; font-size: 10px; color: #7d8b75; white-space: nowrap; }
+.release ul { margin: 0; padding: 0 12px 10px 30px; display: grid; gap: 6px; }
+.release li { font-size: 11.5px; line-height: 1.5; color: #3d5449; }
+@media (max-width: 600px) { .release summary small { display: none; } .release li { font-size: 11px; } }

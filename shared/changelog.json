@@ -1,0 +1,56 @@
+[
+  {
+    "version": "1.4.0",
+    "date": "2026-09-09",
+    "title": "Polis masuk bandar",
+    "notes": [
+      "Two police cars now patrol the city, siren and all. You only hear it when they are near — and yes, you can still cilok them.",
+      "A connection meter next to the player count shows your signal and your ping in milliseconds.",
+      "When someone talks, their name and face appear under the map, so you always know who is speaking."
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-09-09",
+    "title": "Chat kemas, GM boleh bagitahu semua",
+    "notes": [
+      "Chat channels moved into the typing bar: tap the button on the left to switch between everyone, your party, or a private message.",
+      "On a computer you can now blow the chat up into a proper window instead of squinting at the corner.",
+      "The Game Master can announce something to the whole city, and it scrolls across the top before landing in chat so nobody misses it."
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-09-09",
+    "title": "Meja baru, jambatan boleh jalan",
+    "notes": [
+      "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
+      "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
+      "You can walk across the Saloma Link. Take the steps up at either end — the road underneath still runs as normal.",
+      "The city now holds forty people instead of twenty-four."
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-09-09",
+    "title": "Geng, suara, dan lampu jalan",
+    "notes": [
+      "Right-click anyone to invite them into your party or send them a private message.",
+      "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
+      "Everyone online shows on the map as a dot — light blue for the city, red for your party.",
+      "Street lights come on at night, and the streets are no longer pitch black.",
+      "Chat opens with Enter and tucks away after you send, so the screen stays clear."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-09-08",
+    "title": "Bandar LepakMamak",
+    "notes": [
+      "Explore a small Kuala Lumpur: the mamak, the shops, the mosque, and the neighbourhood around them.",
+      "Ride the LRT across eight stations, or take a kapcai or a car and cilok your friends.",
+      "Table games at the mamak: Lukis Lah!, Poker Kampung, UNO Lepak and Werewolf.",
+      "City chat, voice chat with whoever is nearby, and the Lepak Wall for photos and voice notes."
+    ]
+  }
+]

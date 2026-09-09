@@ -9,6 +9,7 @@ import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createSiren} from './siren';
+import {createWhatsNew} from './changelog';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
@@ -293,6 +294,7 @@ async function init() {
   let localName: THREE.Sprite | null = null;
   const chatPop=setupChatSound();
   const announcer=createAnnouncer($('hud'));
+  createWhatsNew(document.querySelector('.pause-panel') as HTMLElement);
   const netStatus=createNetStatus(document.querySelector('.brand-status') as HTMLElement);
   const speaking=createSpeakingList($('hud'));
   let pingSentAt=0;
