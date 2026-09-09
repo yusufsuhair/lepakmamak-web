@@ -69,7 +69,8 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
       };
       input.connect(capture); capture.connect(ctx.destination); // Processor outputs silence.
       requested.getAudioTracks()[0].onended = () => { if (attempt === generation) { stopMic(); status.textContent = 'Microphone disconnected. Tap the microphone icon to retry.'; } };
-      busy = false; mic = true; announce(); status.textContent = 'Mic live · Everyone with speakers on can hear you';
+      busy = false; mic = true; speaker = true; output!.gain.value = 0.8;
+      announce(); status.textContent = 'Mic and speakers on · Nearby players can hear you';
     } catch (error) {
       if (attempt !== generation) return;
       stopMic();

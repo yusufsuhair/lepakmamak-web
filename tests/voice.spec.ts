@@ -44,9 +44,11 @@ test('voice requires opt-in, streams to another player, mutes independently and 
     await receiver.bringToFront();
     await receiver.locator('#voice-speaker').click();
     expect((await stats(receiver)).requests).toBe(0);
+    await expect(receiver.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'false');
     await sender.bringToFront();
     await sender.locator('#voice-mic').click();
     await expect(sender.locator('#voice-mic')).toHaveAttribute('aria-pressed', 'true');
+    await expect(sender.locator('#voice-speaker')).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(async () => (await stats(receiver)).plays).toBeGreaterThan(3);
     await expect(sender.locator('#voice-audience')).toContainText('can hear you');
     await receiver.bringToFront();
