@@ -1270,7 +1270,7 @@ async function init() {
     camera.updateMatrixWorld();
     streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!wall.opened&&!tableSocial.opened&&!riding&&!seated);
     setAfkBubble('self', started ? afkNote : '');
-    // One prompt at a fixed anchor beats a label per table drifting across the play area.
+    // Keep the nearest table action attached to its world position.
     const promptBlocked=!started||paused||cityMap.open||wall.opened||tableSocial.opened;
     let nearestLabel:typeof tableLabels[number]|null=null,nearestLabelDistance=8;
     if(!promptBlocked)for(const entry of tableLabels){const away=distanceTo(entry.table);if(away<=nearestLabelDistance){nearestLabelDistance=away;nearestLabel=entry;}}
@@ -1278,11 +1278,16 @@ async function init() {
       const active=nearestLabel?.table.id===table.id;
       button.hidden=!active;
       if(!active)continue;
+      const tableAnchor=new THREE.Vector3(table.x,2.8,table.z).project(camera);
+      button.hidden=tableAnchor.z < -1 || tableAnchor.z > 1 || Math.abs(tableAnchor.x)>1 || Math.abs(tableAnchor.y)>1;
+      if(button.hidden)continue;
+      button.style.left=`${(tableAnchor.x+1)*innerWidth/2}px`;
+      button.style.top=`${(1-tableAnchor.y)*innerHeight/2}px`;
       const state=roomTables.find(t=>t.id===table.id);
       const name=state?.name||table.name;
-      const label=`${name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} · OPEN`;
+      const label=`${name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} seats · Games`;
       if(button.textContent!==label)button.textContent=label;
-      button.setAttribute('aria-label',`Open Meja Kita at ${name}`);
+      button.setAttribute('aria-label',`Open games at ${name}`);
     }
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
