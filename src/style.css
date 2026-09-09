@@ -522,6 +522,22 @@ html, body, #app { touch-action: manipulation; }
 .village-talk{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);z-index:12;padding:14px 22px;border:1px solid #e9da93;border-radius:24px;background:#315a43;color:#fff0bd;font:700 15px 'Oxanium';cursor:pointer}.village-talk[hidden]{display:none}.village-dialog{max-width:min(420px,85vw);border:1px solid #adbf85;border-radius:16px;padding:24px;background:#f0ecd6;color:#274a37}.village-dialog::backdrop{background:#102d2877}.village-dialog p{line-height:1.6}.village-dialog button{min-height:44px;padding:10px 18px;border:0;border-radius:8px;background:#315a43;color:#fff0bd}
 
 /* The channel selector drops upward out of the composer, so it never covers the log. */
+/* Private messages get their own row above the log, not a slot in the broadcast list. */
+#chat-dms { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px solid #ffffff1a; overflow-x: auto; scrollbar-width: none; }
+#chat-dms[hidden] { display: none; }
+#chat-dms > small { flex: 0 0 auto; font-size: 9px; letter-spacing: .12em; color: #9fb094; }
+.dm-chips { display: flex; gap: 5px; }
+.dm-chip { display: flex; align-items: center; flex: 0 0 auto; border: 1px solid #99ad8966; border-radius: 13px; background: #ffffff12; overflow: hidden; }
+.dm-chip.on { background: #ddf69a; border-color: #ddf69a; }
+.dm-open { display: flex; align-items: center; gap: 5px; background: none; border: 0; color: #cdd8c0; padding: 5px 4px 5px 5px; font-size: 11px; cursor: pointer; }
+.dm-chip.on .dm-open, .dm-chip.on .dm-close { color: #173c32; }
+.dm-open i { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #2f5d4d; color: #ddf69a; font: 700 9px 'Oxanium', sans-serif; font-style: normal; }
+.dm-chip.on .dm-open i { background: #173c32; }
+.dm-close { background: none; border: 0; color: #9fb094; padding: 5px 8px 5px 3px; font-size: 12px; line-height: 1; cursor: pointer; }
+.dm-close:hover { color: #ffd0c4; }
+#chat-channel.dm-recipient { background: #ddf69a; color: #173c32; border-color: #ddf69a; opacity: 1; }
+@media (pointer: coarse) { .dm-open { padding: 8px 4px 8px 6px; } .dm-close { padding: 8px 9px 8px 3px; } }
+
 #chat-logs { position: relative; }
 /* Floats over the foot of the log, so reading back is never yanked to the newest line. */
 #chat-jump { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 2; min-height: 26px; padding: 0 12px; border: 1px solid #99ad8966; border-radius: 13px; background: #1d4a3ef2; color: #ddf69a; font-size: 10px; letter-spacing: .06em; cursor: pointer; box-shadow: 0 4px 14px #00000059; }
@@ -557,6 +573,7 @@ html, body, #app { touch-action: manipulation; }
 /* #chat-form button styles every button in the composer by id, which outranks a bare
    class, so the selector and its list need id-scoped rules of their own. */
 #chat-form #chat-channel { background: #ffffff1f; color: #ddf69a; border: 1px solid #99ad8966; border-radius: 4px; padding: 0 8px; font-size: 10px; }
+#chat-form #chat-channel.dm-recipient { background: #ddf69a; color: #173c32; border-color: #ddf69a; }
 #chat-form .chat-channel-row [role="option"] { background: none; color: #cdd8c0; border-radius: 4px; padding: 6px 8px; font-size: 11px; }
 #chat-form .chat-channel-row [role="option"]:hover { background: #ffffff14; }
 #chat-form .chat-channel-row [role="option"][aria-selected="true"] { background: #ddf69a; color: #173c32; }

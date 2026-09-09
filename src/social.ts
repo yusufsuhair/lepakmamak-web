@@ -80,6 +80,8 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
 }
 
 
+import {createDmBar} from './dm';
+
 type Member = {id: string; name: string};
 type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
 
@@ -93,6 +95,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
   const toggleLabel = el('chat-toggle-label'), unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
+  const dmBar = createDmBar({select: key => select(key), close: key => closeThread(key)});
+  body.prepend(dmBar.root);
   const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
   const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
   compose.textContent = coarse ? '' : 'Click or press enter to type';
@@ -150,6 +154,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
   function renderMenu() {
     menu.replaceChildren();
     for (const thread of threads.values()) {
+      if (thread.channel === 'dm') continue;   // private threads have their own strip
       const row = document.createElement('div'); row.className = 'chat-channel-row';
       const option = document.createElement('button');
       option.type = 'button'; option.setAttribute('role', 'option');
@@ -158,13 +163,6 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       if (thread.unread) { const count = document.createElement('span'); count.className = 'opt-unread'; count.textContent = String(thread.unread); option.append(count); }
       option.onclick = () => select(thread.key);
       row.append(option);
-      if (thread.closable) {
-        const close = document.createElement('button');
-        close.type = 'button'; close.className = 'chat-thread-close';
-        close.setAttribute('aria-label', `Close chat with ${thread.name}`); close.textContent = '×';
-        close.onclick = event => { event.stopPropagation(); closeThread(thread.key); };
-        row.append(close);
-      }
       menu.append(row);
     }
   }
@@ -182,9 +180,16 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
     for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
     const current = threads.get(active)!;
-    selector.textContent = current.label;
+    const private_ = current.channel === 'dm';
+    // In a private conversation the pill states the recipient and stops being a menu, so a
+    // private line can never be handed to the whole city by a mis-tap.
+    selector.textContent = private_ ? `→ ${current.label}` : current.label;
+    selector.classList.toggle('dm-recipient', private_);
+    selector.disabled = private_;
+    if (private_) closeMenu();
     if (current.unread) { const count = document.createElement('span'); count.className = 'opt-unread'; count.textContent = String(current.unread); selector.append(count); }
-    selector.setAttribute('aria-label', `Channel: ${current.label}. Choose who sees your message`);
+    selector.setAttribute('aria-label', private_ ? `Private message to ${current.name}` : `Channel: ${current.label}. Choose who sees your message`);
+    dmBar.render([...threads.values()].filter(thread => thread.channel === 'dm').map(thread => ({key: thread.key, name: thread.name || thread.label, unread: thread.unread})), active);
     input.setAttribute('aria-label', active === 'all' ? 'Message to the city' : `Message to ${current.label}`);
     if (menuOpen) renderMenu();
     renderJump();

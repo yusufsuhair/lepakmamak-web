@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.11.0",
+  "date": "2026-09-10",
+  "title": "Mesej peribadi ada tempat sendiri",
+  "notes": [
+   "Private messages have moved out of the channel list into their own row above the chat log. Each conversation is a chip with the person's name and its own unread count, and you close it from there.",
+   "The channel list is now only about who sees your message: ALL and PARTY. While you are in a private conversation the box states who you are writing to and stops being a menu, so a private line cannot go to the whole city by mistake."
+  ]
+ },
+ {
   "version": "1.10.0",
   "date": "2026-09-10",
   "title": "Suis lampu bandar, satu skrin karakter",

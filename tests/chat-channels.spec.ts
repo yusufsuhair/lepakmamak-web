@@ -58,22 +58,33 @@ test('party appears in the list only while you are in one, and choosing it route
  expect(await page.evaluate(()=>(window as any).sent)).toEqual([{text:'geng only',channel:'party'}]);
 });
 
-test('a private thread joins the list and can be closed from it',async({page})=>{
+test('a private thread gets its own chip, and never a slot in the broadcast list',async({page})=>{
  await mount(page,'dm-harness');
  await page.evaluate(()=>(window as any).chat.openDm('u1','Aina'));
+ await expect(page.locator('.dm-chip')).toHaveCount(1);
+ await expect(page.locator('.dm-chip.on')).toContainText('Aina');
  await openComposer(page);
+
+ // The pill states the recipient and stops being a menu, so a private line cannot be
+ // handed to the whole city by a mis-tap.
  await expect(page.locator('#chat-channel')).toHaveText(/@Aina/);
+ await expect(page.locator('#chat-channel')).toBeDisabled();
 
  await page.locator('#chat-input').fill('psst');
  await page.keyboard.press('Enter');
  expect(await page.evaluate(()=>(window as any).sent)).toEqual([{text:'psst',channel:'dm',to:'u1'}]);
 
- // The selector lives inside the composer, so sending closes it along with the form.
+ // Closing the conversation from its chip hands you back to the city, and the list that
+ // decides who sees a message only ever offers the broadcast channels.
+ await page.evaluate(()=>(window as any).chat.party([{id:'a',name:'Ali'}]));
+ await page.getByRole('button',{name:'Close chat with Aina'}).click();
+ await expect(page.locator('.dm-chip')).toHaveCount(0);
+ await expect(page.locator('#chat-channel')).toHaveText(/ALL/);
+ await expect(page.locator('#chat-channel')).toBeEnabled();
  await openComposer(page);
  await page.locator('#chat-channel').click();
- await page.getByRole('button',{name:'Close chat with Aina'}).click();
+ await expect(page.getByRole('option')).toHaveCount(2);
  await expect(page.getByRole('option',{name:/@Aina/})).toHaveCount(0);
- await expect(page.locator('#chat-channel')).toHaveText(/ALL/);
 });
 
 test('unread piles up per channel and shows against its entry in the list',async({page})=>{
@@ -86,10 +97,11 @@ test('unread piles up per channel and shows against its entry in the list',async
  });
  await expect(page.locator('#chat-messages')).not.toContainText('geng talk');
 
+ await expect(page.getByRole('button',{name:/Private messages with Aina, 1 unread/})).toBeVisible();
  await openComposer(page);
  await page.locator('#chat-channel').click();
  await expect(page.getByRole('option',{name:/PARTY/})).toContainText('1');
- await expect(page.getByRole('option',{name:/@Aina/})).toContainText('1');
+ await expect(page.getByRole('option',{name:/@Aina/})).toHaveCount(0);
 
  await page.getByRole('option',{name:/PARTY/}).click();
  await expect(page.locator('.chat-log:not([hidden])')).toContainText('Ali: geng talk');
