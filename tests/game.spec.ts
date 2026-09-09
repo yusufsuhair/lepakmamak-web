@@ -9,6 +9,9 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await expect(page.locator('#loading')).toBeHidden();
   await page.screenshot({ path: 'test-results/title-screen.png' });
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.locator('#world').click({ position: { x: 640, y: 400 } });
   expect((await state(page)).punchCount).toBe(1);
   await page.mouse.move(640, 400); await page.mouse.down(); await page.mouse.move(680, 400); await page.mouse.up();
@@ -75,6 +78,9 @@ test('free roam supports riding, settings and no mission prompts', async ({ page
   await page.reload();
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await expect(page.locator('#money')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -85,6 +91,9 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await page.goto('/');
   await expect(page.locator('#loading')).toBeHidden();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await expect(page.locator('#touch-controls')).toBeVisible();
   await page.touchscreen.tap(195, 420);
   expect((await state(page)).punchCount).toBe(1);
@@ -124,6 +133,9 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
 test('object buttons sit and stand while Enter does nothing', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.keyboard.down('a');
   await expect.poll(async () => (await state(page)).position.x).toBeLessThan(-26);
   await page.keyboard.up('a');
@@ -146,6 +158,9 @@ test('mobile analog movement supports release and a second finger in both orient
     const page = await context.newPage();
     await page.goto('/');
     await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
     await expect(page.locator('.touch-pad')).toHaveCount(0);
     await page.getByRole('button', { name: 'Open city map' }).tap();
     await expect(page.locator('#city-map')).toBeVisible();
@@ -176,6 +191,9 @@ test('mobile analog movement supports release and a second finger in both orient
 test('parked car can be entered, driven, braked and exited', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.keyboard.down('s');
   await expect.poll(async () => (await state(page)).position.z, { timeout: 10000 }).toBeGreaterThan(63);
   await page.keyboard.up('s');
