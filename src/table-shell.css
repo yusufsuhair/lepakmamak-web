@@ -1,0 +1,63 @@
+/* One skin for every table game, so the ritual reads the same whichever you pick. */
+.table-shell { display: grid; gap: 12px; position: relative; }
+.table-shell[hidden] { display: none; }
+.table-shell-head h3 { margin: 0; font-size: 19px; color: #173c32; }
+.table-shell-head p { margin: 2px 0 0; font-size: 11px; letter-spacing: .04em; color: #5c7266; }
+
+.table-ring { display: flex; flex-wrap: wrap; gap: 8px; }
+.table-ring[hidden] { display: none; }
+.table-seat { display: flex; align-items: center; gap: 7px; min-width: 116px; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.table-seat.filled { background: #ffffff; border: 1px solid #d8ddc9; color: #173c32; }
+.table-seat.filled.ready { border-color: #6f9c4f; background: #f2f9e4; }
+.table-seat.filled.you b { text-decoration: underline; text-underline-offset: 2px; }
+.table-seat.empty { border: 1px dashed #b9c2ac; color: #7d8b75; justify-content: center; }
+.seat-face { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #173c32; color: #ddf69a; font-weight: 700; font-size: 12px; }
+.table-seat i { margin-left: auto; font-style: normal; color: #4f7d3a; font-weight: 700; }
+
+#table-hint { margin: 0; font-size: 12px; color: #5c7266; }
+#table-hint[hidden] { display: none; }
+
+#table-countdown { display: flex; align-items: baseline; gap: 9px; }
+#table-countdown[hidden] { display: none; }
+#table-countdown strong { font-size: 34px; line-height: 1; color: #173c32; }
+#table-countdown small { font-size: 11px; color: #5c7266; }
+
+.table-actions { display: flex; gap: 8px; }
+.table-actions button { border: 0; border-radius: 6px; padding: 9px 20px; font-size: 12px; letter-spacing: .06em; cursor: pointer; background: #173c32; color: #fff5dc; }
+.table-actions button.on { background: #ddf69a; color: #173c32; }
+.table-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.table-actions button[hidden] { display: none; }
+
+.table-reactions { display: flex; gap: 6px; }
+.table-reactions button { border: 1px solid #d8ddc9; background: #fff; border-radius: 20px; padding: 4px 9px; font-size: 14px; cursor: pointer; line-height: 1; }
+.table-reactions button:hover { background: #f2f9e4; }
+
+/* Reactions drift up over the table and clear themselves. */
+.table-reaction { position: absolute; right: 14px; bottom: 8px; font-size: 26px; pointer-events: none; animation: table-float 2.2s ease-out forwards; }
+@keyframes table-float { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-58px); } }
+@media (prefers-reduced-motion: reduce) { .table-reaction { animation: none; opacity: .9; } }
+
+/* A phone must never scroll the table dialog sideways. */
+.table-shell, .table-shell > * { min-width: 0; max-width: 100%; }
+@media (max-width: 600px) {
+  .table-seat { min-width: 0; flex: 1 1 46%; padding: 6px 8px; font-size: 11px; }
+  .table-seat b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .table-actions { flex-wrap: wrap; }
+  .table-actions button { flex: 1 1 auto; padding: 9px 12px; }
+  .table-reactions { flex-wrap: wrap; }
+}
+
+/* The dialog styles buttons and headers by id, which outranks a bare class.
+   These pair each shell rule with a matching id-scoped one instead of !important. */
+#table-social .table-shell-head, .table-shell .table-shell-head { display: block; }
+#table-social .table-shell-head h3, .table-shell .table-shell-head h3 { margin: 0; font-size: 19px; color: #173c32; }
+#table-social .table-reactions button, .table-shell .table-reactions button {
+  background: #fff; color: #173c32; border: 1px solid #d8ddc9; border-radius: 20px;
+  padding: 4px 10px; font-size: 15px; line-height: 1; letter-spacing: 0;
+}
+#table-social .table-reactions button:hover, .table-shell .table-reactions button:hover { background: #f2f9e4; }
+#table-social .table-actions button, .table-shell .table-actions button {
+  background: #173c32; color: #fff5dc; border: 0; border-radius: 6px; padding: 9px 20px; font-size: 12px;
+}
+#table-social .table-actions button.on, .table-shell .table-actions button.on { background: #ddf69a; color: #173c32; }
+#table-social .table-actions button:disabled, .table-shell .table-actions button:disabled { opacity: .45; }

@@ -4,6 +4,7 @@ import {setupWerewolf} from './werewolf';
 import {setupPoker} from './poker';
 import {createTableAlert,unoAlert,pokerAlert,lukisAlert,werewolfAlert} from './table-alert';
 import './table-lobby.css';
+import {createTableShell} from './table-shell';
 import locations from '../shared/tables.json';
 export type TableState={id:string;name:string;capacity:number;occupants:{id:string;name:string;chairId:string}[]};
 export function setupTableSocial(send:(message:object)=>boolean,_room:string,releaseInput:()=>void,toast:(title:string,body:string)=>void){
@@ -13,8 +14,21 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  const own=()=>online?tables.find(t=>t.occupants.some(p=>p.id===selfId)):undefined;
  const gameSend=(message:object)=>!!own()&&send(message);
  const lukis=setupLukis(gameSend),poker=setupPoker(gameSend),werewolf=setupWerewolf(gameSend),uno=setupUno(gameSend);
- const alerts=createTableAlert(toast),onScreen=()=>dialog.open;dialog.querySelector('.table-game-stage')!.append(lukis.root,poker.root,werewolf.root,uno.root);
- function selectGame(value:string){playingGame=value;lukis.root.hidden=value!=='lukis';poker.root.hidden=value!=='poker';werewolf.root.hidden=value!=='werewolf';uno.root.hidden=value!=='uno';(dialog.querySelector('.table-game-menu') as HTMLElement).hidden=!!value;(dialog.querySelector('.table-back') as HTMLElement).hidden=!value;dialog.classList.toggle('playing-drawing',value==='lukis');dialog.classList.toggle('playing-uno',value==='uno');if(value)alerts.ask();if(value)send({type:value==='lukis'?'lukis-open':value==='werewolf'?'werewolf-open':value==='uno'?'uno-open':'poker-open'});}
+ const alerts=createTableAlert(toast),onScreen=()=>dialog.open;
+ const shell=createTableShell(gameSend);
+ dialog.querySelector('.table-game-stage')!.append(shell.root);
+ shell.stage.append(lukis.root,poker.root,werewolf.root,uno.root);
+ // A game's own board only appears once the lobby has actually started it.
+ function showBoards(){const on=shell.playing?playingGame:'';lukis.root.hidden=on!=='lukis';poker.root.hidden=on!=='poker';werewolf.root.hidden=on!=='werewolf';uno.root.hidden=on!=='uno';}
+ window.setInterval(()=>{if(dialog.open)shell.tick();},250);
+ function selectGame(value:string){
+  playingGame=value;
+  (dialog.querySelector('.table-game-menu') as HTMLElement).hidden=!!value;
+  (dialog.querySelector('.table-back') as HTMLElement).hidden=!value;
+  dialog.classList.toggle('playing-drawing',value==='lukis');dialog.classList.toggle('playing-uno',value==='uno');
+  if(value){alerts.ask();send({type:'lobby-join',game:value});}else{shell.state(null,selfId);send({type:'lobby-leave'});}
+  showBoards();
+ }
  selectGame('');
  dialog.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(button=>button.onclick=()=>selectGame(button.dataset.select!));
  dialog.querySelector<HTMLButtonElement>('.table-back')!.onclick=()=>selectGame('');
@@ -22,7 +36,7 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
   dialog.querySelector('#table-name')!.textContent=name;
   dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seated.occupants.length}/${seated.capacity} pemain`:online?'Duduk di kerusi meja ini untuk bermain.':'Sambung ke city online untuk bermain.';
   (dialog.querySelector('#table-detail') as HTMLElement).hidden=!seated;
-  const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);if(next)send({type:'lukis-open'});}
+  const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);}
   poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);
  }
  function close(){dialog.close();}
@@ -30,6 +44,6 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  dialog.addEventListener('keydown',event=>event.stopPropagation());
  return {open(tableId?:string){selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},close,
   get opened(){return dialog.open;},get playing(){return dialog.open&&!!playingGame;},state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
-  uno(value:any){if(!value||value.tableId===own()?.id){uno.state(value);alerts.fire('uno',unoAlert(value),onScreen());}},werewolf(value:any){werewolf.state(value);alerts.fire('werewolf',werewolfAlert(value),onScreen());},game(value:any){if(!value||value.tableId===own()?.id){lukis.state(value,selfId);alerts.fire('lukis',lukisAlert(value),onScreen());}},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id){poker.state(value,selfId);alerts.fire('poker',pokerAlert(value,selfId),onScreen());}},
-  offline(){online=false;tables=[];alerts.clear();lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
+  uno(value:any){if(!value||value.tableId===own()?.id){uno.state(value);alerts.fire('uno',unoAlert(value),onScreen());}},werewolf(value:any){werewolf.state(value);alerts.fire('werewolf',werewolfAlert(value),onScreen());},game(value:any){if(!value||value.tableId===own()?.id){lukis.state(value,selfId);alerts.fire('lukis',lukisAlert(value),onScreen());}},lobby(value:any){shell.state(value,selfId);showBoards();},react(value:any){shell.react(value);},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id){poker.state(value,selfId);alerts.fire('poker',pokerAlert(value,selfId),onScreen());}},
+  offline(){online=false;tables=[];alerts.clear();shell.state(null,selfId);lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
 }

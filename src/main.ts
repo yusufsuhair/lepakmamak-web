@@ -677,7 +677,7 @@ async function init() {
       });
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; inviter?: {id:string;name:string} };
+        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; inviter?: {id:string;name:string} };
         try { message = JSON.parse(String(event.data)); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
@@ -710,6 +710,8 @@ async function init() {
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
+        if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
+        if (message.type === 'lobby-react') tableSocial.react(message);
         if (message.type === 'party-state') {
           partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id));
           chat.party(message.party?.members || null);

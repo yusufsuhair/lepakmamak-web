@@ -13,9 +13,20 @@ test('seated players open the game-only table and play poker',async({page})=>{
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.seated)).toBe(true);
  friend=new WebSocket('ws://127.0.0.1:8088/ws');let friendId='';friend.on('message',raw=>{const m=JSON.parse(String(raw));if(m.players)peers=m.players;if(m.type==='tables')sharedTables=m.tables;if(m.type==='welcome')friendId=m.id;});friend.on('open',()=>friend!.send(JSON.stringify({type:'join',room:'table-flow',guest:true,name:'Kawan'})));await expect.poll(()=>friendId).not.toBe('');
  const free=chairs.find(c=>c.tableId==='meja-1'&&!peers.some(p=>p.chairId===c.id))!;friend.send(JSON.stringify({type:'state',x:free.x,z:free.z}));await expect.poll(()=>peers.find(p=>p.id===friendId)?.x).toBe(free.x);friend.send(JSON.stringify({type:'chair-sit',chairId:free.id}));await expect.poll(()=>peers.find(p=>p.id===friendId)?.seated).toBe(true);
- await expect(page.locator('#open-tables')).toHaveCount(0);await page.getByRole('button',{name:/Open Meja Kita at Meja 1/}).click();await expect(page.locator('#table-name')).toHaveText('Meja 1');await expect(page.locator('#table-seats')).toContainText('2/3');
+ await expect(page.locator('#open-tables')).toHaveCount(0);await page.getByRole('button',{name:/Open games at Meja 1/}).click();await expect(page.locator('#table-name')).toHaveText('Meja 1');await expect(page.locator('#table-seats')).toContainText('2/3');
  let pokerGame:any;friend.on('message',raw=>{const m=JSON.parse(String(raw));if(m.type==='poker-state')pokerGame=m.game;});
- await page.locator('[data-select="poker"]').click();await page.locator('.poker [data-start]').click();await expect(page.locator('.poker [data-game]')).toBeVisible();await expect.poll(()=>pokerGame?.hand).toBeTruthy();
+ // One ritual now: pick the game, both tap SEDIA, the count-in deals the hand.
+ let lobby:any;friend.on('message',raw=>{const m=JSON.parse(String(raw));if(m.type==='lobby-state')lobby=m.lobby;});
+ await page.locator('[data-select="poker"]').click();
+ await expect(page.locator('#table-ring .table-seat.filled')).toHaveCount(1);
+ friend.send(JSON.stringify({type:'lobby-join',game:'poker'}));
+ await expect(page.locator('#table-ring .table-seat.filled')).toHaveCount(2);
+ await page.getByRole('button',{name:/SEDIA/}).click();
+ await expect(page.locator('#table-ring .table-seat.ready')).toHaveCount(1);
+ friend.send(JSON.stringify({type:'lobby-ready',ready:true}));
+ await expect(page.locator('#table-countdown')).toBeVisible();
+ await expect(page.locator('.poker [data-game]')).toBeVisible({timeout:15000});await expect.poll(()=>pokerGame?.hand).toBeTruthy();
+ expect(lobby.phase).toBe('playing');
  expect(pokerGame.players.find((p:any)=>p.id!==friendId).cards).toEqual([]);
  if(pokerGame.turnId===friendId)friend.send(JSON.stringify({type:'poker-action',hand:pokerGame.hand,revision:pokerGame.revision,action:'fold'}));else await page.locator('.poker [data-action="fold"]').click();
  await expect(page.locator('.poker [data-phase]')).toHaveText('Pusingan tamat');await expect(page.locator('.poker [data-turn]')).toContainText('menang');

@@ -14,6 +14,7 @@ import { createChatHistory } from './chat-history.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import { createParty } from './party.mjs';
+import { createTableLobby } from './table-lobby.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
@@ -48,6 +49,8 @@ const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
+// The lobby starts the games; the games keep their own rules once running.
+const tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
 const pickleball = createPickleball(send);
 const basketball = createBasketball(send,Date.now,(player,points)=>socialProfiles.event(player,'basketball_points',points));
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
@@ -124,7 +127,7 @@ function broadcast(players, message) {
 const weather=createWeather();
 const fleet=createFleet(send,broadcast);
 const lrt=createLrt(send);
-setInterval(()=>{for(const players of rooms.values()){lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
+setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
 const server = http.createServer(async (request, response) => {
@@ -173,6 +176,7 @@ webSocketServer.on('connection', ws => {
     fleet.release(currentRoom.players,player);
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
+    tableLobby.remove(currentRoom.players, player);
     party.remove(currentRoom.players, player);
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
@@ -275,6 +279,7 @@ webSocketServer.on('connection', ws => {
     if (poker.handle(currentRoom.players, player, message)) return;
     if (pickleball.handle(currentRoom.players, player, message)) return;
     if (basketball.handle(currentRoom.players, player, message)) return;
+    if (tableLobby.handle(currentRoom.players, player, message)) return;
     if (party.handle(currentRoom.players, player, message)) { broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if(message.type==='teleport'){
