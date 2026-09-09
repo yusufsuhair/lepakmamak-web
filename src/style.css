@@ -635,3 +635,15 @@ html, body, #app { touch-action: manipulation; }
 .wall-board-column li span { color: #4e6a4f; font-variant-numeric: tabular-nums; font-weight: 700; }
 .wall-board-empty { margin: 0; color: #72806d; font-size: 11px; }
 @media (max-width: 600px) { #wall-board { margin: 10px 10px 4px; padding: 12px 13px; } #wall-board h3 { font-size: 19px; } #wall-board-lists { grid-template-columns: 1fr; gap: 12px; } }
+#report-player-dialog{max-width:min(440px,90vw);padding:0;border:1px solid #adbf85;border-radius:16px;background:#f0ecd6;color:#274a37}
+#report-player-dialog::backdrop{background:#102d2899;backdrop-filter:blur(6px)}
+#report-form{display:grid;gap:8px;padding:24px}
+#report-form h2{margin:0;font:800 26px 'Oxanium';text-transform:uppercase}
+#report-target{margin:0 0 4px;font-size:13px;font-weight:600}
+#report-form label{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#4e5c53}
+#report-form select,#report-form textarea{width:100%;padding:11px;border:1px solid #aebba1;border-radius:8px;background:#fffdf3;color:#173c32;font:15px 'Oxanium';resize:vertical}
+#report-privacy{margin:2px 0 0;color:#4f5c54;font-size:11px;line-height:1.5}
+#report-form>div{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+#report-form button{min-height:44px;padding:10px 18px;border:0;border-radius:8px;background:#d8ddc9;color:#274a37;font:700 14px 'Oxanium';cursor:pointer}
+#report-form #send-report{background:#a13f31;color:#fff0bd}
+#report-form button:focus-visible,#report-form select:focus-visible,#report-form textarea:focus-visible{outline:3px solid #dff092;outline-offset:2px}

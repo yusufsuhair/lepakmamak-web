@@ -120,12 +120,14 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 - `src/style.css`: start screen, HUD, and responsive controls.
 - `server/index.mjs`: Railway WebSocket room service and health endpoint.
 - `server/metrics.mjs`: live traffic counters behind `/health`, and the saturation and shutdown alerts.
+- `server/moderation.mjs`: reports, mutes and bans, read from and written to Supabase.
+- `admin/`: the moderation console, behind Cloudflare Access.
 - `tests/`: collision and mission tests, desktop delivery end-to-end test, mobile UI smoke test.
 - `PLAN.md`: scope and next milestones.
 
 ## Current limits and next steps
 
-This is the first playable slice, not a full GTA-scale game. Traffic follows simple routes, pedestrians are ambient, and the bike uses arcade movement rather than rigid-body physics. Multiplayer synchronises movement, text chat, and recall emotes; missions, earnings, and collisions remain local to each browser. There is no combat, police pursuit, moderation, or persistent world state. Accounts persist in Supabase. Mobile UI is tested in browser emulation; performance on physical phones still needs validation.
+This is the first playable slice, not a full GTA-scale game. Traffic follows simple routes, pedestrians are ambient, and the bike uses arcade movement rather than rigid-body physics. Multiplayer synchronises movement, text chat, and recall emotes; missions, earnings, and collisions remain local to each browser. There is no combat, police pursuit, or persistent world state. Accounts persist in Supabase. Mobile UI is tested in browser emulation; performance on physical phones still needs validation.
 
 Next: improve the player/bike animations and street detail, replace selected procedural models with Blender-exported GLB assets, then expand the mission variety. Keep the first delivery playable as assets improve.
 
@@ -136,6 +138,54 @@ Mic and speaker buttons are independent and start off. Enabling the mic requests
 The first version relays transient mono 16 kHz PCM audio in 40 ms frames over the existing authenticated WSS connection. No audio is saved. Server routing uses the authenticated player and current room, excludes the sender, sends audio only within 15 metres (full volume inside 5 metres, fading outward), honors listener mute, limits audio packet rate, and drops packets for slow sockets. This avoids extra voice services and TURN setup for the initial small hangouts. TCP can add delay on poor connections, and PCM uses more bandwidth than Opus; move to a WebRTC SFU for larger voice crowds. Browser/OS background suspension can interrupt audio despite the game not deliberately pausing.
 
 `tests/voice.spec.ts` uses generated browser audio to test playback between two clients, permission handling, independent mute, and capture cleanup. `tests/online-smoke.mjs` also checks playback through production using temporary accounts and a private test room.
+
+## Moderation
+
+Report → review → enforce.
+
+**Report.** Right-click or long-press a player, choose **Report player**, pick what happened
+and where. The server decides what is stored: who was reported, the room, the surface, the
+reason, the reporter's note, and the names of players who were within hearing distance at
+the time. Voice is never recorded, so those witness names are what makes a voice report
+reviewable at all — there is no clip to replay, only people who can be asked. Chat reports
+need nothing extra stored, because the room's public chat history already exists and the
+console reads a five-minute window around the report out of it.
+
+**Review.** `admin/` at **/reports**, behind Cloudflare Access, restricted to `ADMIN_EMAIL`.
+Each report shows its evidence and offers mute, ban or dismiss. Every action is written to
+`admin_audit_log` *before* it takes effect, so a decision that cannot be logged does not
+happen.
+
+**Enforce.** Penalties live in `player_bans` in Supabase, one row per account.
+
+- A **ban** is refused at the socket during `join`, so it survives reconnects and Railway
+  restarts — rooms are in-memory and are wiped, the ban is not.
+- A **mute** is refused at a single gate in `server/index.mjs` covering every verb that
+  carries a player's words, voice, drawing or display name to somebody else, plus a matching
+  check on the Wall's HTTP routes, which never touch the socket. Nothing is enforced in the
+  client.
+- A penalty applied while the player is already in the city is picked up by a 15-second
+  sweep, which refreshes mutes and disconnects bans.
+- A mute is time-boxed and expires by itself; a ban has no expiry and has to be lifted by
+  hand.
+
+### Child safety — this does not stop at the console
+
+Muting and banning an account does nothing about material that is already out there, and
+nothing about the legal duty to report it. **Anything involving a child goes to Yusuf
+directly, and out of the product.** The report queue has a `child-safety` reason so those
+reports arrive labelled rather than buried under "other", but arriving labelled is all it
+does. Handling them properly needs hash-matching against a known-material database
+(PhotoDNA or an equivalent) and a reporting route to the authorities. Neither exists here,
+and neither is a filter or a prompt.
+
+### What this does not cover
+
+- **Guests have no account, so they cannot be banned.** `ALLOW_GUESTS` is off in production
+  and this design assumes it stays off. Turning it on reopens the hole.
+- **Bans are per account, not per person.** A new sign-up is a new account.
+- Communications and Multimedia Act 1998 s.233 and MCMC takedown expectations apply to what
+  the game broadcasts; the audit log is what lets us say who acted and when.
 
 ## Syiling Lepak shop
 

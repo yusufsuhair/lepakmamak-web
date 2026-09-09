@@ -5,6 +5,7 @@ import {cleanProfile} from './profiles.mjs';
 import {isGameMaster} from './roles.mjs';
 import {createImageModerator} from './image-moderation.mjs';
 import {clientKey,createRateLimiter} from './limits.mjs';
+import {createModeration} from './moderation.mjs';
 
 const BUCKET='social-wall', LIMIT=30, POST_WINDOW=10000;
 const MIME={
@@ -33,6 +34,7 @@ export function createWall(services={}){
  // Sweeping on write keeps the poster clock from growing without bound; entries older
  // than the window cannot deny anyone a post.
  const notePost=(userId,now)=>{if(lastPost.size>5000)for(const [id,at] of lastPost)if(now-at>=POST_WINDOW)lastPost.delete(id);lastPost.set(userId,now);};
+ const moderation=services.moderation||createModeration({db});
  const moderateImage=services.moderateImage||createImageModerator().check;
  // Local development can post photos without an OpenAI key; production cannot.
  const allowUnmoderated=services.allowUnmoderatedImages??process.env.ALLOW_UNMODERATED_IMAGES==='true';
@@ -62,6 +64,16 @@ export function createWall(services={}){
    const repliesMatch=url.pathname.match(/^\/wall\/posts\/([0-9a-f-]{36})\/replies$/i);
    if(repliesMatch&&request.method==='GET'){const {data,error}=await db.from('social_post_replies').select('*').eq('post_id',repliesMatch[1]).order('created_at',{ascending:true}).order('id',{ascending:true}).limit(50);if(error)throw error;reply(response,200,{replies:data.map(formatReply)});return true;}
    const account=await user(request);if(!account){reply(response,401,{error:'Sign in with an account to post.'});return true;}
+   // The Wall is the one live surface that never touches the socket, so the socket's mute
+   // gate cannot see it. Anything that puts a player's own words or media in front of
+   // others is checked here; liking is not content, so it is left alone. Fails closed:
+   // one refused post during an outage beats a banned account posting a photo.
+   if(request.method==='POST'&&!/\/like$/.test(url.pathname)){
+    let penalty;
+    try{penalty=await moderation.status(account.id);}catch{reply(response,503,{error:'Could not check your account right now. Please try again in a moment.'});return true;}
+    if(penalty.banned){reply(response,403,{error:'Your account is suspended from LepakMamak.'});return true;}
+    if(penalty.muted){reply(response,403,{error:'You are muted, so this did not post.'});return true;}
+   }
    if(url.pathname==='/wall/posts'&&request.method==='POST'){
     const now=Date.now();if(now-(lastPost.get(account.id)||0)<POST_WINDOW){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
     const input=await readBody(request),body=cleanWallText(input.text);let mediaPath=null,mediaType=null,mediaMime=null;

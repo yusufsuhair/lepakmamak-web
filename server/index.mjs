@@ -21,6 +21,7 @@ import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
 import { isGameMaster } from './roles.mjs';
+import { createModeration } from './moderation.mjs';
 import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
@@ -68,6 +69,35 @@ setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref(
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
 setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);}},500).unref();
 const chatHistory = createChatHistory();
+const moderation = createModeration();
+// Every verb that carries a player's own words, voice, drawing or display name to somebody
+// else. A mute enforced inside each feature is a mute with a hole in it the day the next
+// feature lands, so they are all refused at one gate before any handler sees them.
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
+const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
+const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
+function penaltyNotice(status) {
+  const until = status.until ? ` until ${new Date(status.until).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}` : '';
+  return `Your account is suspended from LepakMamak${until}.${status.reason ? ` Reason: ${status.reason}` : ''}`;
+}
+// A penalty lands while the player is already in the city, and Railway's rooms know nothing
+// about Supabase, so the city asks rather than the console pushing to it. The door check
+// below is what makes a ban stick; this only has to catch whoever is already inside.
+setInterval(async () => {
+  const connected = new Map();
+  for (const players of rooms.values()) for (const person of players.values()) if (person.userId) connected.set(person.userId, person);
+  if (!connected.size) return;
+  let statuses;
+  // A failed sweep leaves everyone exactly as they were and the next one corrects it.
+  try { statuses = await moderation.statuses([...connected.keys()]); } catch { return; }
+  for (const [userId, person] of connected) {
+    const status = statuses.get(userId);
+    person.muted = !!status?.muted;
+    if (!status?.banned) continue;
+    send(person.ws, { type: 'error', code: 'BANNED', message: penaltyNotice(status) });
+    person.ws.close(4003, 'Banned');
+  }
+}, 15000).unref();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
 const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4001,'Account deleted')});
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
@@ -121,7 +151,7 @@ function releasePassenger(passenger, reset = false) {
   passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -225,7 +255,8 @@ webSocketServer.on('connection', ws => {
   let lastPunchAt = 0;
   let lastHornAt = 0;
   let joining = false;
-  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0;
+  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0, lastReportAt = 0;
+  const reported = new Set();
   let expiresAt = 0;
   let voiceTokens = 30, voiceAt = Date.now(), lastAudienceAt = 0;
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
@@ -262,6 +293,13 @@ webSocketServer.on('connection', ws => {
       if (ws.readyState !== 1) return;
       expiresAt = identity.expiresAt;
       clearTimeout(joinTimeout);
+      // Fails open deliberately: a Supabase blip must not lock the whole city out. The
+      // sweep re-checks everyone inside every 15 seconds, so an outage widens the gap only
+      // for as long as it lasts and then closes it without anyone doing anything.
+      let penalty = { banned: false, muted: false, until: null, reason: '' };
+      try { penalty = await moderation.status(identity.userId); } catch { /* the sweep catches up */ }
+      if (penalty.banned) { send(ws, { type: 'error', code: 'BANNED', message: penaltyNotice(penalty) }); ws.close(4003, 'Banned'); return; }
+      if (ws.readyState !== 1) return;
       let room = roomFor(message.room);
       const previous = identity.userId ? accountConnections.get(identity.userId) : null;
       const replacingInRoom = previous?.room.name === room.name ? 1 : 0;
@@ -281,6 +319,7 @@ webSocketServer.on('connection', ws => {
         id,
         ws,
         name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
+        muted: penalty.muted,
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
         color: palette[number % palette.length],
         x: -18,
@@ -322,6 +361,35 @@ webSocketServer.on('connection', ws => {
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
+    if (player.muted && MUTED.has(message.type)) { send(ws, { type: 'notice', message: 'You are muted, so this did not go out. You can still walk around the city.' }); return; }
+    if (message.type === 'report') {
+      const now = Date.now();
+      if (now - lastReportAt < 60000) { send(ws, { type: 'notice', message: 'You just filed a report. Give it a minute.' }); return; }
+      const target = currentRoom.players.get(message.id);
+      if (!target || target.id === player.id) { send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return; }
+      if (reported.has(target.id)) { send(ws, { type: 'notice', message: 'You have already reported this player. It is with the moderators.' }); return; }
+      const surface = SURFACES.has(message.surface) ? message.surface : 'behaviour';
+      const reason = REASONS.has(message.reason) ? message.reason : 'other';
+      // Deliberately not run through filterChat: this note is read by a moderator, never
+      // broadcast, and 'he called me a babi' censored down to *** destroys the evidence.
+      const note = typeof message.note === 'string' ? message.note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 300) : '';
+      // Nobody records the room's audio, so what makes a voice report reviewable is who
+      // else was close enough to have heard it. Names only, and only those in earshot.
+      const witnesses = [...currentRoom.players.values()]
+        .filter(other => other.id !== player.id && other.id !== target.id && Math.hypot(other.x - target.x, other.z - target.z) < voiceConfig.hearingRadius)
+        .slice(0, 10).map(other => other.name);
+      try {
+        await moderation.report({
+          reporterUserId: player.userId, reporterName: player.name,
+          reportedUserId: target.userId, reportedName: target.name,
+          room: currentRoom.name, surface, reason, note, witnesses,
+        });
+      } catch { send(ws, { type: 'notice', message: 'Could not file that report. Please try again in a moment.' }); return; }
+      // Only a report that actually landed spends the cooldown.
+      lastReportAt = now; reported.add(target.id);
+      send(ws, { type: 'notice', message: 'Report sent. A moderator will look at it.' });
+      return;
+    }
     if(lrt.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(fleet.handle(currentRoom.players,player,message))return;
     if(lamps.handle(currentRoom.players,player,message))return;

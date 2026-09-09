@@ -1,6 +1,7 @@
 # Changelog
 
 - Made `/health` report live traffic: sockets, players, per-room socket counts and outbound bytes, bytes in and out per second, voice packet rates in and out, dropped frames, resident memory and uptime. Added optional saturation, shutdown and heartbeat alerts via `ALERT_WEBHOOK_URL` and `HEARTBEAT_URL`.
+- Added player reporting, review and enforcement. Players can report someone from the player menu; reports land in the admin console at /reports with their evidence, where they can be muted or banned. Bans are refused at the socket on join so they survive reconnects and Railway restarts, mutes are refused at one server-side gate covering chat, voice, drawings, display names and the Wall, and a 15-second sweep applies both to players already in the city. Voice is still never recorded — a voice report carries the names of who was in earshot instead.
 
 - Added map teleporting to 22 validated destinations on the original map, with server-owned arrivals, chair release and a short cooldown. Drivers and passengers must exit first.
 

@@ -102,7 +102,8 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="eyebrow">Ambil rehat dulu</div><h2 id="pause-title">Lepak a little.</h2><p id="app-version">LepakMamak v${appVersion}</p><p>The city keeps moving while you adjust your settings.</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
+  <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -812,6 +813,12 @@ async function init() {
         if(message.type==='voice-codec')voice.codec(message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
+        if (message.type === 'error' && message.code === 'BANNED') {
+          finishEntryLoading(); rejection = { code: 'BANNED' };
+          setNetworkStatus('SUSPENDED', 'offline', 1);
+          toast('Account suspended', message.message || 'You cannot join the city.', 12);
+          leaveCity(); return;
+        }
         if (message.type === 'error') {
           finishEntryLoading();
           rejection = { code: message.code };
@@ -835,6 +842,8 @@ async function init() {
         // it with RECONNECTING…, so a full city and an expired login both looked like a
         // reconnect that never finished. Keep the reason the server gave.
         if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4001) { setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
+        // No retry loop: reconnecting cannot lift a suspension, it just hammers the server.
+        if (rejection?.code === 'BANNED' || event.code === 4003) { setNetworkStatus('SUSPENDED', 'offline', 1); return; }
         setNetworkStatus(rejection?.code === 'ROOM_FULL' ? 'CITY FULL' : 'RECONNECTING…', 'connecting', 1);
         retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; finishEntryLoading(); voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
@@ -1140,6 +1149,7 @@ async function init() {
     // You cannot invite yourself, someone already in your geng, or nobody in particular.
     $('invite-party').hidden=mine||!targetId||!networkConnected||partyMembers.has(targetId)||partyMembers.size>=6;
     $('message-player').hidden=mine||!targetId||!networkConnected;
+    $('report-player').hidden=mine||!targetId||!networkConnected;
     $('leave-party').hidden=!mine||!partyMembers.size;
     $('superman-action').textContent=isSuperman()?'Stop Superman':'Superman · 6s';
     selectedName = object.userData.profileName; selectedProfileId = object.userData.profileId || '';
@@ -1156,6 +1166,29 @@ async function init() {
   $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-invite',id:selectedProfileId})); };
   $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
   $('leave-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-leave'})); };
+  const reportDialog = $<HTMLDialogElement>('report-player-dialog');
+  let reportTargetId = '';
+  $('report-player').onclick = () => {
+    closeOptions(); reportTargetId = selectedProfileId;
+    $('report-target').textContent = `You are reporting ${selectedName}.`;
+    $<HTMLTextAreaElement>('report-note').value = '';
+    reportDialog.showModal();
+  };
+  $('cancel-report').onclick = () => { reportDialog.close(); canvas.focus(); };
+  reportDialog.addEventListener('cancel', event => { event.preventDefault(); reportDialog.close(); canvas.focus(); });
+  reportDialog.addEventListener('keydown', event => event.stopPropagation());
+  $('report-form').addEventListener('submit', () => {
+    // The server decides whether this counts, who was in earshot and what gets stored;
+    // the client only carries the reporter's answers across.
+    if (reportTargetId && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({
+      type: 'report', id: reportTargetId,
+      surface: $<HTMLSelectElement>('report-surface').value,
+      reason: $<HTMLSelectElement>('report-reason').value,
+      note: $<HTMLTextAreaElement>('report-note').value,
+    }));
+    else toast('Report not sent', 'Reconnect to the city and try again.');
+    reportTargetId = ''; canvas.focus();
+  });
   $('open-my-profile').onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
   $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
   profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });
