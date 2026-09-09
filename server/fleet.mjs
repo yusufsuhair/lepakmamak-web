@@ -9,7 +9,9 @@ export function createFleet(send,broadcast){
   function handle(players,player,message,now=Date.now()){
     if(message.type!=='car-claim')return false;
     const car=cars(players).find(c=>c.id===message.id);
-    if(!car||car.owner||player.riding||player.passengerOf||player.chairId||player.jumpHeight>0||(player.danceUntil||0)>now||Math.hypot(player.x-car.x,player.z-car.z)>5){send(player.ws,{type:'notice',message:'Kereta tidak tersedia atau terlalu jauh.'});return true;}
+    // The visible car trails its server position. Leave room for interpolation,
+    // a moving target and the click's network round trip (UI range is 4.8m).
+    if(!car||car.owner||player.riding||player.passengerOf||player.chairId||player.jumpHeight>0||(player.danceUntil||0)>now||Math.hypot(player.x-car.x,player.z-car.z)>7){send(player.ws,{type:'notice',code:'CAR_CLAIM_DENIED',message:car?.owner?'Kereta ini sudah dipandu pemain lain.':'Dekat lagi dengan kereta, kemudian cuba Cilok semula.'});return true;}
     const angry=car.npc;
     car.owner=player.id;car.npc=false;car.speed=0;
     player.fleetId=car.id;player.carStyle=car.style;player.riding=true;player.vehicle='car';player.speed=0;player.x=car.x;player.z=car.z;player.yaw=car.yaw;

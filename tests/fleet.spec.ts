@@ -16,6 +16,11 @@ test('distant, seated, airborne, passenger and dancing players cannot claim',()=
   const {fleet,p,players}=fixture();Object.assign(p,patch);fleet.handle(players,p,{type:'car-claim',id:'traffic-0'},10000);expect(p.riding).toBe(false);
  }
 });
+test('moving car tolerates short network delay but rejects out-of-range claims visibly',()=>{
+ const {fleet,messages,p,players}=fixture();p.z=-136;
+ fleet.handle(players,p,{type:'car-claim',id:'traffic-0'});expect(p.riding).toBe(true);
+ const other=fixture();other.p.z=-134;other.fleet.handle(other.players,other.p,{type:'car-claim',id:'traffic-0'});expect(other.p.riding).toBe(false);expect(other.messages.at(-1).code).toBe('CAR_CLAIM_DENIED');expect(messages.some(m=>m.type==='car-claimed')).toBe(true);
+});
 test('dismount preserves car position, another player can enter without ejecting a second NPC',()=>{
  const {fleet,messages,p,q,players}=fixture();fleet.handle(players,p,{type:'car-claim',id:'traffic-0'});
  p.x=15;p.z=30;p.yaw=.7;p.vehicle='car';fleet.updatePlayer(players,p);p.riding=false;fleet.updatePlayer(players,p);
@@ -32,14 +37,17 @@ test('traffic advances on server but claimed car stops autonomous movement',()=>
 });
 
 test('Cilok button takes control, drives, and exits in the browser',async({page})=>{
+ let advanceTraffic:()=>void=()=>{};
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export const session={access_token:'test',user:{id:'a',user_metadata:{display_name:'Driver'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Driver';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`}));
  await page.routeWebSocket('**/ws',ws=>{
   const p:any={id:'a',ws:{},name:'Driver',x:-7,z:-142,yaw:0,riding:false,speed:0};const players=new Map([['a',p]]);
   const fleet=createFleet((_w:any,m:any)=>ws.send(JSON.stringify(m)),(_p:any,m:any)=>ws.send(JSON.stringify(m)));
+  advanceTraffic=()=>{const x=p.x,z=p.z;p.x=99;p.z=99;for(let i=0;i<10;i++)fleet.tick(players,.1);p.x=x;p.z=z;};
   ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join'){ws.send(JSON.stringify({type:'welcome',id:'a',players:[p]}));fleet.sync(players);}else if(m.type==='state'){Object.assign(p,m);fleet.updatePlayer(players,p);fleet.sync(players);}else fleet.handle(players,p,m);});
  });
- await page.goto('/');await expect(page.locator('#interaction')).toHaveText('Cilok');await page.locator('#interaction').click();
+ await page.goto('/');await expect(page.locator('#interaction')).toHaveText('Cilok');
+ const button=page.locator('#interaction'),bounds=await button.boundingBox();await page.mouse.move(bounds!.x+bounds!.width/2,bounds!.y+bounds!.height/2);await page.mouse.down();const pressed=await button.boundingBox();advanceTraffic();await page.waitForTimeout(180);expect((await button.boundingBox())!.x).toBe(pressed!.x);await page.mouse.up();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.vehicle)).toBe('car');
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.riding)).toBe(true);
  await page.keyboard.down('KeyW');await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.speed)).toBeGreaterThan(1);await page.keyboard.up('KeyW');

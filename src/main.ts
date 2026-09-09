@@ -161,6 +161,7 @@ async function init() {
   let car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
   const personalCar=car;
   let fleetId:string|null=null, claimPendingUntil=0;
+  let pressedCarId:string|null=null,interactionPressUntil=0;
   const angryVoice=fetch('/audio/angry-driver.wav').then(r=>r.arrayBuffer()).catch(()=>null);
   let angryBuffer:Promise<AudioBuffer|null>|null=null;
   const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
@@ -657,6 +658,7 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string };
         try { message = JSON.parse(String(event.data)); } catch { return; }
+        if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
         if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;riding=true;vehicle='car';orbit=.65;const p=passengerPoint(lrtId,lrtSeat,lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
         if(message.type==='lrt-exited'){lrtId=null;riding=false;speed=0;pos.set(message.x!,.12,message.z!);player.group.position.copy(pos);keys.clear();resetStick();}
@@ -819,6 +821,10 @@ async function init() {
   function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
+  function claimCar(id:string){
+    if(!started||paused||riding||seated||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened||streetStalls.opened)return;
+    if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN&&performance.now()>=claimPendingUntil){sendNetworkState(1);claimPendingUntil=performance.now()+2000;networkSocket.send(JSON.stringify({type:'car-claim',id}));}
+  }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
     if(lrtId!=null)return null;
@@ -831,7 +837,7 @@ async function init() {
     const station=lrtStations.find(s=>distanceTo(s)<5);
     if(station){const train=[0,1].find(id=>{const t=trainState(id,lrtNow());return t.doors&&lrtStations[t.station]?.id===station.id;});return{point:station,height:2,label:train!=null?'Naik LRT':`LRT ${station.name} · ${arrivalIn(lrtStations.indexOf(station),lrtNow())}s`,disabled:train==null||!networkConnected};}
     const trafficCar=nearbyCar();
-    if(trafficCar)return {point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
+    if(trafficCar)return {carId:trafficCar.id,point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
     const vehiclePoint = distanceTo(personalCar.group.position) < distanceTo(bike.group.position) ? personalCar.group.position : bike.group.position;
     if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
     return null;
@@ -855,7 +861,7 @@ async function init() {
       riding = false; localSupermanUntil=0; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; car.driver.visible = false; return;
     }
     const trafficCar=nearbyCar();
-    if(trafficCar){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN&&performance.now()>=claimPendingUntil){claimPendingUntil=performance.now()+2000;networkSocket.send(JSON.stringify({type:'car-claim',id:trafficCar.id}));}return;}
+    if(trafficCar){claimCar(trafficCar.id);return;}
     if (distanceTo(personalCar.group.position) < 3.8 && distanceTo(personalCar.group.position) < distanceTo(bike.group.position)) { car=personalCar;fleetId=null;localSupermanUntil=0; vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
     if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
@@ -865,7 +871,10 @@ async function init() {
     toast('Looking good, lah', 'Your new outfit is saved.', 2);
   });
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
-  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('interaction').onclick = () => { const id=pressedCarId||$('interaction').dataset.carId;pressedCarId=null;interactionPressUntil=0;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
+  $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
+  window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
   const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
@@ -1352,6 +1361,8 @@ async function init() {
     camera.updateMatrixWorld();
     const actionButton = $<HTMLButtonElement>('interaction');
     const action = objectAction();
+    if(performance.now()>=interactionPressUntil){
+    actionButton.dataset.carId=action&&'carId' in action?action.carId||'':'';
     actionButton.hidden = !started || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
     if (action && !actionButton.hidden) {
       const anchor = new THREE.Vector3(action.point.x, action.height, action.point.z).project(camera);
@@ -1360,6 +1371,7 @@ async function init() {
       actionButton.style.top = `${Math.max(50, Math.min(innerHeight - 70, (1 - anchor.y) * innerHeight / 2))}px`;
       actionButton.disabled = action.disabled;
       $('interaction-text').textContent = action.label;
+    }
     }
     const voicePanel = $('voice-panel');
     voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
