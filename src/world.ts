@@ -1,4 +1,5 @@
 import quietTables from '../shared/quiet-tables.json';
+import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -824,6 +825,7 @@ export function createWorld(scene: THREE.Scene): World {
     mapBuildings.push({x:zx,z:zz,w:56,d:62,color:'#759858'});
   }
   // Mid-rise skyline, deterministically placed away from the road grid.
+  createDurianVillage({group,solids,mapBuildings});
   // Rembayung's warm glazed gable faces a busy forecourt in the southwest block.
   {
     const r=new THREE.Group();r.position.set(-121,0,101);group.add(r);
@@ -853,6 +855,7 @@ export function createWorld(scene: THREE.Scene): World {
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
+    if(x>0&&z===-128)continue;
     if(x<0&&z===113)continue;
     if(x<0&&(z===-128||z===-95))continue;
     if(x<0&&(z===-37||z===37))continue;

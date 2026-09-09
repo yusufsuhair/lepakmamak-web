@@ -215,5 +215,12 @@
     "x": -121,
     "z": 114,
     "kind": "lepak"
+  },
+  {
+    "id": "32",
+    "name": "Upin & Ipin · Kampung Durian Runtuh",
+    "x": 122,
+    "z": -114,
+    "kind": "zoo"
   }
 ]

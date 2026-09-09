@@ -12,6 +12,7 @@ import {setupCityDirectory,drawPlaceLabels} from './city-directory';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
+import {createVillageResidents,villageOrigin,villageResidents} from './durian-village';
 import {watsonsSpot,watsonsVolume} from './watsons';
 import {familyMartSpot,familyMartVolume} from './familymart';
 import {masjidVolume,nearestMasjidDistance} from './masjid';
@@ -131,6 +132,12 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  const village=createVillageResidents(scene);
+  const villageTalk=document.createElement('button');villageTalk.className='village-talk';villageTalk.hidden=true;document.body.append(villageTalk);
+  const villageDialog=document.createElement('dialog');villageDialog.className='village-dialog';villageDialog.setAttribute('aria-label','Village conversation');
+  const villageName=document.createElement('h2'),villageLine=document.createElement('p'),villageClose=document.createElement('button');villageClose.textContent='Jumpa lagi';villageClose.onclick=()=>villageDialog.close();villageDialog.append(villageName,villageLine,villageClose);document.body.append(villageDialog);
+  let villageNearby:typeof villageResidents[number]|undefined;
+  villageTalk.onclick=()=>{if(!villageNearby)return;villageName.textContent=villageNearby.name;villageLine.textContent=villageNearby.line;villageDialog.showModal();};
   const pickleball=createPickleball(scene,world);
   const basketball=createBasketball(scene,world);
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
@@ -1250,6 +1257,10 @@ async function init() {
     for(const remote of remotePlayers.values()){const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     buskers.update(elapsed,reducedMotion);
+    village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
+    if(village.group.visible)village.update(reducedMotion?0:elapsed);
+    villageNearby=started&&!paused&&!riding&&!cityMap.open&&!villageDialog.open?villageResidents.find(p=>Math.hypot(pos.x-villageOrigin.x-p.x,pos.z-villageOrigin.z-p.z)<2.6):undefined;
+    villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
     if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
     if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
