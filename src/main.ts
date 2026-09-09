@@ -966,6 +966,7 @@ async function init() {
   });
   window.addEventListener('resize', () => { resetStick(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
+  document.querySelector('.brand-status')!.append($('vehicle-seats'));
   let selectedMapPlace='';
   let teleportPending=false;
   const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.id='map-teleport';teleportButton.textContent='Teleport';teleportButton.title='Select a place on the map first';teleportButton.disabled=true;
@@ -1049,9 +1050,11 @@ async function init() {
       const names = [passengerOf ? roomPlayers.find(p => p.id === driverId)?.name || 'Driver' : displayName(), ...[0, 1, 2].map(i => occupants.find(p => p.seatIndex === i)?.name || '')];
       const key = JSON.stringify(names);
       if (seatsPanel.dataset.seats !== key) {
+        const expanded=seatsPanel.querySelector('details')?.open??false;
         seatsPanel.dataset.seats = key; seatsPanel.replaceChildren();
-        const heading = document.createElement('strong'); heading.textContent = `CAR · ${names.filter(Boolean).length} / 4`; seatsPanel.append(heading);
-        names.forEach((name, i) => { const row = document.createElement('div'); row.textContent = `${i + 1} · ${i === 0 ? 'Driver: ' : ''}${name || 'Empty seat'}`; row.className = name ? 'occupied' : ''; seatsPanel.append(row); });
+        const details=document.createElement('details');details.open=expanded;seatsPanel.append(details);
+        const heading = document.createElement('summary'); heading.textContent = `Car · ${names.filter(Boolean).length}/4 seats`; details.append(heading);
+        names.forEach((name, i) => { const row = document.createElement('div'); row.textContent = `${i + 1} · ${i === 0 ? 'Driver: ' : ''}${name || 'Empty seat'}`; row.className = name ? 'occupied' : ''; details.append(row); });
       }
     }
     drawMap();
