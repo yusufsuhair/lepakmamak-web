@@ -180,5 +180,19 @@
     "x": -95,
     "z": 37,
     "kind": "hotel"
+  },
+  {
+    "id": "27",
+    "name": "The Exchange TRX",
+    "x": 94,
+    "z": -95,
+    "kind": "mercu"
+  },
+  {
+    "id": "28",
+    "name": "Merdeka 118",
+    "x": 118,
+    "z": -95,
+    "kind": "mercu"
   }
 ]

@@ -717,10 +717,30 @@ export function createWorld(scene: THREE.Scene): World {
   cityLandmark(-106,-37,'HSBC','#d33b3e',27,'bank');
   cityLandmark(-127,37,'DAP','#c62e34',22,'civic');
   cityLandmark(-106,37,'HOTEL MAHKOTA','#a5813e',38,'hotel');
+  // Contemporary KL skyline landmarks: faceted TRX and the tapering Merdeka 118.
+  {
+    const x=105,z=-95,trx=new THREE.Group();trx.position.set(x,0,z);group.add(trx);
+    box(trx,0,3,0,18,6,18,'#d8d1bc');
+    for(const [y,w,d,color] of [[13,15,14,'#5e7e80'],[30,12.8,12,'#688c8e'],[47,10.5,10,'#78999a'],[59,8,8,'#89a9a7']] as const)box(trx,0,y,0,w,y===13?20:17,d,color);
+    for(let y=8;y<67;y+=4)for(const side of [-1,1]){box(trx,side*(7.6-y*.045),y,7.08-y*.043,.08,2.1,1.6,'#b8d3cc');box(trx,side*(7.6-y*.045),y,-7.08+y*.043,.08,2.1,1.6,'#b8d3cc');}
+    const crown=box(trx,0,69,0,8,5,8,'#b7c9b8');crown.rotation.y=Math.PI/4;tube(trx,0,77,0,.22,13,'#d7d8c9');
+    sign(trx,'TRX',-9.08,4.2,0,7,1.8,'#314f50','#ffffff',-Math.PI/2);
+    solid(x,z,18,18);mapBuildings.push({x,z,w:18,d:18,color:'#688c8e'});
+  }
+  {
+    const x=129,z=-95,tower118=new THREE.Group();tower118.position.set(x,0,z);group.add(tower118);
+    box(tower118,0,3,0,17,6,17,'#d5cfbd');
+    for(const [y,w,d,color] of [[14,14,13,'#708486'],[34,11.5,10.5,'#7f9697'],[52,8.5,8,'#90a8a7'],[66,5.5,5.2,'#a7bab5']] as const)box(tower118,0,y,0,w,y===14?22:18,d,color);
+    for(let y=8;y<75;y+=4.2)for(const side of [-1,1])box(tower118,side*Math.max(2.2,7.3-y*.071),y,Math.max(2.1,6.8-y*.065),.08,2.2,1.2,'#c5d4cc');
+    const needle=tube(tower118,0,86,0,.18,29,'#d9d8c9');needle.rotation.z=-.055;ball(tower118,-.8,100.4,0,.32,'#d9d8c9');
+    sign(tower118,'MERDEKA 118',-8.58,4.3,0,11,1.45,'#394f50','#f2df9c',-Math.PI/2);
+    solid(x,z,17,17);mapBuildings.push({x,z,w:17,d:17,color:'#7f9697'});
+  }
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
     if(x<0&&(z===-37||z===37))continue;
+    if(x>0&&z===-95)continue;
     if (x > 0 && (z === -37 || z === 37 || z === 113)) continue;
     const height = 14 + rand() * 29, w = 13 + rand() * 5, d = 17;
     block(x, z, w, height, d, ['#aab7ad', '#c9bfa5', '#b4bdb6', '#d6c6aa'][Math.floor(rand() * 4)]);
