@@ -106,9 +106,9 @@
   },
   {
     "id": "16",
-    "name": "PETRONAS · Kedai Mesra",
+    "name": "PETRONAS \u00b7 Kedai Mesra",
     "x": -31,
-    "z": 103,
+    "z": 112,
     "kind": "minyak"
   },
   {
@@ -218,63 +218,63 @@
   },
   {
     "id": "32",
-    "name": "Upin & Ipin · Kampung Durian Runtuh",
+    "name": "Upin & Ipin \u00b7 Kampung Durian Runtuh",
     "x": 122,
     "z": -114,
     "kind": "zoo"
   },
   {
     "id": "33",
-    "name": "LRT · KLCC",
+    "name": "LRT \u00b7 KLCC",
     "x": -32,
     "z": -73,
     "kind": "lrt"
   },
   {
     "id": "34",
-    "name": "LRT · Ampang Park",
+    "name": "LRT \u00b7 Ampang Park",
     "x": 32,
     "z": -73,
     "kind": "lrt"
   },
   {
     "id": "35",
-    "name": "LRT · TRX",
+    "name": "LRT \u00b7 TRX",
     "x": 85,
     "z": -30,
     "kind": "lrt"
   },
   {
     "id": "36",
-    "name": "LRT · Mamak Timur",
+    "name": "LRT \u00b7 Mamak Timur",
     "x": 85,
     "z": 30,
     "kind": "lrt"
   },
   {
     "id": "37",
-    "name": "LRT · Busking Sentral",
+    "name": "LRT \u00b7 Busking Sentral",
     "x": 32,
     "z": 87,
     "kind": "lrt"
   },
   {
     "id": "38",
-    "name": "LRT · Mamak Maju",
+    "name": "LRT \u00b7 Mamak Maju",
     "x": -32,
     "z": 87,
     "kind": "lrt"
   },
   {
     "id": "39",
-    "name": "LRT · Rembayung",
+    "name": "LRT \u00b7 Rembayung",
     "x": -91,
     "z": 30,
     "kind": "lrt"
   },
   {
     "id": "40",
-    "name": "LRT · Zoo & Kampung",
+    "name": "LRT \u00b7 Zoo & Kampung",
     "x": -91,
     "z": -30,
     "kind": "lrt"
