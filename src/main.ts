@@ -33,7 +33,7 @@ import { appearance, type Appearance } from './appearance';
 import { nameTag, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
-import { setupExitConfirmation } from './exit-confirm';
+import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
@@ -866,7 +866,8 @@ async function init() {
   });
   window.addEventListener('keyup', event => keys.delete(event.code));
   window.addEventListener('pagehide', saveLocation);
-  window.addEventListener('beforeunload', disconnectMultiplayer);
+  setupPageExitWarning(() => started);
+  window.addEventListener('pagehide', disconnectMultiplayer);
   window.addEventListener('blur', () => { keys.clear(); resetStick(); dragging = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocation(); keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');

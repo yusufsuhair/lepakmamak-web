@@ -11,3 +11,15 @@ export function setupExitConfirmation(onExit:()=>void|Promise<void>){
  confirm.onclick=async()=>{if(busy)return;busy=true;cancel.disabled=confirm.disabled=true;confirm.textContent='Keluar…';status.textContent='';try{await onExit();dialog.close();}catch(error){status.textContent=error instanceof Error?error.message:'Tidak dapat keluar. Cuba lagi.';}finally{busy=false;cancel.disabled=confirm.disabled=false;confirm.textContent='Keluar game';}};
  return{get opened(){return dialog.open;},close,open(){if(dialog.open)return;status.textContent='';dialog.showModal();cancel.focus();}};
 }
+
+// Let the browser protect refresh, tab close and cross-document Back/Forward.
+// Never disconnect here: the player may choose to stay in the warning.
+export function setupPageExitWarning(isPlaying:()=>boolean){
+ const warn=(event:BeforeUnloadEvent)=>{
+  if(!isPlaying())return;
+  event.preventDefault();
+  event.returnValue='';
+ };
+ window.addEventListener('beforeunload',warn);
+ return()=>window.removeEventListener('beforeunload',warn);
+}
