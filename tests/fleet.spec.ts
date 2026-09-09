@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {createFleet} from '../server/fleet.mjs';
+import seeds from '../shared/fleet.json' with {type:'json'};
 
 function fixture(){
  const messages:any[]=[];const fleet=createFleet((_ws:any,m:any)=>messages.push(structuredClone(m)),(_players:any,m:any)=>messages.push(structuredClone(m)));
@@ -34,6 +35,29 @@ test('parked cars are claimable and disconnect releases ownership; rooms are iso
 test('traffic advances on server but claimed car stops autonomous movement',()=>{
  const {fleet,messages,p,players}=fixture();players.delete('b');p.x=90;p.z=90;fleet.sync(players);const before=messages.at(-1).cars[0];fleet.tick(players,.1);const after=messages.at(-1).cars[0];expect(after.z).not.toBe(before.z);
  p.x=after.x;p.z=after.z;fleet.handle(players,p,{type:'car-claim',id:after.id});fleet.tick(players,1);expect(messages.at(-1).cars[0].z).toBe(after.z);
+});
+
+test('a Cilok-ed traffic car waits for a friend, then rejoins its lane instead of blocking the road for good',()=>{
+ const seed:any=seeds.find((c:any)=>c.id==='traffic-0');
+ const {fleet,messages,p,players}=fixture();players.delete('b');
+ const car=()=>messages.at(-1).cars.find((c:any)=>c.id==='traffic-0');
+ fleet.handle(players,p,{type:'car-claim',id:'traffic-0'});
+ // Driven well clear of its lane and abandoned there.
+ p.x=40;p.z=30;p.yaw=.7;p.vehicle='car';fleet.updatePlayer(players,p);p.riding=false;fleet.updatePlayer(players,p);
+ const start=Date.now();p.x=-99;p.z=-99;
+ fleet.tick(players,.1,start);
+ // Still exactly where it was parked, so somebody can take it over.
+ expect(car().npc).toBe(false);expect(car().x).toBe(40);expect(car().yaw).toBe(.7);
+ fleet.tick(players,.1,start+90001);
+ // Back in its own lane and facing, driving again rather than parked in the road forever.
+ expect(car().npc).toBe(true);expect(car().x).toBe(seed.x);expect(car().yaw).toBe(Math.PI);
+});
+test('a parked car stays parked and is never turned into traffic',()=>{
+ const {fleet,messages,p,players}=fixture();players.delete('b');
+ p.x=-146;p.z=134;fleet.handle(players,p,{type:'car-claim',id:'parked-0'});
+ fleet.release(players,p);
+ const start=Date.now();fleet.tick(players,.1,start+90001*10);
+ expect(messages.at(-1).cars.find((c:any)=>c.id==='parked-0').npc).toBe(false);
 });
 
 test('Cilok button takes control, drives, and exits in the browser',async({page})=>{

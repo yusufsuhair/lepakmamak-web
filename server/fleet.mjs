@@ -3,9 +3,28 @@ import seeds from '../shared/fleet.json' with {type:'json'};
 // One authoritative fleet per room. Claims are synchronous and cannot race.
 export function createFleet(send,broadcast){
   const rooms=new WeakMap();
-  function cars(players){if(!rooms.has(players))rooms.set(players,seeds.map(s=>({...s,owner:null,yaw:s.axis==='z'?(s.direction<0?Math.PI:0):s.direction*Math.PI/2})));return rooms.get(players);}
+  const seedYaw=s=>s.axis==='z'?(s.direction<0?Math.PI:0):s.direction*Math.PI/2;
+  function cars(players){if(!rooms.has(players))rooms.set(players,seeds.map(s=>({...s,owner:null,yaw:seedYaw(s)})));return rooms.get(players);}
+  // A dismounted car stays exactly where it was left so a friend can take it over, but a
+  // traffic car cannot stay there for good. Clearing the owner alone left npc false and
+  // speed 0 for the life of the room: the car became a permanent obstacle and every car
+  // behind it stalled on the 3.8m gap check, so traffic thinned out with every Cilok. The
+  // room only resets when it empties, which a busy city never does.
+  const RETURN_AFTER=90000;
+  function retire(car,now=Date.now()){
+    const seed=seeds.find(s=>s.id===car.id);
+    car.owner=null;car.speed=0;car.npc=false;
+    car.returnAt=seed.npc?now+RETURN_AFTER:null;
+  }
+  // Back to its own lane and facing rather than driving off from wherever it was parked,
+  // which would send it through whatever the last driver left it next to.
+  function returnToTraffic(car){
+    const seed=seeds.find(s=>s.id===car.id);
+    car.npc=true;car.speed=seed.speed;car.yaw=seedYaw(seed);car.returnAt=null;
+    if(seed.axis==='z')car.x=seed.x;else car.z=seed.z;
+  }
   function sync(players,ws){const message={type:'fleet',cars:cars(players).map(({id,x,z,yaw,owner,npc})=>({id,x,z,yaw,owner,npc}))};if(ws)send(ws,message);else broadcast(players,message);}
-  function release(players,player){const car=cars(players).find(c=>c.owner===player.id);if(car){car.owner=null;car.speed=0;car.npc=false;}player.fleetId=null;}
+  function release(players,player){const car=cars(players).find(c=>c.owner===player.id);if(car)retire(car);player.fleetId=null;}
   function handle(players,player,message,now=Date.now()){
     if(message.type!=='car-claim')return false;
     const car=cars(players).find(c=>c.id===message.id);
@@ -23,9 +42,9 @@ export function createFleet(send,broadcast){
     if(!player.riding||player.vehicle!=='car'){release(players,player);return;}
     car.x=player.x;car.z=player.z;car.yaw=player.yaw;
   }
-  function tick(players,dt){for(const car of cars(players)){
-    if(car.owner){if(!players.has(car.owner)){car.owner=null;car.npc=false;car.speed=0;}continue;}
-    if(!car.npc)continue;
+  function tick(players,dt,now=Date.now()){for(const car of cars(players)){
+    if(car.owner){if(!players.has(car.owner))retire(car,now);continue;}
+    if(!car.npc){if(car.returnAt&&now>=car.returnAt)returnToTraffic(car);else continue;}
     const ax=car.x+(car.axis==='x'?car.direction*6:0),az=car.z+(car.axis==='z'?car.direction*6:0);
     if([...players.values()].some(p=>p.lrtId==null&&Math.hypot(p.x-ax,p.z-az)<5)||cars(players).some(c=>c!==car&&Math.hypot(c.x-ax,c.z-az)<3.8))continue;
     car[car.axis]+=car.speed*car.direction*dt;
