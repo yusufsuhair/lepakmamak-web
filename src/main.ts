@@ -5,6 +5,7 @@ import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import city from '../shared/city.json';
 import {SALOMA,salomaGround} from './bridge';
+import {createAnnouncer} from './announce';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
@@ -288,6 +289,7 @@ async function init() {
   $('clear-afk').onclick = () => publishAfk('');
   let localName: THREE.Sprite | null = null;
   const chatPop=setupChatSound();
+  const announcer=createAnnouncer($('hud'));
   const chat = setupChat((text, channel, to) => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
@@ -714,6 +716,7 @@ async function init() {
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
+        if (message.type === 'gm-announce' && typeof message.text === 'string') announcer.show(message.text, message.name);
         if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
         if (message.type === 'lobby-react') tableSocial.react(message);
         if (message.type === 'party-state') {

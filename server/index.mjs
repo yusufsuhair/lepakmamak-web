@@ -14,6 +14,7 @@ import { createChatHistory } from './chat-history.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import { createParty } from './party.mjs';
+import { gmAnnouncement } from './announce.mjs';
 import { createTableLobby } from './table-lobby.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
@@ -369,6 +370,16 @@ webSocketServer.on('connection', ws => {
       if (!text) return;
       if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
       lastChatAt = Date.now();
+      const announcement = gmAnnouncement(player, text);
+      if (announcement) {
+        if (!announcement.allowed) { send(ws, { type: 'notice', message: 'Only the Game Master can announce to the city.' }); return; }
+        const clean = filterChat(announcement.text), at = new Date().toISOString();
+        broadcast(currentRoom.players, { type: 'gm-announce', text: clean, name: player.name, sentAt: at });
+        // The crawl scrolls away, so the same line is kept in city chat.
+        try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
+        broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: clean, sentAt: at, gameMaster: true, channel: 'all' });
+        return;
+      }
       const filtered = filterChat(text), sentAt = new Date().toISOString();
       const channel = message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all';
       const payload = { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
