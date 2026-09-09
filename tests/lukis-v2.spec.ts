@@ -39,3 +39,30 @@ test('a match runs three passes over the table and rotates the drawer',()=>{
  expect(drawers.slice(6,9)).toEqual(drawers.slice(0,3));
  turn();expect(f.state().phase).toBe('finished');
 });
+
+test('a match locks its roster: sitting down mid-game cannot join or score',()=>{
+ const f=fixture(2),seats=chairs.filter(c=>c.tableId==='meja-1');
+ f.send(0,{type:'lukis-start',version:2,rounds:1});
+ f.act(0,'lukis-choose',{choice:0});
+ const answer=f.state(0).word as string;expect(answer).toBeTruthy();
+
+ // someone sits down at the table while the round is being drawn
+ f.ps.set('2',{id:'2',userId:'account-2',name:'Player 2',chairId:seats[2].id,ws:'2'});
+ f.send(2,{type:'lukis-open'});
+ expect(f.state(2).scores.map((p:any)=>p.id).sort()).toEqual(['account-0','account-1']);
+ expect(f.state(2).scores.some((p:any)=>p.id==='account-2')).toBe(false); // drives the spectator notice in the panel
+
+ // they watch, but the correct answer earns them nothing and does not solve the round
+ f.act(2,'lukis-guess',{text:answer});
+ expect(f.state(0).solved).not.toContain('account-2');
+ expect(f.state(0).scores.some((p:any)=>p.id==='account-2')).toBe(false);
+ expect(f.state(0).phase).toBe('drawing');
+
+ // ...and the running match is not disturbed by them arriving
+ f.step(60000);f.step(6000);f.step(12000);f.step(60000);f.step(6000);
+ expect(f.state(0).phase).toBe('finished');
+
+ // the next match picks up everyone currently seated
+ f.send(0,{type:'lukis-start',version:2,rounds:1});
+ expect(f.state(0).scores.map((p:any)=>p.id).sort()).toEqual(['account-0','account-1','account-2']);
+});
