@@ -523,6 +523,11 @@ html, body, #app { touch-action: manipulation; }
 
 /* The channel selector drops upward out of the composer, so it never covers the log. */
 #chat-logs { position: relative; }
+/* Floats over the foot of the log, so reading back is never yanked to the newest line. */
+#chat-jump { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 2; min-height: 26px; padding: 0 12px; border: 1px solid #99ad8966; border-radius: 13px; background: #1d4a3ef2; color: #ddf69a; font-size: 10px; letter-spacing: .06em; cursor: pointer; box-shadow: 0 4px 14px #00000059; }
+#chat-jump:hover { background: #276352f5; }
+#chat-jump[hidden] { display: none; }
+@media (pointer: coarse) { #chat-jump { min-height: 34px; font-size: 11px; } }
 .chat-log { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
 .chat-log[hidden] { display: none; }
 .chat-log p { margin: 0 0 9px; line-height: 1.5; }
@@ -602,3 +607,7 @@ html, body, #app { touch-action: manipulation; }
   #city-chat { bottom: 150px; }
   .touch-actions { bottom: max(30px, env(safe-area-inset-bottom)); }
 }
+
+/* The city lamp switch is shared, so it belongs in the HUD where anyone can reach it. */
+#lamp-switch { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; font-size: 19px; line-height: 1; cursor: pointer; pointer-events: auto; }
+#lamp-switch.on { background: #3d3413ee; border-color: #f0d28d80; box-shadow: 0 0 12px #f2ce7a4d; }

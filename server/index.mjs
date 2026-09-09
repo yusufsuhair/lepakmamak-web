@@ -3,6 +3,7 @@ import {createFleet} from './fleet.mjs';
 import {createLrt} from './lrt.mjs';
 import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
+import {createLamps} from './lamps.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
@@ -157,6 +158,7 @@ const lrt=createLrt(send);
 setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
+const lamps=createLamps(send,broadcast);
 const server = http.createServer(async (request, response) => {
   if(request.url==='/weather' && request.method==='GET'){
     const report=await weather();
@@ -273,6 +275,7 @@ webSocketServer.on('connection', ws => {
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
       weatherControls.sync(room.players,ws);
+      lamps.sync(room.players,ws);
       fleet.sync(room.players,ws);
       send(ws,{type:'lrt-clock',serverTime:Date.now()});
       send(ws, { type: 'chat-history', messages: recentChat });
@@ -288,6 +291,7 @@ webSocketServer.on('connection', ws => {
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
     if(lrt.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(fleet.handle(currentRoom.players,player,message))return;
+    if(lamps.handle(currentRoom.players,player,message))return;
     if (message.type === 'profile-view') {
       if (Date.now() - lastProfileViewAt < 250) return;
       lastProfileViewAt = Date.now();

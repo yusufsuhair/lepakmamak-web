@@ -1,15 +1,27 @@
 import catalog from '../shared/shop.json';
+import {appearance,appearanceOptions,type Appearance} from './appearance';
 import './inventory.css';
 type State={items:{sku:string;equipped:boolean}[];balance:number};
-export function setupInventory(api:{inventory:()=>Promise<State>;equip:(sku:string,value:boolean)=>Promise<State>},release:()=>void){
+export function setupInventory(api:{inventory:()=>Promise<State>;equip:(sku:string,value:boolean)=>Promise<State>},release:()=>void,look:()=>Appearance=()=>appearance(null)){
  const dialog=document.createElement('dialog');dialog.id='inventory';dialog.setAttribute('aria-labelledby','inventory-title');
- dialog.innerHTML=`<header><div><small>LEPAKMAMAK · CHARACTER</small><h2 id="inventory-title">Inventory</h2></div><button type="button" aria-label="Close inventory">×</button></header><div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div><div class="inventory-layout"><aside><h3>Equipped</h3><div class="equipment-slots"></div><p>Change your base clothes in Wardrobe.</p></aside><section><nav aria-label="Inventory filters"><button type="button" data-filter="all">All</button><button type="button" data-filter="accessory">Accessories</button><button type="button" data-filter="skin">Skins</button></nav><div class="inventory-grid"></div><div class="inventory-details"></div></section></div><p class="inventory-status" role="status" aria-live="polite"></p><footer><button type="button" class="secondary" id="inventory-retry">Refresh inventory</button></footer>`;
+ dialog.innerHTML=`<header><div><small>LEPAKMAMAK · CHARACTER</small><h2 id="inventory-title">Inventory</h2></div><button type="button" aria-label="Close inventory">×</button></header><div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div><div class="inventory-layout"><aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Your outfit</h3><div class="outfit-slots"></div><div class="inventory-links"></div></aside><section><nav aria-label="Inventory filters"><button type="button" data-filter="all">All</button><button type="button" data-filter="accessory">Accessories</button><button type="button" data-filter="skin">Skins</button></nav><div class="inventory-grid"></div><div class="inventory-details"></div></section></div><p class="inventory-status" role="status" aria-live="polite"></p>`;
  document.body.append(dialog);let state:State={items:[],balance:0},selected='',filter='all',busy=false,epoch=0;
  const status=dialog.querySelector('.inventory-status')!;const icons:Record<string,string>={spectacles:'👓',cap:'🧢',batik:'👔',harimau:'👕'};
  function render(){
   dialog.querySelector('.inventory-balance')!.textContent=`${state.balance.toLocaleString()} Syiling`;
   const slots=dialog.querySelector('.equipment-slots')!;slots.replaceChildren();
   for(const [title,ids] of [['Head',['cap']],['Face',['spectacles']],['Outfit',['batik','harimau']]] as const){const item=state.items.find(i=>ids.some(id=>id===i.sku)&&i.equipped),slot=document.createElement('button');slot.type='button';slot.disabled=!item||busy;slot.textContent=`${item?icons[item.sku]:'◇'}  ${title} · ${item?catalog.find(c=>c.id===item.sku)?.name:'Empty'}`;slot.onclick=()=>{selected=item!.sku;render();};slots.append(slot);}
+  // Base clothes sit in the same character screen as the items, so one panel shows the
+  // whole look. The studio itself stays its own dialog; these slots are the way in.
+  const outfit=dialog.querySelector('.outfit-slots')!;outfit.replaceChildren();const worn=look();
+  for(const [key,title] of [['shirt','Top'],['trousers','Bottoms']] as const){
+   const name=Object.entries(appearanceOptions[key]).find(([,colour])=>colour===worn[key])?.[0]||'Custom';
+   const slot=document.createElement('button');slot.type='button';slot.className='outfit-slot';slot.disabled=busy;
+   slot.style.setProperty('--worn',worn[key]);slot.innerHTML='<i aria-hidden="true"></i>';
+   slot.append(document.createTextNode(`${title} · ${name}`));
+   slot.onclick=()=>document.getElementById('open-wardrobe')!.click();
+   outfit.append(slot);
+  }
   dialog.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.filter===filter));});
   const grid=dialog.querySelector('.inventory-grid')!;grid.replaceChildren();
   const items=catalog.filter(c=>state.items.some(i=>i.sku===c.id)&&(filter==='all'||c.type===filter));
@@ -17,11 +29,10 @@ export function setupInventory(api:{inventory:()=>Promise<State>;equip:(sku:stri
   if(!items.length){const empty=document.createElement('p');empty.className='inventory-empty';empty.textContent=busy?'Loading your collection…':'No items here yet. Visit Kedai to grow your collection.';grid.append(empty);}
   const detail=dialog.querySelector('.inventory-details')!;detail.replaceChildren();const item=catalog.find(c=>c.id===selected),owned=state.items.find(i=>i.sku===selected);
   if(item&&owned){const title=document.createElement('h3');title.textContent=item.name;const description=document.createElement('p');description.textContent=item.description;const button=document.createElement('button');button.type='button';button.className='primary';button.textContent=owned.equipped?'Unequip':'Equip';button.disabled=busy;button.onclick=async()=>{busy=true;render();status.textContent='Updating equipment…';const ticket=epoch;try{const data=await api.equip(item.id,!owned.equipped);if(ticket===epoch){state=data;status.textContent='Equipment updated.';}}catch(e){if(ticket===epoch)status.textContent=(e as Error).message;}finally{if(ticket===epoch){busy=false;render();}}};detail.append(title,description,button);}
-  (dialog.querySelector('#inventory-retry') as HTMLButtonElement).disabled=busy;
  }
  async function load(){const ticket=++epoch;busy=true;state={items:[],balance:0};status.textContent='Loading inventory…';render();try{const data=await api.inventory();if(ticket===epoch){state=data;status.textContent=`${data.items.length} owned items`;}}catch(e){if(ticket===epoch)status.textContent=`Unable to load inventory. ${(e as Error).message}`;}finally{if(ticket===epoch){busy=false;render();}}}
  dialog.querySelector('header button')!.addEventListener('click',()=>dialog.close());dialog.addEventListener('keydown',e=>e.stopPropagation());dialog.addEventListener('close',()=>{epoch++;busy=false;});
- dialog.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter!;render();});dialog.querySelector('#inventory-retry')!.addEventListener('click',()=>void load());
- for(const id of ['open-wardrobe','open-shop']){const button=document.getElementById(id)!;dialog.querySelector('footer')!.append(button);button.addEventListener('click',()=>dialog.close());}
+ dialog.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter!;render();});
+ for(const id of ['open-wardrobe','open-shop']){const button=document.getElementById(id)!;dialog.querySelector('.inventory-links')!.append(button);button.addEventListener('click',()=>dialog.close());}
  return {open(){release();if(!dialog.open)dialog.showModal();void load();},close(){dialog.close();},get opened(){return dialog.open;}};
 }

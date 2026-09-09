@@ -143,6 +143,28 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
   const streetLights = createStreetLights(scene, world.solids);
+  // Night only decides the default. The switch itself is shared: one flip travels to
+  // everybody in the room, and a fresh room starts back on the clock.
+  let cityNight = false, lampOverride: boolean | null = null;
+  const lampsLit = () => lampOverride ?? cityNight;
+  const lampButton = document.createElement('button');
+  lampButton.id = 'lamp-switch'; lampButton.type = 'button';
+  function renderLamps() {
+    const lit = lampsLit();
+    streetLights.setNight(lit);
+    lampButton.textContent = lit ? '💡' : '🌑';
+    lampButton.classList.toggle('on', lit);
+    lampButton.setAttribute('aria-pressed', String(lit));
+    lampButton.setAttribute('aria-label', lit ? 'Switch the city street lights off' : 'Switch the city street lights on');
+    lampButton.title = lit ? 'Lampu jalan: ON' : 'Lampu jalan: OFF';
+  }
+  lampButton.onclick = () => {
+    const next = !lampsLit();
+    // Solo play still gets the switch; online it is the server that decides for everyone.
+    if (networkSocket?.readyState !== WebSocket.OPEN) { lampOverride = next; renderLamps(); return; }
+    networkSocket.send(JSON.stringify({type: 'lamps', on: next}));
+  };
+  renderLamps();
   const lrt=createLrt(scene,world.solids);
   let lrtId:number|null=null,lrtSeat=0,lrtClockOffset=0;
   const lrtNow=()=>Date.now()+lrtClockOffset;
@@ -749,6 +771,7 @@ async function init() {
         if(message.type==='teleported'&&message.id)finishTeleport(message.id);
         if(message.type==='teleport-denied'){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
+        if(message.type==='lamps'){const on=(message as unknown as {on:boolean|null}).on;lampOverride=typeof on==='boolean'?on:null;renderLamps();}
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
@@ -885,8 +908,8 @@ async function init() {
   $('open-edit-profile').textContent = 'Edit profile & display name';
   $('open-edit-profile').onclick = () => profileEditor.open();
   const itemShop = setupShop(setAccessories);
-  const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;});
-  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';$('menu').before(inventoryButton);inventoryButton.onclick=()=>inventory.open();
+  const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},savedLook);
+  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';$('menu').before(lampButton,inventoryButton);inventoryButton.onclick=()=>inventory.open();
 
   $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
@@ -984,7 +1007,7 @@ async function init() {
   $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
+  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{cityNight=night;renderLamps();});
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }

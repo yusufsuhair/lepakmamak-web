@@ -1,119 +1,129 @@
 [
-  {
-    "version": "1.9.0",
-    "date": "2026-09-10",
-    "title": "Game Master ada sayap",
-    "notes": [
-      "The Game Master now floats just above the ground with a slow rise and fall, one dark wing and one pale one fanned behind, over a slowly turning seal. Everyone in the city sees it, not just the Game Master.",
-      "The city now holds a hundred people at once, up from forty."
-    ]
-  },
-  {
-    "version": "1.8.1",
-    "date": "2026-09-10",
-    "title": "Pin PETRONAS betul balik",
-    "notes": [
-      "The PETRONAS marker on the city map now sits on the forecourt itself instead of nine metres north of it on empty ground."
-    ]
-  },
-  {
-    "version": "1.8.0",
-    "date": "2026-09-10",
-    "title": "Werewolf lima orang pun boleh",
-    "notes": [
-      "Werewolf now plays with as few as five people instead of seven, with one wolf against four and both the seer and the doctor still in.",
-      "Any group from five to nine works, so nobody is turned away for being an awkward number.",
-      "An empty seat at a table now invites your geng straight into your party chat.",
-      "The big table at Mamak Maju sits on proper paving instead of the grass beside it."
-    ]
-  },
-  {
-    "version": "1.7.1",
-    "date": "2026-09-10",
-    "title": "Pembetulan meja dan pengumuman",
-    "notes": [
-      "Fixed Werewolf and UNO not starting from the table: everyone who tapped SEDIA is now actually dealt into the game.",
-      "A Game Master announcement now really does greet people who join afterwards, instead of only those already online.",
-      "The table lobby stopped chattering to every seated player twenty times a second, which was quietly eating mobile data and battery."
-    ]
-  },
-  {
-    "version": "1.7.0",
-    "date": "2026-09-10",
-    "title": "Meja besar untuk Werewolf",
-    "notes": [
-      "A big nine-seat table has opened at Mamak Maju, so a whole Werewolf village can sit together instead of scattering across the small tables."
-    ]
-  },
-  {
-    "version": "1.6.0",
-    "date": "2026-09-10",
-    "title": "Pengumuman GM kekal di atas",
-    "notes": [
-      "A Game Master announcement now stays at the top of the screen until it is replaced or taken down, and anyone who joins afterwards still sees it."
-    ]
-  },
-  {
-    "version": "1.5.0",
-    "date": "2026-09-09",
-    "title": "Sedap main atas iPad",
-    "notes": [
-      "The game now lays itself out properly on a tablet: bigger buttons you can actually hit with a thumb, and the joystick, chat and speedometer no longer sit on top of each other.",
-      "If you are playing on a touch screen, the game stops telling you to press keys you do not have."
-    ]
-  },
-  {
-    "version": "1.4.0",
-    "date": "2026-09-09",
-    "title": "Polis masuk bandar",
-    "notes": [
-      "Two police cars now patrol the city, siren and all. You only hear it when they are near \u2014 and yes, you can still cilok them.",
-      "A connection meter next to the player count shows your signal and your ping in milliseconds.",
-      "When someone talks, their name and face appear under the map, so you always know who is speaking."
-    ]
-  },
-  {
-    "version": "1.3.0",
-    "date": "2026-09-09",
-    "title": "Chat kemas, GM boleh bagitahu semua",
-    "notes": [
-      "Chat channels moved into the typing bar: tap the button on the left to switch between everyone, your party, or a private message.",
-      "On a computer you can now blow the chat up into a proper window instead of squinting at the corner.",
-      "The Game Master can announce something to the whole city, and it scrolls across the top before landing in chat so nobody misses it."
-    ]
-  },
-  {
-    "version": "1.2.0",
-    "date": "2026-09-09",
-    "title": "Meja baru, jambatan boleh jalan",
-    "notes": [
-      "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
-      "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
-      "You can walk across the Saloma Link. Take the steps up at either end \u2014 the road underneath still runs as normal.",
-      "The city now holds forty people instead of twenty-four."
-    ]
-  },
-  {
-    "version": "1.1.0",
-    "date": "2026-09-09",
-    "title": "Geng, suara, dan lampu jalan",
-    "notes": [
-      "Right-click anyone to invite them into your party or send them a private message.",
-      "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
-      "Everyone online shows on the map as a dot \u2014 light blue for the city, red for your party.",
-      "Street lights come on at night, and the streets are no longer pitch black.",
-      "Chat opens with Enter and tucks away after you send, so the screen stays clear."
-    ]
-  },
-  {
-    "version": "1.0.0",
-    "date": "2026-09-08",
-    "title": "Bandar LepakMamak",
-    "notes": [
-      "Explore a small Kuala Lumpur: the mamak, the shops, the mosque, and the neighbourhood around them.",
-      "Ride the LRT across eight stations, or take a kapcai or a car and cilok your friends.",
-      "Table games at the mamak: Lukis Lah!, Poker Kampung, UNO Lepak and Werewolf.",
-      "City chat, voice chat with whoever is nearby, and the Lepak Wall for photos and voice notes."
-    ]
-  }
+ {
+  "version": "1.10.0",
+  "date": "2026-09-10",
+  "title": "Suis lampu bandar, satu skrin karakter",
+  "notes": [
+   "Street lights now have a switch anyone can flip, in the top bar next to your inventory. Night still turns them on by itself, but whoever flips it, the whole city sees it straight away.",
+   "Inventory and wardrobe are one character screen now. Your items, what you have equipped and the clothes you are wearing sit together, with Wardrobe and Kedai buttons right there. The old Refresh button is gone.",
+   "Scrolling back through chat no longer snaps you to the newest line. A small arrow appears instead, and one tap brings you back to the latest."
+  ]
+ },
+ {
+  "version": "1.9.0",
+  "date": "2026-09-10",
+  "title": "Game Master ada sayap",
+  "notes": [
+   "The Game Master now floats just above the ground with a slow rise and fall, one dark wing and one pale one fanned behind, over a slowly turning seal. Everyone in the city sees it, not just the Game Master.",
+   "The city now holds a hundred people at once, up from forty."
+  ]
+ },
+ {
+  "version": "1.8.1",
+  "date": "2026-09-10",
+  "title": "Pin PETRONAS betul balik",
+  "notes": [
+   "The PETRONAS marker on the city map now sits on the forecourt itself instead of nine metres north of it on empty ground."
+  ]
+ },
+ {
+  "version": "1.8.0",
+  "date": "2026-09-10",
+  "title": "Werewolf lima orang pun boleh",
+  "notes": [
+   "Werewolf now plays with as few as five people instead of seven, with one wolf against four and both the seer and the doctor still in.",
+   "Any group from five to nine works, so nobody is turned away for being an awkward number.",
+   "An empty seat at a table now invites your geng straight into your party chat.",
+   "The big table at Mamak Maju sits on proper paving instead of the grass beside it."
+  ]
+ },
+ {
+  "version": "1.7.1",
+  "date": "2026-09-10",
+  "title": "Pembetulan meja dan pengumuman",
+  "notes": [
+   "Fixed Werewolf and UNO not starting from the table: everyone who tapped SEDIA is now actually dealt into the game.",
+   "A Game Master announcement now really does greet people who join afterwards, instead of only those already online.",
+   "The table lobby stopped chattering to every seated player twenty times a second, which was quietly eating mobile data and battery."
+  ]
+ },
+ {
+  "version": "1.7.0",
+  "date": "2026-09-10",
+  "title": "Meja besar untuk Werewolf",
+  "notes": [
+   "A big nine-seat table has opened at Mamak Maju, so a whole Werewolf village can sit together instead of scattering across the small tables."
+  ]
+ },
+ {
+  "version": "1.6.0",
+  "date": "2026-09-10",
+  "title": "Pengumuman GM kekal di atas",
+  "notes": [
+   "A Game Master announcement now stays at the top of the screen until it is replaced or taken down, and anyone who joins afterwards still sees it."
+  ]
+ },
+ {
+  "version": "1.5.0",
+  "date": "2026-09-09",
+  "title": "Sedap main atas iPad",
+  "notes": [
+   "The game now lays itself out properly on a tablet: bigger buttons you can actually hit with a thumb, and the joystick, chat and speedometer no longer sit on top of each other.",
+   "If you are playing on a touch screen, the game stops telling you to press keys you do not have."
+  ]
+ },
+ {
+  "version": "1.4.0",
+  "date": "2026-09-09",
+  "title": "Polis masuk bandar",
+  "notes": [
+   "Two police cars now patrol the city, siren and all. You only hear it when they are near — and yes, you can still cilok them.",
+   "A connection meter next to the player count shows your signal and your ping in milliseconds.",
+   "When someone talks, their name and face appear under the map, so you always know who is speaking."
+  ]
+ },
+ {
+  "version": "1.3.0",
+  "date": "2026-09-09",
+  "title": "Chat kemas, GM boleh bagitahu semua",
+  "notes": [
+   "Chat channels moved into the typing bar: tap the button on the left to switch between everyone, your party, or a private message.",
+   "On a computer you can now blow the chat up into a proper window instead of squinting at the corner.",
+   "The Game Master can announce something to the whole city, and it scrolls across the top before landing in chat so nobody misses it."
+  ]
+ },
+ {
+  "version": "1.2.0",
+  "date": "2026-09-09",
+  "title": "Meja baru, jambatan boleh jalan",
+  "notes": [
+   "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
+   "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
+   "You can walk across the Saloma Link. Take the steps up at either end — the road underneath still runs as normal.",
+   "The city now holds forty people instead of twenty-four."
+  ]
+ },
+ {
+  "version": "1.1.0",
+  "date": "2026-09-09",
+  "title": "Geng, suara, dan lampu jalan",
+  "notes": [
+   "Right-click anyone to invite them into your party or send them a private message.",
+   "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
+   "Everyone online shows on the map as a dot — light blue for the city, red for your party.",
+   "Street lights come on at night, and the streets are no longer pitch black.",
+   "Chat opens with Enter and tucks away after you send, so the screen stays clear."
+  ]
+ },
+ {
+  "version": "1.0.0",
+  "date": "2026-09-08",
+  "title": "Bandar LepakMamak",
+  "notes": [
+   "Explore a small Kuala Lumpur: the mamak, the shops, the mosque, and the neighbourhood around them.",
+   "Ride the LRT across eight stations, or take a kapcai or a car and cilok your friends.",
+   "Table games at the mamak: Lukis Lah!, Poker Kampung, UNO Lepak and Werewolf.",
+   "City chat, voice chat with whoever is nearby, and the Lepak Wall for photos and voice notes."
+  ]
+ }
 ]

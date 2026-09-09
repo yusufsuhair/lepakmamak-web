@@ -9,7 +9,8 @@ test('wardrobe saves locally, restores after reload and discards cancelled edits
   await page.locator('#guest-name').fill('Tester');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   const open = async () => {
-    await page.getByRole('button', { name: 'Open settings' }).click();
+    // Wardrobe lives in the character screen now, next to Kedai, not in settings.
+    await page.getByRole('button', { name: 'Open inventory' }).click();
     await page.getByRole('button', { name: 'Wardrobe · Change clothes' }).click();
   };
   await open();
@@ -30,7 +31,7 @@ test('wardrobe saves locally, restores after reload and discards cancelled edits
   await page.getByRole('tab', { name: 'Tops' }).click();
   await page.getByRole('radio', { name: 'Pink shirt' }).click();
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await page.getByRole('button', { name: 'Wardrobe · Change clothes' }).click();
+  await open();
   await expect(page.getByRole('radio', { name: 'Blue shirt' })).toHaveAttribute('aria-checked', 'true');
   await expect(page.locator('#wardrobe select')).toHaveCount(0);
   await page.screenshot({ path: 'test-results/wardrobe-desktop.png' });

@@ -85,20 +85,32 @@ type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?:
 
 export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', to?: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
   const heading = el<HTMLButtonElement>('chat-heading'), body = el('chat-body');
   const toggleLabel = el('chat-toggle-label'), unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
-  const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand');
+  const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
   const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
   const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
   compose.textContent = coarse ? '' : 'Click or press enter to type';
 
   let collapsed = false, composing = false, expanded = false, menuOpen = false, active = 'all';
   const threads = new Map<string, Thread>();
+
+  // Reading back through the log should not be yanked away by the next message. The log
+  // only follows along while you are already at the bottom; otherwise the arrow offers it.
+  const atBottom = (log: HTMLElement) => log.scrollHeight - log.scrollTop - log.clientHeight < 24;
+  const toBottom = (log: HTMLElement) => { log.scrollTop = log.scrollHeight; };
+  function renderJump() {
+    const log = threads.get(active)?.log;
+    jump.hidden = collapsed || !log || atBottom(log);
+  }
+  logs.addEventListener('scroll', renderJump, true);
+  jump.onclick = () => { const log = threads.get(active)!.log; toBottom(log); renderJump(); };
+  jump.onkeydown = event => event.stopPropagation();
 
   function build(key: string, label: string, channel: Thread['channel'], options: {to?: string; name?: string; closable?: boolean} = {}) {
     const log = document.createElement('div'); log.className = 'chat-log'; log.setAttribute('role', 'log');
@@ -120,7 +132,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     if (collapsed) collapsed = false;
     closeMenu();
     render();
-    threads.get(key)!.log.scrollTop = threads.get(key)!.log.scrollHeight;
+    toBottom(threads.get(key)!.log);
+    renderJump();
   }
 
   function closeThread(key: string) {
@@ -174,6 +187,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     selector.setAttribute('aria-label', `Channel: ${current.label}. Choose who sees your message`);
     input.setAttribute('aria-label', active === 'all' ? 'Message to the city' : `Message to ${current.label}`);
     if (menuOpen) renderMenu();
+    renderJump();
   }
 
   selector.onclick = () => {
@@ -242,7 +256,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       all.log.replaceChildren(); all.unread = 0;
       for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster, false);
       all.unread = 0;
-      render(); all.log.scrollTop = all.log.scrollHeight;
+      render(); toBottom(all.log); renderJump();
     },
     append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' = 'all', thread?: Member) {
       const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : all;
@@ -252,13 +266,15 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       timestamp.textContent = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
       timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
       timestamp.setAttribute('aria-label', timestamp.title);
+      const follow = !collapsed && target.key === active && atBottom(target.log);
       const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
       if (gameMaster) { row.className = 'game-master-chat'; author.textContent = `✦ GM · ${name}: `; }
       row.append(timestamp, document.createTextNode(' '), author, document.createTextNode(text)); target.log.append(row);
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();
       if (notify && (collapsed || target.key !== active)) target.unread++;
       render();
-      if (!collapsed && target.key === active) target.log.scrollTop = target.log.scrollHeight;
+      if (follow) toBottom(target.log);
+      renderJump();
     },
   };
 }
