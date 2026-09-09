@@ -22,6 +22,7 @@ body { margin: 0; overflow: hidden; }
 #chat-messages { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
 #chat-messages p { margin: 0 0 9px; line-height: 1.5; }
 #chat-messages strong { color: #ddf69a; }
+.stall-name { pointer-events: none; }
 #chat-form { display: flex; gap: 6px; }
 /* Both rows set an explicit display, which would otherwise beat the [hidden] default. */
 #chat-form[hidden], #chat-compose[hidden] { display: none; }

@@ -1,15 +1,43 @@
 import {test,expect} from '@playwright/test';
-import {createStalls} from '../server/stalls.mjs';
-test('street stalls enforce distance, catalogue and one snack with nearby reactions',()=>{
- const messages:any[]=[];const handle=createStalls((ws:any,m:any)=>messages.push({ws,...m}));
- const a:any={id:'a',name:'A',ws:'a',x:0,z:0};const b:any={id:'b',name:'B',ws:'b',x:-12,z:62};const far:any={id:'f',ws:'f',x:100,z:100};const players=new Map([['a',a],['b',b],['f',far]]);
- handle(players,a,{type:'stall-order',stallId:'air-balang',itemId:'air-jagung'});expect(a.snack).toBeUndefined();
- handle(players,b,{type:'stall-order',stallId:'air-balang',itemId:'air-jagung'});expect(b.snack).toBe('air-jagung');expect(messages.filter(m=>m.type==='stall-action').some(m=>m.ws==='f')).toBe(false);
- const consume=createStalls((ws:any,m:any)=>messages.push({ws,...m}));consume(players,b,{type:'stall-consume',playerId:'a'});expect(b.snack).toBeNull();
- const invalid=createStalls(()=>{});invalid(players,b,{type:'stall-order',stallId:'air-balang',itemId:'cucur'});expect(b.snack).toBeNull();
+import stalls from '../shared/stalls.json' with {type:'json'};
+
+// Street stalls are scenery. They name themselves when you walk up and do nothing else.
+test('a stall names itself when you are near and goes quiet when you walk away',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/stall-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><div class="brand-status"></div></div>'}));
+ await page.goto('/stall-harness');
+ await page.evaluate(async()=>{
+  const {setupStalls}=await import('/src/stalls.ts');
+  const THREE=await import('/node_modules/three/build/three.module.js');
+  const camera=new THREE.PerspectiveCamera(60,390/844,.1,500);
+  const ui=setupStalls(document.getElementById('hud')!);
+  (window as any).show=(x:number,z:number,enabled=true)=>{camera.position.set(x,6,z+12);camera.lookAt(x,2,z);camera.updateMatrixWorld();ui.update({x,z},camera,enabled);};
+ });
+
+ const balang=stalls.find(s=>s.id==='air-balang')!;
+ await page.evaluate(([x,z])=>(window as any).show(x,z),[balang.x,balang.z]);
+ await expect(page.getByText('Air Balang Pak Din',{exact:true})).toBeVisible();
+
+ // Walking off hides it again.
+ await page.evaluate(([x,z])=>(window as any).show(x+40,z+40),[balang.x,balang.z]);
+ await expect(page.getByText('Air Balang Pak Din',{exact:true})).toBeHidden();
+
+ // Riding, sitting or an open panel suppresses the label the same way it always did.
+ await page.evaluate(([x,z])=>(window as any).show(x,z,false),[balang.x,balang.z]);
+ await expect(page.getByText('Air Balang Pak Din',{exact:true})).toBeHidden();
 });
-test('mobile stall menu supports ordering and consuming',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.route('**/stall-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><div class="brand-status"></div></div>'}));await page.goto('/stall-harness');
- await page.evaluate(async()=>{const {setupStalls}=await import('/src/stalls.ts');const THREE=await import('/node_modules/three/build/three.module.js');const ui=setupStalls(document.getElementById('hud')!,m=>{ui.state((m as any).type==='stall-order'?(m as any).itemId:null,true);return true;},()=>{});ui.state(null,true);const camera=new THREE.PerspectiveCamera(53,390/844,.1,100);camera.position.set(-12,5,70);camera.lookAt(-12,2,60);camera.updateMatrixWorld();ui.update({x:-12,z:62},camera,true);});
- await page.getByRole('button',{name:'Pesan · Air Balang Pak Din',exact:true}).click();await page.getByRole('button',{name:'Sirap bandung',exact:true}).click();await expect(page.locator('#stall-status')).toContainText('Pesanan dah siap');await page.getByRole('button',{name:'Tutup',exact:true}).click();await expect(page.locator('#street-snack')).toHaveText('Minum · Sirap bandung');await page.locator('#street-snack').click();await expect(page.locator('#street-snack')).toBeHidden();
+
+test('no ordering interface survives anywhere in the stall UI',async({page})=>{
+ await page.route('**/stall-gone-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="hud"><div class="brand-status"></div></div>'}));
+ await page.goto('/stall-gone-harness');
+ await page.evaluate(async()=>{const {setupStalls}=await import('/src/stalls.ts');setupStalls(document.getElementById('hud')!);});
+ await expect(page.locator('#street-stall')).toHaveCount(0);
+ await expect(page.locator('#street-snack')).toHaveCount(0);
+ await expect(page.locator('#stall-menu')).toHaveCount(0);
+ // The label is a plain name, never a "Pesan · …" button.
+ await expect(page.getByRole('button',{name:/Pesan/})).toHaveCount(0);
+});
+
+test('the stalls themselves are still standing in the world',()=>{
+ expect(stalls.map(s=>s.name)).toEqual(['Air Balang Pak Din','Pisang Goreng Mak Cik']);
 });

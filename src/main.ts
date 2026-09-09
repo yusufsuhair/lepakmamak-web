@@ -31,7 +31,7 @@ import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
 import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,passengerPoint,railHeight,arrivalIn} from '../shared/lrt.mjs';
-import { createWorld, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
+import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -134,6 +134,7 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  const streetLights = createStreetLights(scene, world.solids);
   const lrt=createLrt(scene,world.solids);
   let lrtId:number|null=null,lrtSeat=0,lrtClockOffset=0;
   const lrtNow=()=>Date.now()+lrtClockOffset;
@@ -224,7 +225,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { lrtId?:number|null;lrtSeat?:number; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; snack?:string|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { lrtId?:number|null;lrtSeat?:number; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -293,7 +294,7 @@ async function init() {
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
+    if (!started || paused || isDancing() || tableSocial.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
     if(insidePickleball(pos)){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){punchUntil=simTime+.38;networkSocket.send(JSON.stringify({type:'pickleball-hit'}));}return;}
     if(insideBasketball(pos)){basketball.action();return;}
     punchUntil = simTime + .38; punchCount++; punchSound();
@@ -312,7 +313,7 @@ async function init() {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   }, roomName, () => { keys.clear(); resetStick(); dragging = false; }, (title, body) => toast(title, body, 6));
-  const streetStalls=setupStalls($('hud'),message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},()=>{keys.clear();resetStick();dragging=false;});
+  const streetStalls=setupStalls($('hud'));
   const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
   $('open-wall').onclick=()=>wall.open();
   const tableLabels = tableLocations.map(table=>{
@@ -550,7 +551,6 @@ async function init() {
     return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
-    streetStalls.state(players.find(p=>p.id===networkPlayerId)?.snack||null,networkConnected);
     roomPlayers = players;
     weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
@@ -718,7 +718,7 @@ async function init() {
           if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
         }
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; streetStalls.state(null,false);streetStalls.close();tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; setNetworkStatus('RECONNECTING…', 'connecting', 1); retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; finishEntryLoading(); voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
@@ -803,7 +803,6 @@ async function init() {
     vehicleRadio.update(false);
     locationArrival.reset();
     saveLocation();danceAudio.stop();localSupermanUntil=0;
-    streetStalls.close();streetStalls.state(null,false);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
@@ -827,7 +826,7 @@ async function init() {
   function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   function claimCar(id:string){
-    if(!started||paused||riding||seated||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened||streetStalls.opened)return;
+    if(!started||paused||riding||seated||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened)return;
     if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN&&performance.now()>=claimPendingUntil){sendNetworkState(1);claimPendingUntil=performance.now()+2000;networkSocket.send(JSON.stringify({type:'car-claim',id}));}
   }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
@@ -849,7 +848,7 @@ async function init() {
   }
   function interact() {
     if(lrtId!=null)return;
-    if (!started || paused || isDancing() || tableSocial.opened || streetStalls.opened) return;
+    if (!started || paused || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
@@ -880,7 +879,7 @@ async function init() {
   $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
+  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
@@ -932,7 +931,7 @@ async function init() {
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if(wall.opened){if(event.code==='Escape'){event.preventDefault();wall.close();}return;}
-    if (profile.open || tableSocial.opened || streetStalls.opened) return;
+    if (profile.open || tableSocial.opened) return;
     // Enter is the chat key, the way it is in every other game. The guard above already
     // excluded every open modal, and this listener bails on input targets, so a second
     // Enter lands on the composer's own form rather than reopening it.

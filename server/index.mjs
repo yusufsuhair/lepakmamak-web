@@ -10,8 +10,6 @@ import { createPoker } from './poker.mjs';
 import { createPickleball } from './pickleball.mjs';
 import { createBasketball } from './basketball.mjs';
 import {createSocialProfiles} from './social-profiles.mjs';
-import {createStalls} from './stalls.mjs';
-const handleStall=createStalls(send);
 import { createChatHistory } from './chat-history.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
@@ -250,7 +248,6 @@ webSocketServer.on('connection', ws => {
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
     if(lrt.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(fleet.handle(currentRoom.players,player,message))return;
-    if(handleStall(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if (message.type === 'profile-view') {
       if (Date.now() - lastProfileViewAt < 250) return;
       lastProfileViewAt = Date.now();

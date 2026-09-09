@@ -1023,3 +1023,78 @@ export function createWorld(scene: THREE.Scene): World {
   }
   return { group, solids, mapBuildings, traffic, pedestrians, chairs };
 }
+
+// Street lamps derive from the same road constants the grid above uses, so they can
+// never drift away from the roads. Three InstancedMeshes hold roughly eighty lamps at
+// three draw calls; real lights would be one shader recompile each and would sink the
+// phone build, so night is faked with an emissive head and a glow pool on the ground.
+export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
+  const VERTICAL_X = [0, 76, -82], HORIZONTAL_Z = [-64, 8, 78];
+  const KERB = 10.4, JUNCTION = 11, SPACING = 24, REACH = 144;
+  const lamps: {x: number; z: number; axis: 'ns' | 'ew'; side: number}[] = [];
+  for (const x of VERTICAL_X) {
+    let n = 0;
+    for (let z = -REACH; z <= REACH; z += SPACING) {
+      if (HORIZONTAL_Z.some(cross => Math.abs(z - cross) < JUNCTION)) continue;
+      const side = n++ % 2 ? 1 : -1;
+      lamps.push({x: x + side * KERB, z, axis: 'ns', side});
+    }
+  }
+  for (const z of HORIZONTAL_Z) {
+    let n = 0;
+    for (let x = -REACH; x <= REACH; x += SPACING) {
+      if (VERTICAL_X.some(cross => Math.abs(x - cross) < JUNCTION)) continue;
+      const side = n++ % 2 ? 1 : -1;
+      lamps.push({x, z: z + side * KERB, axis: 'ew', side});
+    }
+  }
+
+  const group = new THREE.Group();
+  const poleMaterial = new THREE.MeshStandardMaterial({color: '#46525c', roughness: .8});
+  const headMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', emissive: '#ffcf82', emissiveIntensity: 0, roughness: .5});
+  const glowMaterial = new THREE.MeshBasicMaterial({color: '#ffcf82', transparent: true, opacity: 0, depthWrite: false});
+  const bulbMaterial = new THREE.MeshBasicMaterial({color: '#ffe6b8', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(.1, .14, 5.4, 6), poleMaterial, lamps.length);
+  const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, .24, .52), headMaterial, lamps.length);
+  const glows = new THREE.InstancedMesh(new THREE.CircleGeometry(4.4, 14), glowMaterial, lamps.length);
+  // A sphere reads the same from every angle, so the halo needs no per-frame billboarding.
+  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(.62, 8, 6), bulbMaterial, lamps.length);
+  glows.visible = false; bulbs.visible = false;
+
+  const matrix = new THREE.Matrix4(), euler = new THREE.Euler(), quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3(1, 1, 1), position = new THREE.Vector3();
+  lamps.forEach((lamp, index) => {
+    // The arm always reaches out over the tarmac, whichever kerb the post stands on.
+    const towardRoad = -lamp.side, yaw = lamp.axis === 'ns' ? 0 : Math.PI / 2;
+    const armX = lamp.axis === 'ns' ? towardRoad * .85 : 0;
+    const armZ = lamp.axis === 'ns' ? 0 : towardRoad * .85;
+
+    position.set(lamp.x, 2.7, lamp.z);
+    poles.setMatrixAt(index, matrix.compose(position, quaternion.identity(), scale));
+
+    quaternion.setFromEuler(euler.set(0, yaw, 0));
+    position.set(lamp.x + armX, 5.3, lamp.z + armZ);
+    heads.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+
+    position.set(lamp.x + armX, 5.18, lamp.z + armZ);
+    bulbs.setMatrixAt(index, matrix.compose(position, quaternion.identity(), scale));
+
+    quaternion.setFromEuler(euler.set(-Math.PI / 2, 0, 0));
+    position.set(lamp.x + armX, .035, lamp.z + armZ);
+    glows.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+
+    solids?.push({x: lamp.x, z: lamp.z, hx: .22, hz: .22});
+  });
+  group.add(poles, heads, bulbs, glows);
+  scene.add(group);
+
+  return {
+    group, lamps, headMaterial,
+    setNight(on: boolean) {
+      headMaterial.emissiveIntensity = on ? 2.4 : 0;
+      bulbMaterial.opacity = on ? .85 : 0;
+      glowMaterial.opacity = on ? .3 : 0;
+      glows.visible = on; bulbs.visible = on;
+    },
+  };
+}

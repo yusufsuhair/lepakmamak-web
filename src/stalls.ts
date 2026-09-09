@@ -24,12 +24,15 @@ export function createStallWorld(scene:THREE.Scene,solids:Solid[]){
   box(2.2,.4,-.3,.7,.8,.7,'#394e41');solids.push({x:stall.x,z:stall.z,hx:2,hz:.8},{x:stall.x,z:stall.z-1.4,hx:.4,hz:.4});
  }
 }
-export function setupStalls(hud:HTMLElement,send:(m:object)=>boolean,release:()=>void){
- const dialog=document.createElement('dialog');dialog.id='street-stall';dialog.innerHTML='<h2 id="stall-title"></h2><p>Pilih yang berkenan, boss. Percuma untuk lepak!</p><div id="stall-menu"></div><p id="stall-status" role="status"></p><button id="stall-close">Tutup</button>';document.body.append(dialog);
- const bag=document.createElement('button');bag.id='street-snack';bag.hidden=true;hud.querySelector('.brand-status')!.append(bag);
- let snack:string|null=null,selected=stalls[0],connected=false;
- function render(){dialog.querySelector('h2')!.textContent=selected.name;const menu=dialog.querySelector('#stall-menu')!;menu.replaceChildren();for(const item of selected.items){const b=document.createElement('button');b.textContent=item.name;b.disabled=!!snack||!connected;b.onclick=()=>{send({type:'stall-order',stallId:selected.id,itemId:item.id});};menu.append(b);}dialog.querySelector('#stall-status')!.textContent=snack?'Pesanan dah siap! Tekan butang makan/minum di bawah logo.':connected?'Ambil satu dahulu. Lepas habis boleh pesan lagi.':'Sambung ke bandar dahulu.';}
- bag.onclick=()=>{send({type:'stall-consume'});};dialog.querySelector('#stall-close')!.addEventListener('click',()=>dialog.close());dialog.addEventListener('keydown',e=>e.stopPropagation());
- const labels=stalls.map(stall=>{const button=document.createElement('button');button.className='table-label';button.hidden=true;button.textContent='Pesan · '+stall.name;hud.append(button);button.onclick=()=>{selected=stall;release();dialog.showModal();render();};return {stall,button};});
- return {get opened(){return dialog.open;},close(){dialog.close();},state(value:string|null,online:boolean){if(snack===value&&connected===online)return;snack=value;connected=online;const item=stalls.flatMap(s=>s.items).find(i=>i.id===snack);bag.hidden=!item||!online;bag.textContent=item?`${item.kind==='drink'?'Minum':'Makan'} · ${item.name}`:'';if(dialog.open)render();},update(pos:{x:number;z:number},camera:THREE.Camera,enabled:boolean){if(dialog.open&&(!enabled||Math.hypot(pos.x-selected.x,pos.z-selected.z)>5))dialog.close();for(const {stall,button} of labels){button.hidden=!enabled||dialog.open||Math.hypot(pos.x-stall.x,pos.z-stall.z)>5;if(!button.hidden){const p=new THREE.Vector3(stall.x,3.8,stall.z).project(camera);button.hidden=p.z< -1||p.z>1||Math.abs(p.x)>.85||Math.abs(p.y)>.9;button.style.left=`${(p.x+1)*innerWidth/2}px`;button.style.top=`${(1-p.y)*innerHeight/2}px`;}}}};
+// Stalls are scenery: they name themselves when you walk up, and nothing more.
+export function setupStalls(hud:HTMLElement){
+ const labels=stalls.map(stall=>{const label=document.createElement('div');label.className='table-label stall-name';label.hidden=true;label.textContent=stall.name;hud.append(label);return {stall,label};});
+ return {update(pos:{x:number;z:number},camera:THREE.Camera,enabled:boolean){
+  for(const {stall,label} of labels){
+   if(!enabled||Math.hypot(pos.x-stall.x,pos.z-stall.z)>5){label.hidden=true;continue;}
+   const p=new THREE.Vector3(stall.x,3.8,stall.z).project(camera);
+   label.hidden=p.z<-1||p.z>1||Math.abs(p.x)>.85||Math.abs(p.y)>.9;
+   if(!label.hidden){label.style.left=`${(p.x+1)*innerWidth/2}px`;label.style.top=`${(1-p.y)*innerHeight/2}px`;}
+  }
+ }};
 }

@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+// Night used to sit at .22 / .7, which read as pitch black once the lamps went in.
+export const NIGHT_SUN = .34, NIGHT_AMBIENT = 1.15;
+
 export function isKlNight(now = new Date()) {
   // Approximate local solar time for KL (101.71°E), including seasonal declination.
   const day = (now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000;
@@ -8,7 +11,7 @@ export function isKlNight(now = new Date()) {
   const hour = now.getUTCHours() + now.getUTCMinutes() / 60 + 101.71 / 15 + equationMinutes/60;
   return Math.sin(3.16 * Math.PI / 180) * Math.sin(declination) + Math.cos(3.16 * Math.PI / 180) * Math.cos(declination) * Math.cos((hour - 12) * Math.PI / 12) < 0;
 }
-export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, ambient: THREE.HemisphereLight, endpoint: string, setRain: (value: boolean) => void, send: (message: object) => boolean) {
+export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, ambient: THREE.HemisphereLight, endpoint: string, setRain: (value: boolean) => void, send: (message: object) => boolean, setNight: (value: boolean) => void = () => {}) {
   let report: {available:boolean;condition:string;source:string;observedAt?:number} = {available:false,condition:'sunny',source:'Weather unavailable · time-only fallback'};
   let clockOffset=0, gm=false;
   let override={condition:'live',daylight:'live'};
@@ -35,7 +38,8 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
     setRain(rain);toggle.checked=rain;
     const color=night?'#172535':mist?'#b7ada0':rain?'#82969f':condition==='cloudy'?'#b3c3c9':'#b9dcec';
     (scene.background as THREE.Color).set(color);const fog=scene.fog as THREE.Fog;fog.color.set(color);fog.near=mist?20:rain?70:145;fog.far=mist?170:rain?300:650;
-    sun.intensity=night?.22:rain?.8:mist?1.1:condition==='cloudy'?1.5:2.7;ambient.intensity=night?.7:1.8;sun.color.set(night?'#9cb8ed':'#ffdfa3');
+    sun.intensity=night?NIGHT_SUN:rain?.8:mist?1.1:condition==='cloudy'?1.5:2.7;ambient.intensity=night?NIGHT_AMBIENT:1.8;sun.color.set(night?'#9cb8ed':'#ffdfa3');
+    setNight(night);
     const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}).format(now);
     label.textContent=`${time} MYT · ${night?'Night':'Daytime'} · ${!fresh&&override.condition==='live'?'Weather unavailable':night&&condition==='sunny'?'Clear':condition}${manual?' · GM override':''}`;
     label.title=manual?'Game Master override · real MYT clock':fresh?`${report.source} · observed ${new Date(report.observedAt!).toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'})}`:'Weather unavailable; showing KL day/night only';
