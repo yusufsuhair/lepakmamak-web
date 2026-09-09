@@ -253,10 +253,46 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1';
-export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1'];
+export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck';
+export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck'];
 export function createDriveableCar(style: CarStyle = 'myvi') {
   const group = new THREE.Group(), wheels: THREE.Group[] = [];
+  if(style==='model-y'||style==='cybertruck'){
+    const truck=style==='cybertruck',w=truck?2.05:1.92,l=truck?4.8:4.25,color=truck?'#a5adb1':'#eceeea';
+    group.userData.model=style;
+    const shell=new THREE.Shape();shell.moveTo(-l/2,.55);shell.lineTo(l/2,.55);shell.lineTo(l/2,1.02);
+    if(truck){shell.lineTo(.2,2.05);shell.lineTo(-l/2,1.35);}else{shell.quadraticCurveTo(1.65,1.2,1.1,1.22);shell.bezierCurveTo(.65,2.18,-.95,2.05,-1.4,1.4);shell.quadraticCurveTo(-2.1,1.25,-l/2,1.05);}shell.closePath();
+    const body=new THREE.Mesh(new THREE.ExtrudeGeometry(shell,{depth:w,bevelEnabled:false,curveSegments:10}),material(color,.35));body.rotation.y=-Math.PI/2;body.position.x=w/2;body.castShadow=true;body.receiveShadow=true;group.add(body);
+    for(const side of [-1,1]){
+      const windowShape=new THREE.Shape();windowShape.moveTo(-1.32,1.32);windowShape.lineTo(.99,1.32);
+      if(truck){windowShape.lineTo(.18,1.93);windowShape.lineTo(-1.32,1.48);}else{windowShape.quadraticCurveTo(.55,1.93,-.3,1.88);windowShape.quadraticCurveTo(-.98,1.88,-1.32,1.32);}windowShape.closePath();
+      const glass=new THREE.Mesh(new THREE.ShapeGeometry(windowShape,10),new THREE.MeshStandardMaterial({color:'#263f49',roughness:.22,side:THREE.DoubleSide}));glass.rotation.y=-Math.PI/2;glass.position.x=side*(w/2+.01);group.add(glass);
+      box(group,side*(w/2+.025),1.6,-.24,.025,.53,.075,'#263032');
+      for(const z of [-.75,.5])box(group,side*(w/2+.025),1.17,z,.035,.04,.23,'#303a3e');
+      box(group,side*(w/2+.12),1.36,.77,.23,.13,.27,color);
+      box(group,side*(w/2+.025),.58,0,.055,.17,l*.72,'#263032');
+      for(const z of [-l*.32,l*.31]){
+        const axle=new THREE.Group();axle.position.set(side*w/2,.44,z);group.add(axle);wheels.push(axle);
+        const tire=tube(axle,0,0,0,truck?.44:.39,.23,'#192025');tire.rotation.z=Math.PI/2;
+        const hub=tube(axle,side*.13,0,0,truck?.32:.29,.025,truck?'#343e43':'#59646b');hub.rotation.z=Math.PI/2;
+        for(let i=0;i<7;i++){const spoke=box(axle,side*.15,0,0,.025,.48,.035,'#a5afb2');spoke.rotation.x=i*Math.PI/7;}
+      }
+    }
+    const windshield=box(group,0,truck?1.55:1.57,truck?1.18:.88,w-.2,.025,truck?1.22:.92,'#263f49');windshield.rotation.x=truck?.44:.64;
+    if(truck){
+      box(group,0,1.08,l/2+.025,w-.05,.065,.035,'#edffff');
+      box(group,0,1.24,-l/2-.025,w-.08,.045,.035,'#f24643');
+      box(group,0,1.36,-1.74,w-.2,.04,1.17,'#374348');
+      for(let z=-2.25;z<-1.2;z+=.15)box(group,0,1.39,z,w-.25,.018,.025,'#606b6f');
+    }else{
+      box(group,0,1.94,-.24,1.4,.04,1.1,'#243943');
+      for(const side of [-1,1]){box(group,side*.63,1.055,l/2+.03,.5,.075,.04,'#edffff');box(group,side*.65,1.13,-l/2-.03,.48,.09,.04,'#d63c42');}
+    }
+    box(group,0,.65,l/2+.03,w*.65,.15,.04,'#263032');
+    sign(group,truck?'CYBERTRUCK':'MODEL Y',0,.7,-l/2-.06,.78,.16,'#182c28','#faf5e3',Math.PI);
+    const driver=createPerson('#ef734c',true);driver.group.scale.setScalar(.7);driver.group.position.set(.35,.24,-.1);driver.group.visible=false;group.add(driver.group);
+    return{group,wheels,driver:driver.group};
+  }
   if (style === 'f1') {
     const red = '#d9272e', carbon = '#20292c', silver = '#d7dedb';
     group.userData.model = style;
@@ -885,7 +921,7 @@ export function createWorld(scene: THREE.Scene): World {
     for(const x of [-12,-8,8,12]){box(r,x,.5,12.5,2.4,1,1.4,'#4b5040');ball(r,x,1.3,12.5,.9,'#55774c');}
     solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
     // Parked Malaysian cars and premium MPVs leave the central approach open.
-    for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;const car=createDriveableCar((['myvi','axia','vellfire','avanza','suv'] as CarStyle[])[i%5]);car.group.position.set(x,.1,z);group.add(car.group);solid(x,z,2.8,5.6);box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
+    for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;const car=createDriveableCar((['myvi','axia','vellfire','avanza','suv','model-y','cybertruck'] as CarStyle[])[i%7]);car.group.position.set(x,.1,z);group.add(car.group);solid(x,z,2.8,5.6);box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
     for(const x of [-147,-94])palm(group,x,119,.8);
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
