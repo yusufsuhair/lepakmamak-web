@@ -234,7 +234,7 @@ async function init() {
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
   type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   let localSupermanUntil=0;
@@ -584,6 +584,15 @@ async function init() {
     $('multiplayer-status-text').textContent = label;
     $('player-count').textContent = `${count} / ${city.maxPlayers}`;
   }
+  // A crowded mamak used to draw every one of a hundred players in full articulation, about
+  // 33 draw calls each. Only the nearest few earn that; the rest become one capsule, and the
+  // far ones stop drawing at all. The geometry is shared, so a stand-in costs one call.
+  const STAND_GEOMETRY = new THREE.CapsuleGeometry(.26, .78, 2, 6);
+  const CLOSE_RANGE = 9;     // anyone this near is always a person, whatever the budget costs
+  const DETAIL_LIMIT = 24;   // articulated players beyond that, nearest first
+  const DETAIL_RANGE = 22;   // metres past which nobody is articulated
+  const DETAIL_CEILING = 40; // hard bound, so a hundred people in one spot cannot melt a phone
+  const VISIBLE_RANGE = 110; // metres past which nobody is drawn
   function makeRemotePlayer(player: NetworkPlayer) {
     const group = new THREE.Group();
     group.userData.profileName = player.name; group.userData.profileId = player.id;
@@ -594,8 +603,10 @@ async function init() {
     const bike = createBike(); applyAppearance(bike.rider, player.appearance); bike.rider.visible = true; bike.group.visible = false; group.add(bike.group);
     const car = createDriveableCar(); applyAppearance(car.driver, player.appearance); car.driver.visible = true; car.group.visible = false; group.add(car.group);
     const label = nameTag(player.name); updateNameTagVoice(label, !!player.mic, !!player.speaker); group.add(label);
+    const stand = new THREE.Mesh(STAND_GEOMETRY, new THREE.MeshLambertMaterial({ color: player.color || '#72c8ba' }));
+    stand.position.y = .74; stand.visible = false; stand.castShadow = false; group.add(stand);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
+    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!)}));
@@ -641,8 +652,8 @@ async function init() {
       for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
       entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
-      entity.car.group.visible = entity.riding && entity.vehicle === 'car' && !entity.passengerOf; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
-      entity.person.group.visible = !entity.car.group.visible && !entity.bike.group.visible;
+      // Visibility is settled once per frame in the detail pass below, which runs more often
+      // than this snapshot and would otherwise flicker against it.
     }
     for (const [id, entity] of remotePlayers) {
       if (visibleIds.has(id)) continue;
@@ -675,6 +686,7 @@ async function init() {
     remotePlayers.clear(); roomPlayers = [];
   }
   function disposeRemote(entity: RemotePlayer) {
+    (entity.stand.material as THREE.Material).dispose();
     entity.group.traverse(object => { if (object instanceof THREE.Sprite) { object.material.map?.dispose(); object.material.dispose(); } });
     entity.group.removeFromParent();
   }
@@ -1320,12 +1332,35 @@ async function init() {
         ped.person.leftLeg.rotation.x = Math.sin(simTime * 6 + ped.phase) * .35; ped.person.rightLeg.rotation.x = -ped.person.leftLeg.rotation.x;
         ped.person.leftArm.rotation.x = -ped.person.leftLeg.rotation.x * .65; ped.person.rightArm.rotation.x = ped.person.leftLeg.rotation.x * .65;
       }
+      // Nearest first, so the detail budget goes to the players actually worth articulating.
+      const ranked = [...remotePlayers.values()].sort((a, b) =>
+        Math.hypot(a.group.position.x - pos.x, a.group.position.z - pos.z) - Math.hypot(b.group.position.x - pos.x, b.group.position.z - pos.z));
+      let detailed = 0;
+      for (const remote of ranked) {
+        const distance = Math.hypot(remote.group.position.x - pos.x, remote.group.position.z - pos.z);
+        const shown = distance < VISIBLE_RANGE;
+        remote.group.visible = shown;
+        // Standing next to someone must never show a capsule, so close range ignores the budget.
+        remote.detail = shown && detailed < DETAIL_CEILING && (distance < CLOSE_RANGE || (distance < DETAIL_RANGE && detailed < DETAIL_LIMIT));
+        if (remote.detail) detailed++;
+        // A rider still shows their vehicle however far away: there are few of them, and a
+        // capsule where a car should be reads as a bug rather than as distance.
+        const riding = remote.riding && !remote.passengerOf;
+        remote.stand.visible = shown && !remote.detail && !riding;
+        remote.label.visible = remote.detail;
+      }
       for (const remote of remotePlayers.values()) {
+        if (!remote.group.visible) continue;
         remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
         remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
         remote.group.rotation.y = remote.yaw;
+        const onCar = remote.riding && remote.vehicle === 'car' && !remote.passengerOf;
+        const onBike = remote.riding && remote.vehicle === 'bike' && !remote.passengerOf;
+        remote.car.group.visible = onCar; remote.bike.group.visible = onBike;
+        remote.person.group.visible = remote.detail && !onCar && !onBike;
         const rider=roomPlayers.find(p=>p.id===remote.id);
         if(rider?.lrtId!=null){const point=passengerPoint(rider.lrtId,rider.lrtSeat||0,lrtNow());remote.group.position.set(point.x,point.y,point.z);remote.group.rotation.y=point.yaw;remote.car.group.visible=false;remote.bike.group.visible=false;remote.person.group.visible=true;}
+        if (!remote.detail) continue;
         remote.person.group.scale.setScalar(remote.passengerOf && remote.vehicle === 'car' ? .7 : 1);
         remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
         if (rider?.lrtId!=null || remote.seated || remote.passengerOf) sitPose(remote.person);
@@ -1455,9 +1490,9 @@ async function init() {
     const danceNow=Date.now();
     const selfDance=roomPlayers.find(p=>p.id===networkPlayerId)?.danceUntil||0;
     dancePose(player,selfDance-danceNow,10-(selfDance-danceNow)/1000,reducedMotion);
-    for(const remote of remotePlayers.values()){const until=roomPlayers.find(p=>p.id===remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
+    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const until=roomPlayers.find(p=>p.id===remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
     supermanPose(bike.riderRig,isSuperman(),elapsed,reducedMotion);
-    for(const remote of remotePlayers.values()){const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
+    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
