@@ -208,5 +208,12 @@
     "x": -100,
     "z": -112,
     "kind": "zoo"
+  },
+  {
+    "id": "31",
+    "name": "Rembayung Restaurant",
+    "x": -121,
+    "z": 114,
+    "kind": "lepak"
   }
 ]

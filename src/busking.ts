@@ -5,7 +5,8 @@ import type {Solid} from './physics';
 export const buskingSpot={x:-40,z:64};
 // Full volume within 3m; smooth falloff and silence at 22m.
 export function buskingVolume(distance:number){const t=Math.max(0,Math.min(1,(22-distance)/19));return .55*t*t*(3-2*t);}
-export function createBuskers(scene:THREE.Scene,solids:Solid[]){
+export const rembayungBuskingSpot={x:-116,z:119};
+export function createBuskers(scene:THREE.Scene,solids:Solid[],buskingSpot={x:-40,z:64}){
  const group=new THREE.Group();group.position.set(buskingSpot.x,0,buskingSpot.z);scene.add(group);
  box(group,0,.04,0,5,.08,3.6,'#92704e');
  const guitarist=createPerson('#376c65');guitarist.group.position.set(-.7,.12,0);group.add(guitarist.group);

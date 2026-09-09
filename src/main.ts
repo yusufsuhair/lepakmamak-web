@@ -11,7 +11,7 @@ import mapPlaces from '../shared/places.json';
 import {setupCityDirectory,drawPlaceLabels} from './city-directory';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
-import {createBuskers,buskingSpot,buskingVolume} from './busking';
+import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
 import {watsonsSpot,watsonsVolume} from './watsons';
 import {familyMartSpot,familyMartVolume} from './familymart';
 import {masjidVolume,nearestMasjidDistance} from './masjid';
@@ -136,6 +136,7 @@ async function init() {
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
   createStallWorld(scene,world.solids);
   const buskers=createBuskers(scene,world.solids);
+  const rembayungBuskers=createBuskers(scene,world.solids,rembayungBuskingSpot);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
   const streetAnimals = createStreetAnimals(scene, world.solids);
@@ -1243,7 +1244,8 @@ async function init() {
     for(const remote of remotePlayers.values()){const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     buskers.update(elapsed,reducedMotion);
-    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z)):0,audioContext.currentTime,.2);
+    rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
+    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
     if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
     if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
     if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);

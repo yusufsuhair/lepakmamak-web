@@ -824,8 +824,35 @@ export function createWorld(scene: THREE.Scene): World {
     mapBuildings.push({x:zx,z:zz,w:56,d:62,color:'#759858'});
   }
   // Mid-rise skyline, deterministically placed away from the road grid.
+  // Rembayung's warm glazed gable faces a busy forecourt in the southwest block.
+  {
+    const r=new THREE.Group();r.position.set(-121,0,101);group.add(r);
+    box(r,0,.08,20,56,.14,62,'#b7aa91');
+    box(r,0,5,0,30,10,22,'#372f2b');
+    const glow=new THREE.MeshBasicMaterial({color:'#d99538'});
+    box(r,0,5,11.08,28,9.4,.1,glow);
+    // Warm dining-room silhouettes behind the window grid.
+    for(const x of [-10.5,-7,7,10.5]){
+      box(r,x,1.5,11.19,2.3,.14,.06,'#66503a');box(r,x,.85,11.19,.12,1.3,.06,'#66503a');
+      for(const dx of [-1,1])box(r,x+dx,1,11.2,.4,1.5,.05,'#584936');
+      box(r,x,8,11.21,.04,2,.03,'#403d30');box(r,x,6.9,11.22,.8,.28,.04,'#fff0a1');
+    }
+    const gable=new THREE.BufferGeometry();gable.setAttribute('position',new THREE.Float32BufferAttribute([-15,10,11.1,15,10,11.1,0,20,11.1],3));gable.computeVertexNormals();r.add(new THREE.Mesh(gable,new THREE.MeshBasicMaterial({color:'#c78935',side:THREE.DoubleSide})));
+    for(const side of [-1,1]){const roof=box(r,side*7.8,15,0,18.8,.65,24,'#202c2c');roof.rotation.z=-side*Math.atan2(10,15);}
+    for(let x=-14;x<=14;x+=3.5){const h=20-Math.abs(x)*2/3;box(r,x,h/2,11.3,.15,h,.18,'#263632');}
+    for(const y of [3,6,9,12,15])box(r,0,y,11.32,Math.min(28,(20-y)*3),.12,.18,'#263632');
+    sign(r,'Rembayung',0,11.6,11.55,18,2.4,'#bd8130','#ffe77c');
+    box(r,0,2,11.5,3.5,4,.12,'#624f37');
+    for(const x of [-12,-8,8,12]){box(r,x,.5,12.5,2.4,1,1.4,'#4b5040');ball(r,x,1.3,12.5,.9,'#55774c');}
+    solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
+    // Parked Malaysian cars and premium MPVs leave the central approach open.
+    for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;const car=createDriveableCar((['myvi','axia','vellfire','avanza','suv'] as CarStyle[])[i%5]);car.group.position.set(x,.1,z);group.add(car.group);solid(x,z,2.8,5.6);box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
+    for(let i=0;i<12;i++){const x=-104+(i%3)*3,z=116+Math.floor(i/3)*3;const p=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);p.group.position.set(x,.1,z);p.group.rotation.y=i*.85;group.add(p.group);solid(x,z,.6,.6);}
+    for(const x of [-147,-94])palm(group,x,119,.8);
+  }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
+    if(x<0&&z===113)continue;
     if(x<0&&(z===-128||z===-95))continue;
     if(x<0&&(z===-37||z===37))continue;
     if(x>0&&z===-95)continue;
