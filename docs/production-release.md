@@ -13,3 +13,5 @@ Main develops the original map. The archived KLCC rebuild remains off production
 Run `node scripts/dev-server.mjs` for the authenticated local backend on 8120, and Vite on 5174. Ignored `.env.development.local` connects the frontend to this backend using the public Supabase settings. No production server keys are loaded.
 
 Frontend updated to `4e888ff` on 2026-09-09: toggleable 2D/3D city overview. Production build passed; both Pages projects deployed and all three domains verified against the built JavaScript asset. This is a frontend-only release; Railway remains on `e9ced2c`.
+
+Frontend updated to `f61a463` on 2026-09-09: active-game browser exit warnings, with disconnect deferred until actual page exit. Build and two exit tests passed; all three production domains verified. User preference: deploy completed, verified changes by default.
