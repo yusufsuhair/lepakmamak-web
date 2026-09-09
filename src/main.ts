@@ -139,6 +139,8 @@ async function init() {
   const rembayungBuskers=createBuskers(scene,world.solids,rembayungBuskingSpot);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
+  const rembayungIceCream=createIceCreamBike();rembayungIceCream.position.set(-108,.09,138);rembayungIceCream.rotation.y=Math.PI/2;scene.add(rembayungIceCream);
+  world.solids.push({x:-108,z:138,hx:1.8,hz:1.35});
   const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
@@ -1250,7 +1252,7 @@ async function init() {
     if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
     if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
     if (iceCreamGain && audioContext) {
-      const distance = Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z);
+      const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
       iceCreamGain.gain.setTargetAtTime(started && audioEnabled ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }

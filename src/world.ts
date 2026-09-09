@@ -847,7 +847,6 @@ export function createWorld(scene: THREE.Scene): World {
     solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
     // Parked Malaysian cars and premium MPVs leave the central approach open.
     for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;const car=createDriveableCar((['myvi','axia','vellfire','avanza','suv'] as CarStyle[])[i%5]);car.group.position.set(x,.1,z);group.add(car.group);solid(x,z,2.8,5.6);box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
-    for(let i=0;i<12;i++){const x=-104+(i%3)*3,z=116+Math.floor(i/3)*3;const p=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);p.group.position.set(x,.1,z);p.group.rotation.y=i*.85;group.add(p.group);solid(x,z,.6,.6);}
     for(const x of [-147,-94])palm(group,x,119,.8);
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
@@ -934,6 +933,13 @@ export function createWorld(scene: THREE.Scene): World {
     scene.add(car); traffic.push({ group: car, x, z, speed: 5 + i % 3, axis, direction });
   }
   const pedestrians: Pedestrian[] = [];
+  // Keep the restaurant crowd outside the static batches so their limbs can animate.
+  for(let i=0;i<12;i++){
+    const person=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);
+    const startX=-105+(i%3)*3,startZ=116+Math.floor(i/3)*3;
+    person.group.position.set(startX,.1,startZ);scene.add(person.group);
+    pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
+  }
   for (let i = 0; i < 10; i++) {
     const person = createPerson(['#efcf8d', '#628f91', '#bd7156', '#eee2c6'][i % 4]);
     const startX = i < 6 ? (i % 2 ? -11 : 11) : -45 + (i - 6) * 27;
