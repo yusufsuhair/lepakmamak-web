@@ -942,8 +942,8 @@ async function init() {
 
   let selectedMapPlace='';
   let teleportPending=false;
-  const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.textContent='Choose a destination';teleportButton.disabled=true;
-  $('city-directory').prepend(teleportButton);
+  const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.id='map-teleport';teleportButton.textContent='Teleport · Select a place on the map';teleportButton.disabled=true;
+  const teleportBar=document.createElement('div');teleportBar.className='map-teleport-bar';teleportBar.append(teleportButton);$('map-place-info').before(teleportBar);
   function finishTeleport(id:string){
     const destination=teleports.find(p=>p.id===id);if(!destination)return;
     teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
