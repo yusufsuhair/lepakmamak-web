@@ -11,7 +11,7 @@ export function clearGuest() { guestName = ''; }
 export const displayName = () => guestName || String(session?.user.user_metadata?.display_name || 'Player').slice(0, 18);
 
 export async function setupAuth(onEnter: () => void, onLeave: () => void) {
-  const guestEnabled = import.meta.env.DEV;
+  const guestEnabled = false;
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
@@ -129,7 +129,6 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   }
   return () => {
     if (!auth) {
-      if (import.meta.env.DEV && !import.meta.env.VITE_MULTIPLAYER_URL) { onEnter(); return; }
       overlay.hidden = false; submit.disabled = true;
       message.textContent = 'Registration is being connected. Please try again shortly.';
       return;

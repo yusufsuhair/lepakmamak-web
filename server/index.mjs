@@ -1,3 +1,4 @@
+import {createWeather} from './weather.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
@@ -115,7 +116,13 @@ function broadcast(players, message) {
   }
 }
 
+const weather=createWeather();
 const server = http.createServer(async (request, response) => {
+  if(request.url==='/weather' && request.method==='GET'){
+    const report=await weather();
+    response.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'});
+    response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
+  }
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Cache-Control', 'no-store');
   if (await shop.handle(request, response)) return;

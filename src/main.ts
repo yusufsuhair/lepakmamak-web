@@ -1,3 +1,4 @@
+import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
@@ -117,7 +118,7 @@ async function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
-  scene.add(new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8));
+  const ambient=new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8);scene.add(ambient);
   const sun = new THREE.DirectionalLight('#ffdfa3', 2.7); sun.position.set(-70, 110, 60); sun.castShadow = true;
   const shadowSize = matchMedia('(any-pointer: coarse)').matches ? 1024 : 2048;
   sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
@@ -782,12 +783,7 @@ async function init() {
   });
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
-  $<HTMLInputElement>('rain-toggle').onchange = event => {
-    rainEnabled = (event.target as HTMLInputElement).checked; rain.visible = rainEnabled;
-    const color = rainEnabled ? '#adbeb8' : '#d6decd'; scene.background = new THREE.Color(color); (scene.fog as THREE.Fog).color.set(color);
-    sun.intensity = rainEnabled ? 1.25 : 2.7;
-    $('weather-label').textContent = rainEnabled ? '17:42 · Hujan sekejap' : '17:42 · Golden hour';
-  };
+  setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;});
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
