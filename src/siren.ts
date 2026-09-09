@@ -3,9 +3,13 @@
 // siren does, but still dies well short of the far side of the map.
 export const SIREN = {
   low: 620, high: 940, wailMs: 700,
-  near: 14,    // Full strength inside this radius.
-  reach: 62,   // Silent at and beyond it.
-  peak: .34,   // A siren should cut through, not deafen.
+  near: 14,     // Full strength inside this radius.
+  reach: 46,    // Silent at and beyond it. Two cars patrol, so a wide reach means one is
+                // almost always within earshot; this keeps "only when they are near" true.
+  peak: .2,     // A siren should cut through, not deafen. Scaled again by shaper below.
+  timbre: 2200, // A raw square wave is all odd harmonics and reads as harsh rather than
+                // loud. Rolling off above the third harmonic keeps the bite and drops the
+                // piercing top. Raise for a sharper siren, lower for a duller one.
 };
 
 export function sirenGain(distance: number): number {
@@ -22,8 +26,11 @@ export function createSiren(context: AudioContext, destination: AudioNode) {
   const gain = context.createGain(); gain.gain.value = 0; gain.connect(destination);
   const tone = context.createOscillator(); tone.type = 'square';
   const shaper = context.createGain(); shaper.gain.value = .35;
+  // Q stays below 1 so the roll-off adds no resonant ring of its own at the cutoff.
+  const soften = context.createBiquadFilter();
+  soften.type = 'lowpass'; soften.frequency.value = SIREN.timbre; soften.Q.value = .7;
   tone.frequency.value = SIREN.low;
-  tone.connect(shaper); shaper.connect(gain);
+  tone.connect(soften); soften.connect(shaper); shaper.connect(gain);
   tone.start();
   let high = false;
   const wail = window.setInterval(() => {
