@@ -201,5 +201,12 @@
     "x": 55,
     "z": -125,
     "kind": "mercu"
+  },
+  {
+    "id": "30",
+    "name": "Zoo Negara Mini Lepak",
+    "x": -100,
+    "z": -112,
+    "kind": "zoo"
   }
 ]

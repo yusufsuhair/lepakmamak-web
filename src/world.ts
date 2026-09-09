@@ -763,9 +763,70 @@ export function createWorld(scene: THREE.Scene): World {
     sign(bridge,'SALOMA LINK',0,6.05,-2.72,10,1.15,'#1b5b55','#d9fff4',Math.PI);
     solid(x,z,48,5.2);mapBuildings.push({x,z,w:48,d:5.2,color:'#55cdbd'});
   }
+  // Zoo Negara Mini Lepak: a walkable park with distinct habitats and a landmark entrance.
+  {
+    const zx=-123,zz=-112,zoo=new THREE.Group();zoo.position.set(zx,0,zz);group.add(zoo);
+    box(zoo,0,.06,0,56,.12,62,'#91a66d');
+    // Visitor paths form a loop around the habitats.
+    box(zoo,0,.14,0,5,.1,57,'#d9cba8');box(zoo,0,.15,-25,47,.1,4.5,'#d9cba8');box(zoo,0,.15,25,47,.1,4.5,'#d9cba8');
+    box(zoo,-21,.15,0,4.5,.1,54,'#d9cba8');box(zoo,21,.15,0,4.5,.1,54,'#d9cba8');
+    // Perimeter and habitat rails; the east entrance remains open.
+    const rail=(x:number,z:number,w:number,d:number)=>{box(zoo,x,.55,z,w,.12,d,'#536b55');box(zoo,x,1.55,z,w,.12,d,'#536b55');};
+    rail(0,-30.5,56,.15);rail(0,30.5,56,.15);rail(-27.5,0,.15,61);rail(27.5,-18,.15,25);rail(27.5,18,.15,25);
+    for(const x of [-24,-16,-8,0,8,16,24]){tube(zoo,x,1,-30.5,.09,2,'#536b55');tube(zoo,x,1,30.5,.09,2,'#536b55');}
+    for(const z of [-27,-18,-9,0,9,18,27])tube(zoo,-27.5,1,z,.09,2,'#536b55');
+    // Grand eastern gateway with twin leaf towers and a large readable sign.
+    for(const z of [-8,8]){
+      box(zoo,27.5,3.3,z,3.2,6.6,3.2,'#315f48');
+      for(let i=0;i<5;i++){const leaf=box(zoo,27.2+i*.28,7+i*.35,z,4.4-i*.35,.18,1.25,'#75a44e');leaf.rotation.z=-.38+i*.17;}
+    }
+    box(zoo,27.5,7.4,0,3,2.2,15,'#315f48');sign(zoo,'ZOO NEGARA MINI LEPAK',29.05,7.45,0,14,1.7,'#204d3b','#f7d879',Math.PI/2);
+    solid(zx+27.5,zz-8,3.2,3.2);solid(zx+27.5,zz+8,3.2,3.2);
+
+    // Elephant family habitat.
+    const elephant=(x:number,z:number,s=1)=>{
+      const e=new THREE.Group();e.position.set(x,0,z);e.scale.setScalar(s);zoo.add(e);
+      const body=ball(e,0,1.45,0,1.2,'#87928d');body.scale.set(1.35,.82,.86);
+      const head=ball(e,0,1.42,1.08,.78,'#929d98');head.scale.y=.9;
+      for(const side of [-1,1]){const ear=ball(e,side*.58,1.55,1.02,.55,'#7d8985');ear.scale.set(.25,1,.8);for(const dz of [-.62,.58])tube(e,side*.62,.62,dz,.25,1.24,'#7e8b86');}
+      const trunk=tube(e,0,.92,1.72,.16,1.35,'#929d98');trunk.rotation.x=.2;
+      for(const side of [-1,1])box(e,side*.24,1.24,1.75,.08,.08,.32,'#eee4cb');
+    };
+    elephant(-12,-14,1.1);elephant(-8,-9,.72);
+
+    // Tall giraffes make the savanna visible from across the city.
+    const giraffe=(x:number,z:number,yaw=0)=>{
+      const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;zoo.add(g);
+      const yellow='#d5a54f',spot='#76533b';const body=ball(g,0,1.7,0,.9,yellow);body.scale.set(1.1,.62,.62);
+      for(const side of [-1,1])for(const dz of [-.5,.5])tube(g,side*.5,.85,dz,.13,1.7,yellow);
+      tube(g,0,3.25,.65,.24,3.4,yellow);const head=ball(g,0,5,.88,.42,yellow);head.scale.set(.7,.65,1);
+      for(const side of [-1,1]){tube(g,side*.18,5.48,.82,.055,.48,spot);ball(g,side*.18,5.75,.82,.09,spot);}
+      for(const [sx,sy,sz] of [[-.55,1.75,0],[.32,1.5,.38],[0,2.6,.69],[-.14,3.5,.72],[.13,4.25,.8]] as const)ball(g,sx,sy,sz,.14,spot);
+    };
+    giraffe(11,-15,-.4);giraffe(16,-10,.35);
+
+    // Zebra herd in the central savanna.
+    const zebra=(x:number,z:number,yaw=0)=>{
+      const a=new THREE.Group();a.position.set(x,0,z);a.rotation.y=yaw;zoo.add(a);
+      const body=ball(a,0,.85,0,.65,'#eee9d9');body.scale.set(1.25,.65,.58);tube(a,0,1.22,.7,.18,.85,'#eee9d9');ball(a,0,1.66,.85,.3,'#eee9d9');
+      for(const side of [-1,1])for(const dz of [-.38,.38])tube(a,side*.42,.4,dz,.1,.8,'#313937');
+      for(let i=-3;i<=3;i++){const stripe=box(a,i*.2,.9,.58,.08,.72,.05,'#313937');stripe.rotation.z=i*.14;}
+    };
+    zebra(9,3,.4);zebra(15,6,-.55);zebra(11,10,.1);
+
+    // Flamingo pond and a shaded lion habitat complete the main loop.
+    const pond=tube(zoo,-12,.12,14,6,.16,'#70aaa5');pond.scale.z=.7;
+    for(const [x,z] of [[-15,13],[-11,15],[-8,12]] as const){tube(zoo,x,.85,z,.055,1.35,'#e48b93');const neck=tube(zoo,x,1.55,z,.1,.8,'#ef9ba2');neck.rotation.z=.22;const bird=ball(zoo,x+.12,1.95,z,.23,'#ef9ba2');bird.scale.set(.7,.8,1);}
+    const lion=(x:number,z:number)=>{const l=new THREE.Group();l.position.set(x,0,z);zoo.add(l);const body=ball(l,0,.65,0,.62,'#c99143');body.scale.set(1.2,.65,.62);for(const side of [-1,1])for(const dz of [-.35,.35])tube(l,side*.4,.32,dz,.1,.64,'#b87c37');ball(l,0,.92,.68,.46,'#704a2e');ball(l,0,.94,.75,.3,'#d09b54');};
+    lion(12,20);box(zoo,16,1.3,21,8,2.6,3,'#907553');box(zoo,14,1.15,19.2,5,.35,3.5,'#81704f');
+    for(const [x,z] of [[-23,-24],[-5,-24],[21,-24],[-23,24],[5,24],[23,22]] as const)palm(zoo,x,z,.6);
+    sign(zoo,'GAJAH',-15,2.4,-2,5,.8,'#315f48','#fff0b9');sign(zoo,'SAVANA',13,2.4,-1,5,.8,'#315f48','#fff0b9');sign(zoo,'KOLAM FLAMINGO',-12,2.4,23,8,.8,'#315f48','#fff0b9');
+    mapBuildings.push({x:zx,z:zz,w:56,d:62,color:'#759858'});
+  }
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
+    if(x<0&&(z===-128||z===-95))continue;
     if(x<0&&(z===-37||z===37))continue;
     if(x>0&&z===-95)continue;
     if (x > 0 && (z === -37 || z === 37 || z === 113)) continue;

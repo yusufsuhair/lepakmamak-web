@@ -1,6 +1,6 @@
 import places from '../shared/places.json';
 import './city-directory.css';
-const categories:Record<string,string>={mercu:'Landmarks',kedai:'Shops',bank:'Banks',hotel:'Hotels',civic:'Community',lepak:'Hangouts',gerai:'Food stalls',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
+const categories:Record<string,string>={mercu:'Landmarks',zoo:'Attractions',kedai:'Shops',bank:'Banks',hotel:'Hotels',civic:'Community',lepak:'Hangouts',gerai:'Food stalls',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
 type Label={id:string;x:number;y:number;w:number;h:number;lines:string[];place:typeof places[number]};
 export function mapLabels(ctx:CanvasRenderingContext2D){
  ctx.font='600 5px sans-serif';const result:Label[]=[];

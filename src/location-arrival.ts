@@ -1,6 +1,6 @@
 import places from '../shared/places.json';
 
-const kinds:Record<string,string>={mercu:'Landmark',kedai:'Shop',bank:'Bank',hotel:'Hotel',civic:'Community',lepak:'Hangout',gerai:'Street food',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
+const kinds:Record<string,string>={mercu:'Landmark',zoo:'City attraction',kedai:'Shop',bank:'Bank',hotel:'Hotel',civic:'Community',lepak:'Hangout',gerai:'Street food',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
 
 export function locationAt(x:number,z:number){
  const nearby=places.map(place=>({place,distance:Math.hypot(x-place.x,z-place.z)})).filter(item=>item.distance<=16).sort((a,b)=>a.distance-b.distance)[0]?.place;
