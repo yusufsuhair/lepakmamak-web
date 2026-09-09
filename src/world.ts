@@ -834,7 +834,15 @@ export function createWorld(scene: THREE.Scene): World {
     // Short approaches keep the deck readable as a pedestrian bridge from ground level.
     for(const side of [-1,1])for(let step=0;step<6;step++)box(bridge,side*(24.8+step*1.15),3.65-step*.58,0,2.4,.45,5.2,'#d9d5c4');
     sign(bridge,'SALOMA LINK',0,6.05,-2.72,10,1.15,'#1b5b55','#d9fff4',Math.PI);
-    solid(x,z,48,5.2);mapBuildings.push({x,z,w:48,d:5.2,color:'#55cdbd'});
+    // The deck is walkable and the road runs underneath it, so the span itself is not a
+    // wall. Only the support columns are physical, and a column standing in a traffic lane
+    // would be worse than one you can walk through, so those are left out.
+    for(const bx of [-22,-11,0,11,22]){
+      const columnX=x+bx;
+      if([0,76,-82].some(road=>Math.abs(columnX-road)<9)) continue;
+      for(const side of [-1,1]) solid(columnX,z+side*2.15,.28,.28);
+    }
+    mapBuildings.push({x,z,w:48,d:5.2,color:'#55cdbd'});
   }
   // Zoo Negara Mini Lepak: a walkable park with distinct habitats and a landmark entrance.
   {

@@ -402,6 +402,7 @@ webSocketServer.on('connection', ws => {
       if(player.fleetId&&message.fleetId!==player.fleetId)return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
+      player.y = finiteNumber(message.y, 0, 0, 6);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
