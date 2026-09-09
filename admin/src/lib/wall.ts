@@ -50,7 +50,7 @@ export async function deleteWallPost(
     action: "wall.delete",
     targetTable: "social_posts",
     targetId: postId,
-    detail: { author: found.data.author_name, mediaPath: found.data.media_path ?? null },
+    detail: found.data,
   });
 
   const removal = await client.from("social_posts").delete().eq("id", postId);

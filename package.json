@@ -6,7 +6,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "playwright test",
+    "test": "playwright test && npm --prefix admin test",
     "start": "node server/index.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
     "deploy:realtime": "railway up --service 9a776d22-a5d8-4151-8059-300149fce72c --detach --yes",

@@ -31,6 +31,8 @@ export async function verifyAccessJwt(
   const { payload } = await jwtVerify(token, options.jwks ?? jwksFor(options.teamDomain), {
     issuer: `https://${options.teamDomain}.cloudflareaccess.com`,
     audience: options.aud,
+    algorithms: ["RS256"],
+    maxTokenAge: "24h",
   });
   const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
   if (!email || email !== options.allowedEmail.toLowerCase()) {

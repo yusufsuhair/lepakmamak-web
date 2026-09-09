@@ -9,11 +9,14 @@ async function harness(){
  const {publicKey,privateKey}=await generateKeyPair('RS256');
  const jwk=await exportJWK(publicKey); jwk.kid='k1'; jwk.alg='RS256';
  const jwks=createLocalJWKSet({keys:[jwk]});
- const sign=(claims:Record<string,unknown>,opts:{iss?:string;aud?:string;exp?:string}={})=>
-  new SignJWT(claims)
+ const sign=(claims:Record<string,unknown>,opts:{iss?:string;aud?:string;exp?:string;iat?:number;noExp?:boolean}={})=>{
+  let jwt=new SignJWT(claims)
    .setProtectedHeader({alg:'RS256',kid:'k1'})
    .setIssuer(opts.iss??ISS).setAudience(opts.aud??AUD)
-   .setIssuedAt().setExpirationTime(opts.exp??'5m').sign(privateKey);
+   .setIssuedAt(opts.iat??Math.floor(Date.now()/1000));
+  if(!opts.noExp) jwt=jwt.setExpirationTime(opts.exp??'5m');
+  return jwt.sign(privateKey);
+ };
  return {jwks,sign};
 }
 const opts=(jwks:any)=>({teamDomain:TEAM,aud:AUD,allowedEmail:EMAIL,jwks});
@@ -41,4 +44,10 @@ test('wrong audience, wrong issuer, expiry and junk are rejected',async()=>{
 
 test('requireAdmin refuses a request with no Access header',async()=>{
  await expect(requireAdmin(new Request('https://admin.test/'))).rejects.toThrow(AccessDenied);
+});
+
+test('a token with no exp claim, issued more than maxTokenAge ago, is rejected',async()=>{
+ const {jwks,sign}=await harness();
+ const oldIat=Math.floor(Date.now()/1000)-25*60*60; // 25h ago, past the 24h maxTokenAge
+ await expect(verifyAccessJwt(await sign({email:EMAIL},{iat:oldIat,noExp:true}),opts(jwks))).rejects.toThrow();
 });
