@@ -161,8 +161,12 @@ async function init() {
   const cityMap = $<HTMLDialogElement>('city-map');
   function setMap(open: boolean) {
     dragging = false;
-    if (open && started && !paused) { cityMap.append($('touch-controls')); cityMap.showModal(); drawMap(true); $('close-map').focus(); }
-    else { cityMap.close(); $('hud').append($('touch-controls')); canvas.focus(); }
+    const showing = open && started && !paused;
+    // The map owns the screen: the thumbstick and action buttons would otherwise sit on top of it.
+    document.body.classList.toggle('map-open', showing);
+    if (showing) { resetStick(); keys.delete('Space'); }
+    if (showing) { cityMap.showModal(); drawMap(true); $('close-map').focus(); }
+    else { cityMap.close(); canvas.focus(); }
   }
   $('open-map').onclick = () => setMap(true);
   $('close-map').onclick = () => setMap(false);
@@ -303,7 +307,7 @@ async function init() {
   document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   $('touch-controls').hidden = !touch;
-  if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; }
+  if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
 
   const rainCount = 1100;

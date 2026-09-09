@@ -204,11 +204,10 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 
 #player-options { position: fixed; z-index: 30; padding: 5px; border: 1px solid #b4cd9a; border-radius: 8px; background: #173c32; box-shadow: 0 8px 24px #0005; }
 #view-profile, #close-profile { background: #ddf69a; color: #173c32; border: 0; border-radius: 5px; padding: 12px 18px; font: inherit; cursor: pointer; }
-#player-profile { width: min(330px, calc(100vw - 32px)); border: 1px solid #b4cd9a; border-radius: 12px; padding: 24px; background: #173c32; color: #fff8e7; }
-#player-profile::backdrop { background: #081e1988; }
 #profile-title { font: 600 30px 'Oxanium'; margin: 0; }
 #profile-name { font-size: 20px; overflow-wrap: anywhere; }
 
+body.map-open #touch-controls { display: none; }
 #move-stick { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); width: 120px; height: 120px; border-radius: 50%; border: 2px solid #f3f0d65c; background: #173c328c; pointer-events: auto; touch-action: none; }
 .stick-ring { position: absolute; inset: 18px; border: 1px solid #f3f0d626; border-radius: 50%; pointer-events: none; }
 #stick-thumb { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border-radius: 50%; background: #ddf69ac9; border: 2px solid #f5ffdc; box-shadow: 0 3px 12px #10271c66; transform: translate(-50%, -50%); pointer-events: none; }
@@ -253,8 +252,6 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 #avatar-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; clear: both; }
 #avatar-choices label { margin: 0; font-size: 11px; }
 #avatar-choices select { width: 100%; min-width: 0; padding: 8px 4px; font: inherit; font-size: 16px; border: 1px solid #a5b59b; border-radius: 5px; background: #fffbed; color: #193d33; }
-
-#city-map #touch-controls { position: fixed; inset: 0; z-index: 2; }
 
 #wardrobe { width:min(820px,calc(100% - 28px)); max-height:calc(100dvh - 28px); overflow:auto; border:0; border-radius:16px; padding:0; background:#edf2df; color:#193d33; box-shadow:0 28px 90px #0b251f70; }
 #wardrobe::backdrop { background:#102b24d6; backdrop-filter:blur(6px); }
@@ -438,12 +435,6 @@ html, body, #app { touch-action: manipulation; }
 #receipt-view > div button { flex:1; }
 @media(max-width:600px){#table-social{padding:18px;}.table-label{max-width:145px;font-size:10px;}}
 
-#player-profile { width:min(420px,calc(100vw - 28px)); max-height:calc(100dvh - 28px); overflow:auto; }
-#profile-details dl { margin:18px 0; }
-#profile-details dt { color:#c7dc99; font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-top:16px; }
-#profile-details dd { margin:5px 0 0; font-size:14px; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
-.profile-badge { display:inline-block; border:1px solid #dafa8e66; border-radius:20px; color:#ddf69a; padding:5px 10px; font-size:11px; }
-.profile-empty { font-size:13px; color:#dfdfcd; }
 #edit-profile { width:min(440px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; border:0; border-radius:14px; padding:24px; background:#f6f0dc; color:#214939; }
 #edit-profile::backdrop { background:#10271ccc; }
 #edit-profile h2 { font:700 36px 'Oxanium'; margin:0 0 12px; }
