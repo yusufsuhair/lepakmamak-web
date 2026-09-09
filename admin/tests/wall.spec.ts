@@ -18,3 +18,11 @@ test('posts are returned newest-first with a resolved media url',async()=>{
  expect(posts[0]).toMatchObject({author:'Aina',mediaType:'image',mediaPath:'u2/x.png',mediaUrl:'https://cdn.test/u2/x.png'});
  expect(posts[1].mediaUrl).toBeNull();
 });
+
+test('an audio post resolves mediaType and mediaUrl',async()=>{
+ const client=fakeClient([
+  {id:'p3',user_id:'u3',author_name:'Faiz',body:'',media_path:'u3/note.webm',media_type:'audio',created_at:'2026-09-09T11:00:00Z'},
+ ]);
+ const posts=await listWallPosts(client);
+ expect(posts[0]).toMatchObject({mediaType:'audio',mediaPath:'u3/note.webm',mediaUrl:'https://cdn.test/u3/note.webm'});
+});

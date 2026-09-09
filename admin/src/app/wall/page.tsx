@@ -17,6 +17,12 @@ export default async function WallPage() {
           {post.mediaType === "image" && post.mediaUrl && (
             <img src={post.mediaUrl} alt="" style={{ maxWidth: "100%", borderRadius: 6 }} />
           )}
+          {post.mediaType === "audio" && post.mediaUrl && (
+            <div>
+              <span>Voice note</span>
+              <audio controls preload="metadata" src={post.mediaUrl} />
+            </div>
+          )}
         </article>
       ))}
     </main>
