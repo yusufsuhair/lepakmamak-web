@@ -23,7 +23,8 @@ test('Wall server owns identity, filters text, stores media and protects deletio
   from:(table:string)=>table==='social_post_likes'?likesFrom():table==='social_post_replies'?repliesFrom():postsFrom(),
  };
  let verdict:any={safe:true};
- const {createWall}=await import('../server/wall.mjs');const wall=createWall({db,moderateImage:async()=>verdict});const server=createServer((req,res)=>void wall.handle(req,res));await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const port=(server.address() as any).port;
+ const {createWall}=await import('../server/wall.mjs');const {createRateLimiter}=await import('../server/limits.mjs');
+ const wall=createWall({db,moderateImage:async()=>verdict,profileLimit:createRateLimiter({limit:1,windowMs:60000})});const server=createServer((req,res)=>void wall.handle(req,res));await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const port=(server.address() as any).port;
  const call=(path:string,method='GET',body?:any,token?:string)=>fetch(`http://127.0.0.1:${port}${path}`,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},...(body?{body:JSON.stringify(body)}:{})});
  try{
   expect((await call('/wall/posts')).status).toBe(200);
@@ -54,10 +55,16 @@ test('Wall server owns identity, filters text, stores media and protects deletio
   expect((await call('/wall/posts/11111111-1111-4111-8111-111111111111','DELETE',undefined,'valid')).status).toBe(403);
   expect((await call(`/wall/posts/${created.post.id}`,'DELETE',undefined,'valid')).status).toBe(200);expect(removed).toEqual(uploads);
   const profile=await (await call(`/wall/profile/${friendId}`)).json();expect(profile.profile).toMatchObject({name:'Friend',registered:true});
+  // Reading a profile is unauthenticated but spends a Supabase admin call, so it is capped.
+  expect((await call(`/wall/profile/${friendId}`)).status).toBe(429);
   verdict={safe:false,reason:'explicit'};
   expect((await call('/wall/posts','POST',{mimeType:'audio/ogg',data:Buffer.from('OggSvoicenote').toString('base64')},'singer')).status).toBe(201);
+  // No OPENAI_API_KEY must block the photo rather than publish it unchecked: README and
+  // the release notes both promise screening fails closed without a key.
   verdict={safe:false,reason:'unconfigured'};
-  expect((await call('/wall/posts','POST',{text:'screening off',mimeType:'image/png',data:png},'nokey')).status).toBe(201);
+  expect((await call('/wall/posts','POST',{text:'screening off',mimeType:'image/png',data:png},'nokey')).status).toBe(503);
+  // Text-only posts stay available while photos are blocked.
+  expect((await call('/wall/posts','POST',{text:'no photo, still fine'},'nokey')).status).toBe(201);
  }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
 

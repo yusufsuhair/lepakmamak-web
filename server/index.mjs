@@ -38,6 +38,7 @@ import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { WebSocketServer } from 'ws';
 import { createMetrics } from './metrics.mjs';
+import { clientKey, createConnectionCap } from './limits.mjs';
 
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = city.maxPlayers;
@@ -166,12 +167,12 @@ setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},10
 const weatherControls=createWeatherControls(send,broadcast);
 const lamps=createLamps(send,broadcast);
 const server = http.createServer(async (request, response) => {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
   if(request.url==='/weather' && request.method==='GET'){
     const report=await weather();
     response.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'});
     response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
   }
-  response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Cache-Control', 'no-store');
   if (await shop.handle(request, response)) return;
   if (await socialProfiles.handle(request,response)) return;
@@ -188,9 +189,23 @@ const server = http.createServer(async (request, response) => {
 });
 
 const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
+// The total is the real protection and holds whatever the headers claim. The per-address
+// share is deliberately loose: it only has to stop one host taking the whole server, and
+// if the proxy ever stops forwarding addresses every player collapses onto a single key,
+// so a tight value would lock the city instead of an attacker. Both are env-tunable
+// because the proxy's shape is a deployment fact the code cannot see from here.
+const connections = createConnectionCap({
+  perKey: Number(process.env.WS_MAX_PER_ADDRESS || 64),
+  total: Number(process.env.WS_MAX_CONNECTIONS || maxPlayers * 10),
+});
 server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
   if (url.pathname !== '/ws') { socket.destroy(); return; }
+  const release = connections.take(clientKey(request));
+  if (!release) { socket.destroy(); return; }
+  // The socket outlives a failed upgrade as well as a closed session, so releasing on
+  // its close covers both without double-counting; release() is idempotent.
+  socket.once('close', release);
   webSocketServer.handleUpgrade(request, socket, head, ws => webSocketServer.emit('connection', ws, request));
 });
 

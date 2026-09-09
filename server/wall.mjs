@@ -4,8 +4,9 @@ import {filterChat} from './chat-filter.mjs';
 import {cleanProfile} from './profiles.mjs';
 import {isGameMaster} from './roles.mjs';
 import {createImageModerator} from './image-moderation.mjs';
+import {clientKey,createRateLimiter} from './limits.mjs';
 
-const BUCKET='social-wall', LIMIT=30;
+const BUCKET='social-wall', LIMIT=30, POST_WINDOW=10000;
 const MIME={
   'image/jpeg':{type:'image',ext:'jpg',max:4*1024*1024},'image/png':{type:'image',ext:'png',max:4*1024*1024},'image/webp':{type:'image',ext:'webp',max:4*1024*1024},
   'audio/webm':{type:'audio',ext:'webm',max:1536*1024},'audio/ogg':{type:'audio',ext:'ogg',max:1536*1024},'audio/mpeg':{type:'audio',ext:'mp3',max:1536*1024},'audio/mp4':{type:'audio',ext:'m4a',max:1536*1024},
@@ -26,7 +27,15 @@ export function cleanWallText(value){const text=typeof value==='string'?value.no
 export function createWall(services={}){
  const db=services.db||(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY?createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}):null);
  const onPost=services.onPost||(()=>{}),lastPost=new Map();
+ // Anyone may read a profile, but each read spends a Supabase admin call, so the
+ // unauthenticated path is capped per caller.
+ const profileLimit=services.profileLimit||createRateLimiter({limit:30,windowMs:60000});
+ // Sweeping on write keeps the poster clock from growing without bound; entries older
+ // than the window cannot deny anyone a post.
+ const notePost=(userId,now)=>{if(lastPost.size>5000)for(const [id,at] of lastPost)if(now-at>=POST_WINDOW)lastPost.delete(id);lastPost.set(userId,now);};
  const moderateImage=services.moderateImage||createImageModerator().check;
+ // Local development can post photos without an OpenAI key; production cannot.
+ const allowUnmoderated=services.allowUnmoderatedImages??process.env.ALLOW_UNMODERATED_IMAGES==='true';
  const publicUrl=path=>path?db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl:null;
  const format=(row,counts={})=>({id:row.id,userId:row.user_id,author:row.author_name,text:row.body,mediaType:row.media_type,mediaUrl:publicUrl(row.media_path),mimeType:row.media_mime,createdAt:row.created_at,gameMaster:!!row.game_master,likeCount:counts.likeCount||0,likedByMe:!!counts.likedByMe,replyCount:counts.replyCount||0});
  const formatReply=row=>({id:row.id,postId:row.post_id,userId:row.user_id,author:row.author_name,text:row.body,gameMaster:!!row.game_master,createdAt:row.created_at});
@@ -49,22 +58,24 @@ export function createWall(services={}){
     reply(response,200,{posts:data.map(row=>format(row,{likeCount:likeCounts.get(row.id)||0,likedByMe:likedSet.has(row.id),replyCount:replyCounts.get(row.id)||0}))});return true;
    }
    const profileMatch=url.pathname.match(/^\/wall\/profile\/([0-9a-f-]{36})$/i);
-   if(profileMatch&&request.method==='GET'){const {data,error}=await db.auth.admin.getUserById(profileMatch[1]);if(error||!data.user){reply(response,404,{error:'Profile not found.'});return true;}reply(response,200,{profile:{id:data.user.id,name:String(data.user.user_metadata?.display_name||'Player').slice(0,18),registered:true,gameMaster:isGameMaster(data.user),details:cleanProfile(data.user.user_metadata?.profile)}});return true;}
+   if(profileMatch&&request.method==='GET'){if(!profileLimit(clientKey(request))){reply(response,429,{error:'Too many profile requests. Try again shortly.'});return true;}const {data,error}=await db.auth.admin.getUserById(profileMatch[1]);if(error||!data.user){reply(response,404,{error:'Profile not found.'});return true;}reply(response,200,{profile:{id:data.user.id,name:String(data.user.user_metadata?.display_name||'Player').slice(0,18),registered:true,gameMaster:isGameMaster(data.user),details:cleanProfile(data.user.user_metadata?.profile)}});return true;}
    const repliesMatch=url.pathname.match(/^\/wall\/posts\/([0-9a-f-]{36})\/replies$/i);
    if(repliesMatch&&request.method==='GET'){const {data,error}=await db.from('social_post_replies').select('*').eq('post_id',repliesMatch[1]).order('created_at',{ascending:true}).order('id',{ascending:true}).limit(50);if(error)throw error;reply(response,200,{replies:data.map(formatReply)});return true;}
    const account=await user(request);if(!account){reply(response,401,{error:'Sign in with an account to post.'});return true;}
    if(url.pathname==='/wall/posts'&&request.method==='POST'){
-    const now=Date.now();if(now-(lastPost.get(account.id)||0)<10000){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
+    const now=Date.now();if(now-(lastPost.get(account.id)||0)<POST_WINDOW){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
     const input=await readBody(request),body=cleanWallText(input.text);let mediaPath=null,mediaType=null,mediaMime=null;
     if(input.data||input.mimeType){const spec=MIME[input.mimeType];if(!spec||typeof input.data!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.data)){reply(response,400,{error:'Unsupported media.'});return true;}const bytes=Buffer.from(input.data,'base64');if(!bytes.length||bytes.length>spec.max){reply(response,413,{error:spec.type==='image'?'Image must be 4 MB or smaller.':'Voice note must be 1.5 MB or smaller.'});return true;}if(!matchesMime(bytes,input.mimeType)){reply(response,400,{error:'The file content does not match its media type.'});return true;}
-     // 'unconfigured' means no OPENAI_API_KEY, i.e. screening is not switched on yet, so photos
-     // flow as they did before it existed. Every other failure means the check ran and could not
-     // decide, which still blocks. Setting the key is what turns enforcement on.
-     if(spec.type==='image'){const verdict=await moderateImage(bytes,input.mimeType);if(!verdict.safe&&verdict.reason!=='unconfigured'){reply(response,verdict.reason==='explicit'?422:503,{error:verdict.reason==='explicit'?'That photo looks explicit. Keep the Wall family friendly.':'Could not check this photo right now. Please try again in a moment.'});return true;}}
+     // Every unsafe verdict blocks, including 'unconfigured'. README and the release notes
+     // both promise photo screening fails closed without a key, and this used to be the one
+     // path that did not: a missing OPENAI_API_KEY published photos unchecked while the docs
+     // said they were being rejected. Only an explicit ALLOW_UNMODERATED_IMAGES opt-out, for
+     // local development, reopens it.
+     if(spec.type==='image'){const verdict=await moderateImage(bytes,input.mimeType);if(!verdict.safe&&!(verdict.reason==='unconfigured'&&allowUnmoderated)){reply(response,verdict.reason==='explicit'?422:503,{error:verdict.reason==='explicit'?'That photo looks explicit. Keep the Wall family friendly.':'Could not check this photo right now. Please try again in a moment.'});return true;}}
      mediaType=spec.type;mediaMime=input.mimeType;mediaPath=`${account.id}/${now}-${crypto.randomUUID()}.${spec.ext}`;const uploaded=await db.storage.from(BUCKET).upload(mediaPath,bytes,{contentType:mediaMime,cacheControl:'31536000',upsert:false});if(uploaded.error)throw uploaded.error;}
     if(!body&&!mediaPath){reply(response,400,{error:'Write something or attach media.'});return true;}
     const author=String(account.user_metadata?.display_name||'Player').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18)||'Player';
-    const inserted=await db.from('social_posts').insert({user_id:account.id,author_name:author,body,media_path:mediaPath,media_type:mediaType,media_mime:mediaMime,game_master:isGameMaster(account)}).select('*').single();if(inserted.error){if(mediaPath)await db.storage.from(BUCKET).remove([mediaPath]);throw inserted.error;}lastPost.set(account.id,now);const post=format(inserted.data);onPost(post);reply(response,201,{post});return true;
+    const inserted=await db.from('social_posts').insert({user_id:account.id,author_name:author,body,media_path:mediaPath,media_type:mediaType,media_mime:mediaMime,game_master:isGameMaster(account)}).select('*').single();if(inserted.error){if(mediaPath)await db.storage.from(BUCKET).remove([mediaPath]);throw inserted.error;}notePost(account.id,now);const post=format(inserted.data);onPost(post);reply(response,201,{post});return true;
    }
    const likeMatch=url.pathname.match(/^\/wall\/posts\/([0-9a-f-]{36})\/like$/i);
    if(likeMatch&&request.method==='POST'){
@@ -76,11 +87,11 @@ export function createWall(services={}){
     reply(response,200,{liked,likeCount:(counted.data||[]).length});return true;
    }
    if(repliesMatch&&request.method==='POST'){
-    const postId=repliesMatch[1],now=Date.now();if(now-(lastPost.get(account.id)||0)<10000){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
+    const postId=repliesMatch[1],now=Date.now();if(now-(lastPost.get(account.id)||0)<POST_WINDOW){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
     const input=await readBody(request),body=cleanWallText(input.text);if(!body){reply(response,400,{error:'Write a reply first.'});return true;}
     const author=String(account.user_metadata?.display_name||'Player').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18)||'Player';
     const inserted=await db.from('social_post_replies').insert({post_id:postId,user_id:account.id,author_name:author,body,game_master:isGameMaster(account)}).select('*').single();if(inserted.error){reply(response,404,{error:'Post not found.'});return true;}
-    lastPost.set(account.id,now);reply(response,201,{reply:formatReply(inserted.data)});return true;
+    notePost(account.id,now);reply(response,201,{reply:formatReply(inserted.data)});return true;
    }
    const postMatch=url.pathname.match(/^\/wall\/posts\/([0-9a-f-]{36})$/i);
    if(postMatch&&request.method==='DELETE'){const found=await db.from('social_posts').select('user_id,media_path').eq('id',postMatch[1]).single();if(found.error){reply(response,404,{error:'Post not found.'});return true;}if(found.data.user_id!==account.id){reply(response,403,{error:'You can only delete your own post.'});return true;}const removed=await db.from('social_posts').delete().eq('id',postMatch[1]);if(removed.error)throw removed.error;if(found.data.media_path)await db.storage.from(BUCKET).remove([found.data.media_path]);reply(response,200,{deleted:true,id:postMatch[1]});return true;}
