@@ -169,6 +169,13 @@ happen.
 - A mute is time-boxed and expires by itself; a ban has no expiry and has to be lifted by
   hand.
 
+### Deploying this
+
+**Apply the migration before deploying the realtime server.** The Wall's check fails
+closed, so if `player_bans` does not exist yet every Wall post answers 503 until it does.
+The admin console additionally needs `SUPABASE_SERVICE_ROLE_KEY`, `CF_ACCESS_TEAM_DOMAIN`,
+`CF_ACCESS_AUD` and `ADMIN_EMAIL`.
+
 ### Child safety — this does not stop at the console
 
 Muting and banning an account does nothing about material that is already out there, and
