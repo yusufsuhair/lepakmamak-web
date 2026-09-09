@@ -29,8 +29,11 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
   await expect.poll(()=>peers.some(p=>p.name==='Player')).toBe(true);
   const playerId=peers.find(p=>p.name==='Player').id;
 
-  // No party yet, so no party tab and no voice audience to choose.
-  await expect(page.getByRole('tab',{name:'PARTY'})).toBeHidden();
+  // No party yet, so no party channel to pick and no voice audience to choose.
+  await page.locator('#chat-compose').click();
+  await page.locator('#chat-channel').click();
+  await expect(page.getByRole('option',{name:/PARTY/})).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await expect(page.locator('#mic-scope')).toBeHidden();
 
   friend.send(JSON.stringify({type:'party-invite',id:playerId}));
@@ -39,7 +42,10 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
 
   await page.getByRole('button',{name:'Jom',exact:true}).click();
   await expect(page.locator('#party-invite')).toBeHidden();
-  await expect(page.getByRole('tab',{name:'PARTY'})).toBeVisible();
+  await page.locator('#chat-compose').click();
+  await page.locator('#chat-channel').click();
+  await expect(page.getByRole('option',{name:/PARTY/})).toBeVisible();
+  await page.keyboard.press('Escape');
   // A party gives voice a second audience, so the scope buttons appear.
   await expect(page.locator('#mic-scope')).toBeVisible();
   await expect(page.locator('#speaker-scope')).toBeVisible();

@@ -30,6 +30,8 @@ export function createSiren(context: AudioContext, destination: AudioNode) {
     high = !high;
     tone.frequency.setTargetAtTime(high ? SIREN.high : SIREN.low, context.currentTime, .04);
   }, SIREN.wailMs);
+  // Stop the wail with the page, so a reload never leaves a stray timer behind.
+  window.addEventListener('pagehide', () => window.clearInterval(wail), {once: true});
   return {
     set(distance: number, allowed: boolean) {
       gain.gain.setTargetAtTime(allowed ? sirenGain(distance) : 0, context.currentTime, .12);

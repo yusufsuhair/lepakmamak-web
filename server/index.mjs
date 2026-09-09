@@ -86,6 +86,10 @@ async function identify(token, guest = false, guestName) {
   return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
 }
 
+// Standing announcements live here, keyed by room name: roomFor() returns a fresh object
+// each call, so a banner stored on that object would vanish the moment it went out of scope.
+const announcements = new Map();
+
 function roomFor(name) {
   const roomName = String(name || 'kampung').slice(0, 24) || 'kampung';
   if (!rooms.has(roomName)) rooms.set(roomName, new Map());
@@ -182,7 +186,7 @@ webSocketServer.on('connection', ws => {
     party.remove(currentRoom.players, player);
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
-    if (!currentRoom.players.size) rooms.delete(currentRoom.name);
+    if (!currentRoom.players.size) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
     player = null; currentRoom = null;
   }
 
@@ -249,7 +253,8 @@ webSocketServer.on('connection', ws => {
       send(ws,{type:'lrt-clock',serverTime:Date.now()});
       send(ws, { type: 'chat-history', messages: recentChat });
       tableSocial.sync(room.players, true);
-    if (room.announcement) send(ws, room.announcement);
+    const standing = announcements.get(room.name);
+    if (standing) send(ws, standing);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       return;
     }
@@ -283,7 +288,10 @@ webSocketServer.on('connection', ws => {
     if (pickleball.handle(currentRoom.players, player, message)) return;
     if (basketball.handle(currentRoom.players, player, message)) return;
     if (tableLobby.handle(currentRoom.players, player, message)) return;
-    if (party.handle(currentRoom.players, player, message)) { broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
+    const partied = party.handle(currentRoom.players, player, message);
+    // Only a real membership change is worth a room-wide snapshot; an unknown party-* verb
+    // must not be a cheap way to make the server fan out to everyone.
+    if (partied) { if (partied === 'changed') broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
@@ -376,14 +384,15 @@ webSocketServer.on('connection', ws => {
       if (announcement) {
         if (!announcement.allowed) { send(ws, { type: 'notice', message: 'Only the Game Master can announce to the city.' }); return; }
         if (announcement.clear) {
-          currentRoom.announcement = null;
+          announcements.delete(currentRoom.name);
           broadcast(currentRoom.players, { type: 'gm-announce', text: '' });
           return;
         }
         const clean = filterChat(announcement.text), at = new Date().toISOString();
         // Kept on the room so it is still there for whoever walks in afterwards.
-        currentRoom.announcement = { type: 'gm-announce', text: clean, name: player.name, sentAt: at };
-        broadcast(currentRoom.players, currentRoom.announcement);
+        const banner = { type: 'gm-announce', text: clean, name: player.name, sentAt: at };
+        announcements.set(currentRoom.name, banner);
+        broadcast(currentRoom.players, banner);
         // The crawl scrolls away, so the same line is kept in city chat.
         try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
         broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: clean, sentAt: at, gameMaster: true, channel: 'all' });

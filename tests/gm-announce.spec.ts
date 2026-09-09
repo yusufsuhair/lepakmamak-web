@@ -111,8 +111,13 @@ test('a banner is room state, so whoever walks in later still sees it',async()=>
   const late:any[]=[];
   await join('Latecomer',late);
   await new Promise(r=>setTimeout(r,600));
-  const banner=late.find(m=>m.type==='gm-announce');
-  // A guest cannot announce, so there is nothing standing for them to receive either.
-  expect(!!banner).toBe(first.some(m=>m.type==='gm-announce'));
+  // Explicit, not a tautology: an earlier version of this compared two falsy values and
+  // would have passed however the storage behaved. A guest cannot announce, so no banner
+  // may be broadcast and none may be handed to whoever joins next.
+  expect(first.some(m=>m.type==='gm-announce')).toBe(false);
+  expect(late.some(m=>m.type==='gm-announce')).toBe(false);
+  // The Game Master path needs a signed-in account, so it is covered by the store's own
+  // unit test rather than over a socket.
+  expect(late.some(m=>m.type==='welcome')).toBe(true);
  } finally { sockets.forEach(ws=>ws.close()); server.kill(); }
 });

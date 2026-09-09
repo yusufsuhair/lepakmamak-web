@@ -3,6 +3,10 @@ import chairs from '../shared/chairs.json' with {type:'json'};
 const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
 // Minimums come from the games themselves; the lobby only decides when to let them start.
+// Games that keep their own roster need every member joined before the deal, or the start
+// lands on an empty village. Lukis and Poker build theirs from whoever is seated instead.
+export const ROSTER_GAMES = {werewolf: true, uno: true};
+
 export const LOBBY_RULES = {
   lukis: {min: 2, max: 8, scope: 'table'},
   poker: {min: 2, max: 3, scope: 'table'},
@@ -30,7 +34,15 @@ export function createTableLobby(send, games, now = Date.now) {
     members: lobby.members.map(member => ({id: member.id, name: member.name, ready: member.ready})),
   });
 
-  function publish(players, lobby) {
+  // tick() runs every 50ms, so publishing unconditionally would push twenty full states a
+  // second at every seated player forever. Same guard tables.mjs uses: send only on change.
+  // serverTime and a running countdown are excluded from the key, or nothing would ever match.
+  const signature = lobby => JSON.stringify([lobby.phase, lobby.members.map(m => [m.id, m.name, m.ready])]);
+
+  function publish(players, lobby, force = false) {
+    const key = signature(lobby);
+    if (!force && lobby.sent === key) return;
+    lobby.sent = key;
     const payload = view(lobby);
     for (const member of lobby.members) {
       const player = players.get(member.id);
@@ -56,6 +68,19 @@ export function createTableLobby(send, games, now = Date.now) {
     settle(players, lobby);
   }
 
+  function start(players, lobby) {
+    const game = games[lobby.game];
+    if (!game) return;
+    const seated = lobby.members.map(member => players.get(member.id)).filter(Boolean);
+    if (!seated.length) return;
+    if (ROSTER_GAMES[lobby.game]) {
+      // Werewolf deals to an exact headcount, so tell it how big this village is.
+      if (lobby.game === 'werewolf') game.handle(players, seated[0], {type: 'werewolf-size', size: lobby.members.length});
+      for (const player of seated) game.handle(players, player, {type: `${lobby.game}-join`});
+    }
+    game.handle(players, seated[0], {type: `${lobby.game}-start`});
+  }
+
   const lobbyOf = (players, player) =>
     [...lobbies(players).values()].find(lobby => lobby.members.some(member => member.id === player.id));
 
@@ -79,8 +104,7 @@ export function createTableLobby(send, games, now = Date.now) {
         }
         if (lobby.phase === 'countdown' && now() >= lobby.ends) {
           lobby.phase = 'playing'; lobby.ends = 0;
-          const host = players.get(lobby.members[0].id);
-          if (host) games[lobby.game]?.handle(players, host, {type: `${lobby.game}-start`});
+          start(players, lobby);
         }
         settle(players, lobby);
       }

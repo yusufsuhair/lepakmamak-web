@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.7.1",
+    "date": "2026-09-10",
+    "title": "Pembetulan meja dan pengumuman",
+    "notes": [
+      "Fixed Werewolf and UNO not starting from the table: everyone who tapped SEDIA is now actually dealt into the game.",
+      "A Game Master announcement now really does greet people who join afterwards, instead of only those already online.",
+      "The table lobby stopped chattering to every seated player twenty times a second, which was quietly eating mobile data and battery."
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-09-10",
     "title": "Meja besar untuk Werewolf",

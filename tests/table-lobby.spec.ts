@@ -134,3 +134,19 @@ test('a finished game can be run back without leaving the table',()=>{
  expect(state('ali').members.every((m:any)=>!m.ready)).toBe(true);
  expect(started).toHaveLength(1);
 });
+
+test('an idle lobby stops talking instead of pushing state twenty times a second',()=>{
+ const [a,b]=seatsAt('meja-1');
+ const {lobby,players,seat,sent,tick}=rig();
+ const ali=seat('ali',a), mei=seat('mei',b);
+ for(const p of [ali,mei]) lobby.handle(players,p,{type:'lobby-join',game:'lukis'});
+ const settled=sent.filter(m=>m.type==='lobby-state').length;
+
+ // A second of the real 50ms tick with nothing happening.
+ for(let i=0;i<20;i++) tick(50);
+ expect(sent.filter(m=>m.type==='lobby-state').length).toBe(settled);
+
+ // A change still gets through immediately.
+ lobby.handle(players,ali,{type:'lobby-ready',ready:true});
+ expect(sent.filter(m=>m.type==='lobby-state').length).toBeGreaterThan(settled);
+});

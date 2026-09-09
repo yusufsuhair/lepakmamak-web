@@ -59,8 +59,18 @@ export function createParty(send, now = Date.now) {
       return party ? [...party.members].map(id => players.get(id)).filter(Boolean) : [];
     },
     remove(players, player) { drop(players, player); },
+    // Returns 'changed' when membership moved, so the caller only re-broadcasts the room
+    // snapshot when there is something new in it. An unknown party-* verb changes nothing
+    // and must not be a free way to make the server fan out to everybody.
     handle(players, player, message) {
       if (typeof message.type !== 'string' || !message.type.startsWith('party-')) return false;
+      const before = player.partyId;
+      const result = route(players, player, message);
+      return result === 'changed' || before !== player.partyId ? 'changed' : true;
+    },
+  };
+
+  function route(players, player, message) {
       const {parties, invites} = registry(players);
 
       if (message.type === 'party-invite') {
@@ -90,11 +100,10 @@ export function createParty(send, now = Date.now) {
         parties.set(party.id, party);
         host.partyId = party.id; player.partyId = party.id;
         publish(players, party);
-        return true;
+        return 'changed';
       }
 
-      if (message.type === 'party-leave') { drop(players, player); return true; }
+      if (message.type === 'party-leave') { drop(players, player); return 'changed'; }
       return true;
-    },
-  };
+  }
 }
