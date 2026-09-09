@@ -22,6 +22,7 @@ import { isGameMaster } from './roles.mjs';
 import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
+import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
@@ -33,7 +34,7 @@ import crypto from 'node:crypto';
 import { WebSocketServer } from 'ws';
 
 const port = Number(process.env.PORT || 8080);
-const maxPlayers = 24;
+const maxPlayers = city.maxPlayers;
 const rooms = new Map();
 const dirtyRooms = new Set();
 // Coalesce movement from all players into at most one snapshot per room per tick.
