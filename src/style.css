@@ -568,3 +568,37 @@ html, body, #app { touch-action: manipulation; }
 #party-invite button { border: 0; border-radius: 4px; padding: 6px 14px; font-size: 11px; cursor: pointer; }
 #party-accept { background: #ddf69a; color: #193d33; }
 #party-decline { background: #ffffff1f; color: #cdd8c0; }
+
+/* Touch devices, at any width. An iPad is 820px wide and has no keyboard, so the question
+   was never "how wide is the screen" but "is there a keyboard to press". */
+.hint-touch { display: none; }
+@media (pointer: coarse) {
+  #controls-bar { display: none; }
+  .hint-keyboard { display: none; }
+  .hint-touch { display: inline; }
+}
+
+/* Tablets: touch input on a screen too wide for the phone layout. Tap targets grow to
+   Apple's 44pt floor and the panels get room the desktop rules never gave them. */
+@media (pointer: coarse) and (min-width: 601px) {
+  .touch-actions button { width: 74px; height: 62px; font-size: 11px; }
+  .touch-actions .stunt-button { min-width: 88px; height: 62px; }
+  #interaction { min-height: 52px; padding: 0 20px; font-size: 14px; }
+  .hud-top button, #multiplayer-status { min-height: 46px; }
+  #chat-compose { min-height: 46px; }
+  #city-chat { width: min(360px, 42vw); }
+  #chat-form button[type="submit"] { min-height: 44px; padding: 0 16px; }
+  #chat-form #chat-channel { min-height: 44px; }
+  #chat-input { min-height: 44px; font-size: 16px; }
+  #city-chat.chat-expanded { width: min(680px, 88vw); bottom: 120px; }
+  #city-chat.chat-expanded .chat-log { height: min(48vh, 420px); }
+  .table-seat { min-height: 46px; }
+  .table-actions button { min-height: 48px; }
+  .table-reactions button { min-height: 44px; min-width: 48px; font-size: 18px; }
+  #speaking { top: 168px; }
+  /* Hands live in the bottom corners on a tablet, so nothing else may sit there:
+     the speedometer moves up out of the action buttons, and chat clears the stick. */
+  #speedometer { bottom: 122px; right: 26px; }
+  #city-chat { bottom: 150px; }
+  .touch-actions { bottom: max(30px, env(safe-area-inset-bottom)); }
+}

@@ -1,10 +1,19 @@
 [
   {
+    "version": "1.5.0",
+    "date": "2026-09-09",
+    "title": "Sedap main atas iPad",
+    "notes": [
+      "The game now lays itself out properly on a tablet: bigger buttons you can actually hit with a thumb, and the joystick, chat and speedometer no longer sit on top of each other.",
+      "If you are playing on a touch screen, the game stops telling you to press keys you do not have."
+    ]
+  },
+  {
     "version": "1.4.0",
     "date": "2026-09-09",
     "title": "Polis masuk bandar",
     "notes": [
-      "Two police cars now patrol the city, siren and all. You only hear it when they are near — and yes, you can still cilok them.",
+      "Two police cars now patrol the city, siren and all. You only hear it when they are near \u2014 and yes, you can still cilok them.",
       "A connection meter next to the player count shows your signal and your ping in milliseconds.",
       "When someone talks, their name and face appear under the map, so you always know who is speaking."
     ]
@@ -26,7 +35,7 @@
     "notes": [
       "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
       "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
-      "You can walk across the Saloma Link. Take the steps up at either end — the road underneath still runs as normal.",
+      "You can walk across the Saloma Link. Take the steps up at either end \u2014 the road underneath still runs as normal.",
       "The city now holds forty people instead of twenty-four."
     ]
   },
@@ -37,7 +46,7 @@
     "notes": [
       "Right-click anyone to invite them into your party or send them a private message.",
       "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
-      "Everyone online shows on the map as a dot — light blue for the city, red for your party.",
+      "Everyone online shows on the map as a dot \u2014 light blue for the city, red for your party.",
       "Street lights come on at night, and the streets are no longer pitch black.",
       "Chat opens with Enter and tucks away after you send, so the screen stays clear."
     ]
