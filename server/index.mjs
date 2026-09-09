@@ -156,7 +156,7 @@ const server = http.createServer(async (request, response) => {
   response.end(JSON.stringify({ error: 'Not found' }));
 });
 
-const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
+const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: { zlibDeflateOptions: { level: 1 }, threshold: 2048 } });
 server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
   if (url.pathname !== '/ws') { socket.destroy(); return; }
