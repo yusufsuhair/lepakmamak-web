@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {SignJWT,exportJWK,generateKeyPair,createLocalJWKSet} from 'jose';
-import {verifyAccessJwt,AccessDenied,requireAdmin} from '../admin/src/lib/access';
+import {verifyAccessJwt,AccessDenied,requireAdmin} from '../src/lib/access';
 
 const TEAM='lepakmamak', AUD='aud-tag-123', EMAIL='yusufmohdsuhair@gmail.com';
 const ISS=`https://${TEAM}.cloudflareaccess.com`;
