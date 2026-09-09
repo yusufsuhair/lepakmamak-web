@@ -23,3 +23,21 @@ test('seating opens game cards and one selected game on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.evaluate(async()=>{const{setupTableSocial}=await import('/src/table-social.ts');const ui=setupTableSocial(()=>true,'test',()=>{},()=>{});ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'a',name:'A',chairId:'chair-1'}]}],'a',true);ui.open('meja-1');});
  const dialog=page.locator('#table-social[open]');await expect(dialog).toBeVisible();await expect(dialog.locator('.table-game-grid')).toBeVisible();await expect(dialog.locator('.lukis')).toBeHidden();await dialog.locator('[data-select="lukis"]').click();await expect(dialog.locator('.lukis')).toBeVisible();await expect(dialog.locator('.poker')).toBeHidden();await dialog.getByText('← Semua permainan').click();await dialog.locator('[data-select="poker"]').click();await expect(dialog.locator('.poker')).toBeVisible();await expect(dialog.locator('.lukis')).toBeHidden();const box=await dialog.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(390);
 });
+
+test('Mula permainan stays disabled until a second player sits down',async({page})=>{
+ await page.goto('/');await page.waitForTimeout(300);
+ const table=(...occupants:{id:string;name:string;chairId:string}[])=>[{id:'meja-1',name:'Meja 1',capacity:3,occupants}];
+ await page.evaluate(async seats=>{
+  document.querySelectorAll('#table-social').forEach(e=>e.remove());
+  const{setupTableSocial}=await import('/src/table-social.ts');
+  const ui=setupTableSocial(()=>true,'test',()=>{},()=>{});(window as any).ui=ui;
+  ui.state(seats,'a',true);ui.open('meja-1');
+ },table({id:'a',name:'A',chairId:'chair-0'}));
+ const d=page.locator('#table-social[open]');
+ await d.locator('[data-select="lukis"]').click();
+ await expect(d.locator('.lukis-start')).toBeDisabled();
+ await expect(d.locator('.lukis-need')).toContainText('1/2');
+ await page.evaluate(seats=>(window as any).ui.state(seats,'a',true),table({id:'a',name:'A',chairId:'chair-0'},{id:'b',name:'B',chairId:'chair-1'}));
+ await expect(d.locator('.lukis-start')).toBeEnabled();
+ await expect(d.locator('.lukis-need')).toHaveText('');
+});

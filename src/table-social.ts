@@ -23,7 +23,7 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
   dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seated.occupants.length}/${seated.capacity} pemain`:online?'Duduk di kerusi meja ini untuk bermain.':'Sambung ke city online untuk bermain.';
   (dialog.querySelector('#table-detail') as HTMLElement).hidden=!seated;
   const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);if(next)send({type:'lukis-open'});}
-  poker.context(id,!!seated,selfId);
+  poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);
  }
  function close(){dialog.close();}
  dialog.querySelector<HTMLButtonElement>('#close-table-social')!.onclick=close;
