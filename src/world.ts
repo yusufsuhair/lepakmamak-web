@@ -1,4 +1,5 @@
 import quietTables from '../shared/quiet-tables.json';
+import tableLocations from '../shared/tables.json';
 import fleetSeeds from '../shared/fleet.json';
 import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
@@ -547,6 +548,24 @@ export function createWorld(scene: THREE.Scene): World {
   box(group, -39, 1.04, 37, 7, 1.8, 1.8, '#b3c3b6'); solid(-39, 37, 7, 1.8);
   box(group, -39, 2.02, 37, 7.3, .13, 2.1, '#e2ddc5');
   for (let i = 0; i < 5; i++) { tube(group, -41.3 + i * 1.14, 2.19, 37, .43, .23, '#899f99'); tube(group, -41.3 + i * 1.14, 2.34, 37, .1, .09, '#485f56'); }
+  // The big table: nine seats, so a full Werewolf village can sit at one table instead of
+  // scattering across the mamak. Its chairs are drawn from chairs.json, so the seat you
+  // can see is the seat the server will sit you in.
+  {
+    const big = tableLocations.find(t => t.id === 'meja-9');
+    if (big) {
+      tube(group, big.x, 1.06, big.z, 1.95, .16, '#e9dfc0');
+      tube(group, big.x, .53, big.z, .18, 1.02, '#727e6b');
+      tube(group, big.x, .06, big.z, .9, .12, '#6b7663');
+      solid(big.x, big.z, 2.4, 2.4);
+      for (const seat of chairLocations.filter(c => c.tableId === 'meja-9')) {
+        const chair = new THREE.Group();
+        chair.position.set(seat.x, 0, seat.z); chair.rotation.y = seat.yaw; group.add(chair);
+        box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, .33, .73, .8, .1, '#be5142');
+        for (const dx of [-.28, .28]) for (const dz of [-.28, .28]) box(chair, dx, .3, dz, .06, .6, .06, '#923e35');
+      }
+    }
+  }
   for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60], ...quietTables.map(t=>[t.x,t.z])]) {
     tube(group, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(group, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
     for (const a of [0, 2.1, 4.2]) {

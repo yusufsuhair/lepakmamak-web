@@ -46,5 +46,13 @@
     "z": 60,
     "arrivalX": -106.5,
     "arrivalZ": 60
+  },
+  {
+    "id": "meja-9",
+    "name": "Meja Besar",
+    "x": -34.0,
+    "z": 60.0,
+    "arrivalX": -29.8,
+    "arrivalZ": 60.0
   }
 ]
