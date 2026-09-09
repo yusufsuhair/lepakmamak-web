@@ -96,5 +96,5 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
   dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
   dialog.querySelector('#shop-refresh')!.addEventListener('click', () => void refresh());
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  return { open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; onEquip([]); } };
+  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; onEquip([]); } };
 }

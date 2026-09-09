@@ -1,3 +1,4 @@
+import {setupInventory} from './inventory';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
@@ -704,6 +705,9 @@ async function init() {
   });
   $('open-edit-profile').onclick = () => profileEditor.open();
   const itemShop = setupShop(setAccessories);
+  const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;});
+  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';$('menu').before(inventoryButton);inventoryButton.onclick=()=>inventory.open();
+
   $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
     if (auth && !session && !guestName) return;
@@ -726,7 +730,7 @@ async function init() {
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
-    itemShop.close(); profileEditor.close(); clearGuest();
+    inventory.close();itemShop.close(); profileEditor.close(); clearGuest();
     onlinePlayersDialog.close();
     finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
