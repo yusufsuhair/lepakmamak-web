@@ -750,16 +750,7 @@ async function init() {
   const exitConfirmation=setupExitConfirmation(async()=>{if(guestName){leaveCity();return;}if(auth){const{error}=await auth.auth.signOut({scope:'local'});if(error)throw Error(error.message);}});
   signout.onclick = () => exitConfirmation.open();
   document.querySelector('.pause-panel')!.append(signout);
-  function reset() {
-    localSupermanUntil=0;
-    if (seatedChairId && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'chair-stand', reset: true }));
-    if (passengerOf && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'passenger-leave', reset: true })); setPause(false); return; }
-    car.group.position.set(-7, .09, 64); car.group.rotation.set(0, Math.PI, 0); car.driver.visible = false; vehicle = 'bike';
-    seated = false; jumpHeight = 0; jumpVelocity = 0;
-    riding = false; speed = 0; walkSpeed = 0; pos.set(-18, .12, 52); yaw = Math.PI; bikeYaw = Math.PI; orbit = 0; cameraHeading = yaw;
-    bike.group.position.set(-6.5, .09, 54); bike.group.rotation.set(0, bikeYaw, 0); bike.rider.visible = false; player.group.visible = true;
-    camera.position.set(pos.x + 2, 5, pos.z + 9); setPause(false); toast('Back at Mamak Maju', 'Grab a seat, meet your friends, or explore the city.');
-  }
+  $('reset').remove();
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
@@ -801,7 +792,7 @@ async function init() {
     toast('Looking good, lah', 'Your new outfit is saved.', 2);
   });
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
-  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('reset').onclick = reset; $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('interaction').onclick = () => { interact(); keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;

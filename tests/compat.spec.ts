@@ -36,7 +36,7 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   }
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.width}.png`});
   await page.locator('#menu').click(); await expect(page.locator('#pause')).toBeVisible();
-  await page.locator('#reset').scrollIntoViewIfNeeded(); await expect(page.locator('#reset')).toBeInViewport();
+  await expect(page.locator('#reset')).toHaveCount(0);
   await page.locator('#resume').click(); await expect(page.locator('#pause')).toBeHidden();
   expect(errors).toEqual([]); await context.close();
  });
