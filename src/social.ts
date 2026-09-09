@@ -10,10 +10,10 @@ export function nameTag(name: string, interactiveVoice = false) {
   label.userData.drawVoice = (mic: boolean, speaker: boolean) => {
     label.userData.mic = mic; label.userData.speaker = speaker;
     ctx.clearRect(0, 0, 512, 164);
-    ctx.font = label.userData.gameMaster ? '700 30px "DM Sans", sans-serif' : '600 36px "DM Sans", sans-serif';
+    ctx.font = label.userData.gameMaster ? '700 30px "Oxanium", sans-serif' : '600 36px "Oxanium", sans-serif';
     const shownName=String(label.userData.name||'Player').slice(0,18);
     const nameWidth = ctx.measureText(shownName).width;
-    ctx.font = '700 16px "DM Sans", sans-serif';
+    ctx.font = '700 16px "Oxanium", sans-serif';
     const titleWidth = label.userData.gameMaster ? ctx.measureText('✦  GAME MASTER  ✦').width : 0;
     const width = Math.min(496, Math.ceil(Math.max(nameWidth, titleWidth) + 40));
     const left = (512 - width) / 2;
@@ -21,16 +21,16 @@ export function nameTag(name: string, interactiveVoice = false) {
     if (!label.userData.gameMaster) {
       ctx.fillStyle = '#173c3280'; ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill();
     }
-    ctx.font = '600 36px "DM Sans", sans-serif'; ctx.fillStyle = '#ddf69a';
+    ctx.font = '600 36px "Oxanium", sans-serif'; ctx.fillStyle = '#ddf69a';
     if (label.userData.gameMaster) {
       ctx.save();
       ctx.shadowColor = '#ffc94a'; ctx.shadowBlur = 14;
       ctx.fillStyle = '#30200f80'; ctx.strokeStyle = '#ffd978'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill(); ctx.stroke();
       ctx.shadowBlur = 0;
-      ctx.font = '700 16px "DM Sans", sans-serif'; ctx.fillStyle = '#ffe8a3';
+      ctx.font = '700 16px "Oxanium", sans-serif'; ctx.fillStyle = '#ffe8a3';
       ctx.fillText('✦  GAME MASTER  ✦', 256, 94);
-      ctx.font = '700 30px "DM Sans", sans-serif'; ctx.fillStyle = '#fff5d1';
+      ctx.font = '700 30px "Oxanium", sans-serif'; ctx.fillStyle = '#fff5d1';
       ctx.fillText(shownName, 256, 128, 440);
       ctx.beginPath(); ctx.roundRect(left + 2, 78, width - 4, 76, 18); ctx.clip();
       const x = left - 80 + (label.userData.shine || 0) * (width + 160);

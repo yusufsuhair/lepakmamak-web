@@ -35,7 +35,7 @@ function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: num
     const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 256;
     const ctx = canvas.getContext('2d')!; ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 256);
     ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `700 ${text.length > 24 ? 49 : text.length > 17 ? 60 : 85}px "Barlow Condensed", sans-serif`;
+    ctx.font = `700 ${text.length > 24 ? 49 : text.length > 17 ? 60 : 85}px "Oxanium", sans-serif`;
     ctx.fillText(text, 512, 136, 960);
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     textMaterials.set(key, new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
