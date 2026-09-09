@@ -295,12 +295,28 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   const sport = style === 'sport' || style === 'ferrari' || style === 'lamborghini', van = style === 'vellfire';
   const bodyY = sport ? .65 : .8, belt = sport ? .88 : 1.09;
   group.userData.model = style;
+  const perodua=style==='myvi'||style==='axia';
   box(group, 0, bodyY, 0, width, sport ? .5 : .68, length, color);
-  box(group, 0, (belt + roof) / 2, -.2, width - .22, roof - belt, cabin, carGlass);
-  box(group, 0, roof, -.2, width - .14, .12, cabin, color);
+  if(perodua){
+    // Sloping A/C pillars and a shorter roof replace the generic rectangular cabin.
+    const shape=new THREE.Shape();shape.moveTo(-cabin/2-.2,belt);shape.lineTo(cabin/2-.2,belt);shape.lineTo(cabin/2-.58,roof);shape.lineTo(-cabin/2+.02,roof);shape.closePath();
+    const glass=new THREE.Mesh(new THREE.ExtrudeGeometry(shape,{depth:width-.26,bevelEnabled:false}),carGlass);glass.rotation.y=-Math.PI/2;glass.position.x=(width-.26)/2;group.add(glass);
+    box(group,0,roof,-.28,width-.26,.09,cabin-.6,color);
+    for(const side of [-1,1]){
+      const pillar=box(group,side*(width/2-.12),(belt+roof)/2,cabin/2-.39,.07,Math.hypot(roof-belt,.38),.08,color);pillar.rotation.x=-Math.atan2(.38,roof-belt);
+      const rear=box(group,side*(width/2-.12),(belt+roof)/2,-cabin/2-.09,.13,Math.hypot(roof-belt,.22),.12,color);rear.rotation.x=Math.atan2(.22,roof-belt);
+      box(group,side*(width/2+.018),.63,-.1,.045,.13,length*.65,color);
+      // Door shut lines and the pronounced shoulder crease.
+      for(const z of [-.15,.72])box(group,side*(width/2+.012),.85,z,.015,.4,.018,'#397069');
+      box(group,side*(width/2+.017),1.04,0,.018,.025,length*.82,color);
+    }
+  }else{
+    box(group, 0, (belt + roof) / 2, -.2, width - .22, roof - belt, cabin, carGlass);
+    box(group, 0, roof, -.2, width - .14, .12, cabin, color);
+  }
   // Windshield surround, door pillars, mirrors and handles.
   for (const side of [-1, 1]) {
-    for (const z of [-.2 - cabin / 2, -.16, -.2 + cabin / 2]) box(group, side * (width / 2 - .08), (belt + roof) / 2, z, .075, roof - belt, .09, color);
+    for (const z of perodua?[-.16]:[-.2 - cabin / 2, -.16, -.2 + cabin / 2]) box(group, side * (width / 2 - .08), (belt + roof) / 2, z, .075, roof - belt, .09, perodua?'#253535':color);
     box(group, side * (width / 2 + .08), belt + .12, .65, .21, .12, .23, color);
     for (const z of sport ? [-.15] : [-.7, .35]) box(group, side * (width / 2 + .01), belt - .06, z, .035, .06, .22, '#c9d2d2');
     for (const z of [-length * .32, length * .31]) {
@@ -319,6 +335,25 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   box(group, 0, .44, length / 2 + .04, width * .89, .1, .1, '#2b3b3c');
   sign(group, style.toUpperCase(), 0, .57, length / 2 + .105, .66, .16, '#172923', '#fff8e4');
   sign(group, style.toUpperCase(), 0, .59, -length / 2 - .06, .66, .16, '#172923', '#fff8e4', Math.PI);
+  if(perodua){
+    const front=length/2+.12,rear=-length/2-.09;
+    box(group,0,.76,front,width*.58,.28,.08,'#172d30');
+    box(group,0,1.035,front,.65,.035,.05,'#d9dddd');
+    const badge=ball(group,0,1.06,front+.045,.065,'#dce3df');badge.scale.set(1.3,.8,.3);
+    for(const side of [-1,1]){
+      // Myvi's vertical corner DRLs and Axia's horizontal accents distinguish the front ends.
+      box(group,side*width*.39,.69,front,.19,.3,.055,'#203035');
+      box(group,side*width*.39,.7,front+.035,style==='myvi'?.035:.15,style==='myvi'?.22:.035,.025,'#fff7d9');
+      const lamp=box(group,side*width*.32,1.005,front,width*.26,.09,.045,'#edfaff');lamp.rotation.z=side*(style==='myvi'?-.09:-.2);
+      box(group,side*width*.37,.94,rear,.2,style==='myvi'?.35:.2,.06,'#ca2635');
+      box(group,side*width*.29,1.08,rear,width*.18,.06,.065,'#ef5250');
+      box(group,side*width*.32,.52,rear,.17,.04,.03,'#be3039');
+    }
+    box(group,0,roof+.015,-cabin/2+.02,width-.17,.07,.3,color);
+    box(group,0,roof-.06,-cabin/2-.14,.38,.035,.025,'#e8473d');
+    box(group,.1,1.29,-cabin/2-.18,.42,.025,.03,'#233735');
+    sign(group,style==='myvi'?'MYVI':'AXIA',width*.27,1.05,rear-.04,.27,.09,'#244039','#dfdfd3',Math.PI);
+  }
   if (sport) {
     for (const x of [-.57, .57]) box(group, x, 1.04, -1.37, .08, .36, .1, '#283d3d');
     box(group, 0, 1.24, -1.4, 1.85, .085, .3, '#263b3c');
