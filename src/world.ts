@@ -698,9 +698,29 @@ export function createWorld(scene: THREE.Scene): World {
     for(const side of [-1,1]){box(group,x+side*3,1.2,z-3.8,.1,2.4,.1,'#6b7759');palm(group,x+side*5,z-2,.5);solid(x+side*5,z-2,.6,.6);}
     box(group,x,3.8,z,6,.12,5,'#bc875b');for(const side of [-1,1])for(const front of [-1,1]){box(group,x+side*2.8,1.9,z+front*2.3,.12,3.8,.12,'#755741');solid(x+side*2.8,z+front*2.3,.15,.15);}
   }
+  // Named city block: recognisable silhouettes replace four generic towers.
+  function cityLandmark(x:number,z:number,name:string,accent:string,height:number,kind:'bank'|'civic'|'hotel'){
+    const landmark=new THREE.Group();landmark.position.set(x,0,z);group.add(landmark);
+    const w=kind==='hotel'?17:16,d=17,body=kind==='hotel'?'#e4d7bd':'#c8d0c9';
+    box(landmark,0,height/2,0,w,height,d,body);
+    box(landmark,w/2+.04,height/2,0,.16,height-.8,d-.8,kind==='hotel'?'#746855':'#607675');
+    for(let y=3;y<height-2;y+=3.2)for(let wz=-d/2+2;wz<d/2-1;wz+=3.2)box(landmark,w/2+.15,y,wz,.08,1.55,1.7,kind==='hotel'?'#d8ad65':'#79a0a0');
+    box(landmark,w/2+.24,1.6,0,.3,3.2,5.6,'#283f3c');
+    sign(landmark,name,w/2+.42,height-3,0,kind==='hotel'?11:9,1.5,accent,'#ffffff',Math.PI/2);
+    box(landmark,0,height+.3,0,w+.5,.6,d+.5,accent);
+    if(kind==='bank'){for(const side of [-1,1])tube(landmark,w/2+1.1,2.2,side*3.2,.18,4.4,'#ddd8c7');}
+    if(kind==='civic'){sign(landmark,'PUSAT KOMUNITI',w/2+.43,4.2,0,10,.8,'#f4f0df','#b63035',Math.PI/2);box(landmark,w/2+1.1,5.9,-4.7,.1,4.8,.1,'#d8d4bd');box(landmark,w/2+1.1,7.8,-4.7,.08,.9,1.45,'#df3d42');}
+    if(kind==='hotel'){box(landmark,0,height+1.1,0,7,1.6,7,'#b99551');for(const side of [-1,1])tube(landmark,w/2+1.2,1.7,side*4.6,.16,3.4,'#b99551');}
+    solid(x,z,w,d);mapBuildings.push({x,z,w,d,color:accent});
+  }
+  cityLandmark(-127,-37,'UOB','#b52e35',30,'bank');
+  cityLandmark(-106,-37,'HSBC','#d33b3e',27,'bank');
+  cityLandmark(-127,37,'DAP','#c62e34',22,'civic');
+  cityLandmark(-106,37,'HOTEL MAHKOTA','#a5813e',38,'hotel');
   // Mid-rise skyline, deterministically placed away from the road grid.
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
+    if(x<0&&(z===-37||z===37))continue;
     if (x > 0 && (z === -37 || z === 37 || z === 113)) continue;
     const height = 14 + rand() * 29, w = 13 + rand() * 5, d = 17;
     block(x, z, w, height, d, ['#aab7ad', '#c9bfa5', '#b4bdb6', '#d6c6aa'][Math.floor(rand() * 4)]);

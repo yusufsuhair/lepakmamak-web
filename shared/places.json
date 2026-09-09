@@ -152,5 +152,33 @@
     "x": 54,
     "z": 129,
     "kind": "sukan"
+  },
+  {
+    "id": "23",
+    "name": "UOB Bank",
+    "x": -116,
+    "z": -37,
+    "kind": "bank"
+  },
+  {
+    "id": "24",
+    "name": "HSBC Bank",
+    "x": -95,
+    "z": -37,
+    "kind": "bank"
+  },
+  {
+    "id": "25",
+    "name": "Pusat Komuniti DAP",
+    "x": -116,
+    "z": 37,
+    "kind": "civic"
+  },
+  {
+    "id": "26",
+    "name": "Hotel Mahkota",
+    "x": -95,
+    "z": 37,
+    "kind": "hotel"
   }
 ]
