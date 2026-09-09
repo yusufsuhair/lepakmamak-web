@@ -1,3 +1,4 @@
+import quietTables from '../shared/quiet-tables.json';
 import chairLocations from '../shared/chairs.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -460,7 +461,7 @@ export function createWorld(scene: THREE.Scene): World {
   box(group, -39, 1.04, 37, 7, 1.8, 1.8, '#b3c3b6'); solid(-39, 37, 7, 1.8);
   box(group, -39, 2.02, 37, 7.3, .13, 2.1, '#e2ddc5');
   for (let i = 0; i < 5; i++) { tube(group, -41.3 + i * 1.14, 2.19, 37, .43, .23, '#899f99'); tube(group, -41.3 + i * 1.14, 2.34, 37, .1, .09, '#485f56'); }
-  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60]]) {
+  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60], ...quietTables.map(t=>[t.x,t.z])]) {
     tube(group, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(group, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
     for (const a of [0, 2.1, 4.2]) {
       const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a; group.add(chair);

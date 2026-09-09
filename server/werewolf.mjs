@@ -3,7 +3,7 @@ import chairs from '../shared/chairs.json' with {type:'json'};
 import {filterChat} from './chat-filter.mjs';
 
 const key=p=>p.userId||p.id;
-const seated=p=>chairs.some(c=>c.id===p.chairId);
+const seated=p=>chairs.some(c=>c.id===p.chairId && c.games!==false && !!c.tableId);
 const evil=role=>role==='werewolf'||role==='alpha';
 export const WEREWOLF_TIMES={night:35000,discussion:60000,vote:25000,defense:20000,judgment:20000};
 export function createWerewolf(send,now=Date.now,pick=randomInt){

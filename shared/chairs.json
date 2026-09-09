@@ -117,5 +117,101 @@
     "z": 59.191069644787845,
     "yaw": 7.341592653589793,
     "tableId": "meja-6"
+  },
+  {
+    "id": "masjid-maju-1-chair-0",
+    "x": -45.0,
+    "z": 93.65,
+    "yaw": 3.141592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-maju-1-chair-1",
+    "x": -43.57570454502936,
+    "z": 91.16700392741024,
+    "yaw": 5.241592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-maju-1-chair-2",
+    "x": -46.438100024482424,
+    "z": 91.19106964478785,
+    "yaw": 7.341592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-maju-2-chair-0",
+    "x": -18.0,
+    "z": 93.65,
+    "yaw": 3.141592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-maju-2-chair-1",
+    "x": -16.57570454502936,
+    "z": 91.16700392741024,
+    "yaw": 5.241592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-maju-2-chair-2",
+    "x": -19.43810002448242,
+    "z": 91.19106964478785,
+    "yaw": 7.341592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-1-chair-0",
+    "x": 101.0,
+    "z": -20.35,
+    "yaw": 3.141592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-1-chair-1",
+    "x": 102.42429545497065,
+    "z": -22.832996072589765,
+    "yaw": 5.241592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-1-chair-2",
+    "x": 99.56189997551758,
+    "z": -22.808930355212155,
+    "yaw": 7.341592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-2-chair-0",
+    "x": 133.0,
+    "z": -20.35,
+    "yaw": 3.141592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-2-chair-1",
+    "x": 134.42429545497063,
+    "z": -22.832996072589765,
+    "yaw": 5.241592653589793,
+    "tableId": "",
+    "games": false
+  },
+  {
+    "id": "masjid-lepak-2-chair-2",
+    "x": 131.56189997551758,
+    "z": -22.808930355212155,
+    "yaw": 7.341592653589793,
+    "tableId": "",
+    "games": false
   }
 ]
