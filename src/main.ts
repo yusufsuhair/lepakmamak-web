@@ -881,6 +881,7 @@ async function init() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocation(); keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');
   const profile = $<HTMLDialogElement>('player-profile');
+  profile.prepend($('close-profile'));
   let selectedName = '', selectedProfileId = '';
   function closeOptions() { options.hidden = true; }
   function toggleSuperman() {
