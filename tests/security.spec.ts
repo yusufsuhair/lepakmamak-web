@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import city from '../shared/city.json' with {type:'json'};
 import {clientKey,createRateLimiter,createConnectionCap} from '../server/limits.mjs';
 
 test('Cloudflare security headers enforce a strict content policy',()=>{
@@ -66,4 +67,16 @@ test('the connection cap holds per caller and in total, and frees on release',()
  first!();first!(); // releasing twice must not hand back a slot that was never held
  expect(cap.live).toBe(2);
  expect(cap.take('c')).toBeTruthy();
+});
+
+test('the per-address socket cap stays clear of a legitimately full city',()=>{
+ // Set to 64 once, below the hundred-player limit: every player shares one key whenever
+ // the proxy stops forwarding addresses (and always does on localhost), so the cap locked
+ // the city out at 64 and did it by destroying the socket, losing the reason they were
+ // turned away. Room capacity has to be what stops the last player, not this.
+ const source=readFileSync('server/index.mjs','utf8');
+ const perAddress=source.match(/perKey:\s*Number\(process\.env\.WS_MAX_PER_ADDRESS\s*\|\|\s*([^)]+)\)/);
+ expect(perAddress).not.toBeNull();
+ const value=Function('maxPlayers',`return ${perAddress![1]}`)(city.maxPlayers);
+ expect(value).toBeGreaterThan(city.maxPlayers);
 });

@@ -190,12 +190,14 @@ const server = http.createServer(async (request, response) => {
 
 const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 // The total is the real protection and holds whatever the headers claim. The per-address
-// share is deliberately loose: it only has to stop one host taking the whole server, and
-// if the proxy ever stops forwarding addresses every player collapses onto a single key,
-// so a tight value would lock the city instead of an attacker. Both are env-tunable
-// because the proxy's shape is a deployment fact the code cannot see from here.
+// share must stay clear of a legitimately full city: every player shares one key when the
+// proxy stops forwarding addresses, and they already do on localhost, so anything near
+// maxPlayers locks the city instead of an attacker — and it would refuse them at the
+// socket, losing the reason the city turned them away. Room capacity is what should stop
+// the hundred-and-first player, not this. Env-tunable because the proxy's shape is a
+// deployment fact the code cannot see from here.
 const connections = createConnectionCap({
-  perKey: Number(process.env.WS_MAX_PER_ADDRESS || 64),
+  perKey: Number(process.env.WS_MAX_PER_ADDRESS || maxPlayers * 2),
   total: Number(process.env.WS_MAX_CONNECTIONS || maxPlayers * 10),
 });
 server.on('upgrade', (request, socket, head) => {
