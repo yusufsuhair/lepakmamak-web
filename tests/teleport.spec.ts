@@ -13,3 +13,17 @@ test('all map arrivals avoid solid objects and map offers teleport for selected 
  await page.evaluate(()=>{document.querySelector<HTMLDialogElement>('#city-map')!.showModal();});
  await page.locator('#city-directory button').filter({hasText:'Mamak Maju'}).click();await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
 });
+test('3D map renders actual city and preserves directory selection across view modes',async({page})=>{
+ await page.goto('/');await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
+ await page.getByRole('button',{name:'3D',exact:true}).click();
+ await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','3d');
+ await page.locator('#city-directory button').filter({hasText:'Mamak Maju'}).click();
+ await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
+ await page.setViewportSize({width:390,height:844});
+ const size=await page.locator('#expanded-map').boundingBox();expect(size!.width).toBeLessThan(390);
+ await page.screenshot({path:'/tmp/lepak-3d-map.png'});
+ await page.getByRole('button',{name:'2D',exact:true}).click();
+ await expect(page.getByRole('button',{name:'2D',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
+});

@@ -1,3 +1,4 @@
+import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
@@ -979,8 +980,18 @@ async function init() {
 
     else toast('City offline','Reconnect before teleporting.');
   };
-  const mapDirectory=setupCityDirectory($('city-directory'),$<HTMLCanvasElement>('expanded-map'),id=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);});
+  let mapMode:'2d'|'3d'='2d';
+  const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
+  const selectMapPlace=(id:string)=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
+  const mapDirectory=setupCityDirectory($('city-directory'),expandedCanvas,selectMapPlace);
+  const overview=createMapOverview(scene,expandedCanvas,selectMapPlace);
+  const viewControls=document.createElement('div');viewControls.className='map-view-controls';viewControls.setAttribute('role','group');viewControls.setAttribute('aria-label','Map view');
+  for(const mode of ['2d','3d'] as const){const button=document.createElement('button');button.type='button';button.textContent=mode.toUpperCase();button.setAttribute('aria-pressed',String(mode===mapMode));button.onclick=()=>{mapMode=mode;expandedCanvas.dataset.mode=mode;document.querySelector('.city-map-hint')!.textContent=mode==='3d'?'Angled city overview · Numbered pins match the directory.':'N ↑ · On mobile, swipe the map to explore.';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));drawMap(true);};viewControls.append(button);}
+  $('map-place-info').before(viewControls);
+  expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
+
   function drawMap(expanded = false) {
+    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);$('map-place-info').textContent='3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.06;
     ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);
