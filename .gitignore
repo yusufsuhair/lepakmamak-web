@@ -9,3 +9,7 @@ playwright-report/
 .env.*
 !.env.production
 supabase/.temp/
+admin/node_modules
+admin/.next
+admin/.open-next
+admin/.dev.vars
