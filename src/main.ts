@@ -10,6 +10,7 @@ import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createSiren} from './siren';
 import {createWhatsNew} from './changelog';
+import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
@@ -243,6 +244,11 @@ async function init() {
   let partyMembers = new Set<string>();
   // The only raised floor in the city. onBridge is what keeps the road underneath open.
   let onBridge = false, deckY = 0;
+  // The Game Master floats, wings out, over a turning seal. Gated on the server's
+  // gameMaster flag, which only the Game Master account carries.
+  let isGm = false;
+  const gmAura = createGmAura();
+  gmAura.group.visible = false;
   const partyInvite = document.createElement('aside'); partyInvite.id = 'party-invite'; partyInvite.hidden = true;
   partyInvite.innerHTML = '<p id="party-invite-text"></p><div><button type="button" id="party-accept">Jom</button><button type="button" id="party-decline">Tak nak</button></div>';
   let inviteTimer = 0;
@@ -593,6 +599,8 @@ async function init() {
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!)}));
+    const me = players.find(p => p.id === networkPlayerId);
+    if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
     roomPlayers = players;
     weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
@@ -632,7 +640,7 @@ async function init() {
       }
       for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
-      entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0) + (remote.y || 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
+      entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       entity.car.group.visible = entity.riding && entity.vehicle === 'car' && !entity.passengerOf; entity.bike.group.visible = entity.riding && entity.vehicle === 'bike' && !entity.passengerOf;
       entity.person.group.visible = !entity.car.group.visible && !entity.bike.group.visible;
     }
@@ -1394,9 +1402,11 @@ async function init() {
         player.group.position.copy(pos); player.group.rotation.y = yaw;
         const stride = Math.sin(simTime * (running ? 13 : 9)) * Math.min(.7, walkSpeed * .12);
         player.leftLeg.rotation.x = stride; player.rightLeg.rotation.x = -stride; player.leftArm.rotation.x = -stride * .7; player.rightArm.rotation.x = stride * .7;
-        player.group.position.y = deckY + .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008);
+        player.group.position.y = deckY + .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008)
+          + (isGm ? gmHover(simTime) : 0);
       }
       if (!riding) punchPose(player, punchUntil);
+      if (isGm) gmAura.update(simTime);
       pickleball.equip(player,!riding&&!seated&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
       basketball.pose(player,networkPlayerId);
       if (riding) recallUntil = 0;
