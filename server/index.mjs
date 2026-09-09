@@ -13,6 +13,7 @@ import {createSocialProfiles} from './social-profiles.mjs';
 import { createChatHistory } from './chat-history.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
+import { createParty } from './party.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
@@ -41,6 +42,7 @@ setInterval(() => {
 }, 50).unref();
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
+const party = createParty(send);
 const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges})});
 const uno = createUno(send);
 const werewolf = createWerewolf(send);
@@ -171,6 +173,7 @@ webSocketServer.on('connection', ws => {
     fleet.release(currentRoom.players,player);
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
+    party.remove(currentRoom.players, player);
     currentRoom.players.delete(player.id);
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
     if (!currentRoom.players.size) rooms.delete(currentRoom.name);
@@ -272,6 +275,7 @@ webSocketServer.on('connection', ws => {
     if (poker.handle(currentRoom.players, player, message)) return;
     if (pickleball.handle(currentRoom.players, player, message)) return;
     if (basketball.handle(currentRoom.players, player, message)) return;
+    if (party.handle(currentRoom.players, player, message)) { broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
@@ -328,6 +332,7 @@ webSocketServer.on('connection', ws => {
     }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
+      player.voiceScope = message.scope === 'party' ? 'party' : 'all';
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
       return;
     }
@@ -338,8 +343,13 @@ webSocketServer.on('connection', ws => {
       const audience = [];
       for (const listener of currentRoom.players.values()) {
         const distance = Math.hypot(listener.x - player.x, listener.z - player.z);
-        if (listener.id === player.id || !listener.speaker || distance >= voiceConfig.hearingRadius || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
-        const volume = distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
+        if (listener.id === player.id || !listener.speaker || listener.ws.readyState !== 1 || listener.ws.bufferedAmount >= 65536) continue;
+        // Both ends have to agree: a party-scoped mouth only reaches the party, and a
+        // party-scoped ear only opens for it. Party audio ignores distance entirely.
+        const together = party.shares(player, listener);
+        if (player.voiceScope === 'party' ? !together : distance >= voiceConfig.hearingRadius) continue;
+        if (listener.voiceScope === 'party' && !together) continue;
+        const volume = player.voiceScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
         listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume }));
         audience.push(listener.name);
       }
@@ -353,10 +363,28 @@ webSocketServer.on('connection', ws => {
       if (Date.now() - lastChatAt < 700) { send(ws, { type: 'notice', message: 'Give your last message a moment before sending another.' }); return; }
       lastChatAt = Date.now();
       const filtered = filterChat(text), sentAt = new Date().toISOString();
+      const channel = message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all';
+      const payload = { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
+
+      if (channel === 'party') {
+        const members = party.members(currentRoom.players, player);
+        if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a party yet.' }); return; }
+        for (const member of members) send(member.ws, payload);
+        return;
+      }
+      if (channel === 'dm') {
+        const target = typeof message.to === 'string' ? currentRoom.players.get(message.to) : undefined;
+        if (!target || target.id === player.id) { send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return; }
+        const thread = { ...payload, to: target.id, toName: target.name };
+        send(target.ws, thread); send(ws, thread);
+        return;
+      }
+
+      // Only the public channel belongs in the room's saved history.
       try { await chatHistory.save(currentRoom.name, player, filtered, sentAt); }
       catch { send(ws, { type: 'notice', message: 'Message sent live, but chat history could not save it.' }); }
       if (!player || !currentRoom || ws.readyState !== 1) return;
-      broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt, gameMaster: !!player.gameMaster });
+      broadcast(currentRoom.players, payload);
       return;
     }
     if (message.type === 'state') {

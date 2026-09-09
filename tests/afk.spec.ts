@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import WebSocket from 'ws';
 test('AFK note persists above the player until cleared', async ({page}) => {
- await page.goto('/'); await page.getByRole('button',{name:"Jom, let's go"}).click();
+ await page.goto('/'); await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
  await page.locator('#menu').click(); await page.locator('#afk-note').fill('berak jap'); await page.locator('#save-afk').click();
  await page.locator('#resume').click(); await expect(page.locator('.afk-bubble')).toContainText('berak jap');
  await page.waitForTimeout(7000); await expect(page.locator('.afk-bubble')).toBeVisible();

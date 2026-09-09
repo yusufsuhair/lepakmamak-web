@@ -12,6 +12,9 @@ test('movement audio triggers on footsteps, takeoff and landing and respects mut
   const count = () => page.evaluate(() => (window as any).movementSounds as number);
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.locator('#world').focus();
   await page.keyboard.down('s');
   await expect.poll(count).toBeGreaterThanOrEqual(2);

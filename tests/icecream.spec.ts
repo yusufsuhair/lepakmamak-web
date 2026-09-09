@@ -3,6 +3,9 @@ test('ice cream song fades with distance and respects sound settings', async ({ 
   await page.addInitScript(() => { const start = performance.now(); Date.now = () => 1800000000000 + performance.now() - start; });
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   const sound = () => page.evaluate(() => (window as any).__lepak.iceCream);
   await expect.poll(async () => (await sound()).playing).toBe(true);
   await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.03);

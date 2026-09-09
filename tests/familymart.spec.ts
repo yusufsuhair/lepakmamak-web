@@ -8,7 +8,7 @@ test('FamilyMart song fades smoothly outside the storefront',async({page})=>{
 });
 
 test('FamilyMart loop starts with player interaction and obeys city sounds',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();
+  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__lepak.familyMart);
   await expect.poll(async()=>(await state()).playing).toBe(true);
   await expect.poll(async()=>(await state()).gain).toBeLessThan(.001);

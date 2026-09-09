@@ -5,6 +5,9 @@ import WebSocket from 'ws';
 test('wardrobe saves locally, restores after reload and discards cancelled edits', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   const open = async () => {
     await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('button', { name: 'Wardrobe · Change clothes' }).click();
@@ -17,6 +20,9 @@ test('wardrobe saves locally, restores after reload and discards cancelled edits
   await expect(page.locator('#wardrobe')).not.toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await open();
   await expect(page.getByRole('radio', { name: 'Blue shirt' })).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('tab', { name: 'Bottoms' }).click();

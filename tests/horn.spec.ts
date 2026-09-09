@@ -7,6 +7,9 @@ test('horn is driver-only and responds to H and button while respecting mute', a
   });
   const count = () => page.evaluate(() => (window as any).horns);
   await page.goto('/'); await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.keyboard.press('h'); expect(await count()).toBe(0);
   await page.keyboard.down('d');
   await expect(page.locator('#interaction-text')).toHaveText('Enter');

@@ -12,7 +12,7 @@ test('all mosques share one smooth nearest-location audio fade',async({page})=>{
 });
 
 test('mosque audio starts after entry and obeys City sounds',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();
+  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__lepak.masjid);
   await expect.poll(async()=>(await state()).playing).toBe(true);
   await expect.poll(async()=>(await state()).gain).toBeLessThan(.001);

@@ -12,6 +12,9 @@ test('chair sounds play on sit and stand and respect mute', async ({ page }) => 
   const seated = () => page.evaluate(() => (window as any).__lepak.seated);
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.keyboard.down('a');
   await expect.poll(() => page.evaluate(() => (window as any).__lepak.position.x)).toBeLessThan(-26);
   await page.keyboard.up('a');

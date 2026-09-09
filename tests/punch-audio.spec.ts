@@ -11,6 +11,9 @@ test('punch sound plays once per allowed punch and respects mute', async ({ page
   const count = () => page.evaluate(() => (window as any).punchSounds as number);
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
+  await page.locator('#auth-guest').click();
+  await page.locator('#guest-name').fill('Tester');
+  await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await page.locator('#world').click({ position: { x: 640, y: 400 } });
   await expect.poll(count).toBe(1);
   await page.locator('#world').click({ position: { x: 640, y: 400 } });

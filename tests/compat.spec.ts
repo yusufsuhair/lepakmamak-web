@@ -7,7 +7,7 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join')ws.send(JSON.stringify({type:'welcome',id:'hud-test',players:[]}));}));
   await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const auth=null;export const session=null;export let guestName='';export function clearGuest(){}export const displayName=()=> 'HUD test';export async function setupAuth(onEnter){setTimeout(onEnter,500);return onEnter;}`}));
   await page.goto('http://127.0.0.1:5173/');
-  await page.getByRole('button',{name:"Jom, let's go"}).click();
+  await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   await expect(page.locator('#hud')).toBeVisible();
   await expect(page.locator('.game-brand')).toHaveCount(0);
   await expect(page.locator('#camera-in,#camera-out')).toHaveCount(0);
