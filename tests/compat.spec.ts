@@ -7,8 +7,8 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   await page.goto('http://127.0.0.1:5173/');
   await page.getByRole('button',{name:"Jom, let's go"}).click();
   await expect(page.locator('#hud')).toBeVisible();
-  await page.getByRole('button',{name:'Zoom camera out'}).click();
-  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(11);
+  await page.evaluate(()=>{ document.querySelector('canvas')!.dispatchEvent(new WheelEvent('wheel',{deltaY:200,bubbles:true,cancelable:true})); });
+  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBeGreaterThan(9);
   await page.getByRole('button',{name:'Centre camera',exact:true}).click();
   expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(9);
   for (const selector of ['#menu','#camera-reset','#chat-heading']) {

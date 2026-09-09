@@ -74,7 +74,7 @@ $('app').innerHTML = `
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="brand-status"><div class="game-brand">LEPAK<span>MAMAK.</span></div><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-in" aria-label="Zoom camera in">+</button><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)">◎</button><button id="camera-out" aria-label="Zoom camera out">−</button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="brand-status"><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 / 24</b></button></div><div class="hud-divider"></div><div class="district"><strong id="district">Kampung Maju</strong><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)"><svg id="compass-needle" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 8.5 13 12 11.2 15.5 13Z" fill="#e2564a"/><path d="M12 21.5 8.5 11 12 12.8 15.5 11Z" fill="#e8efdc"/></svg></button></div><button class="menu-btn" id="menu" aria-label="Open settings"><span></span><span></span></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -822,8 +822,7 @@ async function init() {
   applyQuality();
   function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = 9; }
   $('camera-reset').onclick = () => { resetCamera(); canvas.focus(); };
-  $('camera-in').onclick = () => { zoom = Math.max(5, zoom - 2); canvas.focus(); };
-  $('camera-out').onclick = () => { zoom = Math.min(17, zoom + 2); canvas.focus(); };
+  const compass = $('compass-needle'); let compassAngle = 0;
   function updateTypingLayout() {
     const typing = document.activeElement?.id === 'chat-input';
     document.body.classList.toggle('chat-typing', typing);
@@ -934,6 +933,23 @@ async function init() {
   const endDrag = () => { dragging = false; pointerId = null; };
   canvas.addEventListener('pointercancel', endDrag); canvas.addEventListener('lostpointercapture', endDrag);
   canvas.addEventListener('wheel', event => { if (!started || paused) return; event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom + event.deltaY * .01, 5, 17); }, { passive: false });
+  // Two-finger pinch replaces the removed +/- buttons: touch has no wheel, so this is the only zoom on phones.
+  const pinch = new Map<number, { x: number; y: number }>(); let pinchSpan = 0;
+  const spanOf = () => { const [a, b] = [...pinch.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  canvas.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || !started || paused) return;
+    pinch.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pinch.size === 2) { pinchSpan = spanOf(); dragging = false; pointerId = null; }
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (!pinch.has(event.pointerId)) return;
+    pinch.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pinch.size !== 2 || !pinchSpan) return;
+    const span = spanOf();
+    if (span > 0) { zoom = THREE.MathUtils.clamp(zoom * (pinchSpan / span), 5, 17); pinchSpan = span; }
+  });
+  const releasePinch = (event: PointerEvent) => { pinch.delete(event.pointerId); if (pinch.size < 2) pinchSpan = 0; };
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => releasePinch(event as PointerEvent));
   document.querySelectorAll<HTMLButtonElement>('[data-key]').forEach(button => {
     button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); if (button.dataset.key === 'Space') jump(); keys.add(button.dataset.key!); });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key!));
@@ -1153,6 +1169,8 @@ async function init() {
       if (toastRemaining > 0) { toastRemaining -= dt; if (toastRemaining <= 0) $('toast').hidden = true; }
       if (riding) cameraHeading = dampAngle(cameraHeading, yaw, 1 - Math.exp(-3 * dt));
       const heading = cameraHeading + orbit;
+      // North is world -z, which the minimap draws upward, so the needle leads the camera by pi.
+      if (Math.abs(heading - Math.PI - compassAngle) > .01) { compassAngle = heading - Math.PI; compass.style.transform = `rotate(${compassAngle}rad)`; }
       const distance = zoom + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
       // Shorten the camera arm when a building would obscure the player.
@@ -1224,20 +1242,23 @@ async function init() {
     }
     const voicePanel = $('voice-panel');
     voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
-    if (localName && !voicePanel.hidden) {
-      const anchor = localName.position.clone().add(new THREE.Vector3(0, .35, 0)).project(camera);
-      voicePanel.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
-      voicePanel.style.left = `${(anchor.x + 1) * innerWidth / 2}px`;
-      voicePanel.style.top = `${(1 - anchor.y) * innerHeight / 2}px`;
-    }
 
     camera.updateMatrixWorld();
     streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!wall.opened&&!tableSocial.opened&&!riding&&!seated);
     setAfkBubble('self', started ? afkNote : '');
+    // One prompt at a fixed anchor beats a label per table drifting across the play area.
+    const promptBlocked=!started||paused||cityMap.open||wall.opened||tableSocial.opened;
+    let nearestLabel:typeof tableLabels[number]|null=null,nearestLabelDistance=8;
+    if(!promptBlocked)for(const entry of tableLabels){const away=distanceTo(entry.table);if(away<=nearestLabelDistance){nearestLabelDistance=away;nearestLabel=entry;}}
     for(const {table,button} of tableLabels){
+      const active=nearestLabel?.table.id===table.id;
+      button.hidden=!active;
+      if(!active)continue;
       const state=roomTables.find(t=>t.id===table.id);
-      button.hidden=!started||paused||cityMap.open||wall.opened||tableSocial.opened||distanceTo(table)>8;
-      if(!button.hidden){const p=new THREE.Vector3(table.x,2.1,table.z).project(camera);button.hidden=p.z< -1||p.z>1||Math.abs(p.x)>.9||Math.abs(p.y)>.9;button.style.left=`${(p.x+1)*innerWidth/2}px`;button.style.top=`${(1-p.y)*innerHeight/2}px`;const name=state?.name||table.name;const label=`${name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} · OPEN`;if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-label',`Open Meja Kita at ${name}`);}
+      const name=state?.name||table.name;
+      const label=`${name} · ${state?.occupants.length||0}/${state?.capacity||(table.id==='meja-2'?2:3)} · OPEN`;
+      if(button.textContent!==label)button.textContent=label;
+      button.setAttribute('aria-label',`Open Meja Kita at ${name}`);
     }
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
