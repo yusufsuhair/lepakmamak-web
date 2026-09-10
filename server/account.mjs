@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import {origins} from '../shared/origins.mjs';
 
 // Deleting an account needs the service role, which must never reach the browser, so it
 // lives here rather than in the client's Supabase session. Changing a password does not:
 // the browser already holds a session that can do it.
-const origins = new Set(['https://lepakmamak.my', 'https://lepakmamak.pages.dev', 'https://lepak-city.pages.dev', 'http://localhost:5173', 'http://localhost:4173']);
 
 // Every table that is keyed to a person, with the column that names them. Rows are cleared
 // before the account goes, so nothing is left pointing at a user id that no longer exists.

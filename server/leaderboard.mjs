@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {origins} from '../shared/origins.mjs';
 
 // Kuala Lumpur is UTC+8 all year, so the week turns at midnight Monday MYT with no DST to
 // reason about. Returned as YYYY-MM-DD because that is what the week_start column holds.
@@ -16,7 +17,6 @@ export function weekStart(at = Date.now()) {
 // of the table, rather than out of the query, keeps them off the board by construction.
 export const BOARDS = ['basketball_points', 'tables_sat'];
 const TOP = 5;
-const origins = new Set(['https://lepakmamak.my', 'https://lepakmamak.pages.dev', 'https://lepak-city.pages.dev', 'http://localhost:5173', 'http://localhost:4173']);
 
 export function createLeaderboard(services = {}) {
   const db = services.db || (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
