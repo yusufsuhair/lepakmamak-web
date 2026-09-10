@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.3",
+    "date": "2026-09-10",
+    "title": "Teleport terus ke Pantai Senja",
+    "notes": [
+      "Pantai Senja kini mempunyai destinasi teleport rasmi dalam peta, dengan arrival point di laluan masuk pantai.",
+      "Pin peta dan server teleport kini menggunakan koordinat pantai yang sama."
+    ]
+  },
+  {
     "version": "1.39.2",
     "date": "2026-09-10",
     "title": "Baring dan hammock di Pantai Senja",
