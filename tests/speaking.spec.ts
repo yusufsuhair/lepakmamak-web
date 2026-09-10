@@ -43,12 +43,13 @@ test('speaking row glows with voice and settles dark while the player remains ne
   await page.evaluate(async () => {
     const {createSpeakingList} = await import('/src/speaking.ts');
     const list = createSpeakingList(document.getElementById('hud')!);
-    list.nearby('speaker-1', 'Ali');
-    list.heard('speaker-1', 'Ali', .82);
+    list.nearby('speaker-1', 'Ali', {skin:'#8b583d',hair:'#202c2b',shirt:'#62876b'});
+    list.heard('speaker-1', 'Ali', .82, {skin:'#8b583d',hair:'#202c2b',shirt:'#62876b'});
   });
   const row = page.locator('#speaking .speaker');
   await expect(row).toHaveClass(/speaker-active/);
   expect(await row.evaluate(el => el.style.getPropertyValue('--voice-level'))).toBe('0.820');
+  expect(await row.locator('.speaker-face').evaluate(el => getComputedStyle(el).getPropertyValue('--face-shirt').trim())).toBe('#62876b');
   await page.waitForTimeout(700);
   await expect(row).toHaveClass(/speaker-inactive/);
   expect(Number(await row.evaluate(el => getComputedStyle(el).opacity))).toBeLessThan(.8);

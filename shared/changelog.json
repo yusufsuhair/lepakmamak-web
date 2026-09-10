@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.17",
+  "date": "2026-09-10",
+  "title": "Roster game guna wajah karakter sebenar",
+  "notes": [
+    "Pemain yang hanya duduk, menunggu di lobi dan sudah masuk game kini dipaparkan dalam kumpulan berasingan tanpa senarai nama Dalam yang mengelirukan.",
+    "Setiap indikator menggunakan wajah, warna kulit, rambut dan pakaian karakter sebenar pemain, termasuk roster Werewolf seluruh bandar.",
+    "Voice indicator kekal terang dan tajam di atas game walaupun latar bandar diblur pada desktop."
+  ]
+},
+{
   "version": "1.39.16",
   "date": "2026-09-10",
   "title": "Lukis dikunci mengikut sesi game",

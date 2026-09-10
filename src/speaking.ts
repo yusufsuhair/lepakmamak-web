@@ -1,4 +1,5 @@
 import './speaking.css';
+import {createPlayerFace,paintPlayerFace} from './player-face';
 
 // Voice already tells us who we are hearing, packet by packet, so "who is talking" needs
 // nothing from the server: anyone whose audio arrived recently is speaking, and silence
@@ -23,16 +24,16 @@ export function createSpeakingList(hud: HTMLElement, holdMs = 550) {
     entry.row.setAttribute('aria-label', `${entry.row.dataset.name || 'Player'}${active ? ' is speaking' : ' is nearby'}`);
   }
 
-  function rowFor(id: string, name: string, now: number) {
+  function rowFor(id: string, name: string, now: number, appearance?: Record<string,string>) {
     const existing = rows.get(id);
     if (existing) {
       existing.row.dataset.name = name;
+      paintPlayerFace(existing.row.querySelector<HTMLElement>('.speaker-face')!, appearance);
       existing.presentUntil = now + presenceMs;
       return existing;
     }
     const row = document.createElement('div'); row.className = 'speaker speaker-inactive'; row.dataset.name = name;
-    const face = document.createElement('span'); face.className = 'speaker-face';
-    face.textContent = (name || '?').slice(0, 1).toUpperCase();
+    const face = createPlayerFace({name,appearance}, 'speaker-face');
     const label = document.createElement('b'); label.textContent = name;
     row.append(face, label);
     const entry = {row, until: 0, presentUntil: now + presenceMs, level: 0};
@@ -52,17 +53,17 @@ export function createSpeakingList(hud: HTMLElement, holdMs = 550) {
 
   return {
     root,
-    heard(id: string, name: string, level = 1) {
+    heard(id: string, name: string, level = 1, appearance?: Record<string,string>) {
       const now = performance.now();
-      const entry = rowFor(id, name, now);
+      const entry = rowFor(id, name, now, appearance);
       entry.level = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 0));
       if (entry.level > .02) entry.until = now + holdMs;
       render(entry, now);
       if (!sweeping) sweeping = window.setInterval(sweep, Math.max(60, holdMs / 4));
     },
-    nearby(id: string, name: string) {
+    nearby(id: string, name: string, appearance?: Record<string,string>) {
       const now = performance.now();
-      const entry = rowFor(id, name, now);
+      const entry = rowFor(id, name, now, appearance);
       entry.presentUntil = now + presenceMs;
       // A nearby microphone stays in the list after the last packet, but the row is dark
       // until another non-silent frame arrives through heard().

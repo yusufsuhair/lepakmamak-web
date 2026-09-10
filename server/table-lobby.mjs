@@ -27,23 +27,27 @@ export function createTableLobby(send, games, now = Date.now) {
   // Werewolf gathers the whole city; everything else gathers one table.
   const keyFor = (player, game) => LOBBY_RULES[game].scope === 'city' ? 'city' : tableForChair.get(player.chairId);
 
-  const view = lobby => ({
+  const memberView = (players, member) => {
+    const player = players.get(member.id);
+    return {id: member.id, name: player?.name || member.name, ready: member.ready, appearance: player?.appearance};
+  };
+  const view = (players, lobby) => ({
     key: lobby.key, game: lobby.game, scope: LOBBY_RULES[lobby.game].scope,
     phase: lobby.phase, ends: lobby.ends, serverTime: now(),
     min: LOBBY_RULES[lobby.game].min, max: LOBBY_RULES[lobby.game].max,
-    members: lobby.members.map(member => ({id: member.id, name: member.name, ready: member.ready})),
+    members: lobby.members.map(member => memberView(players, member)),
   });
 
   // tick() runs every 50ms, so publishing unconditionally would push twenty full states a
   // second at every seated player forever. Same guard tables.mjs uses: send only on change.
   // serverTime and a running countdown are excluded from the key, or nothing would ever match.
-  const signature = lobby => JSON.stringify([lobby.phase, lobby.members.map(m => [m.id, m.name, m.ready])]);
+  const signature = (players, lobby) => JSON.stringify([lobby.phase, lobby.members.map(member => memberView(players, member))]);
 
   function publish(players, lobby, force = false) {
-    const key = signature(lobby);
+    const key = signature(players, lobby);
     if (!force && lobby.sent === key) return;
     lobby.sent = key;
-    const payload = view(lobby);
+    const payload = view(players, lobby);
     for (const member of lobby.members) {
       const player = players.get(member.id);
       if (player) send(player.ws, {type: 'lobby-state', lobby: payload});
@@ -94,12 +98,26 @@ export function createTableLobby(send, games, now = Date.now) {
     summary(players) {
       const result = {};
       for (const lobby of lobbies(players).values()) {
-        if (LOBBY_RULES[lobby.game].scope !== 'table') continue;
-        result[lobby.key] = {
+        const members = lobby.members.map(member => {
+          const player = players.get(member.id);
+          return {id: member.id, name: player?.name || member.name, appearance: player?.appearance};
+        });
+        const summary = {
           game: lobby.game,
           phase: lobby.phase,
-          members: lobby.members.map(member => ({id: member.id, name: member.name})),
+          members,
         };
+        if (LOBBY_RULES[lobby.game].scope === 'table') {
+          result[lobby.key] = summary;
+          continue;
+        }
+        // Werewolf gathers players city-wide, but an observer opens the game from a
+        // physical table. Expose the village at every table occupied by one of its
+        // members so seated players are drawn in the correct in-game roster there.
+        for (const member of lobby.members) {
+          const tableId = tableForChair.get(players.get(member.id)?.chairId);
+          if (tableId) result[tableId] = summary;
+        }
       }
       return result;
     },

@@ -1,7 +1,8 @@
 import './motion.css';
 import './table-shell.css';
+import {createPlayerFace} from './player-face';
 
-export type LobbyMember = {id: string; name: string; ready: boolean};
+export type LobbyMember = {id: string; name: string; ready: boolean; appearance?: Record<string,string>};
 export type LobbyState = {
   key: string; game: string; scope: 'table' | 'city';
   phase: 'lobby' | 'countdown' | 'playing'; ends: number; serverTime: number;
@@ -74,8 +75,7 @@ export function createTableShell(send: (message: object) => boolean) {
       const seat = document.createElement('div');
       seat.className = `table-seat ${member ? 'filled' : 'empty'}${member?.ready ? ' ready' : ''}${member?.id === self ? ' you' : ''}`;
       if (member) {
-        const face = document.createElement('span'); face.className = 'seat-face';
-        face.textContent = member.name.slice(0, 1).toUpperCase();
+        const face = createPlayerFace(member, 'seat-face');
         const name = document.createElement('b'); name.textContent = member.name;
         // Not-ready was an empty element, which reads the same as "no information". Both
         // states say what they are now.
