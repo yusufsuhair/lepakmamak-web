@@ -16,7 +16,9 @@
     "release:minor": "npm version minor -m \"chore(release): v%s\"",
     "release:major": "npm version major -m \"chore(release): v%s\"",
     "app:ios": "npm run build && cap sync ios && cap run ios",
-    "app:android": "npm run build && cap sync android && cap run android"
+    "app:android": "npm run build && cap sync android && cap run android",
+    "deploy:realtime:dev": "node scripts/deploy-realtime.mjs --dev",
+    "deploy:dev": "vite build --mode dev && wrangler pages deploy dist --project-name lepakmamak-dev --branch main"
   },
   "keywords": [],
   "author": "",

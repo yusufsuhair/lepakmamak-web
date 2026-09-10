@@ -15,3 +15,6 @@ admin/.open-next
 admin/.dev.vars
 # Throwaway checkouts of main that deploy:realtime ships from.
 .railway-deploy-*
+
+# Dev Supabase database password — never commit.
+.supabase-dev-password.local

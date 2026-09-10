@@ -19,5 +19,8 @@ test('original map uses live weather and requires account entry',async({page})=>
  await page.getByRole('button',{name:"Jom, let's go"}).click();await expect(page.locator('#auth-email')).toBeVisible();
  // Guest entry is a development convenience, so it is always on the dev server this suite
  // runs against. What production has to keep is the gate itself.
- expect(readFileSync('src/auth.ts','utf8')).toContain('const guestEnabled = import.meta.env.DEV;');
+ const auth=readFileSync('src/auth.ts','utf8');
+ expect(auth).toContain('import.meta.env.DEV || import.meta.env.VITE_ALLOW_GUESTS');
+ // Production must not opt in, or the account-only gate is decorative.
+ expect(readFileSync('.env.production','utf8')).not.toContain('VITE_ALLOW_GUESTS');
 });

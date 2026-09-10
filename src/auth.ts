@@ -11,7 +11,10 @@ export function clearGuest() { guestName = ''; }
 export const displayName = () => guestName || String(session?.user.user_metadata?.display_name || 'Player').slice(0, 18);
 
 export async function setupAuth(onEnter: () => void, onLeave: () => void) {
-  const guestEnabled = import.meta.env.DEV;
+  // Development builds allow guests, and so does any build that asks for it explicitly —
+  // the dev deployment has no Supabase project of its own, so accounts cannot work there
+  // and guest entry is the only way in. Production sets neither, so it stays account-only.
+  const guestEnabled = import.meta.env.DEV || import.meta.env.VITE_ALLOW_GUESTS === 'true';
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
