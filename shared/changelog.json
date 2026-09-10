@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.32.0",
+  "date": "2026-09-10",
+  "title": "Skrin balas sentuhan",
+  "notes": [
+   "Tapping anywhere that is not a button now leaves a small ring where your finger landed, so the screen answers you even when there was nothing there to press."
+  ]
+ },
+ {
   "version": "1.31.0",
   "date": "2026-09-10",
   "title": "Boleh jalan dalam tren",

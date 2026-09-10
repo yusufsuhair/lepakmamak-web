@@ -144,6 +144,8 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await page.getByRole('button', { name: 'Spam recall emote' }).click();
   await expect(page.locator('#toast')).toBeHidden();
   await expect(page.locator('#mission-card')).toHaveCount(0);
+  // On a phone the top-right controls live behind the ⋮ until it is opened.
+  if (await page.locator('#menu').isHidden()) await page.locator('#hud-more').tap();
   await page.getByRole('button', { name: 'Open settings' }).click();
   // "Return to Mamak Maju" is removed at startup (main.ts: $('reset').remove()); Resume is
   // the way out of the pause screen, and Log out is the way out of the city.

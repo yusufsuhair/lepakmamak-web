@@ -10,6 +10,7 @@ import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
 import {createRefresher} from './refresh';
+import {createRipples} from './ripple';
 import {districtFor} from '../shared/districts.mjs';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
@@ -448,6 +449,7 @@ async function init() {
   const touch = matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  createRipples(document.body, {reducedMotion});
   $('touch-controls').hidden = !touch;
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
