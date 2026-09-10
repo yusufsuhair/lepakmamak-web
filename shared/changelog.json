@@ -1,5 +1,13 @@
 [
 {
+  "version": "1.39.35",
+  "date": "2026-09-11",
+  "title": "Contoh Note lebih jelas",
+  "notes": [
+    "Placeholder Note kini menggunakan contoh “e.g. AFK jap” supaya fungsi ini lebih mudah difahami."
+  ]
+},
+{
   "version": "1.39.34",
   "date": "2026-09-11",
   "title": "Nota pemain dipermudahkan",
