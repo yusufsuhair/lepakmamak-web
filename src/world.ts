@@ -621,6 +621,51 @@ export function createWorld(scene: THREE.Scene): World {
     mapBuildings.push({ x: spot.x, z: spot.z, w: mosque.width, d: 28, color: '#438d7b' });
   }
   // Neighbourhood retail fronts, with displays visible from the pavement.
+  // ZUS Coffee, in place of the 99 Speedmart that stood here. Cobalt frontage, white
+  // lettering and a glazed shopfront, with pavement seating in the same two colours so the
+  // tables read as the shop's rather than the mamak's.
+  const ZUS_BLUE = '#1b31a0', ZUS_DEEP = '#101d63', ZUS_WHITE = '#f2f5ff';
+  function zusCoffee(x: number, z: number) {
+    const g = shop(x, z, 19, '#dfe3f2', 'ZUS COFFEE');
+    // A deep blue fascia carrying the name, over a paler blue awning. The shell's cream
+    // trim is covered rather than removed, so every other shop keeps it.
+    box(g, 0, 4.75, 6.17, 19.24, .3, .62, ZUS_DEEP);
+    box(g, 0, 4.02, 6.28, 19, 1.6, .22, ZUS_BLUE);
+    sign(g, 'ZUS COFFEE', 0, 4.05, 6.42, 15.4, 1.2, ZUS_BLUE, ZUS_WHITE);
+    box(g, 0, 3.18, 7.12, 19, .15, 2.35, ZUS_BLUE);
+    for (const side of [-1, 1]) box(g, side * 9.1, 1.6, 7.05, .5, 3.2, .5, ZUS_BLUE);
+    // Glazing: two tall panes either side of the door, framed in white.
+    for (const side of [-1, 1]) {
+      box(g, side * 4.6, 1.7, 6.3, 7.4, 3.4, .1, '#8fa6d8');
+      box(g, side * 4.6, 1.7, 6.36, 7.4, .1, .08, ZUS_WHITE);
+      box(g, side * .95, 1.7, 6.36, .12, 3.4, .08, ZUS_WHITE);
+    }
+    box(g, 0, 1.5, 6.18, 1.9, 3, .12, '#a9bce6');
+    for (const side of [-1, 1]) box(g, side * .95, 1.5, 6.3, .1, 3, .12, ZUS_WHITE);
+    sign(g, 'KOPI  ·  LATTE  ·  PASTRI', 0, .38, 6.34, 17.8, .42, ZUS_DEEP, ZUS_WHITE);
+    // Counter and cups behind the glass, so the inside is not an empty box.
+    box(g, 0, .95, 3.4, 11, 1.9, 1.1, ZUS_DEEP);
+    box(g, 0, 1.95, 3.4, 11.3, .12, 1.4, ZUS_WHITE);
+    for (let i = 0; i < 7; i++) tube(g, -4.2 + i * 1.4, 2.16, 3.35, .17, .42, i % 2 ? ZUS_WHITE : '#cfd8f4');
+    return g;
+  }
+
+  // A pavement table in the shop's own colours: white top, cobalt frame, four stools.
+  function zusTable(tx: number, tz: number) {
+    tube(group, tx, 1.02, tz, 1.02, .12, ZUS_WHITE);
+    tube(group, tx, .5, tz, .1, .98, ZUS_BLUE);
+    tube(group, tx, .05, tz, .62, .1, ZUS_DEEP);
+    solid(tx, tz, 1.7, 1.7);
+    for (const seat of chairLocations.filter(c => c.tableId === '' && Math.hypot(c.x - tx, c.z - tz) < 2.1)) {
+      const stool = new THREE.Group();
+      stool.position.set(seat.x, 0, seat.z); stool.rotation.y = seat.yaw; group.add(stool);
+      tube(stool, 0, .56, 0, .32, .1, ZUS_WHITE);
+      tube(stool, 0, .28, 0, .07, .56, ZUS_BLUE);
+      tube(stool, 0, .04, 0, .26, .08, ZUS_DEEP);
+      box(stool, 0, .92, .3, .62, .62, .08, ZUS_BLUE);
+    }
+  }
+
   function retail(x: number, z: number, label: string, brand: string, ink: string, kind: 'market' | 'diy' | 'laundry') {
     const g = shop(x, z, 19, '#e2d5b5', label);
     sign(g, label, 0, 4.02, 6.3, 18.7, 1.22, brand, ink);
@@ -651,7 +696,8 @@ export function createWorld(scene: THREE.Scene): World {
       }
     }
   }
-  retail(27, 58, '99 SPEEDMART', '#df3437', '#fff4d9', 'market');
+  zusCoffee(27, 58);
+  for (const [tx, tz] of [[21.5, 66.2], [27, 66.8], [32.5, 66.2]] as const) zusTable(tx, tz);
   retail(49, 58, 'KK SUPER MART', '#c92536', '#ffffff', 'market');
   retail(-35, -90, 'KEDAI DOBI · 24 JAM', '#348cb1', '#ffffff', 'laundry');
   retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');

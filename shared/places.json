@@ -1,282 +1,282 @@
 [
-  {
-    "id": "1",
-    "name": "Mamak Maju",
-    "x": -32,
-    "z": 45,
-    "kind": "lepak"
-  },
-  {
-    "id": "2",
-    "name": "99 Speedmart",
-    "x": 27,
-    "z": 58,
-    "kind": "kedai"
-  },
-  {
-    "id": "3",
-    "name": "KK Super Mart",
-    "x": 49,
-    "z": 58,
-    "kind": "kedai"
-  },
-  {
-    "id": "4",
-    "name": "MR.DIY",
-    "x": -56,
-    "z": -90,
-    "kind": "kedai"
-  },
-  {
-    "id": "5",
-    "name": "Dobi 24 Jam",
-    "x": -35,
-    "z": -90,
-    "kind": "kedai"
-  },
-  {
-    "id": "6",
-    "name": "Kedai Aceh",
-    "x": 27,
-    "z": -40,
-    "kind": "kedai"
-  },
-  {
-    "id": "7",
-    "name": "MR.DIY Jalan Lepak",
-    "x": 49,
-    "z": -40,
-    "kind": "kedai"
-  },
-  {
-    "id": "8",
-    "name": "99 Speedmart Timur",
-    "x": 105,
-    "z": 60,
-    "kind": "kedai"
-  },
-  {
-    "id": "9",
-    "name": "KK Super Mart Timur",
-    "x": 129,
-    "z": 60,
-    "kind": "kedai"
-  },
-  {
-    "id": "10",
-    "name": "Dataran Santai",
-    "x": 112,
-    "z": -14,
-    "kind": "lepak"
-  },
-  {
-    "id": "11",
-    "name": "Laman Lepak",
-    "x": -110,
-    "z": 60,
-    "kind": "lepak"
-  },
-  {
-    "id": "12",
-    "name": "Air Balang Pak Din",
-    "x": -12,
-    "z": 60,
-    "kind": "gerai"
-  },
-  {
-    "id": "13",
-    "name": "Pisang Goreng Mak Cik",
-    "x": -25,
-    "z": 65,
-    "kind": "gerai"
-  },
-  {
-    "id": "14",
-    "name": "Busking Santai",
-    "x": -40,
-    "z": 64,
-    "kind": "lepak"
-  },
-  {
-    "id": "15",
-    "name": "KLCC",
-    "x": 0,
-    "z": -122,
-    "kind": "lepak"
-  },
-  {
-    "id": "16",
-    "name": "PETRONAS \u00b7 Kedai Mesra",
-    "x": -31,
-    "z": 112,
-    "kind": "minyak"
-  },
-  {
-    "id": "17",
-    "name": "Masjid Kampung Maju",
-    "x": 117,
-    "z": 115,
-    "kind": "ibadah"
-  },
-  {
-    "id": "18",
-    "name": "Watsons Malaysia",
-    "x": -56,
-    "z": -40,
-    "kind": "kedai"
-  },
-  {
-    "id": "19",
-    "name": "FamilyMart Malaysia",
-    "x": 49,
-    "z": 34,
-    "kind": "kedai"
-  },
-  {
-    "id": "20",
-    "name": "7-Eleven Malaysia",
-    "x": -59,
-    "z": 32,
-    "kind": "kedai"
-  },
-  {
-    "id": "21",
-    "name": "Pickleball Lepak",
-    "x": 35,
-    "z": 130,
-    "kind": "sukan"
-  },
-  {
-    "id": "22",
-    "name": "Basket Lepak",
-    "x": 54,
-    "z": 129,
-    "kind": "sukan"
-  },
-  {
-    "id": "23",
-    "name": "UOB Bank",
-    "x": -116,
-    "z": -37,
-    "kind": "bank"
-  },
-  {
-    "id": "24",
-    "name": "HSBC Bank",
-    "x": -95,
-    "z": -37,
-    "kind": "bank"
-  },
-  {
-    "id": "25",
-    "name": "Pusat Komuniti DAP",
-    "x": -116,
-    "z": 37,
-    "kind": "civic"
-  },
-  {
-    "id": "26",
-    "name": "Hotel Mahkota",
-    "x": -95,
-    "z": 37,
-    "kind": "hotel"
-  },
-  {
-    "id": "27",
-    "name": "The Exchange TRX",
-    "x": 94,
-    "z": -95,
-    "kind": "mercu"
-  },
-  {
-    "id": "28",
-    "name": "Merdeka 118",
-    "x": 118,
-    "z": -95,
-    "kind": "mercu"
-  },
-  {
-    "id": "29",
-    "name": "Jambatan Saloma",
-    "x": 55,
-    "z": -125,
-    "kind": "mercu"
-  },
-  {
-    "id": "30",
-    "name": "Zoo Negara Mini Lepak",
-    "x": -100,
-    "z": -112,
-    "kind": "zoo"
-  },
-  {
-    "id": "31",
-    "name": "Rembayung Restaurant",
-    "x": -121,
-    "z": 114,
-    "kind": "lepak"
-  },
-  {
-    "id": "32",
-    "name": "Upin & Ipin \u00b7 Kampung Durian Runtuh",
-    "x": 122,
-    "z": -114,
-    "kind": "zoo"
-  },
-  {
-    "id": "33",
-    "name": "LRT \u00b7 KLCC",
-    "x": -32,
-    "z": -73,
-    "kind": "lrt"
-  },
-  {
-    "id": "34",
-    "name": "LRT \u00b7 Ampang Park",
-    "x": 32,
-    "z": -73,
-    "kind": "lrt"
-  },
-  {
-    "id": "35",
-    "name": "LRT \u00b7 TRX",
-    "x": 85,
-    "z": -30,
-    "kind": "lrt"
-  },
-  {
-    "id": "36",
-    "name": "LRT \u00b7 Mamak Timur",
-    "x": 85,
-    "z": 30,
-    "kind": "lrt"
-  },
-  {
-    "id": "37",
-    "name": "LRT \u00b7 Busking Sentral",
-    "x": 32,
-    "z": 87,
-    "kind": "lrt"
-  },
-  {
-    "id": "38",
-    "name": "LRT \u00b7 Mamak Maju",
-    "x": -32,
-    "z": 87,
-    "kind": "lrt"
-  },
-  {
-    "id": "39",
-    "name": "LRT \u00b7 Rembayung",
-    "x": -91,
-    "z": 30,
-    "kind": "lrt"
-  },
-  {
-    "id": "40",
-    "name": "LRT \u00b7 Zoo & Kampung",
-    "x": -91,
-    "z": -30,
-    "kind": "lrt"
-  }
+ {
+  "id": "1",
+  "name": "Mamak Maju",
+  "x": -32,
+  "z": 45,
+  "kind": "lepak"
+ },
+ {
+  "id": "2",
+  "name": "ZUS Coffee",
+  "x": 27,
+  "z": 58,
+  "kind": "kedai"
+ },
+ {
+  "id": "3",
+  "name": "KK Super Mart",
+  "x": 49,
+  "z": 58,
+  "kind": "kedai"
+ },
+ {
+  "id": "4",
+  "name": "MR.DIY",
+  "x": -56,
+  "z": -90,
+  "kind": "kedai"
+ },
+ {
+  "id": "5",
+  "name": "Dobi 24 Jam",
+  "x": -35,
+  "z": -90,
+  "kind": "kedai"
+ },
+ {
+  "id": "6",
+  "name": "Kedai Aceh",
+  "x": 27,
+  "z": -40,
+  "kind": "kedai"
+ },
+ {
+  "id": "7",
+  "name": "MR.DIY Jalan Lepak",
+  "x": 49,
+  "z": -40,
+  "kind": "kedai"
+ },
+ {
+  "id": "8",
+  "name": "99 Speedmart Timur",
+  "x": 105,
+  "z": 60,
+  "kind": "kedai"
+ },
+ {
+  "id": "9",
+  "name": "KK Super Mart Timur",
+  "x": 129,
+  "z": 60,
+  "kind": "kedai"
+ },
+ {
+  "id": "10",
+  "name": "Dataran Santai",
+  "x": 112,
+  "z": -14,
+  "kind": "lepak"
+ },
+ {
+  "id": "11",
+  "name": "Laman Lepak",
+  "x": -110,
+  "z": 60,
+  "kind": "lepak"
+ },
+ {
+  "id": "12",
+  "name": "Air Balang Pak Din",
+  "x": -12,
+  "z": 60,
+  "kind": "gerai"
+ },
+ {
+  "id": "13",
+  "name": "Pisang Goreng Mak Cik",
+  "x": -25,
+  "z": 65,
+  "kind": "gerai"
+ },
+ {
+  "id": "14",
+  "name": "Busking Santai",
+  "x": -40,
+  "z": 64,
+  "kind": "lepak"
+ },
+ {
+  "id": "15",
+  "name": "KLCC",
+  "x": 0,
+  "z": -122,
+  "kind": "lepak"
+ },
+ {
+  "id": "16",
+  "name": "PETRONAS · Kedai Mesra",
+  "x": -31,
+  "z": 112,
+  "kind": "minyak"
+ },
+ {
+  "id": "17",
+  "name": "Masjid Kampung Maju",
+  "x": 117,
+  "z": 115,
+  "kind": "ibadah"
+ },
+ {
+  "id": "18",
+  "name": "Watsons Malaysia",
+  "x": -56,
+  "z": -40,
+  "kind": "kedai"
+ },
+ {
+  "id": "19",
+  "name": "FamilyMart Malaysia",
+  "x": 49,
+  "z": 34,
+  "kind": "kedai"
+ },
+ {
+  "id": "20",
+  "name": "7-Eleven Malaysia",
+  "x": -59,
+  "z": 32,
+  "kind": "kedai"
+ },
+ {
+  "id": "21",
+  "name": "Pickleball Lepak",
+  "x": 35,
+  "z": 130,
+  "kind": "sukan"
+ },
+ {
+  "id": "22",
+  "name": "Basket Lepak",
+  "x": 54,
+  "z": 129,
+  "kind": "sukan"
+ },
+ {
+  "id": "23",
+  "name": "UOB Bank",
+  "x": -116,
+  "z": -37,
+  "kind": "bank"
+ },
+ {
+  "id": "24",
+  "name": "HSBC Bank",
+  "x": -95,
+  "z": -37,
+  "kind": "bank"
+ },
+ {
+  "id": "25",
+  "name": "Pusat Komuniti DAP",
+  "x": -116,
+  "z": 37,
+  "kind": "civic"
+ },
+ {
+  "id": "26",
+  "name": "Hotel Mahkota",
+  "x": -95,
+  "z": 37,
+  "kind": "hotel"
+ },
+ {
+  "id": "27",
+  "name": "The Exchange TRX",
+  "x": 94,
+  "z": -95,
+  "kind": "mercu"
+ },
+ {
+  "id": "28",
+  "name": "Merdeka 118",
+  "x": 118,
+  "z": -95,
+  "kind": "mercu"
+ },
+ {
+  "id": "29",
+  "name": "Jambatan Saloma",
+  "x": 55,
+  "z": -125,
+  "kind": "mercu"
+ },
+ {
+  "id": "30",
+  "name": "Zoo Negara Mini Lepak",
+  "x": -100,
+  "z": -112,
+  "kind": "zoo"
+ },
+ {
+  "id": "31",
+  "name": "Rembayung Restaurant",
+  "x": -121,
+  "z": 114,
+  "kind": "lepak"
+ },
+ {
+  "id": "32",
+  "name": "Upin & Ipin · Kampung Durian Runtuh",
+  "x": 122,
+  "z": -114,
+  "kind": "zoo"
+ },
+ {
+  "id": "33",
+  "name": "LRT · KLCC",
+  "x": -32,
+  "z": -73,
+  "kind": "lrt"
+ },
+ {
+  "id": "34",
+  "name": "LRT · Ampang Park",
+  "x": 32,
+  "z": -73,
+  "kind": "lrt"
+ },
+ {
+  "id": "35",
+  "name": "LRT · TRX",
+  "x": 85,
+  "z": -30,
+  "kind": "lrt"
+ },
+ {
+  "id": "36",
+  "name": "LRT · Mamak Timur",
+  "x": 85,
+  "z": 30,
+  "kind": "lrt"
+ },
+ {
+  "id": "37",
+  "name": "LRT · Busking Sentral",
+  "x": 32,
+  "z": 87,
+  "kind": "lrt"
+ },
+ {
+  "id": "38",
+  "name": "LRT · Mamak Maju",
+  "x": -32,
+  "z": 87,
+  "kind": "lrt"
+ },
+ {
+  "id": "39",
+  "name": "LRT · Rembayung",
+  "x": -91,
+  "z": 30,
+  "kind": "lrt"
+ },
+ {
+  "id": "40",
+  "name": "LRT · Zoo & Kampung",
+  "x": -91,
+  "z": -30,
+  "kind": "lrt"
+ }
 ]
