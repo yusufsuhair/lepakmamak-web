@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { currentAdmin } from "@/lib/session";
+import { currentAdmin } from "@/lib/admin-auth";
 import { adminClient } from "@/lib/supabase";
 import { deleteWallPost } from "@/lib/wall";
 

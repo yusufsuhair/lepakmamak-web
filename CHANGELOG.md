@@ -67,6 +67,8 @@
 
 ## Unreleased
 
+- Switched the admin console from Cloudflare Access to server-validated Supabase Auth with an exact Yusuf email allowlist, Google/email sign-in, SSR session cookies, and an admin custom domain deployment.
+
 - Expanded the roaming street-animal population to ten cats and ten dogs across the city, with varied colours and sizes, distance culling and shared sound throttling for mobile performance.
 
 - Filled the Busking Santai area with eleven lightweight spectator NPCs: seven seated fans, one camera holder and three animated wavers.

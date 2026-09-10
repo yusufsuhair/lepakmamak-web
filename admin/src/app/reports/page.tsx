@@ -1,4 +1,5 @@
 import { adminClient } from "@/lib/supabase";
+import { currentAdmin } from "@/lib/admin-auth";
 import { chatAround, listPenalties, listReports, type ChatLine, type PlayerReport } from "@/lib/moderation";
 import { actOnReport, lift } from "./actions";
 
@@ -46,6 +47,7 @@ function Evidence({ report, chat }: { report: PlayerReport; chat: ChatLine[] }) 
 }
 
 export default async function ReportsPage() {
+  await currentAdmin();
   const client = adminClient();
   const [reports, penalties] = await Promise.all([listReports(client), listPenalties(client)]);
   // One extra query per chat report. A single-moderator console reviewing a page of

@@ -122,7 +122,7 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 - `server/index.mjs`: Railway WebSocket room service and health endpoint.
 - `server/metrics.mjs`: live traffic counters behind `/health`, and the saturation and shutdown alerts.
 - `server/moderation.mjs`: reports, mutes and bans, read from and written to Supabase.
-- `admin/`: the moderation console, behind Cloudflare Access.
+- `admin/`: the moderation console, protected by Supabase Auth and restricted to Yusuf's account.
 - `tests/`: collision and mission tests, desktop delivery end-to-end test, mobile UI smoke test.
 - `PLAN.md`: scope and next milestones.
 
@@ -152,7 +152,7 @@ reviewable at all — there is no clip to replay, only people who can be asked. 
 need nothing extra stored, because the room's public chat history already exists and the
 console reads a five-minute window around the report out of it.
 
-**Review.** `admin/` at **/reports**, behind Cloudflare Access, restricted to `ADMIN_EMAIL`.
+**Review.** `admin/` at **/reports**, behind Supabase Auth, restricted to the exact `ADMIN_EMAIL` account.
 Each report shows its evidence and offers mute, ban or dismiss. Every action is written to
 `admin_audit_log` *before* it takes effect, so a decision that cannot be logged does not
 happen.
@@ -174,8 +174,9 @@ happen.
 
 **Apply the migration before deploying the realtime server.** The Wall's check fails
 closed, so if `player_bans` does not exist yet every Wall post answers 503 until it does.
-The admin console additionally needs `SUPABASE_SERVICE_ROLE_KEY`, `CF_ACCESS_TEAM_DOMAIN`,
-`CF_ACCESS_AUD` and `ADMIN_EMAIL`.
+The admin console additionally needs `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY` and `ADMIN_EMAIL`. The service-role key is server-only; the
+publishable key is used for the sign-in flow and is safe to expose to the browser.
 
 ### Child safety — this does not stop at the console
 

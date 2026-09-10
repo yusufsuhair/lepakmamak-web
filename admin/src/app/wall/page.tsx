@@ -1,10 +1,12 @@
 import { adminClient } from "@/lib/supabase";
+import { currentAdmin } from "@/lib/admin-auth";
 import { listWallPosts } from "@/lib/wall";
 import { removePost } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function WallPage() {
+  await currentAdmin();
   const posts = await listWallPosts(adminClient());
   return (
     <main style={{ fontFamily: "system-ui", padding: 32, maxWidth: 820 }}>
