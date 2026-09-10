@@ -1,5 +1,13 @@
 # Project workflow
 
+## Current workflow — Yusuf’s latest instruction
+
+- Game Dev 1 works and commits directly on `main` in `/Users/yusufsuhair/Downloads/astra`.
+- Game Dev 1 (this task) is the sole owner of development deployments. Other developer tasks and the orchestrator must not deploy to dev unless Yusuf explicitly reassigns deployment ownership.
+- Default deployment destination is dev only. Production requires a new explicit request from Yusuf.
+- The rules below about separate branches and stopping before integration remain applicable to other developer tasks; they do not override the main-branch workflow for Game Dev 1.
+
+
 - Parallel development tasks work and commit in separate worktrees on separate `codex/*` branches. This replaces the previous instruction to work directly on `main` for this project.
 - Game Dev 1 owns assigned gameplay and web features; Mobile Dev owns assigned mobile/native integration; SQA owns verification, regression tests, and reproducible bug reports. Preserve each task's existing assignment and coordinate overlapping shared files only when necessary.
 - Verify the actual working directory, branch, and uncommitted changes before starting. Never switch another task's branch, overwrite its changes, or force the same branch into multiple worktrees. Create a task branch before committing from a detached worktree.
