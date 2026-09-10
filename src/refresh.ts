@@ -15,6 +15,10 @@ export function isStale(client: string, server: string): boolean {
   return false;
 }
 
+export function shouldOfferConnectionRestart(state: 'solo' | 'connecting' | 'online' | 'offline', label: string): boolean {
+  return state === 'offline' && label !== 'LOGIN REQUIRED' && label !== 'SUSPENDED';
+}
+
 // Remembered across the reload: if we come back still behind the version we reloaded for,
 // the new build did not arrive and reloading again would just loop. Ask instead.
 const ATTEMPTED = 'lepak-refreshed-for';
@@ -50,8 +54,37 @@ export function createRefresher(
   const later = document.createElement('button');
   later.type = 'button'; later.textContent = 'Nanti';
   root.querySelector('.refresh-card')!.append(later);
-  let dismissed = '', client = '', polling = false;
+  let dismissed = '', client = '', polling = false, connectionRestart = false;
   later.onclick = () => { dismissed = target; root.hidden = true; };
+  function showOptionalUpdate() {
+    root.classList.add('refresh-optional');
+    root.classList.remove('connection-recovery');
+    root.hidden = false;
+    root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
+    line.textContent = 'Update tersedia';
+    note.textContent = 'Muat semula bila anda bersedia untuk versi terbaru.';
+    button.textContent = 'Update sekarang'; button.setAttribute('aria-label', 'Update now'); button.hidden = false; later.hidden = false;
+  }
+  function showConnectionRestart() {
+    // A mandatory version refresh owns the rail until it finishes. The connection prompt
+    // is useful only when it can be acted on without interrupting that countdown.
+    if (timer !== null) return;
+    connectionRestart = true;
+    root.classList.add('refresh-optional', 'connection-recovery');
+    root.hidden = false;
+    root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'assertive');
+    line.textContent = 'Connection lost';
+    note.textContent = 'Connection to the city failed. Restart to reconnect.';
+    button.textContent = 'Restart'; button.setAttribute('aria-label', 'Restart game'); button.hidden = false; later.hidden = true;
+  }
+  function hideConnectionRestart() {
+    if (!connectionRestart) return;
+    connectionRestart = false;
+    if (timer !== null) return;
+    if (target && dismissed !== target) { showOptionalUpdate(); return; }
+    root.hidden = true;
+    root.classList.remove('refresh-optional', 'connection-recovery');
+  }
   async function poll() {
     if (!client || polling || timer !== null || document.hidden) return;
     polling = true;
@@ -65,11 +98,7 @@ export function createRefresher(
       }
       if (dismissed === release.buildId) return;
       target = release.buildId;
-      root.classList.add('refresh-optional'); root.hidden = false;
-      root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
-      line.textContent = 'Update tersedia';
-      note.textContent = 'Muat semula bila anda bersedia untuk versi terbaru.';
-      button.textContent = 'Update sekarang'; button.hidden = false; later.hidden = false;
+      if (!connectionRestart) showOptionalUpdate();
     } catch { /* Offline or deploying: leave the game running. */ }
     finally { polling = false; }
   }
@@ -82,14 +111,18 @@ export function createRefresher(
   const api = {
     root,
     get pending() { return target; },
+    showConnectionRestart,
+    hideConnectionRestart,
     // Returns what it decided, so a caller (and a test) can see why nothing happened.
     check(clientVersion: string, serverVersion: string, required = false): 'current' | 'counting' | 'asking' {
       client = clientVersion;
       if (!required) { if (import.meta.env.PROD) void poll(); return 'current'; }
       if (timer !== null || !isStale(clientVersion, serverVersion)) return timer !== null ? 'counting' : 'current';
+      connectionRestart = false;
       root.classList.remove('refresh-optional');
+      root.classList.remove('connection-recovery');
       root.setAttribute('role', 'alertdialog');
-      later.hidden = true; button.hidden = true;
+      later.hidden = true; button.hidden = true; button.removeAttribute('aria-label');
       target = serverVersion;
       root.hidden = false;
       // Already tried to reach this version and came back short: the build is not there yet.

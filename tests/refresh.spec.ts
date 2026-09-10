@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {isStale} from '../src/refresh';
+import {isStale,shouldOfferConnectionRestart} from '../src/refresh';
 
 test('only a genuinely newer server counts as stale',()=>{
  expect(isStale('1.22.0','1.23.0')).toBe(true);
@@ -13,6 +13,11 @@ test('only a genuinely newer server counts as stale',()=>{
  // Nothing usable means do nothing at all.
  for(const junk of ['','dev','1.x.0',undefined as any]) expect(isStale('1.23.0',junk)).toBe(false);
  expect(isStale('' ,'1.23.0')).toBe(false);
+ expect(shouldOfferConnectionRestart('offline','OFFLINE')).toBe(true);
+ expect(shouldOfferConnectionRestart('offline','UNAVAILABLE')).toBe(true);
+ expect(shouldOfferConnectionRestart('offline','LOGIN REQUIRED')).toBe(false);
+ expect(shouldOfferConnectionRestart('offline','SUSPENDED')).toBe(false);
+ expect(shouldOfferConnectionRestart('connecting','RECONNECTING…')).toBe(false);
 });
 
 const mount=async(page:any,route:string)=>{
@@ -76,3 +81,25 @@ test('coming back still behind asks instead of reloading in a circle',async({pag
  await advance(page,60000);
  expect(await page.evaluate(()=>(window as any).reloads)).toBe(0);
  });
+
+test('a red connection state offers a responsive restart action in the update rail',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await mount(page,'connection-harness');
+ await page.evaluate(()=>(window as any).refresher.showConnectionRestart());
+ const notice=page.locator('#force-refresh');
+ await expect(notice).toHaveClass(/refresh-optional/);
+ await expect(notice).toHaveClass(/connection-recovery/);
+ await expect(notice).toBeVisible();
+ await expect(page.locator('#refresh-line')).toHaveText('Connection lost');
+ await expect(page.locator('#refresh-note')).toHaveText('Connection to the city failed. Restart to reconnect.');
+ await expect(page.locator('#refresh-now')).toHaveText('Restart');
+ await expect(page.locator('#refresh-now')).toHaveAttribute('aria-label','Restart game');
+ const box=await notice.boundingBox();
+ expect(box).not.toBeNull();
+ expect(box!.width).toBeLessThanOrEqual(320);
+ expect(box!.x+box!.width).toBeLessThanOrEqual(390);
+ await page.locator('#refresh-now').click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).reloads)).toBe(1);
+ await page.evaluate(()=>(window as any).refresher.hideConnectionRestart());
+ await expect(notice).toBeHidden();
+});

@@ -769,3 +769,22 @@ html, body, #app { touch-action: manipulation; }
 
 /* Table actions need a full touch target even when the table is empty. */
 .table-label { min-width: 120px; min-height: 48px; touch-action: manipulation; }
+
+/* Connection recovery uses the same lower-right rail as an optional release update. It
+   stays compact on touch screens so the speedometer and action buttons remain reachable. */
+#force-refresh.refresh-optional.connection-recovery .refresh-card { border-color: #ff9b8d88; }
+#force-refresh.refresh-optional.connection-recovery .refresh-card strong { color: #ffd0c7; }
+#force-refresh.refresh-optional.connection-recovery .refresh-card button { background: #ffb3a4; color: #3d211e; }
+@media (any-pointer: coarse) {
+  #force-refresh.refresh-optional { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 128px); }
+}
+@media (max-width: 600px) {
+  #force-refresh.refresh-optional {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(max(24px, env(safe-area-inset-bottom)) + 132px);
+    width: min(320px, calc(100vw - 28px));
+  }
+  #force-refresh.refresh-optional .refresh-card { padding: 14px 16px; }
+  #force-refresh.refresh-optional .refresh-card strong { font-size: 18px; }
+  #force-refresh.refresh-optional .refresh-card p { font-size: 11px; }
+}

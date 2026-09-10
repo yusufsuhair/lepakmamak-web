@@ -14,7 +14,7 @@ import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
-import {createRefresher} from './refresh';
+import {createRefresher,shouldOfferConnectionRestart} from './refresh';
 import {createRipples} from './ripple';
 import {createCarFinder,drawCarPin} from './car-finder';
 import {districtFor} from '../shared/districts.mjs';
@@ -787,6 +787,12 @@ async function init() {
   onlinePlayersDialog.addEventListener('keydown', event => event.stopPropagation());
   onlinePlayersDialog.addEventListener('close', () => $('multiplayer-status').focus());
   function setNetworkStatus(label: string, state: 'solo' | 'connecting' | 'online' | 'offline', count = 1) {
+    // The red player-count dot means the city transport is unavailable. Give the player
+    // the same lower-right recovery action as a release update, while keeping auth and
+    // moderation states informational because restarting cannot fix either one.
+    const restartable = shouldOfferConnectionRestart(state, label);
+    if (restartable) refresher.showConnectionRestart();
+    else if (state === 'online' || state === 'solo' || label === 'LOGIN REQUIRED' || label === 'SUSPENDED' || label === 'CITY FULL') refresher.hideConnectionRestart();
     const statusKey = `${label}:${state}:${count}`;
     if ($('multiplayer-status').dataset.statusKey === statusKey) { renderOnlinePlayers(); return; }
     $('multiplayer-status').dataset.statusKey = statusKey;
@@ -932,6 +938,7 @@ async function init() {
     const oldSocket = networkSocket; networkSocket = null;
     oldSocket?.close(1000, 'Leaving the city');
     networkConnected = false; networkPlayerId = '';
+    refresher.hideConnectionRestart();
     localSupermanUntil = 0;
     for (const entity of remotePlayers.values()) disposeRemote(entity);
     remotePlayers.clear(); roomPlayers = [];
@@ -969,6 +976,7 @@ async function init() {
   }
   async function connectMultiplayer() {
     if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); finishEntryLoading(); return; }
+    rejection = null;
     setNetworkStatus('CONNECTING…', 'connecting', 1);
     try {
       const accessToken = auth && !guestName ? (await auth.auth.getSession()).data.session?.access_token : undefined;
@@ -1086,7 +1094,10 @@ async function init() {
         if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4001) { setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
         // No retry loop: reconnecting cannot lift a suspension, it just hammers the server.
         if (rejection?.code === 'BANNED' || event.code === 4003) { setNetworkStatus('SUSPENDED', 'offline', 1); return; }
-        setNetworkStatus(rejection?.code === 'ROOM_FULL' ? 'CITY FULL' : 'RECONNECTING…', 'connecting', 1);
+        // Keep a real transport failure red and actionable while the background retry runs.
+        // A full room has its own orange state and does not ask the player to restart.
+        if (rejection?.code === 'ROOM_FULL') setNetworkStatus('CITY FULL', 'connecting', 1);
+        else setNetworkStatus('OFFLINE', 'offline', 1);
         retryMultiplayer(); });
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; finishEntryLoading(); voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
     } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
