@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.32",
+  "date": "2026-09-11",
+  "title": "Forgot password tersedia dalam Security",
+  "notes": [
+    "Pemain kini boleh minta reset password terus dari modul Security.",
+    "Pautan reset dihantar ke email akaun dan akan membawa pemain kembali ke LepakMamak untuk pilih password baharu.",
+    "Status penghantaran dipaparkan dengan jelas dan butang dikunci sementara permintaan sedang diproses."
+  ]
+},
+{
   "version": "1.39.31",
   "date": "2026-09-11",
   "title": "Edit Profile kini ada loading state yang lebih jelas",

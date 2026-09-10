@@ -13,6 +13,10 @@ export function setupSecurity(endpoint: string) {
       <label>Repeat new password<input id="repeat-password" type="password" autocomplete="new-password" minlength="8" required></label>
       <button class="primary" type="submit">Update password</button>
       <p id="password-status" role="status" aria-live="polite"></p></form>
+    <form id="password-reset-form" novalidate><h3>Forgot password?</h3>
+      <p>Send a reset link to <strong id="reset-email">your account email</strong>. The link returns here so you can choose a new password.</p>
+      <button class="secondary" id="send-reset" type="submit">Send reset email</button>
+      <p id="reset-status" role="status" aria-live="polite"></p></form>
     <form id="delete-form" novalidate><h3>Delete account</h3>
       <p>This removes your account, your items, your posts and your messages. It cannot be undone.</p>
       <label>Type DELETE to confirm<input id="delete-confirm" autocomplete="off" placeholder="DELETE"></label>
@@ -21,8 +25,9 @@ export function setupSecurity(endpoint: string) {
   document.body.append(dialog);
 
   const el = <T extends HTMLElement>(id: string) => dialog.querySelector<T>(`#${id}`)!;
-  const passwordForm = el<HTMLFormElement>('password-form'), deleteForm = el<HTMLFormElement>('delete-form');
-  const passwordStatus = el('password-status'), deleteStatus = el('delete-status');
+  const passwordForm = el<HTMLFormElement>('password-form'), resetForm = el<HTMLFormElement>('password-reset-form'), deleteForm = el<HTMLFormElement>('delete-form');
+  const passwordStatus = el('password-status'), resetStatus = el('reset-status'), deleteStatus = el('delete-status');
+  const resetEmail = el('reset-email');
   const confirmField = el<HTMLInputElement>('delete-confirm');
   const fields = () => [...dialog.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button')];
   let busy = false;
@@ -56,6 +61,20 @@ export function setupSecurity(endpoint: string) {
     } finally { setBusy(false); }
   };
 
+  resetForm.onsubmit = async event => {
+    event.preventDefault(); if (busy) return;
+    const email = session?.user.email?.trim();
+    if (!auth || !email) { resetStatus.textContent = 'Log in again to reset your password.'; return; }
+    setBusy(true); resetStatus.textContent = 'Sending reset email…';
+    try {
+      const {error} = await auth.auth.resetPasswordForEmail(email, {redirectTo: location.origin});
+      if (error) throw error;
+      resetStatus.textContent = 'If this account has a password, check your email for a reset link.';
+    } catch (error) {
+      resetStatus.textContent = error instanceof Error ? error.message : 'Could not send a reset email.';
+    } finally { setBusy(false); }
+  };
+
   deleteForm.onsubmit = async event => {
     event.preventDefault(); if (busy) return;
     if (confirmField.value.trim() !== 'DELETE') { deleteStatus.textContent = 'Type DELETE, in capitals, to confirm.'; return; }
@@ -81,7 +100,8 @@ export function setupSecurity(endpoint: string) {
 
   return () => {
     passwordForm.reset(); deleteForm.reset();
-    passwordStatus.textContent = ''; deleteStatus.textContent = '';
+    passwordStatus.textContent = ''; resetStatus.textContent = ''; deleteStatus.textContent = '';
+    resetEmail.textContent = session?.user.email || 'your account email';
     setBusy(false); dialog.showModal();
     el<HTMLInputElement>('current-password').focus();
   };

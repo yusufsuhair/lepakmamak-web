@@ -46,6 +46,16 @@ test('deletion needs the word typed out, and asks the server rather than the bro
  expect(await page.evaluate(()=>(window as any).calls)).toEqual([]);
 });
 
+test('security can send a Supabase password reset email',async({page})=>{
+ await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const session={user:{email:'player@example.com'}};export const auth={auth:{resetPasswordForEmail:async(...args)=>{window.resetCall=args;return {error:null};}}};`}));
+ await mount(page,'reset-harness');
+ await expect(page.locator('#reset-email')).toHaveText('player@example.com');
+ await page.getByRole('button',{name:'Send reset email',exact:true}).click();
+ await expect(page.locator('#reset-status')).toHaveText(/check your email for a reset link/);
+ const call=await page.evaluate(()=>({args:(window as any).resetCall,origin:location.origin}));
+ expect(call.args[0]).toBe('player@example.com');expect(call.args[1]).toEqual({redirectTo:call.origin});
+});
+
 test('guests never see the security panel at all',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:"Jom, let's go"}).click();
