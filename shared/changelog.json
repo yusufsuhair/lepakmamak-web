@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.19.0",
+  "date": "2026-09-10",
+  "title": "Pelayan bandar pandai lapor sendiri",
+  "notes": [
+   "Behind the scenes, the city server now reports what it is actually doing — how many people are connected, how much it is sending each second, and whether it is starting to struggle — so a busy night gets noticed before anybody's game stutters."
+  ]
+ },
+ {
   "version": "1.18.0",
   "date": "2026-09-10",
   "title": "Satu skrin karakter, Kedai di bar atas",
