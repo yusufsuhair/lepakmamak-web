@@ -23,7 +23,14 @@ export function createLukis(send,now=Date.now,pick=randomInt){
   let pool=config.words.filter(w=>!g.used.has(w.text));if(pool.length<3){g.used.clear();pool=[...config.words];}g.choices=[];for(let i=0;i<3;i++)g.choices.push(pool.splice(pick(pool.length),1)[0]);
   if(g.protocol===2){g.phase='choosing';g.ends=now()+12000;g.word={text:'',category:''};}else choose(g,0);
  }
- function tick(ps){const map=games.get(ps);if(!map)return;for(const [id,g] of map){const people=members(ps,id).filter(p=>g.order.includes(key(p)));let presenceChanged=false;for(const participant of g.order){if(people.some(p=>key(p)===participant)){if(g.missingAt[participant]){delete g.missingAt[participant];presenceChanged=true;}}else if(!g.missingAt[participant]){g.missingAt[participant]=now();presenceChanged=true;}}g.waitingForPlayers=people.length<2;if(g.protocol===2&&g.waitingForPlayers&&Object.values(g.missingAt).every(at=>now()-at<30000)){if(presenceChanged)state(ps,g,undefined,false);continue;}if(people.length<2){map.delete(id);for(const p of members(ps,id))send(p.ws,{type:'lukis-state',game:null});continue;}if(presenceChanged)state(ps,g,undefined,false);if(g.phase==='finished')continue;
+ function tick(ps){const map=games.get(ps);if(!map)return;for(const [id,g] of map){const people=members(ps,id).filter(p=>g.order.includes(key(p)));let presenceChanged=false;for(const participant of g.order){if(people.some(p=>key(p)===participant)){if(g.missingAt[participant]){delete g.missingAt[participant];presenceChanged=true;}}else if(!g.missingAt[participant]){g.missingAt[participant]=now();presenceChanged=true;}}g.waitingForPlayers=people.length<2;
+  // Protocol v2 promises a 30-second reconnect grace. Freeze the current turn while
+  // fewer than two original players remain, then restore every millisecond that elapsed
+  // before the missing player returned. This keeps choosing/drawing/reveal deadlines fair.
+  const inGrace=g.protocol===2&&g.waitingForPlayers&&Object.values(g.missingAt).every(at=>now()-at<30000);
+  if(inGrace){if(!g.pausedAt)g.pausedAt=now();if(presenceChanged)state(ps,g,undefined,false);continue;}
+  if(!g.waitingForPlayers&&g.pausedAt){if(g.ends)g.ends+=now()-g.pausedAt;g.pausedAt=0;presenceChanged=true;}
+  if(people.length<2){map.delete(id);for(const p of members(ps,id))send(p.ws,{type:'lukis-state',game:null});continue;}if(presenceChanged)state(ps,g,undefined,false);if(g.phase==='finished')continue;
   if(['drawing','choosing'].includes(g.phase)&&!people.some(p=>key(p)===g.drawer)&&(g.protocol!==2||now()-(g.missingAt[g.drawer]||0)>=30000)){reveal(g);state(ps,g);continue;}
  if(g.phase==='drawing'){const stage=g.ends-now()<=20000?2:g.ends-now()<=40000?1:0;const targets=people.filter(p=>key(p)!==g.drawer);if(now()>=g.ends||targets.every(p=>g.solved.includes(key(p)))){reveal(g);state(ps,g);}else if(stage!==g.lastHint){g.lastHint=stage;state(ps,g,undefined,false);}}
  else if(now()>=g.ends){if(g.phase==='choosing')choose(g,0);else next(g);state(ps,g);}
@@ -35,7 +42,7 @@ export function createLukis(send,now=Date.now,pick=randomInt){
   const map=games.get(ps),people=(roster||members(ps,tableId)).filter(q=>ps.get(q.id)===q&&tableOf(q)===tableId);let g=map.get(tableId);
   if(g&&g.phase!=='finished')return true;
   if(people.length<2){send(p.ws,{type:'notice',message:'Ajak seorang lagi duduk semeja.'});return true;}
-  g={id:randomUUID(),tableId,protocol:version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false};map.set(tableId,g);next(g);state(ps,g);return true;
+  g={id:randomUUID(),tableId,protocol:version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false,pausedAt:0};map.set(tableId,g);next(g);state(ps,g);return true;
  }
  function validLine(a){return Array.isArray(a)&&a.length===7&&a.slice(0,4).every(n=>Number.isFinite(n)&&n>=0&&n<=1)&&colors.includes(a[4])&&config.sizes.includes(a[5])&&Number.isSafeInteger(a[6])&&a[6]>=0&&a[6]<1e9;}
  function append(g,lines){const id=lines[0][6];let last=g.history[g.cursor-1];if(g.cursor!==g.history.length||last?.id!==id){g.history=g.history.slice(0,g.cursor);last={id,lines:[]};g.history.push(last);g.cursor++;}last.lines.push(...lines);g.lines.push(...lines);g.maxStroke=Math.max(g.maxStroke,id);g.totalPoints+=lines.length;}

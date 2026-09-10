@@ -92,9 +92,14 @@ export function createParty(send, now = Date.now) {
 
         const host = players.get(invite.from);
         if (!host) return true;
-        const existing = invite.partyId ? parties.get(invite.partyId) : partyOf(players, host);
-        if (existing) { join(players, existing, player); return true; }
-        if (host.partyId) return true;
+        const existing = invite.partyId ? parties.get(invite.partyId) : undefined;
+        // An invitation grants access only to the exact party and leader that issued it.
+        // Leadership or membership changes invalidate the old invitation immediately.
+        if (existing) {
+          if (existing.leader !== host.id || host.partyId !== existing.id || !existing.members.has(host.id)) return true;
+          join(players, existing, player); return true;
+        }
+        if (invite.partyId || host.partyId) return true;
 
         const party = {id: randomUUID(), leader: host.id, members: new Set([host.id, player.id])};
         parties.set(party.id, party);

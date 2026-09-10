@@ -573,6 +573,16 @@ webSocketServer.on('connection', ws => {
         }
         return;
       }
+      // Private party voice would bypass the same anti-collusion rule as Party text and
+      // DM: a drawer can say the answer, or villagers can coordinate unseen. Public
+      // proximity voice remains available; only the private route is closed in-game.
+      if (player.micScope === 'party' && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
+        if (!player.voiceGameNoticeAt || Date.now() - player.voiceGameNoticeAt > 15000) {
+          player.voiceGameNoticeAt = Date.now();
+          send(ws, {type: 'notice', message: 'Party voice ditutup masa main. Tukar mic kepada All untuk bercakap terbuka.'});
+        }
+        return;
+      }
       const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
       const opus = message.codec === 'opus';
       const wellFormed = typeof message.audio === 'string' && (opus

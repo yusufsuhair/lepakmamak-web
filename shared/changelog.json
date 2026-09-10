@@ -1,5 +1,16 @@
 [
 {
+  "version": "1.39.18",
+  "date": "2026-09-10",
+  "title": "Lukis Lah lebih adil dan tahan reconnect",
+  "notes": [
+    "Timer Lukis Lah berhenti sehingga 30 saat apabila pemain terputus dan menyambung semula, jadi masa memilih atau melukis tidak hilang.",
+    "Hanya pemain yang masuk lobi dan tekan SEDIA dimasukkan ke game; pemain yang sekadar duduk tidak lagi diberi kad atau giliran.",
+    "Game Lukis Lah melalui SEDIA kini memberi pelukis tiga pilihan perkataan seperti yang dijanjikan.",
+    "Party voice dan jemputan party lama tidak lagi boleh digunakan untuk membocorkan jawapan atau menyertai party tanpa kuasa ketua."
+  ]
+},
+{
   "version": "1.39.17",
   "date": "2026-09-10",
   "title": "Roster game guna wajah karakter sebenar",
