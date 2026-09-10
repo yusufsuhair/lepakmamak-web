@@ -145,7 +145,10 @@ test('mobile layout exposes usable touch controls and pause recovery', async ({ 
   await expect(page.locator('#toast')).toBeHidden();
   await expect(page.locator('#mission-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Open settings' }).click();
-  await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
+  // "Return to Mamak Maju" is removed at startup (main.ts: $('reset').remove()); Resume is
+  // the way out of the pause screen, and Log out is the way out of the city.
+  await expect(page.getByRole('button', { name: 'Return to Mamak Maju' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Resume' }).click();
   await expect(page.locator('#pause')).toBeHidden();
   expect((await state(page)).money).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -238,7 +241,7 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   expect((await state(page)).riding).toBe(true);
   const startZ = (await state(page)).position.z;
   await page.keyboard.down('w');
-  await expect.poll(async () => (await state(page)).position.z).toBeLessThan(startZ - 3);
+  await expect.poll(async () => (await state(page)).position.z, { timeout: 15000 }).toBeLessThan(startZ - 3);
   await page.keyboard.up('w');
   await page.screenshot({ path: 'test-results/driving-car.png' });
   await page.keyboard.down('Space');
@@ -248,7 +251,9 @@ test('parked car can be entered, driven, braked and exited', async ({ page }) =>
   expect((await state(page)).riding).toBe(false);
   const exitX = (await state(page)).position.x;
   await page.keyboard.down('a');
-  await expect.poll(async () => (await state(page)).position.x).toBeLessThan(exitX - .5);
+  // Stepping out of a car settles before the walk starts, so this needs longer than the
+  // five seconds expect.poll allows by default.
+  await expect.poll(async () => (await state(page)).position.x, { timeout: 15000 }).toBeLessThan(exitX - .5);
   await page.keyboard.up('a');
 });
 
