@@ -618,8 +618,8 @@ export function createWorld(scene: THREE.Scene): World {
   shop(27, 34, 19, shopColors[0], 'WARUNG KAK ANA');
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
-  // Masjid Kampung Maju occupies the former PETRONAS site.
-  // Rotate its entrance toward the mamak while keeping the courtyard clear.
+  // Masjid Kampung Maju now sits in the former sports area, away from Pantai Senja.
+  // Rotate its entrance toward the promenade while keeping the courtyard clear.
   {
     const mosque = createWorshipLandmark('mosque', 'MASJID KAMPUNG MAJU');
     const spot = masjidSpots[0];

@@ -2,6 +2,8 @@ import {test,expect} from '@playwright/test';
 import places from '../shared/places.json' with {type:'json'};
 import chairs from '../shared/chairs.json' with {type:'json'};
 import tables from '../shared/tables.json' with {type:'json'};
+import pickleball from '../shared/pickleball.json' with {type:'json'};
+import basketball from '../shared/basketball.json' with {type:'json'};
 import {masjidSpots} from '../src/masjid';
 test('new hangouts have three distinct seats and matching map locations',()=>{for(const id of ['meja-5','meja-6']){const t=tables.find(t=>t.id===id)!;expect(chairs.filter(c=>c.tableId===id)).toHaveLength(3);expect(places.some(p=>p.x===t.x&&p.z===t.z)).toBe(true);}expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);});
 test('the PETRONAS pin sits on the forecourt, not beside it',()=>{
@@ -10,9 +12,15 @@ test('the PETRONAS pin sits on the forecourt, not beside it',()=>{
 });
 test('the mosque pin follows the mosque itself, wherever it stands',()=>{
  // masjidSpots drives the call to prayer, so the pin has to agree with it or the map and
- // the audio disagree about where the mosque is. It took over the old PETRONAS site.
+ // the audio disagree about where the mosque is.
  const mosque=places.find(place=>place.id==='17')!;
  expect(mosque).toMatchObject({name:'Masjid Kampung Maju',kind:'ibadah',x:masjidSpots[0].x,z:masjidSpots[0].z});
+});
+test('the sports courts now occupy the land behind Pantai Senja',()=>{
+ expect(places).toContainEqual(expect.objectContaining({id:'21',name:'Pickleball Lepak',x:pickleball.x,z:pickleball.z}));
+ expect(places).toContainEqual(expect.objectContaining({id:'22',name:'Basket Lepak',x:basketball.x,z:basketball.z}));
+ expect(pickleball.z).toBeLessThan(131);expect(basketball.z).toBeLessThan(131);
+ expect(masjidSpots[0].x).toBe(54);expect(masjidSpots[0].z).toBe(129);
 });
 test('Watsons Malaysia is listed on the city map',()=>{expect(places).toContainEqual(expect.objectContaining({id:'18',name:'Watsons Malaysia',kind:'kedai',x:-56,z:-40}));});
 test('FamilyMart Malaysia is listed on the city map',()=>{expect(places).toContainEqual(expect.objectContaining({id:'19',name:'FamilyMart Malaysia',kind:'kedai',x:49,z:34}));});

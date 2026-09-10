@@ -15,6 +15,13 @@ test('all map arrivals avoid solid objects and map offers teleport for selected 
  await page.getByRole('button',{name:'1 Mamak Maju',exact:true}).click();await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
  await page.getByRole('button',{name:'pantai-senja Pantai Senja',exact:true}).click();await expect(page.getByRole('button',{name:'Teleport to Pantai Senja',exact:true})).toBeEnabled();
 });
+test('the swapped mosque and court entrances follow their new locations',()=>{
+ expect(destinations).toEqual(expect.arrayContaining([
+  {id:'17',x:54,z:108},
+  {id:'21',x:96,z:100},
+  {id:'22',x:129,z:99},
+ ]));
+});
 test('3D map renders actual city and preserves directory selection across view modes',async({page})=>{
  await page.goto('/');await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  await page.getByRole('button',{name:'3D',exact:true}).click();

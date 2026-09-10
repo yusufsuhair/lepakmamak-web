@@ -1,5 +1,5 @@
 export const masjidSpots = [
-  { name: 'Masjid Kampung Maju', x: 117, z: 115 },
+  { name: 'Masjid Kampung Maju', x: 54, z: 129 },
 ] as const;
 
 export function nearestMasjidDistance(position: { x: number; z: number }) {

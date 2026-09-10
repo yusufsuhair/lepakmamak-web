@@ -114,8 +114,8 @@
  {
   "id": "17",
   "name": "Masjid Kampung Maju",
-  "x": 117,
-  "z": 115,
+  "x": 54,
+  "z": 129,
   "kind": "ibadah"
  },
  {
@@ -142,15 +142,15 @@
  {
   "id": "21",
   "name": "Pickleball Lepak",
-  "x": 35,
-  "z": 130,
+  "x": 96,
+  "z": 115,
   "kind": "sukan"
  },
  {
   "id": "22",
   "name": "Basket Lepak",
-  "x": 54,
-  "z": 129,
+  "x": 129,
+  "z": 115,
   "kind": "sukan"
  },
  {
