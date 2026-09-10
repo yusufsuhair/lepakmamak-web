@@ -188,10 +188,7 @@ async function init() {
   lrtPanel.querySelector('button')!.onclick=()=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-exit'}));};
   const village=createVillageResidents(scene);
   const villageTalk=document.createElement('button');villageTalk.className='village-talk';villageTalk.hidden=true;document.body.append(villageTalk);
-  const villageDialog=document.createElement('dialog');villageDialog.className='village-dialog';villageDialog.setAttribute('aria-label','Village conversation');
-  const villageName=document.createElement('h2'),villageLine=document.createElement('p'),villageClose=document.createElement('button');villageClose.textContent='Jumpa lagi';villageClose.onclick=()=>villageDialog.close();villageDialog.append(villageName,villageLine,villageClose);document.body.append(villageDialog);
   let villageNearby:typeof villageResidents[number]|undefined;
-  villageTalk.onclick=()=>{if(!villageNearby)return;villageName.textContent=villageNearby.name;villageLine.textContent=villageNearby.line;villageDialog.showModal();};
   const pickleball=createPickleball(scene,world);
   const basketball=createBasketball(scene,world);
   const beach=createBeach(scene,world);
@@ -324,15 +321,19 @@ async function init() {
     speechBubbles.clear();
   }
   function showSpeechBubble(id: string, name: string, text: string) {
-    if (!id.startsWith('afk:') && id !== networkPlayerId && !remotePlayers.has(id)) return;
+    if (!id.startsWith('afk:') && !id.startsWith('village:') && id !== networkPlayerId && !remotePlayers.has(id)) return;
     speechBubbles.get(id)?.element.remove();
     const element = document.createElement('div'); element.className = 'speech-bubble'; element.hidden = true;
-    element.setAttribute('aria-hidden', 'true'); // The chat log already announces messages.
+    element.setAttribute('aria-hidden', 'true'); // Floating speech is visual-only; City chat remains separate.
     const author = document.createElement('strong'); author.textContent = name;
     const message = document.createElement('span'); message.textContent = text;
     element.append(author, message); $('hud').append(element);
     speechBubbles.set(id, { element, expiresAt: performance.now() + 6500 });
   }
+  villageTalk.onclick=()=>{
+    if(!villageNearby)return;
+    showSpeechBubble(`village:${villageNearby.name}`,villageNearby.name,villageNearby.line);
+  };
   function setAfkBubble(id: string, note: string) {
     const key = `afk:${id}`;
     const existing = speechBubbles.get(key);
@@ -1717,7 +1718,7 @@ async function init() {
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
-    villageNearby=started&&!paused&&!riding&&!cityMap.open&&!villageDialog.open?village.nearby(pos.x,pos.z):undefined;
+    villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
     if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
@@ -1804,13 +1805,16 @@ async function init() {
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     for (const [id, bubble] of speechBubbles) {
       const afk = id.startsWith('afk:');
+      const villageNpc = id.startsWith('village:');
       const speakerId = afk ? id.slice(4) : id;
-      const speaker = speakerId === 'self' || speakerId === networkPlayerId ? (lrtId==null && riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(speakerId)?.group.position;
+      const villageName = villageNpc ? speakerId.slice(8) : '';
+      const villageSpeaker = villageNpc ? village.people.find(person => person.resident.name === villageName)?.rig.group.position : undefined;
+      const speaker = villageSpeaker || (speakerId === 'self' || speakerId === networkPlayerId ? (lrtId==null && riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(speakerId)?.group.position);
       const remaining = bubble.expiresAt - time;
-      if (!speaker || remaining <= 0 || (!networkConnected && !afk)) {
+      if (!speaker || remaining <= 0 || (!networkConnected && !afk && !villageNpc)) {
         bubble.element.remove(); speechBubbles.delete(id); continue;
       }
-      speechPosition.set(speaker.x, speaker.y + (afk ? 4.5 : 3.8), speaker.z).project(camera);
+      speechPosition.set(speaker.x, speaker.y + (afk ? 4.5 : villageNpc ? 3.25 : 3.8), speaker.z).project(camera);
       bubble.element.hidden = !started || speechPosition.z < -1 || speechPosition.z > 1 || Math.abs(speechPosition.x) > 1 || Math.abs(speechPosition.y) > 1;
       if (!bubble.element.hidden) {
         const width = bubble.element.offsetWidth, height = bubble.element.offsetHeight;

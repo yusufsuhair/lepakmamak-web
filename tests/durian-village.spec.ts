@@ -111,3 +111,13 @@ test('group play, bicycles and household chores animate and reset deterministica
  expect(result.changesPace&&result.continuous&&result.reset).toBe(true);
  expect(result.bicycleCollisions+result.flockCollisions+result.groupBreaks).toBe(0);
 });
+
+test('village greeting uses a local speech bubble instead of a modal or city chat',async({page})=>{
+ const source=await (await page.request.get('/src/main.ts')).text();
+ expect(source).toContain('showSpeechBubble(`village:${villageNearby.name}`');
+ expect(source).toMatch(/villageNpc\s*=\s*id\.startsWith\(["']village:/);
+ expect(source).not.toContain('villageDialog.showModal()');
+ expect(source).not.toContain('villageDialog.open');
+ const style=await (await page.request.get('/src/style.css')).text();
+ expect(style).not.toContain('.village-dialog');
+});

@@ -18,4 +18,6 @@ The routines in `src/village-activities.ts` use a shared elapsed clock with no f
 
 These are ambient spectator activities, not player-controlled minigames. Reduced motion freezes all routines through the host's existing time-zero update; distance culling remains unchanged. `nearby` resolves dialogue against the current animated positions instead of spawn coordinates. Clothesline posts and the laundry basket are registered as static colliders.
 
+The `Tegur <nama>` action is a lightweight local interaction. It places the resident's line in the same floating speech bubble used for character speech, anchored above the animated resident, and expires after a few seconds. It does not open a modal, pause the game or send a message through City chat/network chat.
+
 Interiors, quests and autonomous conversations are not implemented. The dialogue UI is integrated in `src/main.ts`; move it with this module when exporting to another world. Verify with `PLAYWRIGHT_PORT=5184 npx playwright test tests/durian-village.spec.ts --output=test-results-game-dev-4`.
