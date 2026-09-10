@@ -66,31 +66,40 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   choices.addEventListener('change', preview); preview();
   // 'username' is the step a Google account lands on: signed in, but with no name of its
   // own yet. Google's own name is never read — you pick what the city calls you.
-  let mode: 'register' | 'login' | 'recovery' | 'username' = 'register';
+  // Signing up is three steps, and the last two are the same whichever door you came in
+  // through: credentials (or Google), then the name, then the character.
+  let mode: 'register' | 'login' | 'recovery' | 'username' | 'looks' = 'register';
   const named = (value: Session | null) => String(value?.user.user_metadata?.display_name || '').trim().length >= 2;
   let busy = false;
-  const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter' : mode === 'username' ? 'Enter the city' : 'Save password';
+  const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter'
+    : mode === 'username' ? 'Next' : mode === 'looks' ? 'Enter the city' : 'Save password';
   function render() {
-    const picking = mode === 'register' || mode === 'username';
-    el('avatar-fields').hidden = !picking;
-    el('name-field').hidden = !picking; name.required = picking;
-    // A Google account is already signed in: it needs a name, not credentials.
-    email.parentElement!.hidden = mode === 'recovery' || mode === 'username'; email.required = mode === 'register' || mode === 'login';
-    password.parentElement!.hidden = mode === 'username'; password.required = mode !== 'username';
-    el('auth-google').hidden = mode === 'recovery' || mode === 'username';
-    const guestButton = document.getElementById('auth-guest');
-    if (guestButton) guestButton.hidden = mode === 'recovery' || mode === 'username';
+    // One step shows one thing. The name and the character were on the sign-up form before,
+    // which asked for four unrelated decisions before an account existed at all.
+    const credentials = mode === 'register' || mode === 'login';
+    const signingUp = mode === 'username' || mode === 'looks';
+    el('name-field').hidden = mode !== 'username'; name.required = mode === 'username';
+    el('avatar-fields').hidden = mode !== 'looks';
+    email.parentElement!.hidden = !credentials; email.required = credentials;
+    password.parentElement!.hidden = !credentials && mode !== 'recovery'; password.required = credentials || mode === 'recovery';
     password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
     password.minLength = mode === 'login' ? 1 : 8;
-    el('auth-title').textContent = mode === 'register' ? 'Join the lepak.' : mode === 'login' ? 'Welcome back.' : mode === 'username' ? 'Pick your name.' : 'New password.';
+    el('auth-google').hidden = !credentials;
+    const guestButton = document.getElementById('auth-guest');
+    if (guestButton) guestButton.hidden = !credentials;
+    el('auth-title').textContent = mode === 'register' ? 'Join the lepak.' : mode === 'login' ? 'Welcome back.'
+      : mode === 'username' ? 'Pick your name.' : mode === 'looks' ? 'Make your character.' : 'New password.';
     overlay.querySelector('.auth-card > p')!.textContent = mode === 'username'
-      ? 'You are signed in. Choose the name the city knows you by — it does not have to be your Google name.'
+      ? 'Choose the name the city knows you by. It does not have to be the name on your account.'
+      : mode === 'looks' ? 'Last step. You can change all of this later in your character screen.'
       : 'Create an account or log in to enter the city.';
     submit.textContent = submitLabel();
-    el('auth-mode').hidden = mode === 'recovery' || mode === 'username';
+    // Mid-signup there is nothing to switch to and no way out: the account already exists,
+    // and leaving it without a name would strand it.
+    el('auth-mode').hidden = !credentials;
     el('auth-mode').textContent = mode === 'register' ? 'Already registered? Log in' : 'New here? Create account';
     el('auth-forgot').hidden = mode !== 'login';
-    el('auth-back').hidden = mode === 'username';
+    el('auth-back').hidden = signingUp;
     message.textContent = '';
   }
   el('auth-mode').onclick = () => { if (!busy) { mode = mode === 'register' ? 'login' : 'register'; render(); } };
@@ -119,13 +128,20 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   };
   overlay.querySelector('form')!.onsubmit = async event => {
     event.preventDefault(); if (!auth || busy) return;
-    if (mode === 'register' && name.value.trim().length < 2) { message.textContent = 'Enter a name with at least 2 characters.'; return; }
+    if (mode === 'username' && name.value.trim().length < 2) { message.textContent = 'Enter a name with at least 2 characters.'; return; }
     busy = true; submit.disabled = true; submit.dataset.loading = 'true'; submit.setAttribute('aria-busy','true');
-    submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'login' ? 'Signing in…' : mode === 'username' ? 'Saving your name…' : 'Saving password…'; message.textContent = 'One moment…';
+    submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'login' ? 'Signing in…'
+      : mode === 'username' ? 'Saving your name…' : mode === 'looks' ? 'Saving your character…' : 'Saving password…';
+    message.textContent = 'One moment…';
     try {
       if (mode === 'username') {
-        // The name and the look are the player's own; nothing is copied from the provider.
-        const { data, error } = await auth.auth.updateUser({ data: { display_name: name.value.trim(), appearance: selectedAppearance() } });
+        // The name is the player's own; nothing is copied from whoever authenticated them.
+        const { data, error } = await auth.auth.updateUser({ data: { display_name: name.value.trim() } });
+        if (error) throw error;
+        if (data.user) session = { ...(session as Session), user: data.user };
+        mode = 'looks'; render(); return;
+      } else if (mode === 'looks') {
+        const { data, error } = await auth.auth.updateUser({ data: { appearance: selectedAppearance() } });
         if (error) throw error;
         if (data.user) session = { ...(session as Session), user: data.user };
       } else if (mode === 'recovery') {
@@ -134,11 +150,14 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       } else {
         const credentials = { email: email.value.trim(), password: password.value };
         const { data, error } = mode === 'register'
-          ? await auth.auth.signUp({ ...credentials, options: { data: { display_name: name.value.trim(), appearance: selectedAppearance() }, emailRedirectTo: location.origin } })
+          ? await auth.auth.signUp({ ...credentials, options: { emailRedirectTo: location.origin } })
           : await auth.auth.signInWithPassword(credentials);
         if (error) throw error;
         session = data.session;
+        // Email confirmation on: there is no session to attach a name to yet. The name step
+        // is waiting for them when they log in, because entry is gated on having one.
         if (!session) { message.textContent = 'Check your inbox to confirm your email, then log in here.'; return; }
+        if (!named(session)) { password.value = ''; mode = 'username'; render(); name.focus(); return; }
       }
       password.value = ''; overlay.hidden = true; onEnter();
     } catch (error) { message.textContent = error instanceof Error ? error.message : 'Could not sign in. Please try again.'; }
@@ -171,7 +190,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     // A Google account arrives named by Google. It does not get to keep that name here,
     // and it does not get into the city until it has chosen one.
     if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
-    if (session && mode !== 'recovery') { onEnter(); return; }
+    if (session && mode !== 'recovery' && mode !== 'looks') { onEnter(); return; }
     render(); overlay.hidden = false; (mode === 'register' ? name : email).focus();
   };
 }

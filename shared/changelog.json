@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.30.0",
+  "date": "2026-09-10",
+  "title": "Daftar tiga langkah",
+  "notes": [
+   "Signing up is three steps now: make the account, pick your name, then make your character. Before, the sign-up form asked for your name and your whole character before the account existed.",
+   "Signing up with Google goes through the same two steps, so everyone picks their own name and face whichever way they joined."
+  ]
+ },
+ {
   "version": "1.29.0",
   "date": "2026-09-10",
   "title": "Nama geng atas kepala",

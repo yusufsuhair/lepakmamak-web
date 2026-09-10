@@ -22,13 +22,14 @@ test('a signed-in account with no name of its own is stopped at the name step',(
  expect(auth).toMatch(/display_name \|\| ''\)\.trim\(\)\.length >= 2/);
 });
 
-test('the name step asks for a name, not credentials, and cannot be dismissed',()=>{
- // Email, password, the mode switch and Back all belong to the other steps; leaving Back
- // enabled would let a nameless account slip into the city.
- expect(auth).toMatch(/password\.parentElement!\.hidden = mode === 'username'/);
- expect(auth).toMatch(/email\.parentElement!\.hidden = mode === 'recovery' \|\| mode === 'username'/);
- expect(auth).toMatch(/el\('auth-back'\)\.hidden = mode === 'username'/);
- expect(auth).toMatch(/el\('auth-mode'\)\.hidden = mode === 'recovery' \|\| mode === 'username'/);
+test('the signup steps ask for one thing each, and cannot be dismissed',()=>{
+ // Credentials belong to the first step only; leaving Back enabled on the later ones would
+ // strand an account that exists but has no name.
+ expect(auth).toMatch(/const credentials = mode === 'register' \|\| mode === 'login';/);
+ expect(auth).toMatch(/email\.parentElement!\.hidden = !credentials/);
+ expect(auth).toMatch(/el\('auth-google'\)\.hidden = !credentials/);
+ expect(auth).toMatch(/el\('auth-mode'\)\.hidden = !credentials/);
+ expect(auth).toMatch(/const signingUp = mode === 'username' \|\| mode === 'looks';/);
 });
 
 test('Google sign-in goes through Supabase and returns to this origin',()=>{
@@ -37,7 +38,9 @@ test('Google sign-in goes through Supabase and returns to this origin',()=>{
 });
 
 test('the name and look saved are the ones the player chose',()=>{
- expect(auth).toMatch(/updateUser\(\{ data: \{ display_name: name\.value\.trim\(\), appearance: selectedAppearance\(\) \} \}\)/);
+ // Saved a step at a time now; the three-step test below pins the order.
+ expect(auth).toMatch(/updateUser\(\{ data: \{ display_name: name\.value\.trim\(\) \} \}\)/);
+ expect(auth).toMatch(/updateUser\(\{ data: \{ appearance: selectedAppearance\(\) \} \}\)/);
 });
 
 // The assertions above pin the shape of the code. This one drives it: a real Supabase
@@ -75,4 +78,44 @@ test('a nameless session lands on the name step instead of the city',async({page
  await expect(page.locator('#auth-name')).toHaveValue('');
  // And the city is still closed.
  await expect(page.locator('#hud')).toBeHidden();
+});
+
+test('signing up is three steps: account, then name, then character',()=>{
+ // Registering creates the account and nothing else — the name and the face come after, so
+ // Google and email land on exactly the same two steps.
+ expect(auth).toMatch(/signUp\(\{ \.\.\.credentials, options: \{ emailRedirectTo: location\.origin \} \}\)/);
+ expect(auth).not.toMatch(/signUp\([^)]*display_name/);
+ expect(auth).toMatch(/mode = 'looks'; render\(\); return;/);
+ // One decision per step.
+ expect(auth).toMatch(/el\('name-field'\)\.hidden = mode !== 'username'/);
+ expect(auth).toMatch(/el\('avatar-fields'\)\.hidden = mode !== 'looks'/);
+ // Each step saves only its own field.
+ expect(auth).toMatch(/updateUser\(\{ data: \{ display_name: name\.value\.trim\(\) \} \}\)/);
+ expect(auth).toMatch(/updateUser\(\{ data: \{ appearance: selectedAppearance\(\) \} \}\)/);
+ // No way out of a half-made account.
+ expect(auth).toMatch(/el\('auth-back'\)\.hidden = signingUp/);
+});
+
+test('a nameless session walks the name step then the character step',async({page})=>{
+ test.setTimeout(60000);
+ await page.addInitScript(()=>{
+  const hour=Math.floor(Date.now()/1000)+7200;
+  localStorage.setItem('sb-sbzvvhzibqpozqvojzhe-auth-token',JSON.stringify({
+   access_token:'seeded',token_type:'bearer',expires_at:hour,expires_in:7200,refresh_token:'seeded-refresh',
+   user:{id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'someone@gmail.com',
+    app_metadata:{provider:'google'},user_metadata:{full_name:'Google Real Name'},created_at:'2026-09-01T00:00:00Z'},
+  }));
+ });
+ await page.goto('/');
+ if(!(await page.locator('#auth-panel').isVisible())) await page.getByRole('button',{name:"Jom, let's go"}).click({timeout:15000});
+ await expect(page.locator('#auth-panel')).toBeVisible({timeout:20000});
+ const unconfigured=(await page.locator('#auth-message').textContent())||'';
+ test.skip(unconfigured.includes('being connected'),'needs VITE_SUPABASE_* at build time');
+
+ // Step two: the name, on its own.
+ await expect(page.locator('#auth-title')).toHaveText('Pick your name.');
+ await expect(page.locator('#name-field')).toBeVisible();
+ await expect(page.locator('#avatar-fields')).toBeHidden();
+ await expect(page.locator('#auth-submit')).toHaveText('Next');
+ await expect(page.locator('#auth-back')).toBeHidden();
 });
