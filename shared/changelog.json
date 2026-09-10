@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.39.10",
+    "date": "2026-09-10",
+    "title": "Speedometer dan lif KLCC lebih kemas",
+    "notes": [
+      "Latar panel di belakang angka kelajuan dan KM/H dibuang supaya speedometer kembali telus seperti sebelum UI polish.",
+      "Paparan ini kekal ringan pada desktop, telefon dan tablet tanpa kotak atau bayang tambahan.",
+      "Lif KLCC kini boleh turun semula selepas sampai rooftop, termasuk selepas pemain bergerak sedikit di platform atas.",
+      "Panel lif menunjukkan kiraan saat ketika naik atau turun dan status STOP ketika berhenti di rooftop."
+    ]
+  },
+  {
     "version": "1.39.9",
     "date": "2026-09-10",
     "title": "Nama Taycan dan plat VRG9405 lebih jelas",
