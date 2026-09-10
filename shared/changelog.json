@@ -1,5 +1,15 @@
 [
  {
+  "version": "1.37.0",
+  "date": "2026-09-10",
+  "title": "Satu chat, dari bandar sampai ke meja",
+  "notes": [
+   "You can read and send chat while playing a table game. The chat box follows you into the game and back out again, keeping your tabs, your unread counts and where you had scrolled to.",
+   "New MEJA channel: sit at a table and your messages go to the people at that table. Stand up and you are back to city chat.",
+   "Party and private messages are now closed while a Werewolf or Lukis round is running, and a dead Werewolf player's microphone is muted until the game ends. Both were being used to give the game away."
+  ]
+ },
+ {
   "version": "1.36.1",
   "date": "2026-09-10",
   "title": "Pembetulan kecil di ZUS",

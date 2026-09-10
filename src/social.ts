@@ -99,9 +99,9 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
 import {createDmBar} from './dm';
 
 type Member = {id: string; name: string};
-type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
+type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm' | 'table'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
 
-export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', to?: string) => boolean, focus: () => void) {
+export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' | 'table', to?: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
   panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
@@ -143,7 +143,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
   }
 
   const all = build('all', 'ALL', 'all');
-  let party: Thread | null = null;
+  let party: Thread | null = null, table: Thread | null = null;
 
   function select(key: string) {
     if (!threads.has(key)) key = 'all';
@@ -265,6 +265,16 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
   return {
     open() { openComposer(); },
     openDm(id: string, name: string) { openDm(id, name); select(`dm:${id}`); },
+    // The table tab exists only while you are on a chair. Sitting down points the composer
+    // at it, because that is who you are talking to; standing up hands you back to the city
+    // rather than leaving you typing into a table you have left.
+    seated(atTable: boolean) {
+      if (atTable && !table) { table = build('table', 'MEJA', 'table'); select('table'); return; }
+      if (!atTable && table) {
+        const key = table.key; table.log.remove(); threads.delete(key); table = null;
+        if (active === key) select('all'); else render();
+      }
+    },
     party(members: Member[] | null) {
       // The server deletes a party the moment it drops below two, so any list means a party.
       if (members?.length) party ??= build('party', 'PARTY', 'party');
@@ -278,8 +288,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       all.unread = 0;
       render(); toBottom(all.log); renderJump();
     },
-    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' = 'all', thread?: Member, area = '') {
-      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : all;
+    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '') {
+      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
       const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();

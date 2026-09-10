@@ -1,8 +1,8 @@
-import chairs from '../shared/chairs.json' with {type:'json'};
+import {tableOf} from './seating.mjs';
 import config from '../shared/lukis.json' with {type:'json'};
 import {randomInt,randomUUID} from 'node:crypto';
 import {filterChat} from './chat-filter.mjs';
-const tableOf=p=>chairs.find(c=>c.id===p.chairId)?.tableId;
+
 const key=p=>p.userId||p.id;
 const normal=s=>String(s).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 const colors=[...config.colors.map(c=>c.value),'#ffffff'];
@@ -30,7 +30,14 @@ export function createLukis(send,now=Date.now,pick=randomInt){
  }}
  function validLine(a){return Array.isArray(a)&&a.length===7&&a.slice(0,4).every(n=>Number.isFinite(n)&&n>=0&&n<=1)&&colors.includes(a[4])&&config.sizes.includes(a[5])&&Number.isSafeInteger(a[6])&&a[6]>=0&&a[6]<1e9;}
  function append(g,lines){const id=lines[0][6];let last=g.history[g.cursor-1];if(g.cursor!==g.history.length||last?.id!==id){g.history=g.history.slice(0,g.cursor);last={id,lines:[]};g.history.push(last);g.cursor++;}last.lines.push(...lines);g.lines.push(...lines);g.maxStroke=Math.max(g.maxStroke,id);g.totalPoints+=lines.length;}
- return {tick,handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
+ // True while this player's table has a round in progress. The chat handler asks so it can
+ // shut private channels: the drawer DMing the word to a friend scores them both.
+ function live(ps,p){
+  const tableId=tableOf(p);if(!tableId)return false;
+  const g=games.get(ps)?.get(tableId);
+  return !!g&&g.phase!=='finished'&&g.phase!=='lobby';
+ }
+ return {tick,live,handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
   if(m.type==='lukis-start'){if(g&&g.phase!=='finished')return true;if(people.length<2){send(p.ws,{type:'notice',message:'Ajak seorang lagi duduk semeja.'});return true;}g={id:randomUUID(),tableId,protocol:m.version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(m.rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false};map.set(tableId,g);next(g);state(ps,g);return true;}
   if(m.type==='lukis-open'){if(g)state(ps,g,p);else send(p.ws,{type:'lukis-state',game:null});return true;}if(!g)return true;
   const epoch=m.gameId===g.id&&m.round===g.round;

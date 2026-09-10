@@ -43,7 +43,24 @@ export function createWerewolf(send,now=Date.now,pick=randomInt){
  }
  function advance(g){if(g.phase==='night')resolveNight(g);else if(g.phase==='discussion')phase(g,'vote');else if(g.phase==='vote'){const tally={};for(const p of alive(g)){const target=g.votes[p.id];if(target&&target!=='skip'&&entry(g,target)?.alive)tally[target]=(tally[target]||0)+(p.role==='mayor'?2:1);}const ranked=Object.entries(tally).sort((a,b)=>b[1]-a[1]);if(!ranked.length||ranked[1]?.[1]===ranked[0][1]){log(g,'Undian seri atau tiada tuduhan. Tiada hukuman hari ini.');phase(g,'night');}else{g.accused=ranked[0][0];g.accusers=alive(g).filter(p=>g.votes[p.id]===g.accused).map(p=>p.id);log(g,`${entry(g,g.accused).name} dituduh. Masa untuk membela diri.`);phase(g,'defense');}}else if(g.phase==='defense')phase(g,'judgment');else if(g.phase==='judgment'){const judges=g.accusers.filter(id=>entry(g,id)?.alive&&id!==g.accused),kill=judges.filter(id=>g.judgments[id]==='kill').length;const accused=entry(g,g.accused);if(accused?.alive&&kill>judges.length/2){if(accused.role==='princess'&&!accused.used){accused.used=true;accused.revealed=true;log(g,`${accused.name} ialah Princess dan terselamat sekali.`);}else eliminate(g,accused,'undian');}else log(g,`${accused?.name||'Tertuduh'} dibebaskan.`);if(!finish(g))phase(g,'night');}}
  function tick(ps){const g=rooms.get(ps);if(!g)return;const present=new Set([...ps.values()].filter(seated).map(key));let changed=false;for(const p of [...g.players]){if(present.has(p.id)){if(p.missingAt){p.missingAt=0;changed=true;}}else if(g.phase==='lobby'){g.players=g.players.filter(q=>q!==p);changed=true;}else if(g.phase!=='finished'&&p.alive){if(!p.missingAt){p.missingAt=now();changed=true;}if(now()-p.missingAt>=60000){eliminate(g,p,'meninggalkan permainan');changed=true;}}}if(!g.players.some(p=>p.id===g.host)){g.host=g.players[0]?.id||null;changed=true;}if(!['lobby','finished'].includes(g.phase)){if(finish(g))changed=true;else if(now()>=g.ends){advance(g);changed=true;}}if(changed)publish(ps,g);}
- return {tick,handle(ps,p,m){if(typeof m.type!=='string'||!m.type.startsWith('werewolf-'))return false;if(!seated(p)){send(p.ws,{type:'notice',message:'Duduk di mana-mana meja untuk Werewolf.'});return true;}tick(ps);let g=room(ps);const id=key(p),me=entry(g,id);const reply=()=>send(p.ws,{type:'werewolf-state',game:view(g,id)});
+ // True while this player is in a village that is still playing. Werewolf is city-scoped,
+ // so the question is participation, not which chair they are on: two wolves in a party and
+ // a dead player in a DM are the same hole.
+ function live(ps,p){
+  const g=rooms.get(ps);
+  if(!g||g.phase==='lobby'||g.phase==='finished')return false;
+  return g.players.some(member=>member.id===p.id);
+ }
+ // The dead must not talk. Chat is partitioned by role already, but nothing can inspect
+ // speech, so a dead player simply talking is the whole leak — this is the only way to
+ // hold the rule.
+ function silenced(ps,p){
+  const g=rooms.get(ps);
+  if(!g||g.phase==='lobby'||g.phase==='finished')return false;
+  const member=g.players.find(other=>other.id===p.id);
+  return !!member&&!member.alive;
+ }
+ return {tick,live,silenced,handle(ps,p,m){if(typeof m.type!=='string'||!m.type.startsWith('werewolf-'))return false;if(!seated(p)){send(p.ws,{type:'notice',message:'Duduk di mana-mana meja untuk Werewolf.'});return true;}tick(ps);let g=room(ps);const id=key(p),me=entry(g,id);const reply=()=>send(p.ws,{type:'werewolf-state',game:view(g,id)});
   if(m.type==='werewolf-open'){reply();return true;}
   if(m.type==='werewolf-join'&&g.phase==='lobby'){if(!me&&g.players.length<g.size){g.players.push({id,name:p.name,alive:true,role:null,used:false,missingAt:0});g.host??=id;publish(ps,g);}else reply();return true;}
   if(m.type==='werewolf-leave'&&me){if(g.phase==='lobby'){g.players=g.players.filter(q=>q!==me);if(g.host===id)g.host=g.players[0]?.id||null;}else if(g.phase!=='finished'&&me.alive){eliminate(g,me,'keluar');finish(g);}publish(ps,g);return true;}

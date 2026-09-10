@@ -693,7 +693,8 @@ async function init() {
     if(self?.lrtId!=null){lrtId=self.lrtId;lrtSeat=self.lrtSeat||0;const seat=seatOffset(lrtSeat);lrtAlong=self.lrtAlong??seat.along;lrtAcross=self.lrtAcross??seat.across;riding=true;}
     if (self && (self.chairId || seatedChairId)) {
       const nowSeated = !!self.chairId;
-      if (nowSeated !== seated) chairSound(nowSeated);
+      // The table tab follows the chair: it appears when you sit and retires when you get up.
+      if (nowSeated !== seated) { chairSound(nowSeated); chat.seated(nowSeated); }
       seated = nowSeated; seatedChairId = self.chairId || null;
       pos.set(self.x, .12, self.z); yaw = self.yaw; walkSpeed = 0; speed = 0;
       keys.clear(); resetStick();
@@ -744,7 +745,7 @@ async function init() {
   function disconnectMultiplayer() {
     if(lrtId!=null){lrtId=null;riding=false;speed=0;pos.y=.12;}
     saveLocation();
-    seatedChairId = null; seated = false;
+    seatedChairId = null; if (seated) chat.seated(false); seated = false;
     tableSocial.close(); tableSocial.offline(); roomTables = [];
     wall.close();
     voice.connected(false);
@@ -805,7 +806,7 @@ async function init() {
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
-        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
+        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'|'table'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
         try { message = JSON.parse(raw); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
@@ -866,7 +867,7 @@ async function init() {
           const thread = message.channel === 'dm'
             ? (own ? {id: message.to as string, name: message.toName as string} : {id: message.id as string, name: message.name as string})
             : undefined;
-          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all', thread, String((message as unknown as {area?:string}).area || ''));
+          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' || message.channel === 'table' ? message.channel : 'all', thread, String((message as unknown as {area?:string}).area || ''));
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }

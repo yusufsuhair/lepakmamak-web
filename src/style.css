@@ -717,3 +717,11 @@ html, body, #app { touch-action: manipulation; }
 
 /* The table says who is sitting at it, so it wraps rather than running off the screen. */
 .table-label { max-width: min(320px, 72vw); white-space: normal; line-height: 1.35; }
+
+/* The chat panel keeps its absolute position from the HUD, and inside the dialog that put
+   it on top of the game — visible, and swallowing every click meant for the buttons under
+   it. Inside the dialog it flows as an ordinary block at the end of the content instead, so
+   it can never intercept a press, and the same rule holds at 375px. */
+#table-social #city-chat { position: static; left: auto; right: auto; top: auto; bottom: auto; transform: none; width: auto; max-width: none; margin: 14px 0 0; z-index: auto; }
+#table-social #city-chat.chat-expanded { position: static; width: auto; transform: none; }
+#table-social #chat-messages { max-height: 150px; }

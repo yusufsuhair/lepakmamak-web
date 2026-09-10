@@ -39,11 +39,22 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
   const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);}
   poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);
  }
- function close(){dialog.close();}
+ // A modal <dialog> puts itself in the top layer and makes the rest of the document inert,
+ // so the chat panel in #hud is not merely covered — the platform switches it off. Moving
+ // the same node into the dialog puts it in the top layer too. It is the same element, so
+ // its threads, unread counts, scroll position and listeners all come with it.
+ const chatHome=()=>document.getElementById('hud');
+ const chatPanel=()=>document.getElementById('city-chat');
+ function holdChat(){const panel=chatPanel();if(panel&&panel.parentElement!==dialog)dialog.append(panel);}
+ function releaseChat(){const panel=chatPanel(),home=chatHome();if(panel&&home&&panel.parentElement!==home)home.append(panel);}
+ // Esc closes a modal natively and never reaches close(), and the dialog can be torn down
+ // for other reasons. Listening to 'close' itself is the only place that catches them all.
+ dialog.addEventListener('close',releaseChat);
+ function close(){dialog.close();releaseChat();}
  dialog.querySelector<HTMLButtonElement>('#close-table-social')!.onclick=close;
  dialog.addEventListener('keydown',event=>event.stopPropagation());
- return {open(tableId?:string){selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},close,
+ return {open(tableId?:string){selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},close,
   get opened(){return dialog.open;},get playing(){return dialog.open&&!!playingGame;},state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
   uno(value:any){if(!value||value.tableId===own()?.id){uno.state(value);alerts.fire('uno',unoAlert(value),onScreen());}},werewolf(value:any){werewolf.state(value);alerts.fire('werewolf',werewolfAlert(value),onScreen());},game(value:any){if(!value||value.tableId===own()?.id){lukis.state(value,selfId);alerts.fire('lukis',lukisAlert(value),onScreen());}},lobby(value:any){shell.state(value,selfId);showBoards();},party(size:number){shell.party(size);},react(value:any){shell.react(value);},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id){poker.state(value,selfId);alerts.fire('poker',pokerAlert(value,selfId),onScreen());}},
-  offline(){online=false;tables=[];alerts.clear();shell.state(null,selfId);lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
+  offline(){releaseChat();online=false;tables=[];alerts.clear();shell.state(null,selfId);lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
 }

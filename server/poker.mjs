@@ -1,6 +1,6 @@
 import {randomInt, randomUUID} from 'node:crypto';
-import chairs from '../shared/chairs.json' with {type:'json'};
-const tableOf=p=>chairs.find(c=>c.id===p.chairId)?.tableId;
+import {tableOf} from './seating.mjs';
+
 const labels=['High card','One pair','Two pair','Three of a kind','Straight','Flush','Full house','Four of a kind','Straight flush'];
 const compare=(a,b)=>{for(let i=0;i<Math.max(a.length,b.length);i++){const d=(a[i]||0)-(b[i]||0);if(d)return d;}return 0;};
 function five(cards){

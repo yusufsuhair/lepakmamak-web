@@ -5,6 +5,7 @@ import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import {createLamps} from './lamps.mjs';
 import {districtFor} from '../shared/districts.mjs';
+import {tableOf, seatedWith} from './seating.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
@@ -507,6 +508,15 @@ webSocketServer.on('connection', ws => {
       return;
     }
     if (message.type === 'voice-audio') {
+      // A dead villager who keeps talking hands the game away, and no filter can read
+      // speech. Their microphone is closed for the rest of the match, and they are told.
+      if (werewolf.silenced(currentRoom.players, player)) {
+        if (!player.voiceNoticeAt || Date.now() - player.voiceNoticeAt > 15000) {
+          player.voiceNoticeAt = Date.now();
+          send(ws, {type: 'notice', message: 'Anda sudah mati. Mic ditutup sampai habis permainan.'});
+        }
+        return;
+      }
       const now = Date.now(); voiceTokens = Math.min(30, voiceTokens + (now - voiceAt) * .025); voiceAt = now;
       const opus = message.codec === 'opus';
       const wellFormed = typeof message.audio === 'string' && (opus
@@ -560,7 +570,17 @@ webSocketServer.on('connection', ws => {
         return;
       }
       const filtered = filterChat(text), sentAt = new Date().toISOString();
-      const channel = message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all';
+      const channel = ['party', 'dm', 'table'].includes(message.channel) ? message.channel : 'all';
+
+      // Werewolf partitions its chat by role and Lukis hides correct guesses, and both were
+      // being walked straight around: two wolves in a party during the night, a dead player
+      // DMing the roles they learned, the drawer DMing the word. One gate here rather than
+      // three in the games, and server-side only — the client may grey the tabs out as a
+      // courtesy, but the client is not the one being trusted.
+      if ((channel === 'party' || channel === 'dm') && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
+        send(ws, {type: 'notice', message: 'Party dan DM ditutup masa main. Guna chat meja.'});
+        return;
+      }
       // Where they were standing when they said it, stamped once per message rather than
       // streamed per frame.
       const payload = { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z), text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
@@ -569,6 +589,14 @@ webSocketServer.on('connection', ws => {
         const members = party.members(currentRoom.players, player);
         if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a party yet.' }); return; }
         for (const member of members) send(member.ws, payload);
+        return;
+      }
+      if (channel === 'table') {
+        // Only the people on the chairs around this table, and never written to history:
+        // the public channel is the only one the room keeps.
+        const tableId = tableOf(player);
+        if (!tableId) { send(ws, {type: 'notice', message: 'Duduk di meja dahulu untuk chat meja.'}); return; }
+        for (const seated of seatedWith(currentRoom.players, tableId)) send(seated.ws, {...payload, tableId});
         return;
       }
       if (channel === 'dm') {
