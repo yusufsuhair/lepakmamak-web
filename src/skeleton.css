@@ -1,0 +1,8 @@
+/* Content placeholders. Both panels that use these have their own background — the shop is
+   parchment, the inventory is dark green — so the tint comes from currentColor and neither
+   needs its own copy. Sized by the caller so the real value drops into the same box. */
+.skel { display:inline-block; width:var(--skel-w,100%); height:var(--skel-h,1em); border-radius:5px; vertical-align:middle; position:relative; overflow:hidden; background:color-mix(in srgb, currentColor 13%, transparent); }
+.skel::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, color-mix(in srgb, currentColor 20%, transparent), transparent); animation:skel-sweep 1.4s ease-in-out infinite; }
+@keyframes skel-sweep { to { transform:translateX(100%); } }
+/* Still a placeholder, just a still one. */
+@media (prefers-reduced-motion: reduce) { .skel::after { animation:none; } }

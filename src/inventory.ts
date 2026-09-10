@@ -1,6 +1,7 @@
 import catalog from '../shared/shop.json';
 import {appearanceOptions, type Appearance} from './appearance';
 import {CLOTHING, drawLook, lookLabel, savedLook, saveLook} from './wardrobe';
+import {bar, skeleton, settled} from './skeleton';
 import './inventory.css';
 
 type State = {items: {sku: string; equipped: boolean}[]; balance: number};
@@ -37,6 +38,10 @@ export function setupInventory(
   const filterBar = dialog.querySelector<HTMLElement>('nav')!;
   let state: State = {items: [], balance: 0};
   let selected = '', filter: Filter = 'all', busy = false, epoch = 0;
+  // busy also covers equipping, when the collection on screen is real. Only a load that has
+  // never landed has nothing honest to show.
+  let ready = false;
+  const loading = () => busy && !ready;
   let look = savedLook();
 
   for (const {key, label} of FILTERS) {
@@ -62,7 +67,12 @@ export function setupInventory(
       const item = state.items.find(owned => ids.some(id => id === owned.sku) && owned.equipped);
       const slot = document.createElement('button');
       slot.type = 'button'; slot.disabled = !item || busy;
-      slot.textContent = `${item ? ICONS[item.sku] : '◇'}  ${title} · ${item ? catalog.find(entry => entry.id === item.sku)?.name : 'Empty'}`;
+      // "Empty" is a finding, not a default. Until the collection arrives the slot says only
+      // which slot it is.
+      if (loading()) {
+        slot.replaceChildren(document.createTextNode(`◇  ${title} · `), bar('68px', '11px'));
+        slot.setAttribute('aria-label', `${title} slot, loading`);
+      } else settled(slot, `${item ? ICONS[item.sku] : '◇'}  ${title} · ${item ? catalog.find(entry => entry.id === item.sku)?.name : 'Empty'}`);
       slot.onclick = () => { selected = item!.sku; filter = 'all'; render(); };
       slots.append(slot);
     }
@@ -108,6 +118,17 @@ export function setupInventory(
     }
     grid.setAttribute('aria-label', 'Items you own');
     grid.setAttribute('role', 'group');
+    if (loading()) {
+      // One row, because the grid is three across: enough to say something is coming without
+      // promising how much. The real count arrives with the data.
+      for (let slot = 0; slot < 3; slot++) {
+        const tile = document.createElement('div');
+        tile.className = 'inventory-item'; tile.setAttribute('aria-hidden', 'true');
+        tile.append(bar('46px', '46px'), bar('64px', '12px'), bar('34px', '9px'));
+        grid.append(tile);
+      }
+      return;
+    }
     const items = catalog.filter(entry => state.items.some(owned => owned.sku === entry.id) && (filter === 'all' || entry.type === filter));
     for (const item of items) {
       const button = document.createElement('button');
@@ -123,7 +144,7 @@ export function setupInventory(
     }
     if (!items.length) {
       const empty = document.createElement('p'); empty.className = 'inventory-empty';
-      empty.textContent = busy ? 'Loading your collection…' : 'No items here yet. Visit Kedai to grow your collection.';
+      empty.textContent = ready ? 'No items here yet. Visit Kedai to grow your collection.' : 'Could not load your collection.';
       grid.append(empty);
     }
   }
@@ -149,7 +170,9 @@ export function setupInventory(
   }
 
   function render() {
-    dialog.querySelector('.inventory-balance')!.textContent = `${state.balance.toLocaleString()} Syiling`;
+    const balanceLabel = dialog.querySelector<HTMLElement>('.inventory-balance')!;
+    if (loading()) skeleton(balanceLabel, 'Loading balance', '82px', '14px');
+    else settled(balanceLabel, ready ? `${state.balance.toLocaleString()} Syiling` : '— Syiling');
     dialog.querySelector('.inventory-look-name')!.textContent = `${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
     drawLook(canvas, look);
     for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-filter]')) button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
@@ -167,8 +190,8 @@ export function setupInventory(
 
   async function load() {
     const ticket = ++epoch;
-    busy = true; state = {items: [], balance: 0}; status.textContent = 'Loading inventory…'; render();
-    try { const data = await api.inventory(); if (ticket === epoch) { state = data; status.textContent = `${data.items.length} owned items`; } }
+    busy = true; ready = false; state = {items: [], balance: 0}; status.textContent = 'Loading inventory…'; render();
+    try { const data = await api.inventory(); if (ticket === epoch) { state = data; ready = true; status.textContent = `${data.items.length} owned items`; } }
     catch (error) { if (ticket === epoch) status.textContent = `Unable to load inventory. ${(error as Error).message}`; }
     finally { if (ticket === epoch) { busy = false; render(); } }
   }

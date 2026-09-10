@@ -1,6 +1,7 @@
 import { session } from './auth';
 import catalog from '../shared/shop.json';
 import currencyPacks from '../shared/currency-packs.json';
+import {skeleton, settled} from './skeleton';
 
 type InventoryItem = { sku: string; equipped: boolean };
 type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: boolean; nextDailyAt?: string | null };
@@ -14,6 +15,9 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
   const daily = dialog.querySelector<HTMLButtonElement>('#shop-daily')!;
   const base = (endpoint || import.meta.env.VITE_MULTIPLAYER_URL || '').replace(/^ws/, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
   let owned: InventoryItem[] = [], balance = 0, dailyAvailable = false, nextDailyAt: string | null = null, available = false, paymentsAvailable = false, busy = false;
+  // busy is true for a purchase too, when the numbers on screen are real and should stay put.
+  // Only the first load has nothing true to show, and that is the one that gets placeholders.
+  let ready = false;
 
   async function request(path: string, body?: unknown) {
     if (!base) throw Error('The shop needs an online connection.');
@@ -35,8 +39,15 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
     return `Lagi ${hours} jam`;
   }
   function draw() {
-    balanceLabel.textContent = `🪙 ${balance.toLocaleString('en-MY')}`;
-    daily.textContent = rewardLabel(); daily.disabled = busy || !available || !session || !dailyAvailable;
+    const loading = busy && !ready, unknown = !busy && !ready;
+    // A balance of zero is a fact about the account, not a stand-in for one nobody has fetched.
+    if (loading) skeleton(balanceLabel, 'Memuatkan baki', '104px', '26px');
+    else settled(balanceLabel, unknown ? '🪙 —' : `🪙 ${balance.toLocaleString('en-MY')}`);
+    if (loading) skeleton(daily, 'Memuatkan ganjaran harian', '116px');
+    // rewardLabel() reads "Ganjaran dituntut" from an unset nextDailyAt, which told logged-out
+    // players they had already claimed a reward they had never been offered.
+    else settled(daily, ready ? rewardLabel() : 'Tuntut harian · +100');
+    daily.disabled = busy || !available || !session || !dailyAvailable;
     const packs = dialog.querySelector('#coin-packs')!; packs.replaceChildren();
     for (const pack of currencyPacks) {
       const button = document.createElement('button'); button.type = 'button'; button.disabled = busy || !available || !paymentsAvailable || !session;
@@ -57,7 +68,10 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
       const title = document.createElement('h3'); title.textContent = item.name;
       const description = document.createElement('p'); description.textContent = item.description;
       const button = document.createElement('button'); button.className = 'primary'; button.type = 'button'; button.disabled = busy || !available || !session;
-      button.textContent = record ? (record.equipped ? 'Tanggalkan' : 'Pakai') : `Beli · 🪙 ${item.price}`;
+      // Beli or Pakai turns on whether this is already owned, so before the inventory lands
+      // every card claimed the player did not own it.
+      if (loading) skeleton(button, `${item.name} · memuatkan`, '100%');
+      else settled(button, record ? (record.equipped ? 'Tanggalkan' : 'Pakai') : `Beli · 🪙 ${item.price}`);
       button.onclick = async () => {
         if (busy) return; busy = true; draw(); message.textContent = record ? 'Mengemas kini character…' : `Membeli ${item.name}…`;
         try {
@@ -72,10 +86,14 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
     }
   }
   async function refresh() {
-    if (busy) return; busy = true; draw();
+    if (busy) return; busy = true;
+    if (!ready) message.textContent = 'Memuatkan kedai…';
+    draw();
     try {
       const data = await request('catalog'); available = data.available; paymentsAvailable = !!data.paymentsAvailable;
-      if (session && available) applyState(await request('inventory'));
+      // Only an account that actually answered has a balance. Logged out, or with the shop
+      // down, the number is not zero — it is nobody's, and the wallet says so.
+      if (session && available) { applyState(await request('inventory')); ready = true; }
       const params = new URLSearchParams(location.search), sessionId = params.get('session_id');
       if (session && params.get('coins') === 'success' && sessionId) {
         const paid = await request('checkout-status', { sessionId }); applyState(paid);
@@ -96,5 +114,5 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
   dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
   dialog.querySelector('#shop-refresh')!.addEventListener('click', () => void refresh());
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; onEquip([]); } };
+  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }
