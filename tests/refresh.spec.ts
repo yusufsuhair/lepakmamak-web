@@ -32,26 +32,26 @@ test('a newer server counts down and then reloads once',async({page})=>{
  expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.22.0'))).toBe('current');
  await expect(page.locator('#force-refresh')).toBeHidden();
 
- expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0'))).toBe('counting');
+ expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0',true))).toBe('counting');
  await expect(page.locator('#force-refresh')).toBeVisible();
- await expect(page.locator('#refresh-line')).toHaveText('FULL REFRESH BY SYSTEM IN 3');
+ await expect(page.locator('#refresh-line')).toHaveText('Update wajib dalam 3 saat');
  await expect(page.locator('#refresh-note')).toHaveText('v1.22.0 → v1.23.0');
 
- await advance(page,1000); await expect(page.locator('#refresh-line')).toHaveText('FULL REFRESH BY SYSTEM IN 2');
- await advance(page,1000); await expect(page.locator('#refresh-line')).toHaveText('FULL REFRESH BY SYSTEM IN 1');
+ await advance(page,1000); await expect(page.locator('#refresh-line')).toHaveText('Update wajib dalam 2 saat');
+ await advance(page,1000); await expect(page.locator('#refresh-line')).toHaveText('Update wajib dalam 1 saat');
  expect(await page.evaluate(()=>(window as any).reloads)).toBe(0);
  await advance(page,1000);
  await expect.poll(()=>page.evaluate(()=>(window as any).reloads)).toBe(1);
 
  // A second welcome while counting must not start a second countdown or reload twice.
- await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0'));
+ await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0',true));
  await advance(page,4000);
  await expect.poll(()=>page.evaluate(()=>(window as any).reloads)).toBe(1);
 });
 
 test('a backgrounded tab does not sit on 3 while its timers are throttled',async({page})=>{
  await mount(page,'throttle-harness');
- await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0'));
+ await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0',true));
  // One long jump, as a throttled tab produces: the countdown reads the clock, not its ticks.
  await advance(page,3000);
  await expect.poll(()=>page.evaluate(()=>(window as any).reloads)).toBe(1);
@@ -61,7 +61,7 @@ test('coming back still behind asks instead of reloading in a circle',async({pag
  await mount(page,'loop-harness');
  // As if a previous page load had already reloaded for this very version.
  await page.evaluate(()=>sessionStorage.setItem('lepak-refreshed-for','1.23.0'));
- expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0'))).toBe('asking');
+ expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0',true))).toBe('asking');
  await expect(page.locator('#refresh-line')).toHaveText('A NEWER VERSION IS OUT');
  await expect(page.locator('#refresh-now')).toBeVisible();
  await advance(page,5000);
@@ -69,3 +69,10 @@ test('coming back still behind asks instead of reloading in a circle',async({pag
  await page.locator('#refresh-now').click();
  expect(await page.evaluate(()=>(window as any).reloads)).toBe(1);
 });
+
+ test('normal server updates do not force refresh',async({page})=>{
+ await mount(page,'optional-harness');
+ expect(await page.evaluate(()=>(window as any).refresher.check('1.22.0','1.23.0'))).toBe('current');
+ await advance(page,60000);
+ expect(await page.evaluate(()=>(window as any).reloads)).toBe(0);
+ });

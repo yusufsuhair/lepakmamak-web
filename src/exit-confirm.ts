@@ -1,3 +1,5 @@
+let systemReload = false;
+export function allowSystemReload() { systemReload = true; }
 export function setupExitConfirmation(onExit:()=>void|Promise<void>){
  const dialog=document.createElement('dialog');dialog.id='exit-confirm';dialog.setAttribute('aria-labelledby','exit-confirm-title');
  dialog.innerHTML='<div class="exit-confirm-card"><span aria-hidden="true">☕</span><h2 id="exit-confirm-title">Keluar dari game?</h2><p>Character anda akan keluar dari bandar dan kawan-kawan akan nampak anda offline.</p><p id="exit-confirm-status" role="status"></p><div><button id="exit-cancel" type="button">Cancel</button><button id="exit-yes" type="button">Keluar game</button></div></div>';
@@ -16,7 +18,7 @@ export function setupExitConfirmation(onExit:()=>void|Promise<void>){
 // Never disconnect here: the player may choose to stay in the warning.
 export function setupPageExitWarning(isPlaying:()=>boolean){
  const warn=(event:BeforeUnloadEvent)=>{
-  if(!isPlaying())return;
+  if(systemReload || !isPlaying())return;
   event.preventDefault();
   event.returnValue='';
  };

@@ -736,3 +736,7 @@ html, body, #app { touch-action: manipulation; }
 /* Fullscreen chat stays open until the user leaves fullscreen. */
 #chat-controls button:disabled { opacity: .35; cursor: default; background: #ffffff14; color: #cdd8c0; }
 #chat-heading:disabled { cursor: default; }
+
+#force-refresh.refresh-optional { inset: auto 16px 90px auto; width: min(360px, calc(100vw - 32px)); background: transparent; backdrop-filter: none; }
+.refresh-optional .refresh-card { padding: 18px; }
+.refresh-card button { margin: 8px 6px 0 0; }

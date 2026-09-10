@@ -1,3 +1,5 @@
+import { allowSystemReload } from './exit-confirm';
+declare const __BUILD_ID__: string;
 // The server states its own version on welcome, so a page left open across a deploy finds
 // out without polling anything. Only a server that is genuinely newer triggers a refresh:
 // the two halves deploy separately, so a client briefly ahead of the server must sit still
@@ -23,12 +25,13 @@ export function createRefresher(
   host: HTMLElement,
   options: {seconds?: number; reload?: () => void; now?: () => number} = {},
 ) {
-  const seconds = options.seconds ?? 3;
+  const seconds = options.seconds ?? 30;
   const reload = options.reload ?? (() => {
     // A cache-busted URL rather than reload(): the entry document is must-revalidate, but a
     // stale intermediary or a back-forward cache can still hand back the old one.
     const url = new URL(location.href);
     url.searchParams.set('v', String(Date.now()));
+    allowSystemReload();
     location.replace(url.toString());
   });
   const now = options.now ?? (() => Date.now());
@@ -44,13 +47,49 @@ export function createRefresher(
   button.onclick = () => reload();
 
   let timer: number | null = null, target = '';
+  const later = document.createElement('button');
+  later.type = 'button'; later.textContent = 'Nanti';
+  root.querySelector('.refresh-card')!.append(later);
+  let dismissed = '', client = '', polling = false;
+  later.onclick = () => { dismissed = target; root.hidden = true; };
+  async function poll() {
+    if (!client || polling || timer !== null || document.hidden) return;
+    polling = true;
+    try {
+      const response = await fetch('/release.json', {cache: 'no-store'});
+      if (!response.ok) return;
+      const release = await response.json();
+      if (typeof release.buildId !== 'string' || release.buildId === __BUILD_ID__) return;
+      if (typeof release.minClientVersion === 'string' && isStale(client, release.minClientVersion)) {
+        api.check(client, release.minClientVersion, true); return;
+      }
+      if (dismissed === release.buildId) return;
+      target = release.buildId;
+      root.classList.add('refresh-optional'); root.hidden = false;
+      root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
+      line.textContent = 'Update tersedia';
+      note.textContent = 'Muat semula bila anda bersedia untuk versi terbaru.';
+      button.textContent = 'Update sekarang'; button.hidden = false; later.hidden = false;
+    } catch { /* Offline or deploying: leave the game running. */ }
+    finally { polling = false; }
+  }
+  if (import.meta.env.PROD) {
+    window.setInterval(() => void poll(), 60000);
+    document.addEventListener('visibilitychange', () => void poll());
+  }
 
-  return {
+
+  const api = {
     root,
     get pending() { return target; },
     // Returns what it decided, so a caller (and a test) can see why nothing happened.
-    check(clientVersion: string, serverVersion: string): 'current' | 'counting' | 'asking' {
+    check(clientVersion: string, serverVersion: string, required = false): 'current' | 'counting' | 'asking' {
+      client = clientVersion;
+      if (!required) { if (import.meta.env.PROD) void poll(); return 'current'; }
       if (timer !== null || !isStale(clientVersion, serverVersion)) return timer !== null ? 'counting' : 'current';
+      root.classList.remove('refresh-optional');
+      root.setAttribute('role', 'alertdialog');
+      later.hidden = true; button.hidden = true;
       target = serverVersion;
       root.hidden = false;
       // Already tried to reach this version and came back short: the build is not there yet.
@@ -61,7 +100,7 @@ export function createRefresher(
         return 'asking';
       }
       let left = seconds;
-      const paint = () => { line.textContent = `FULL REFRESH BY SYSTEM IN ${left}`; note.textContent = `v${clientVersion} → v${serverVersion}`; };
+      const paint = () => { line.textContent = `Update wajib dalam ${left} saat`; note.textContent = `v${clientVersion} → v${serverVersion}`; };
       paint();
       const started = now();
       timer = window.setInterval(() => {
@@ -77,4 +116,5 @@ export function createRefresher(
       return 'counting';
     },
   };
+  return api;
 }
