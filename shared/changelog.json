@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.5",
+    "date": "2026-09-10",
+    "title": "Porsche Taycan Frozen Berry di Rembayung",
+    "notes": [
+      "Porsche Taycan Frozen Berry kini dipamerkan di forecourt Rembayung dan boleh dipandu oleh pemain.",
+      "Kereta ini menggunakan tuntutan kenderaan authoritative yang sama, jadi pemain boleh ambil dan lepaskan kereta dengan selamat dalam realtime."
+    ]
+  },
+  {
     "version": "1.39.4",
     "date": "2026-09-10",
     "title": "Court sukan di belakang Pantai Senja",
