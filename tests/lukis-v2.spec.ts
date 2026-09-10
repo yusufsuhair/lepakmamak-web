@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {createLukis,wordHint} from '../server/lukis.mjs';
 import chairs from '../shared/chairs.json' with {type:'json'};
+import {createTableLobby} from '../server/table-lobby.mjs';
 import bank from '../shared/lukis.json' with {type:'json'};
 function fixture(count=3,onSend?:(ws:string,message:any)=>void){let time=100000;const events:any[]=[];const seats=chairs.filter(c=>c.tableId==='meja-1');const ps=new Map(Array.from({length:count},(_,i)=>[String(i),{id:String(i),userId:`account-${i}`,name:`Player ${i}`,chairId:seats[i].id,ws:String(i)}]));const engine=createLukis((ws:string,m:any)=>{events.push({ws,...structuredClone(m)});onSend?.(ws,m);},()=>time,(n:number)=>n-1);const state=(i=0)=>events.filter(e=>e.ws===String(i)&&e.type==='lukis-state').at(-1).game;const send=(i:number,m:any)=>engine.handle(ps,ps.get(String(i)),m);const act=(i:number,type:string,extra:any={})=>{const s=state(i);send(i,{type,gameId:s.id,round:s.round,boardVersion:s.boardVersion,...extra});};return{ps,events,engine,state,send,act,step(ms:number){time+=ms;engine.tick(ps);}};}
 test('private word selection, aliases, ranking, timed hints and complete match',()=>{
@@ -49,11 +50,9 @@ test('a match locks its roster: sitting down mid-game cannot join or score',()=>
  // someone sits down at the table while the round is being drawn
  f.ps.set('2',{id:'2',userId:'account-2',name:'Player 2',chairId:seats[2].id,ws:'2'});
  f.send(2,{type:'lukis-open'});
- expect(f.state(2).scores.map((p:any)=>p.id).sort()).toEqual(['account-0','account-1']);
- expect(f.state(2).scores.some((p:any)=>p.id==='account-2')).toBe(false); // drives the spectator notice in the panel
+ expect(f.state(2)).toBeNull();
 
- // they watch, but the correct answer earns them nothing and does not solve the round
- f.act(2,'lukis-guess',{text:answer});
+ f.send(2,{type:'lukis-guess',text:answer});
  expect(f.state(0).solved).not.toContain('account-2');
  expect(f.state(0).scores.some((p:any)=>p.id==='account-2')).toBe(false);
  expect(f.state(0).phase).toBe('drawing');
@@ -66,3 +65,20 @@ test('a match locks its roster: sitting down mid-game cannot join or score',()=>
  f.send(0,{type:'lukis-start',version:2,rounds:1});
  expect(f.state(0).scores.map((p:any)=>p.id).sort()).toEqual(['account-0','account-1','account-2']);
 });
+
+ test('a fourth player cannot inherit a departed third player session',()=>{
+ const f=fixture(3);f.send(0,{type:'lukis-start',version:2});
+ const original=f.ps.get('2')!;f.ps.delete('2');
+ const replacement={...original,id:'3',userId:'account-3',ws:'3'};f.ps.set('3',replacement);
+ expect(f.engine.canJoin(f.ps,replacement)).toBe(false);
+ const events:any[]=[];const lobby=createTableLobby((ws:any,m:any)=>events.push({ws,...m}),{lukis:f.engine});
+ lobby.handle(f.ps,replacement,{type:'lobby-join',game:'lukis'});
+ expect(events.some(e=>e.type==='notice')).toBe(true);
+ expect(events.some(e=>e.type==='lobby-state')).toBe(false);
+ f.send(3,{type:'lukis-open'});expect(f.state(3)).toBeNull();
+ f.step(12000);expect(f.state(3)).toBeNull();
+ expect(f.state(0).scores.map((p:any)=>p.id)).not.toContain('account-3');
+ f.ps.delete('3');f.ps.set('2',original);
+ expect(f.engine.canJoin(f.ps,original)).toBe(true);
+ f.send(2,{type:'lukis-open'});expect(f.state(2).id).toBe(f.state(0).id);
+ });

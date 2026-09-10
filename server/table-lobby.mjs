@@ -136,6 +136,10 @@ export function createTableLobby(send, games, now = Date.now) {
         if (!LOBBY_RULES[game]) return true;
         const key = keyFor(player, game);
         if (!key) { send(player.ws, {type: 'notice', message: 'Duduk di kerusi meja dahulu.'}); return true; }
+        if(game==='lukis' && games.lukis?.canJoin && !games.lukis.canJoin(players,player)){
+          send(player.ws,{type:'notice',message:'Game ini sedang berlangsung. Tunggu game seterusnya untuk sertai.'});
+          return true;
+        }
         const previous = lobbyOf(players, player);
         if (previous) drop(players, player, previous);
         const id = `${game}:${key}`;
