@@ -6,7 +6,7 @@ const places=JSON.parse(readFileSync('shared/places.json','utf8')) as {name:stri
 test('ZUS Coffee stands where the nearer 99 Speedmart did, with its own seating',async({page})=>{
  // The map directory and the world have to agree, or the pin sends you to the wrong shop.
  expect(places.find(p=>p.x===27&&p.z===58)?.name).toBe('ZUS Coffee');
- expect(places.filter(p=>p.name.includes('Speedmart')).map(p=>p.name)).toEqual(['99 Speedmart Timur']);
+ expect(places.filter(p=>p.name.includes('Speedmart')).map(p=>p.name)).toEqual([]);
 
  // Seats are drawn from chairs.json, so the stool you can see is the one the server sits
  // you in. Twelve of them, none claimed by a game table.

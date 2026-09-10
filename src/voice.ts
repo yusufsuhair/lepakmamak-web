@@ -183,6 +183,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
   render();
   return {
     get micActive(){return mic;},
+    get partyOnly(){return micScope === 'party';},
     party(value: boolean) {
       if (inParty === value) return;
       inParty = value;

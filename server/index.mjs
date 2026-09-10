@@ -377,6 +377,21 @@ webSocketServer.on('connection', ws => {
     }
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
+    if (message.type === 'leave-city') {
+      uno.handle(currentRoom.players, player, {type:'uno-leave'});
+      werewolf.handle(currentRoom.players, player, {type:'werewolf-leave'});
+      removePlayer(); ws.close(1000, 'Left city'); return;
+    }
+    if (message.type === 'leave-game-seat') {
+      uno.handle(currentRoom.players, player, {type:'uno-leave'});
+      werewolf.handle(currentRoom.players, player, {type:'werewolf-leave'});
+      tableLobby.remove(currentRoom.players, player);
+      const stand=player.chairStand;
+      if(stand){player.x=stand.x;player.z=stand.z;}
+      player.chairId=null;player.seated=false;delete player.chairStand;
+      broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});
+      return;
+    }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
     if (player.muted && MUTED.has(message.type)) { send(ws, { type: 'notice', message: 'You are muted, so this did not go out. You can still walk around the city.' }); return; }
     if (message.type === 'report') {

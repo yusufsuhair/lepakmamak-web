@@ -50,14 +50,14 @@
  },
  {
   "id": "8",
-  "name": "99 Speedmart Timur",
+  "name": "KFC Drive-Thru",
   "x": 105,
   "z": 60,
   "kind": "kedai"
  },
  {
   "id": "9",
-  "name": "KK Super Mart Timur",
+  "name": "McDonald's Drive-Thru",
   "x": 129,
   "z": 60,
   "kind": "kedai"
@@ -278,5 +278,19 @@
   "x": -91,
   "z": -30,
   "kind": "lrt"
+ },
+ {
+  "id": "41",
+  "name": "Shell · Select",
+  "x": 33,
+  "z": 103,
+  "kind": "minyak"
+ },
+ {
+  "id": "42",
+  "name": "Gereja Harapan",
+  "x": 117,
+  "z": -37,
+  "kind": "ibadah"
  }
 ]

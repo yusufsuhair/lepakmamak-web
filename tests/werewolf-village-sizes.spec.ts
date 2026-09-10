@@ -50,6 +50,10 @@ test(`a village of ${size} reaches night through the real lobby ritual`,async()=
   // Everyone who sat down is in it — members 8 and 9 used to be turned away silently.
   expect(game.players).toHaveLength(size);
   expect(game.size).toBe(size);
+  if (size === 5) {
+   players[1].ws.send(JSON.stringify({type:'leave-city'}));
+   await expect.poll(()=>players[0].village.at(-1)?.players.find((p:any)=>p.id===game.players[1].id)?.alive).toBe(false);
+  }
   expect(new Set(game.players.map((p:any)=>p.id)).size).toBe(size);
  } finally { for(const ws of sockets) ws.close(); server.kill(); }
 });

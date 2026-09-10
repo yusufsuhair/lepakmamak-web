@@ -428,7 +428,7 @@ export interface TrafficCar { id:string; model:ReturnType<typeof createDriveable
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
 export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }
 
-export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
+export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
   const width = kind === 'mosque' ? 36 : 18, depth = 20;
   box(g, 0, .12, 3, width + 2, .24, 28, '#ded3b8');
@@ -450,6 +450,14 @@ export function createWorshipLandmark(kind: 'mosque' | 'hindu' | 'chinese', mosq
       tube(g, x, 14, 0, .08, 1.4, '#dbb956');
     }
     sign(g, mosqueName, 0, 5.25, 7.7, 17, .8, '#438d7b');
+  } else if (kind === 'church') {
+    const cream='#f1ead8', blue='#507c9a', glass='#87a7b4';
+    box(g,0,6,0,15,12,15,cream);
+    box(g,0,13,-1,6,14,7,cream);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(6,5,4),material(blue));roof.rotation.y=Math.PI/4;roof.position.set(0,22,-1);g.add(roof);
+    box(g,0,16.8,7.62,.55,5,.18,'#d6ae52');box(g,0,18.4,7.64,3.2,.55,.18,'#d6ae52');
+    for(const x of [-5,0,5]){const pane=ball(g,x,4.5,7.58,1.5,glass);pane.scale.set(1,1.8,.08);}
+    sign(g,'GEREJA HARAPAN',0,9.3,7.72,12,.9,blue,'#ffffff');
   } else if (kind === 'hindu') {
     box(g, 0, 6.2, 0, 16.5, .5, 16.5, '#ad667c');
     for (let tier = 0; tier < 6; tier++) {
@@ -610,7 +618,6 @@ export function createWorld(scene: THREE.Scene): World {
   shop(27, 34, 19, shopColors[0], 'WARUNG KAK ANA');
   shop(28, -16, 21, shopColors[3], 'RESTORAN SERI KL');
   shop(51, -16, 20, shopColors[2], 'KEDAI ELEKTRIK');
-  shop(33, 103, 24, shopColors[1], 'SELAMAT JALAN');
   // Masjid Kampung Maju occupies the former PETRONAS site.
   // Rotate its entrance toward the mamak while keeping the courtyard clear.
   {
@@ -696,6 +703,35 @@ export function createWorld(scene: THREE.Scene): World {
       }
     }
   }
+  function driveThrough(x:number,z:number,label:string,brand:string,accent:string,ink:string,laneSide:-1|1){
+    const g=new THREE.Group();g.name=`drive-through-${label.toLowerCase().replace(/[^a-z]+/g,'-')}`;g.position.set(x,0,z);group.add(g);
+    const buildingX=-laneSide*2.5,laneX=laneSide*8;
+    box(g,buildingX,4.2,0,14,8.4,12,'#eee7d8');
+    box(g,buildingX,8.55,0,14.5,.3,12.5,brand);
+    box(g,buildingX,5.65,6.05,14.2,1.35,.2,brand);
+    sign(g,label,buildingX,5.68,6.18,12.5,1,brand,ink);
+    for(const wx of [-4,0,4])box(g,buildingX+wx,2.4,6.08,3.5,3.6,.12,'#7ea4a5');
+    box(g,buildingX+laneSide*5.4,2.25,6.1,2.2,2.2,.18,accent);
+    sign(g,'DRIVE THRU',laneX,3.25,-4.5,4.5,.7,brand,ink);
+    box(g,laneX,1.45,-4.5,.22,2.9,.22,brand);
+    box(g,laneX,.035,0,5.5,.07,23,'#4d514f');
+    for(let dz=-9;dz<=9;dz+=4)box(g,laneX,.08,dz,.16,.03,1.8,'#f5d75b');
+    box(g,laneX-laneSide*2.5,1.25,1.3,1.5,2.5,.8,brand);
+    sign(g,'ORDER',laneX-laneSide*2.5,2.15,.86,1.25,.42,accent,ink);
+    solid(x+buildingX,z,14,12);mapBuildings.push({x:x+buildingX,z,w:14,d:12,color:brand});
+  }
+  function shellStation(x:number,z:number){
+    const g=new THREE.Group();g.name='shell-station';g.position.set(x,0,z);group.add(g);
+    const yellow='#f8c900',red='#d9272e',white='#fff8e8';
+    box(g,0,.04,0,25,.08,25,'#7d817d');
+    box(g,0,3.1,7,20,6.2,8,white);box(g,0,6.35,7,20.5,.3,8.5,yellow);
+    sign(g,'SHELL SELECT',0,5.2,2.92,12,.8,red,white);
+    box(g,0,5,-4,18,.5,10,white);box(g,0,4.7,-8.9,18,.45,.25,yellow);box(g,0,4.7,.9,18,.45,.25,red);
+    for(const x of [-7,7]){box(g,x,2.5,-4,.4,5,.4,white);box(g,x,1.3,-4,2,2.6,.8,yellow);box(g,x,1.7,-4,1.2,.55,.84,red);}
+    box(g,11,5,-9,2.5,10,1,white);sign(g,'SHELL',11,7,-9.54,2.1,.65,red,yellow);sign(g,'95 · 97',11,4.8,-9.55,2,.8,white,red);
+    solid(x,z+7,20,8);solid(x-7,z-4,2,2.6);solid(x+7,z-4,2,2.6);solid(x+11,z-9,2.5,1);
+    mapBuildings.push({x,z:z+7,w:20,d:8,color:yellow});
+  }
   zusCoffee(27, 58);
   // Tucked against the shopfront: the teleport arrival for ZUS lands at (27, 68) and the
   // middle table used to stand on it, so arriving put you on the table.
@@ -705,8 +741,9 @@ export function createWorld(scene: THREE.Scene): World {
   retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');
   retail(27,-40,'KEDAI ACEH · SERBANEKA','#317e62','#fff0ce','market');
   retail(49,-40,'MR.DIY','#f1c62b','#253d35','diy');
-  retail(105,60,'99 SPEEDMART','#df3437','#fff4d9','market');
-  retail(129,60,'KK SUPER MART','#c92536','#ffffff','market');
+  driveThrough(105,60,'KFC','#b81924','#8d111a','#ffffff',1);
+  driveThrough(129,60,"McDONALD'S",'#d71920','#ffc72c','#ffffff',-1);
+  shellStation(33,103);
 
   // Watsons health and beauty shop: a bright turquoise frontage, glazed doors
   // and compact product displays make it recognisable from the street.
@@ -1032,10 +1069,10 @@ export function createWorld(scene: THREE.Scene): World {
     }
   }
   // Dedicated worship sites replace skyline lots, clear of the roads.
-  for (const [kind, x, z] of [['mosque', masjidSpots[1].x, masjidSpots[1].z], ['hindu', 105, 37], ['chinese', 129, 37]] as const) {
+  for (const [kind, x, z] of [['church', 117, -37], ['hindu', 105, 37], ['chinese', 129, 37]] as const) {
     const landmark = createWorshipLandmark(kind); landmark.group.position.set(x, 0, z); group.add(landmark.group);
     solid(x, z, landmark.width, 16);
-    mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'mosque' ? '#438d7b' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
+    mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'church' ? '#507c9a' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
   }
   // A distant communications tower complements the twin towers.
   tube(group, -104, 42, -145, 1.3, 84, '#c5c6ae');

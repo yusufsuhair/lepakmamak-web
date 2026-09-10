@@ -1,3 +1,4 @@
+import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
 import {setupVehicleRadio} from './vehicle-radio';
 import {setupLocationArrival} from './location-arrival';
@@ -200,12 +201,6 @@ async function init() {
   const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
   const rembayungIceCream=createIceCreamBike();rembayungIceCream.position.set(-108,.09,138);rembayungIceCream.rotation.y=Math.PI/2;scene.add(rembayungIceCream);
   world.solids.push({x:-108,z:138,hx:1.8,hz:1.35});
-  // Somebody's pride and joy, parked outside the mamak with the exhaust burbling. It is a
-  // prop, not fleet: nobody gets to drive it, so the server never needs to know it is here.
-  const LAMBO = {x: -12, z: 43};
-  const showLambo = createDriveableCar('lamborghini');
-  showLambo.group.position.set(LAMBO.x, .09, LAMBO.z); showLambo.group.rotation.y = Math.PI; scene.add(showLambo.group);
-  world.solids.push({x: LAMBO.x, z: LAMBO.z, hx: 1.05, hz: 1.95});
   const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
@@ -754,8 +749,8 @@ async function init() {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   });
-  const voiceRadius=new THREE.Mesh(new THREE.RingGeometry(voiceConfig.hearingRadius-.18,voiceConfig.hearingRadius,72),new THREE.MeshBasicMaterial({color:'#ddf69a',transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false}));
-  voiceRadius.rotation.x=-Math.PI/2;voiceRadius.position.y=.035;voiceRadius.visible=false;scene.add(voiceRadius);
+  const voiceRadius=new THREE.Mesh(new THREE.RingGeometry(voiceConfig.hearingRadius-.5,voiceConfig.hearingRadius,72),new THREE.MeshBasicMaterial({color:'#ddf69a',transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
+  voiceRadius.renderOrder=10;voiceRadius.rotation.x=-Math.PI/2;voiceRadius.position.y=.035;voiceRadius.visible=false;scene.add(voiceRadius);
   function disconnectMultiplayer() {
     if(lrtId!=null){lrtId=null;riding=false;speed=0;pos.y=.12;}
     saveLocation();
@@ -1018,7 +1013,15 @@ async function init() {
     if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng); scene.add(localName); }
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
   }
+  const idleGuard = createIdleGuard(() => started && seated, () => {
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'leave-game-seat'}));
+    else { seatedChairId=null; seated=false; chat.seated(false); pos.copy(standPosition); }
+    toast('Away too long', 'Your game and seat were released after 5 minutes without input.', 6);
+  });
+  for (const event of ['pointerdown','pointermove','keydown','wheel'] as const) window.addEventListener(event, e => { if(e.isTrusted) idleGuard.activity(); }, {passive:true});
+  window.setInterval(() => idleGuard.tick(), 1000);
   function leaveCity() {
+    if(networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'leave-city'}));
     vehicleRadio.update(false);
     locationArrival.reset();
     saveLocation();danceAudio.stop();localSupermanUntil=0;
@@ -1071,10 +1074,8 @@ async function init() {
     // Anchored on the post rather than the lamp head, which is off the top of the screen
     // by the time you are close enough to reach it.
     const lampAction = () => ({index: lamp, point: streetLights.lamps[lamp], height: 2.2, label: streetLights.lit(lamp) ? 'Turn off' : 'Turn on', disabled: false});
-    // A Lamborghini is not getting ciloked, parked or moving. The prompt still appears so
+    // A Lamborghini is not getting ciloked. The prompt still appears so
     // the refusal is the joke rather than a dead spot where every other car offers you one.
-    const lamboAway = distanceTo(showLambo.group.position);
-    if (lamboAway < 4.8 && lamboAway <= lampAway) return {point: showLambo.group.position, height: 2.4, label: 'Tak bole', disabled: true};
     const trafficCar=nearbyCar();
     if(trafficCar&&distanceTo(trafficCar)<=lampAway){
      if(unciloked(trafficCar.id))return {point:trafficCar.group.position,height:2.4,label:'Tak bole',disabled:true};
@@ -1686,7 +1687,7 @@ async function init() {
     iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (lamboGain && audioContext) {
-      const distance = Math.hypot(pos.x - LAMBO.x, pos.z - LAMBO.z);
+      const distance = Math.min(...world.traffic.filter(car => car.group.userData.model === 'lamborghini').map(car => Math.hypot(pos.x-car.group.position.x, pos.z-car.group.position.z)));
       const proximity = Math.max(0, Math.min(1, (LAMBO_REACH - distance) / (LAMBO_REACH - LAMBO_FULL)));
       lamboGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? LAMBO_PEAK * proximity * proximity : 0, audioContext.currentTime, .18);
     }
@@ -1700,8 +1701,8 @@ async function init() {
         updateNameTagGeng(entity.label, String((remote as unknown as {geng?: string}).geng || ''));
       }
     }
-    voiceRadius.visible=started&&voice.micActive;
-    if(voiceRadius.visible){voiceRadius.position.set(pos.x,.035,pos.z);voiceRadius.material.opacity=reducedMotion ? .3 : .22+Math.sin(elapsed*3)*.08;}
+    voiceRadius.visible=started&&voice.micActive&&!voice.partyOnly;
+    if(voiceRadius.visible){voiceRadius.position.set(pos.x,pos.y+.08,pos.z);voiceRadius.material.opacity=reducedMotion ? .65 : .6+Math.sin(elapsed*3)*.12;}
     camera.updateMatrixWorld();
     const actionButton = $<HTMLButtonElement>('interaction');
     const action = objectAction();
@@ -1792,7 +1793,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { x: LAMBO.x, z: LAMBO.z, playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

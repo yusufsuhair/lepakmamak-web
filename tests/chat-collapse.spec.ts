@@ -64,12 +64,12 @@ test('the window controls sit in the far-left corner and both still work', async
     const controls = document.querySelector('#chat-controls')!.getBoundingClientRect();
     const panel = document.querySelector('#city-chat')!.getBoundingClientRect();
     const title = document.querySelector('#chat-heading b')!.getBoundingClientRect();
-    return { fromLeft: controls.left - panel.left, fromRight: panel.right - controls.right, aheadOfTitle: controls.right <= title.left };
+    return { fromLeft: controls.left - panel.left, fromRight: panel.right - controls.right, afterTitle: controls.left >= title.right };
   });
-  expect(placed.fromLeft).toBeLessThan(12);
-  expect(placed.fromLeft).toBeLessThan(placed.fromRight);
+  expect(placed.fromRight).toBeLessThan(12);
+  expect(placed.fromRight).toBeLessThan(placed.fromLeft);
   // The title makes room for them rather than sitting underneath.
-  expect(placed.aheadOfTitle).toBe(true);
+  expect(placed.afterTitle).toBe(true);
 
   const minimise = page.getByRole('button', { name: 'Minimise city chat' });
   await minimise.click();
@@ -79,6 +79,8 @@ test('the window controls sit in the far-left corner and both still work', async
 
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
+  await expect(page.getByRole('button', { name: 'Minimise city chat' })).toBeDisabled();
+  await expect(page.locator('#chat-heading')).toBeDisabled();
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 

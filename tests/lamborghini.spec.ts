@@ -1,19 +1,11 @@
 import {test,expect} from '@playwright/test';
-import teleports from '../shared/teleports.json' with {type:'json'};
-import tables from '../shared/tables.json' with {type:'json'};
-import chairs from '../shared/chairs.json' with {type:'json'};
+import fleetSeeds from '../shared/fleet.json' with {type:'json'};
 import {createFleet} from '../server/fleet.mjs';
 
-const LAMBO={x:-12,z:43};
-
-// The ZUS tables were parked on top of a teleport arrival and nobody noticed until players
-// landed inside them. A parked car is the same hazard, so the spot is checked, not eyeballed.
-test('the parked Lamborghini stands clear of arrivals, tables and chairs',()=>{
- for(const spot of teleports as {x:number;z:number}[]) expect(Math.hypot(spot.x-LAMBO.x,spot.z-LAMBO.z)).toBeGreaterThan(4);
- for(const table of tables as {x:number;z:number}[]) expect(Math.hypot(table.x-LAMBO.x,table.z-LAMBO.z)).toBeGreaterThan(4);
- for(const chair of chairs as {x:number;z:number}[]) expect(Math.hypot(chair.x-LAMBO.x,chair.z-LAMBO.z)).toBeGreaterThan(3);
- // The ice-cream vendor's route runs the x -5..5 corridor between z 26 and 62.
- expect(Math.abs(LAMBO.x)).toBeGreaterThan(8);
+test('every Lamborghini belongs to moving NPC traffic',()=>{
+ const lambos=fleetSeeds.filter(car=>car.style==='lamborghini');
+ expect(lambos.length).toBeGreaterThan(0);
+ for(const car of lambos){expect(car.npc).toBe(true);expect(car.speed).toBeGreaterThan(0);expect(['x','z']).toContain(car.axis);}
 });
 
 test('the show car is built as a Lamborghini, wing and all',async({page})=>{
@@ -35,7 +27,7 @@ test('the show car is built as a Lamborghini, wing and all',async({page})=>{
 
 // The exhaust carries, so it fades in as you walk over and stays well under the ice-cream
 // song, which is the loudest thing in the city and was the complaint about this one.
-test('the exhaust fades in near the car and is quieter than the ice cream',async({page})=>{
+test('the moving exhaust is quieter than the ice cream',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:"Jom, let's go"}).click();
  await page.locator('#auth-guest').click();
@@ -46,21 +38,8 @@ test('the exhaust fades in near the car and is quieter than the ice cream',async
  // Reduced, as asked: the ice-cream song peaks at 1.2 through the same city bus.
  const {peak,reach}=await lambo();
  expect(peak).toBeLessThan(1.2/3);
- // Spawn is inside the radius but not on top of the car, so it should be there and faint.
- const spawn=await page.evaluate(()=>(window as any).__lepak.position);
- expect(Math.hypot(spawn.x-LAMBO.x,spawn.z-LAMBO.z)).toBeLessThan(reach);
- await expect.poll(async()=>(await lambo()).gain,{timeout:15000}).toBeGreaterThan(.005);
- expect((await lambo()).gain).toBeLessThan(peak);
-
- // Walk out of earshot and it goes, the same way the ice cream does.
- await page.locator('#world').focus();
- await page.keyboard.down('s');
- await expect.poll(async()=>(await lambo()).gain,{timeout:20000}).toBeLessThan(.001);
- await page.keyboard.up('s');
- await page.locator('#world').focus();
- await page.keyboard.down('w');
- await expect.poll(async()=>(await lambo()).gain,{timeout:25000}).toBeGreaterThan(.005);
- await page.keyboard.up('w');
+ expect(reach).toBe(16);
+ expect((await lambo()).cars.every((car:any)=>car.npc&&car.speed>0)).toBe(true);
 });
 
 test('the server refuses to hand over a Lamborghini, however the claim arrives',()=>{

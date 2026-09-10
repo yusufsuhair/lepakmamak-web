@@ -1,5 +1,21 @@
 [
  {
+  "version": "1.38.2",
+  "date": "2026-09-10",
+  "title": "Bandar lebih hidup, voice lebih jelas",
+  "notes": [
+   "Fullscreen chat stays expanded until you restore its window size.",
+   "The chat minimise and fullscreen controls now sit together on the right side of the header.",
+   "Every Lamborghini now drives through the city. Its quieter exhaust follows the moving car and fades with distance.",
+   "Your microphone range is brighter and visible over raised floors. The distance ring hides for party speech, which reaches your party across the city.",
+   "Seated players get a warning after four and a half minutes without input. At five minutes they leave the table game and release their seat while staying in the city. Move or tap to stay.",
+   "Logging out immediately leaves UNO and Werewolf; interrupted connections keep their reconnect grace period."
+   ,"KFC and McDonald's replace repeated convenience shops, each with an open drive-through lane, order board and collection window."
+   ,"A Shell station with Shell Select, pumps and a driveable forecourt opens near the eastern LRT line."
+   ,"Malaysia's second mosque model is now Gereja Harapan. Masjid Kampung Maju remains, and the call to prayer now comes only from that mosque."
+  ]
+ },
+ {
   "version": "1.38.1",
   "date": "2026-09-10",
   "title": "Lamborghini depan mamak",

@@ -581,10 +581,10 @@ html, body, #app { touch-action: manipulation; }
 /* Window controls sit in the far-left corner of the title bar, ahead of the title, rather
    than floating over the middle of it. The heading is a button and cannot hold buttons, so
    they overlay it and it makes room for them with padding. */
-#chat-controls { position: absolute; top: 4px; left: 6px; display: flex; gap: 4px; z-index: 2; }
+#chat-controls { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; z-index: 2; }
 #chat-controls button { background: #ffffff14; color: #cdd8c0; border: 0; border-radius: 4px; padding: 2px 7px; font-size: 12px; line-height: 1.4; font-family: inherit; cursor: pointer; }
 #chat-controls button:hover { background: #ffffff2b; color: #ddf69a; }
-#chat-heading { padding-left: 64px; }
+#chat-heading { padding-right: 64px; }
 /* Centred on both axes rather than hung off the bottom edge. */
 #city-chat.chat-expanded { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(720px, 82vw); z-index: 30; }
 #city-chat.chat-expanded #chat-body { padding: 16px; }
@@ -598,7 +598,7 @@ html, body, #app { touch-action: manipulation; }
   #city-chat.chat-expanded #chat-logs { flex: 1; min-height: 0; }
   #city-chat.chat-expanded .chat-log { height: 100%; max-height: none; font-size: 13px; }
   #city-chat.chat-expanded #chat-messages { max-height: none; }
-  #city-chat.chat-expanded #chat-controls { top: calc(6px + var(--safe-top)); left: 10px; }
+  #city-chat.chat-expanded #chat-controls { top: calc(6px + var(--safe-top)); right: 10px; }
   #city-chat.chat-expanded #chat-controls button { font-size: 16px; padding: 6px 11px; }
   #city-chat.chat-expanded #chat-heading { padding-left: 104px; }
 }
@@ -736,6 +736,9 @@ html, body, #app { touch-action: manipulation; }
 /* Fullscreen chat stays open until the user leaves fullscreen. */
 #chat-controls button:disabled { opacity: .35; cursor: default; background: #ffffff14; color: #cdd8c0; }
 #chat-heading:disabled { cursor: default; }
+
+#idle-warning { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); z-index: 2147483647; padding: 16px 24px; border: 1px solid #ddf69a; border-radius: 12px; background: #142327; color: #fff; text-align: center; max-width: 90vw; }
+#idle-warning[hidden] { display: none; }
 
 #force-refresh.refresh-optional { inset: auto 16px 90px auto; width: min(360px, calc(100vw - 32px)); background: transparent; backdrop-filter: none; }
 .refresh-optional .refresh-card { padding: 18px; }
