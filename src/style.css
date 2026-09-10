@@ -37,6 +37,8 @@ body { margin: 0; overflow: hidden; }
 .auth-card input { width: 100%; border: 1px solid #a5b59b; border-radius: 5px; padding: 11px; font: inherit; font-size: 16px; background: #fffbed; color: #193d33; }
 .auth-card .primary { width: 100%; justify-content: center; background: #294e3d; color: #fff8e7; }
 .auth-card button:disabled { opacity: .6; cursor: wait; }
+.auth-card .auth-legal { margin: 10px 0 16px; font-size: 11px; line-height: 1.6; color: #4a6b5b; }
+.auth-card .auth-legal a { color: #1d6b4d; }
 #auth-message { min-height: 20px; }
 #city-chat { position: absolute; right: 24px; top: calc(90px + var(--safe-top)); width: min(300px, calc(100% - 36px)); pointer-events: auto; text-shadow: none; }
 #chat-body { background: #173c32f2; padding: 12px; border-radius: 6px; margin-top: 6px; }
