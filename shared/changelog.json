@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.33",
+  "date": "2026-09-11",
+  "title": "Google boleh dinyahpaut dengan selamat",
+  "notes": [
+    "Akaun yang masuk menggunakan Google kini boleh melihat dan mengurus sambungan Google dalam Security.",
+    "Sebelum Google dinyahpaut, pemain wajib menetapkan password melalui pautan reset supaya akaun masih boleh dimasuki.",
+    "Sistem menghalang unlink jika Google ialah satu-satunya kaedah login dan memaparkan status proses dengan jelas."
+  ]
+},
+{
   "version": "1.39.32",
   "date": "2026-09-11",
   "title": "Forgot password tersedia dalam Security",

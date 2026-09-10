@@ -56,6 +56,25 @@ test('security can send a Supabase password reset email',async({page})=>{
  expect(call.args[0]).toBe('player@example.com');expect(call.args[1]).toEqual({redirectTo:call.origin});
 });
 
+test('Google can be unlinked when email and password remain available',async({page})=>{
+ await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const session={user:{email:'player@example.com',app_metadata:{provider:'google'}}};export const auth={auth:{getUserIdentities:async()=>({data:{identities:[{id:'google',user_id:'u1',identity_id:'google-id',provider:'google'},{id:'email',user_id:'u1',identity_id:'email-id',provider:'email'}]},error:null}),unlinkIdentity:async(identity)=>{window.unlinkedIdentity=identity;return {data:{},error:null};}}};`}));
+ await mount(page,'google-unlink-harness');
+ await expect(page.getByRole('button',{name:'Unlink Google',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Unlink Google',exact:true}).click();
+ await expect(page.locator('#google-status')).toHaveText(/email and password next time/);
+ expect(await page.evaluate(()=>({identity:(window as any).unlinkedIdentity,action:(document.getElementById('google-action') as HTMLButtonElement).hidden}))).toEqual({identity:{id:'google',user_id:'u1',identity_id:'google-id',provider:'google'},action:true});
+});
+
+test('a Google-only account must set a password before unlinking Google',async({page})=>{
+ await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const session={user:{email:'player@example.com',app_metadata:{provider:'google'}}};export const auth={auth:{getUserIdentities:async()=>({data:{identities:[{id:'google',user_id:'u1',identity_id:'google-id',provider:'google'}]},error:null}),resetPasswordForEmail:async(...args)=>{window.resetPasswordCall=args;return {error:null};},unlinkIdentity:async()=>{window.unlinkedIdentity=true;return {data:{},error:null};}}};`}));
+ await mount(page,'google-password-harness');
+ await expect(page.getByRole('button',{name:'Set password before unlinking',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Set password before unlinking',exact:true}).click();
+ await expect(page.locator('#google-status')).toHaveText(/reopen Security to unlink Google/);
+ const call=await page.evaluate(()=>({args:(window as any).resetPasswordCall,origin:location.origin,unlinked:(window as any).unlinkedIdentity||false}));
+ expect(call.args[0]).toBe('player@example.com');expect(call.args[1]).toEqual({redirectTo:call.origin});expect(call.unlinked).toBe(false);
+});
+
 test('guests never see the security panel at all',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:"Jom, let's go"}).click();

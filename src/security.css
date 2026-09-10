@@ -12,6 +12,10 @@
 #security button.primary{width:100%;min-height:46px;border:0;border-radius:8px;background:#294e3d;color:#f6f1d8;font:600 13px 'Oxanium';letter-spacing:.05em;cursor:pointer}
 #security button.secondary{width:100%;min-height:46px;border:1px solid #a5b59b;border-radius:8px;background:#e7e0c5;color:#254b3b;font:600 13px 'Oxanium';letter-spacing:.05em;cursor:pointer}
 #security button.secondary:hover{background:#fff9e8;border-color:#71866f}
+#security #google-form{padding:16px;border:1px solid #b9c7ae;border-radius:10px;background:#edf1df}
+#security #google-form h3{margin-bottom:7px}
+#security #google-form p{margin-bottom:12px}
+#security #google-form [role=status]{margin-bottom:0}
 #security button.danger{width:100%;min-height:46px;border:1px solid #a8392c;border-radius:8px;background:#f4dcd5;color:#8c2b20;font:600 13px 'Oxanium';letter-spacing:.05em;cursor:pointer}
 #security button.danger:hover{background:#a8392c;color:#fff2ec}
 #security button:disabled{opacity:.6;cursor:wait}
