@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 const buildId = randomUUID();
 export default defineConfig({
+  build: { rollupOptions: { input: { main: 'index.html', legoland: 'legoland.html' } } },
   define: { __BUILD_ID__: JSON.stringify(buildId) },
   plugins: [{
     name: 'release-manifest',
