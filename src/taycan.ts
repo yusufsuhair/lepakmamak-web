@@ -5,7 +5,8 @@ import * as THREE from 'three';
 export const frozenBerry='#c6a1b2';
 export function createTaycan(){
  const group=new THREE.Group(),wheels:THREE.Group[]=[];
- group.userData.model='taycan';group.userData.displayName='Porsche Taycan · Frozen Berry';
+ const plateNumber='VRG9405';
+ group.userData.model='taycan';group.userData.displayName='Porsche Taycan · Frozen Berry';group.userData.plate=plateNumber;
  const paint=new THREE.MeshPhysicalMaterial({color:frozenBerry,metalness:.48,roughness:.28,clearcoat:1,clearcoatRoughness:.17});
  const glass=new THREE.MeshPhysicalMaterial({color:'#24343e',metalness:.28,roughness:.16,clearcoat:1});
  const black=new THREE.MeshStandardMaterial({color:'#172124',roughness:.48});
@@ -63,8 +64,8 @@ export function createTaycan(){
   const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d')!;
   ctx.fillStyle='#eeedf0';ctx.fillRect(0,0,512,128);ctx.fillStyle='#24303b';ctx.font='italic 70px serif';ctx.textAlign='center';ctx.fillText(text,256,87);
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.66,.165),new THREE.MeshBasicMaterial({map:texture}));mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.66,.165),new THREE.MeshBasicMaterial({map:texture}));mesh.userData.text=text;mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
  }
- plate('Taycan',2.22,.67);plate('Taycan',-2.21,.67,true);
+ plate(plateNumber,2.22,.67);plate(plateNumber,-2.21,.67,true);
  return{group,wheels};
 }

@@ -18,17 +18,26 @@ test('Daddy Fizal GT3 RS: four-angle render, exact labels and rotating wheels',a
     const tag=car.group.getObjectByName('owner-label');
     const texts:string[]=[];car.group.traverse(o=>{if(o.userData.text)texts.push(o.userData.text);});
     const driverVisible=car.driver.visible;
+    // Inspect actual baked wing vertices after batching, not just a model flag.
+    let rearAeroTop=0;const point=new THREE.Vector3();car.group.updateMatrixWorld(true);
+    car.group.traverse(o=>{if(o.isMesh && !o.isInstancedMesh){
+      const positions=o.geometry.getAttribute('position');
+      for(let i=0;i<positions.count;i++){point.fromBufferAttribute(positions,i).applyMatrix4(o.matrixWorld);if(point.z < -1.95)rearAeroTop=Math.max(rearAeroTop,point.y);}
+    }});
+    const wingLetteringY=car.group.children.find(o=>o.userData.text==='P O R S C H E'&&o.position.y>1)?.position.y;
     car.group.position.set(3,0,4);car.group.rotation.y=.7;car.group.updateMatrixWorld(true);
     const tagPosition=tag.getWorldPosition(new THREE.Vector3()).toArray();
     car.group.position.set(0,0,0);car.group.rotation.y=0;
     car.wheels.forEach(w=>w.rotation.x=.8);
     (window as any).renderGt3=(position:number[])=>{camera.position.set(...position);camera.lookAt(0,1.05,0);renderer.render(scene,camera);};
     (window as any).renderGt3([5,2.9,7]);
-    return {wheels:car.wheels.length,driverVisible,supported:carStyles.includes('gt3-rs'),texts,tagPosition,rotations:car.wheels.map(w=>w.rotation.x),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};
+    return {wheels:car.wheels.length,driverVisible,supported:carStyles.includes('gt3-rs'),texts,tagPosition,rearAeroTop,wingLetteringY,rotations:car.wheels.map(w=>w.rotation.x),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};
   });
   expect(result.wheels).toBe(4);expect(result.driverVisible).toBe(false);expect(result.supported).toBe(true);
   expect(result.texts.filter(t=>t==='SL45')).toHaveLength(2);expect(result.texts).toContain('Daddy Fizal');expect(result.texts).toContain('GT3 RS');
   expect(result.tagPosition).toEqual([3,2.42,4]);expect(result.rotations).toEqual([.8,.8,.8,.8]);expect(result.calls).toBeLessThan(100);
+  expect(result.rearAeroTop).toBeGreaterThan(1.40);expect(result.rearAeroTop).toBeLessThan(1.51);
+  expect(result.wingLetteringY).toBeCloseTo(1.358,3);
   for(const [name,position] of Object.entries({front:[5,2.9,7],rear:[-5,2.6,-7],side:[8,1.9,0],nose:[0,1.5,8]})){
     await page.evaluate(p=>(window as any).renderGt3(p),position);
     await page.screenshot({path:testInfo.outputPath(`gt3-rs-${name}.png`)});

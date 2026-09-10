@@ -171,19 +171,22 @@ export function createGt3Rs() {
     const dark=mesh(new THREE.CircleGeometry(.070,24),rubber);dark.position.set(side*.10,.32,-2.282);dark.rotation.y=Math.PI;
   }
 
-  // High swan-neck supports and two aero planes; the broad rear face carries
+  // Lower the complete wing 34cm (including endplates below the roofline)
+  // and shorten its supports, keeping the deck
+  // mounting points fixed. The broad rear face carries
   // PORSCHE, red under-plane and RS endplates as in the reference photographs.
+  const wingDrop=.34;
   for(const side of [-1,1]){
-    line([[side*.54,.96,-1.73],[side*.54,1.54,-1.82],[side*.54,1.73,-2.02],[side*.54,1.70,-2.15]],.036,carbon);
-    const support=box(side*.54,1.32,-1.82,.036,.55,.10,carbon);support.rotation.x=-.16;
+    line([[side*.54,.96,-1.73],[side*.54,1.54-wingDrop,-1.82],[side*.54,1.73-wingDrop,-2.02],[side*.54,1.70-wingDrop,-2.15]],.036,carbon);
+    const support=box(side*.54,1.32-wingDrop/2,-1.82,.036,.55-wingDrop,.10,carbon);support.rotation.x=-.16;
   }
-  const lower=box(0,1.59,-2.00,2.18,.065,.43,paint);lower.rotation.x=-.07;
-  const upper=box(0,1.72,-2.03,2.18,.045,.36,carbon);upper.rotation.x=-.12;
-  box(0,1.69,-2.226,2.16,.13,.025,carbon);
+  const lower=box(0,1.59-wingDrop,-2.00,2.18,.065,.43,paint);lower.rotation.x=-.07;
+  const upper=box(0,1.72-wingDrop,-2.03,2.18,.045,.36,carbon);upper.rotation.x=-.12;
+  box(0,1.69-wingDrop,-2.226,2.16,.13,.025,carbon);
   for(const side of [-1,1]){
     const shape=new THREE.Shape();shape.moveTo(-.28,-.12);shape.lineTo(.24,-.08);shape.quadraticCurveTo(.34,.06,.23,.17);shape.lineTo(-.27,.14);shape.closePath();
     const end=mesh(new THREE.ExtrudeGeometry(shape,{depth:.025,bevelEnabled:true,bevelSize:.012,bevelThickness:.006,bevelSegments:2,curveSegments:8}),carbon);
-    end.rotation.y=Math.PI/2;end.position.set(side*1.09,1.65,-2.00);
+    end.rotation.y=Math.PI/2;end.position.set(side*1.09,1.65-wingDrop,-2.00);
   }
 
   function textTexture(text: string, foreground: string, background?: string, italic = false) {
@@ -202,10 +205,10 @@ export function createGt3Rs() {
   decal('SL45',.56,.21,0,.56,-2.315,Math.PI,'#ffffff','#090b0e');
   decal('P O R S C H E',1.0,.065,0,.761,-2.228,Math.PI,'#c2c5c8');
   decal('GT3 RS',.35,.063,0,.694,-2.247,Math.PI,'#d9dcdd',undefined,true);
-  decal('P O R S C H E',2.03,.16,0,1.698,-2.245,Math.PI,'#c3c6c8');
+  decal('P O R S C H E',2.03,.16,0,1.698-wingDrop,-2.245,Math.PI,'#c3c6c8');
   for(const side of [-1,1]){
     decal('GT3 RS',1.55,.18,side*.988,.44,-.10,side*Math.PI/2,gt3Red,'#d8dcde',true);
-    decal('RS',.32,.12,side*1.125,1.675,-2.00,side*Math.PI/2,'#eb2936',undefined,true);
+    decal('RS',.32,.12,side*1.125,1.675-wingDrop,-2.00,side*Math.PI/2,'#eb2936',undefined,true);
   }
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({map:textTexture('Daddy Fizal','#ffffff','#202730'),depthTest:true,depthWrite:false,toneMapped:false}));
   tag.name='owner-label';tag.userData.text='Daddy Fizal';tag.position.set(0,2.42,0);tag.scale.set(1.85,.347,1);group.add(tag);
