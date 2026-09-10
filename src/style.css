@@ -40,6 +40,8 @@ body { margin: 0; overflow: hidden; }
 #auth-message { min-height: 20px; }
 #city-chat { position: absolute; right: 24px; top: calc(90px + var(--safe-top)); width: min(300px, calc(100% - 36px)); pointer-events: auto; text-shadow: none; }
 #chat-body { background: #173c32f2; padding: 12px; border-radius: 6px; margin-top: 6px; }
+#chat-heading { padding: 9px 12px; }
+#chat-status { padding: 0; }
 #chat-messages { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
 #chat-messages p { margin: 0 0 9px; line-height: 1.5; }
 #chat-messages strong { color: #ddf69a; }
@@ -578,7 +580,8 @@ html, body, #app { touch-action: manipulation; }
 /* Desktop only: a proper reading window rather than a corner strip. */
 #chat-expand { position: absolute; top: 4px; right: 24px; background: #ffffff14; color: #cdd8c0; border: 0; border-radius: 4px; padding: 2px 7px; font-size: 12px; cursor: pointer; z-index: 2; }
 #chat-expand:hover { background: #ffffff2b; color: #ddf69a; }
-#city-chat.chat-expanded { left: 50%; right: auto; top: auto; bottom: 84px; transform: translateX(-50%); width: min(720px, 82vw); }
+/* Centred on both axes rather than hung off the bottom edge. */
+#city-chat.chat-expanded { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(720px, 82vw); z-index: 30; }
 #city-chat.chat-expanded #chat-body { padding: 16px; }
 #city-chat.chat-expanded .chat-log { height: min(56vh, 430px); max-height: none; font-size: 13px; }
 /* Phones get the bigger window too: it is where the small panel is hardest to read. It
@@ -638,7 +641,7 @@ html, body, #app { touch-action: manipulation; }
   #chat-form button[type="submit"] { min-height: 44px; padding: 0 16px; }
   #chat-form #chat-channel { min-height: 44px; }
   #chat-input { min-height: 44px; font-size: 16px; }
-  #city-chat.chat-expanded { width: min(680px, 88vw); bottom: 120px; }
+  #city-chat.chat-expanded { width: min(680px, 88vw); top: 50%; bottom: auto; }
   #city-chat.chat-expanded .chat-log { height: min(48vh, 420px); }
   .table-seat { min-height: 46px; }
   .table-actions button { min-height: 48px; }

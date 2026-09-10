@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.29.0",
+  "date": "2026-09-10",
+  "title": "Nama geng atas kepala",
+  "notes": [
+   "Set a geng name in Settings and it appears in small letters just above your name, for everyone to see. It stays on your device between sessions, guests included.",
+   "The expanded chat window now sits in the middle of the screen instead of hanging off the bottom, and the padding inside the panel lines up."
+  ]
+ },
+ {
   "version": "1.28.0",
   "date": "2026-09-10",
   "title": "Susun atur tablet dibetulkan",

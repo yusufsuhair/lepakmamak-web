@@ -74,7 +74,7 @@ const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
 // feature lands, so they are all refused at one gate before any handler sees them.
-const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'geng', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
 const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
 const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
 function penaltyNotice(status) {
@@ -481,6 +481,12 @@ webSocketServer.on('connection', ws => {
       const stand = message.reset === true ? { x: -18, z: 52 } : player.chairStand;
       if (stand) { player.x = stand.x; player.z = stand.z; }
       player.chairId = null; player.seated = false; delete player.chairStand;
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'geng') {
+      if (typeof message.text !== 'string') return;
+      // Filtered like any other text a stranger has to read above someone's head.
+      player.geng = filterChat(message.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18));
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'afk-note') {

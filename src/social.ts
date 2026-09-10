@@ -38,6 +38,17 @@ export function nameTag(name: string, interactiveVoice = false) {
       shine.addColorStop(0, '#ffffff00'); shine.addColorStop(.5, '#fff4ba66'); shine.addColorStop(1, '#ffffff00');
       ctx.fillStyle = shine; ctx.fillRect(left, 76, width, 80); ctx.restore();
     } else ctx.fillText(shownName, 256, 117, 460);
+    // The geng sits above the name, small and quiet: it says who you run with, it is not
+    // your name. Drawn last so it is never clipped by the pill it sits over.
+    const geng = String(label.userData.geng || '').slice(0, 18);
+    if (geng) {
+      ctx.font = '700 19px "Oxanium", sans-serif';
+      const tagWidth = Math.min(420, Math.ceil(ctx.measureText(geng).width + 26));
+      ctx.fillStyle = '#12312bb3';
+      ctx.beginPath(); ctx.roundRect((512 - tagWidth) / 2, 34, tagWidth, 32, 10); ctx.fill();
+      ctx.fillStyle = '#f0cf8e';
+      ctx.fillText(geng, 256, 51, 400);
+    }
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;
       ctx.save(); ctx.translate(x, 35);
@@ -62,6 +73,11 @@ export function nameTag(name: string, interactiveVoice = false) {
 }
 
 export function updateNameTagName(label:THREE.Sprite,name:string){label.userData.name=name.slice(0,18);label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);}
+export function updateNameTagGeng(label:THREE.Sprite,geng:string){
+ const next=String(geng||'').slice(0,18);
+ if(label.userData.geng===next)return;            // redrawing a canvas every frame is not free
+ label.userData.geng=next;label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);
+}
 
 export function updateNameTagVoice(label: THREE.Sprite, mic: boolean, speaker: boolean) {
   const state = `${mic}:${speaker}`;
