@@ -14,8 +14,9 @@ test('every scrolling surface is given the game rail, not the browser default',(
  expect(css).toMatch(/\*\s*\{[^}]*scrollbar-color:/);
  // Cream panels would look wrong behind a dark rail.
  expect(css).toMatch(/\.pause-panel[^{]*\{\s*scrollbar-color:/);
- // Touch gets a slimmer rail rather than the desktop one.
- expect(css).toMatch(/@media \(pointer: coarse\) \{ ::-webkit-scrollbar \{ width: 6px/);
+ // Touch gets a slimmer rail rather than the desktop one — asked of any-pointer, because
+ // a tablet with a trackpad reports a fine primary pointer.
+ expect(css).toMatch(/@media \(any-pointer: coarse\) \{ ::-webkit-scrollbar \{ width: 6px/);
 });
 
 for(const [label,width] of [['desktop',1280],['mobile',390]] as const)
@@ -31,6 +32,8 @@ test(`the rail reaches the chat log and the settings panel on ${label}`,async({p
  const log=await page.locator('#chat-messages').evaluate(el=>getComputedStyle(el).scrollbarColor);
  expect(log).not.toBe('auto');
 
+ // On a phone the settings button lives behind the ⋮ tray.
+ if(await page.locator('#menu').isHidden()) await page.locator('#hud-more').click();
  await page.getByRole('button',{name:'Open settings'}).click();
  const panel=await page.locator('.pause-panel').evaluate(el=>getComputedStyle(el).scrollbarColor);
  expect(panel).not.toBe('auto');

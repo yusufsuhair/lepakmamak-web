@@ -697,7 +697,9 @@ export function createWorld(scene: THREE.Scene): World {
     }
   }
   zusCoffee(27, 58);
-  for (const [tx, tz] of [[21.5, 66.2], [27, 66.8], [32.5, 66.2]] as const) zusTable(tx, tz);
+  // Tucked against the shopfront: the teleport arrival for ZUS lands at (27, 68) and the
+  // middle table used to stand on it, so arriving put you on the table.
+  for (const [tx, tz] of [[21.5, 65.4], [27, 65.8], [32.5, 65.4]] as const) zusTable(tx, tz);
   retail(49, 58, 'KK SUPER MART', '#c92536', '#ffffff', 'market');
   retail(-35, -90, 'KEDAI DOBI · 24 JAM', '#348cb1', '#ffffff', 'laundry');
   retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');

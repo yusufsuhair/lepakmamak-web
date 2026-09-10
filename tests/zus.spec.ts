@@ -14,7 +14,7 @@ test('ZUS Coffee stands where the nearer 99 Speedmart did, with its own seating'
  expect(seats).toHaveLength(12);
  for(const seat of seats){
   expect(seat.tableId).toBe('');
-  expect(Math.hypot(seat.x-27,seat.z-66.5)).toBeLessThan(8);
+  expect(Math.hypot(seat.x-27,seat.z-65.6)).toBeLessThan(8);
  }
  // No two chairs in the whole city share an id or a spot.
  expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);
@@ -27,9 +27,10 @@ test('ZUS Coffee stands where the nearer 99 Speedmart did, with its own seating'
   const {createWorld}=await import('/src/world.ts');
   const world=createWorld(new (THREE as any).Scene());
   // Every stool needs somewhere to sit and every table something to block you walking through.
-  const blocked=[[21.5,66.2],[27,66.8],[32.5,66.2]].every(([x,z]:any)=>
+  const blocked=[[21.5,65.4],[27,65.8],[32.5,65.4]].every(([x,z]:any)=>
    world.solids.some((s:any)=>Math.abs(s.x-x)<.01&&Math.abs(s.z-z)<.01));
-  return {blocked,chairs:world.chairs.filter((c:any)=>c.id.startsWith('zus-chair-')).length};
+  const arrivalClear=!world.solids.some((s:any)=>Math.abs(27-s.x)<s.hx+.7&&Math.abs(68-s.z)<s.hz+.7);
+  return {blocked,arrivalClear,chairs:world.chairs.filter((c:any)=>c.id.startsWith('zus-chair-')).length};
  });
  expect(built.blocked).toBe(true);
  expect(built.chairs).toBe(12);

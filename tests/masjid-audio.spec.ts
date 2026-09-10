@@ -4,7 +4,9 @@ test('all mosques share one smooth nearest-location audio fade',async({page})=>{
   await page.goto('/');
   const result=await page.evaluate(async()=>{
     const {masjidSpots,masjidVolume,nearestMasjidDistance}=await import('/src/masjid.ts');
-    return {spots:masjidSpots,nearFirst:nearestMasjidDistance({x:-31,z:112}),nearSecond:nearestMasjidDistance({x:117,z:-37}),volumes:Array.from({length:41},(_,i)=>masjidVolume(i))};
+    // Measured from the spots themselves: the first mosque used to be hardcoded at -31,112,
+    // which is where the PETRONAS station now stands, so the assertion drifted with the map.
+    return {spots:masjidSpots,nearFirst:nearestMasjidDistance(masjidSpots[0]),nearSecond:nearestMasjidDistance(masjidSpots[1]),volumes:Array.from({length:41},(_,i)=>masjidVolume(i))};
   });
   expect(result.spots).toHaveLength(2);expect(result.nearFirst).toBe(0);expect(result.nearSecond).toBe(0);
   expect(result.volumes[0]).toBe(.38);expect(result.volumes[6]).toBe(.38);expect(result.volumes[32]).toBe(0);expect(result.volumes[40]).toBe(0);

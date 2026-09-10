@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.36.1",
+  "date": "2026-09-10",
+  "title": "Pembetulan kecil di ZUS",
+  "notes": [
+   "Teleporting to ZUS Coffee could drop you standing on one of the pavement tables. The tables now sit tucked against the shopfront, clear of where you arrive."
+  ]
+ },
+ {
   "version": "1.36.0",
   "date": "2026-09-10",
   "title": "Nampak siapa ada di mana",
