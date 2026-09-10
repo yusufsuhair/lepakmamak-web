@@ -27,7 +27,7 @@ import {createVillageResidents,villageOrigin,villageResidents} from './durian-vi
 import {watsonsSpot,watsonsVolume} from './watsons';
 import {familyMartSpot,familyMartVolume} from './familymart';
 import {masjidVolume,nearestMasjidDistance} from './masjid';
-import {createStallWorld,setupStalls} from './stalls';
+import {createStallWorld,nearestStallDistance,setupStalls,stallVoiceVolume} from './stalls';
 import {locationKey, readLocation, writeLocation} from './location-save';
 import { setupSecurity } from './security';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
@@ -471,10 +471,12 @@ async function init() {
   const watsonsSong=new Audio('/watson.mp3');watsonsSong.loop=true;watsonsSong.preload='metadata';
   const familyMartSong=new Audio('/familymart.mp3');familyMartSong.loop=true;familyMartSong.preload='metadata';
   const masjidSong=new Audio('/arrahman.mp3');masjidSong.loop=true;masjidSong.preload='metadata';
+  const stallVoiceSong=new Audio('/duasinggit.mp3');stallVoiceSong.loop=true;stallVoiceSong.preload='metadata';
   let buskingGain:GainNode|null=null;
   let watsonsGain:GainNode|null=null;
   let familyMartGain:GainNode|null=null;
   let masjidGain:GainNode|null=null;
+  let stallVoiceGain:GainNode|null=null;
   let iceCreamGain: GainNode | null = null;
   // Straight-piped exhaust: it carries, so it gets a tighter radius and a quieter peak
   // than the ice-cream song, which is meant to be heard across the street.
@@ -492,6 +494,7 @@ async function init() {
         watsonsGain=audioContext.createGain();watsonsGain.gain.value=0;audioContext.createMediaElementSource(watsonsSong).connect(watsonsGain);watsonsGain.connect(citySoundsGain!);
         familyMartGain=audioContext.createGain();familyMartGain.gain.value=0;audioContext.createMediaElementSource(familyMartSong).connect(familyMartGain);familyMartGain.connect(citySoundsGain!);
         masjidGain=audioContext.createGain();masjidGain.gain.value=0;audioContext.createMediaElementSource(masjidSong).connect(masjidGain);masjidGain.connect(citySoundsGain!);
+        stallVoiceGain=audioContext.createGain();stallVoiceGain.gain.value=0;audioContext.createMediaElementSource(stallVoiceSong).connect(stallVoiceGain);stallVoiceGain.connect(citySoundsGain!);
     iceCreamGain = audioContext.createGain(); iceCreamGain.gain.value = 0;
         audioContext.createMediaElementSource(iceCreamSong).connect(iceCreamGain); iceCreamGain.connect(citySoundsGain!);
         lamboGain = audioContext.createGain(); lamboGain.gain.value = 0;
@@ -510,6 +513,7 @@ async function init() {
     if(audioEnabled&&started&&watsonsGain)void watsonsSong.play().catch(()=>{});
     if(audioEnabled&&started&&familyMartGain)void familyMartSong.play().catch(()=>{});
     if(audioEnabled&&started&&masjidGain)void masjidSong.play().catch(()=>{});
+    if(audioEnabled&&started&&stallVoiceGain)void stallVoiceSong.play().catch(()=>{});
     if (audioEnabled && started && iceCreamGain) void iceCreamSong.play().catch(() => {});
     if (audioEnabled && started && lamboGain) void lamboSong.play().catch(() => {});
     if (!musicEnabled) return;
@@ -528,7 +532,7 @@ async function init() {
     });
   }
   document.addEventListener('pointerdown', () => {
-    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && (iceCreamSong.paused || lamboSong.paused || buskingSong.paused || watsonsSong.paused || familyMartSong.paused || masjidSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
+    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && (iceCreamSong.paused || lamboSong.paused || buskingSong.paused || watsonsSong.paused || familyMartSong.paused || masjidSong.paused || stallVoiceSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
@@ -1030,7 +1034,7 @@ async function init() {
     setMap(false); profile.close(); closeOptions();
     inventory.close();itemShop.close(); profileEditor.close(); clearGuest();
     onlinePlayersDialog.close();
-    finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;
+    finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -1125,7 +1129,7 @@ async function init() {
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
     if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;stallVoiceSong.pause();if(stallVoiceGain)stallVoiceGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
     if (renderer.shadowMap.enabled === enabled) return;
     renderer.shadowMap.enabled = enabled;
@@ -1681,6 +1685,7 @@ async function init() {
     if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
     if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
     if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
+    if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?stallVoiceVolume(nearestStallDistance(pos)):0,audioContext.currentTime,.2);
     if (iceCreamGain && audioContext) {
       const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
@@ -1793,7 +1798,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

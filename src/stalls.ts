@@ -2,6 +2,22 @@ import * as THREE from 'three';
 import stalls from '../shared/stalls.json';
 import {createPerson} from './world';
 import type {Solid} from './physics';
+
+export const stallVoiceSpots = stalls.map(({id,name,x,z}) => ({id,name,x,z}));
+export const STALL_VOICE_REACH = 18;
+export const STALL_VOICE_FULL = 4;
+export const STALL_VOICE_PEAK = .44;
+
+export function nearestStallDistance(position:{x:number;z:number}) {
+ return Math.min(...stallVoiceSpots.map(stall => Math.hypot(position.x-stall.x,position.z-stall.z)));
+}
+
+// Full volume beside the counter, with a short hawker call carrying across the pavement.
+export function stallVoiceVolume(distance:number) {
+ const t=Math.max(0,Math.min(1,(STALL_VOICE_REACH-distance)/(STALL_VOICE_REACH-STALL_VOICE_FULL)));
+ return STALL_VOICE_PEAK*t*t*(3-2*t);
+}
+
 export function createStallWorld(scene:THREE.Scene,solids:Solid[]){
  for(const stall of stalls){
   const g=new THREE.Group();g.position.set(stall.x,0,stall.z);scene.add(g);
@@ -24,7 +40,7 @@ export function createStallWorld(scene:THREE.Scene,solids:Solid[]){
   box(2.2,.4,-.3,.7,.8,.7,'#394e41');solids.push({x:stall.x,z:stall.z,hx:2,hz:.8},{x:stall.x,z:stall.z-1.4,hx:.4,hz:.4});
  }
 }
-// Stalls are scenery: they name themselves when you walk up, and nothing more.
+// Stalls name themselves when you walk up and carry the nearby hawker call.
 export function setupStalls(hud:HTMLElement){
  const labels=stalls.map(stall=>{const label=document.createElement('div');label.className='table-label stall-name';label.hidden=true;label.textContent=stall.name;hud.append(label);return {stall,label};});
  return {update(pos:{x:number;z:number},camera:THREE.Camera,enabled:boolean){

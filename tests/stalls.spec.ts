@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import stalls from '../shared/stalls.json' with {type:'json'};
 
-// Street stalls are scenery. They name themselves when you walk up and do nothing else.
+// Street stalls name themselves when you walk up; their audio is covered by stall-audio.spec.ts.
 test('a stall names itself when you are near and goes quiet when you walk away',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.route('**/stall-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><div class="brand-status"></div></div>'}));

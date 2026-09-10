@@ -108,6 +108,7 @@ Touch devices get directional and interaction buttons. Desktop with a keyboard i
 - Valid signed-in sessions enter the city automatically on open or refresh; visitors without a session remain on the title and account flow.
 - Local looping background music from `public/background-short.mp3`; it starts after the player gesture, continues through settings and focus changes, and follows the Music & city sounds setting.
 - Proximity audio around both mosques from the optimized local `public/arrahman.mp3`, fading smoothly to silence outside their grounds and following the City sounds setting.
+- Proximity hawker voice around the street booths from the local `public/duasinggit.mp3`, fading smoothly by distance and following the City sounds setting.
 - A multiplayer recall emote with a mobile button, keyboard shortcut, short synthesized buzz sequence, local pulse animation, and room-wide WebSocket broadcast.
 - Procedural models and locally bundled fonts; static scene geometry merged by material.
 
