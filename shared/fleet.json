@@ -220,6 +220,16 @@
   "npc": false
  },
  {
+  "id": "parked-taycan",
+  "style": "taycan",
+  "x": -122,
+  "z": 134,
+  "axis": "z",
+  "direction": 1,
+  "speed": 0,
+  "npc": false
+ },
+ {
   "id": "police-1",
   "style": "police",
   "x": 76,
