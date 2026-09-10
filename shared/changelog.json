@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.31",
+  "date": "2026-09-11",
+  "title": "Edit Profile kini ada loading state yang lebih jelas",
+  "notes": [
+    "Edit Profile kini menunjukkan skeleton yang beranimasi sementara maklumat akaun sedang dimuatkan.",
+    "Butang dan medan dikunci dengan jelas semasa loading atau menyimpan, lengkap dengan status Loading dan Saving.",
+    "Reka bentuk ini mengekalkan susun atur yang kemas pada desktop dan mobile serta menghormati reduced motion."
+  ]
+},
+{
   "version": "1.39.30",
   "date": "2026-09-11",
   "title": "Tambah Syiling terus dari Geng",

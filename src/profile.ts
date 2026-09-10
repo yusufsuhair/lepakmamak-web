@@ -22,12 +22,15 @@ export function renderProfile(container:HTMLElement, profile:PlayerProfile) {
 export function setupProfileEditor(onSave:(displayName:string)=>Promise<void>) {
  const dialog=document.createElement('dialog');dialog.id='edit-profile';dialog.setAttribute('aria-labelledby','edit-profile-title');
  dialog.innerHTML='<form><h2 id="edit-profile-title">Edit your profile</h2><p>Your display name appears above your character and in chat. The other details are optional and visible to players.</p><div id="profile-fields"></div><p id="profile-save-status" role="status"></p><div class="profile-editor-actions"><button type="submit">Save profile</button><button type="button">Cancel</button></div></form>';
- const form=dialog.querySelector('form')!, status=dialog.querySelector<HTMLElement>('[role=status]')!, save=form.querySelector<HTMLButtonElement>('[type=submit]')!, cancel=form.querySelector<HTMLButtonElement>('[type=button]')!;
+ const form=dialog.querySelector('form')!, status=dialog.querySelector<HTMLElement>('[role=status]')!, save=form.querySelector<HTMLButtonElement>('[type=submit]')!, cancel=form.querySelector<HTMLButtonElement>('[type=button]')!, profileFields=dialog.querySelector<HTMLElement>('#profile-fields')!;
+ const skeleton=document.createElement('div');skeleton.id='profile-editor-skeleton';skeleton.className='profile-editor-skeleton';skeleton.hidden=true;skeleton.setAttribute('aria-hidden','true');
+ for(const large of [false,true,false,false,false,false,false]){const row=document.createElement('div');row.className='profile-skeleton-field';const label=document.createElement('span');label.className='profile-skeleton-label';const control=document.createElement('span');control.className=`profile-skeleton-control${large?' profile-skeleton-control-large':''}`;row.append(label,control);skeleton.append(row);}profileFields.after(skeleton);
  const inputs=new Map<string,HTMLInputElement|HTMLTextAreaElement>();
- const nameLabel=document.createElement('label');nameLabel.textContent='Display name';const nameInput=document.createElement('input');nameInput.id='profile-display-name';nameInput.name='displayName';nameInput.minLength=2;nameInput.maxLength=18;nameInput.required=true;nameInput.setAttribute('autocomplete','nickname');nameInput.placeholder='Your name in LepakMamak';nameLabel.htmlFor=nameInput.id;nameLabel.append(nameInput);dialog.querySelector('#profile-fields')!.append(nameLabel);
- for(const field of fields){const label=document.createElement('label');label.textContent=field.label;const input=field.key==='bio'?document.createElement('textarea'):document.createElement('input');input.id=`profile-${field.key}`;input.name=field.key;input.maxLength=field.max;input.placeholder=field.placeholder;label.htmlFor=input.id;label.append(input);inputs.set(field.key,input);dialog.querySelector('#profile-fields')!.append(label);}
+ const nameLabel=document.createElement('label');nameLabel.textContent='Display name';const nameInput=document.createElement('input');nameInput.id='profile-display-name';nameInput.name='displayName';nameInput.minLength=2;nameInput.maxLength=18;nameInput.required=true;nameInput.setAttribute('autocomplete','nickname');nameInput.placeholder='Your name in LepakMamak';nameLabel.htmlFor=nameInput.id;nameLabel.append(nameInput);profileFields.append(nameLabel);
+ for(const field of fields){const label=document.createElement('label');label.textContent=field.label;const input=field.key==='bio'?document.createElement('textarea'):document.createElement('input');input.id=`profile-${field.key}`;input.name=field.key;input.maxLength=field.max;input.placeholder=field.placeholder;label.htmlFor=input.id;label.append(input);inputs.set(field.key,input);profileFields.append(label);}
  document.body.append(dialog);let busy=false,generation=0,loaded=false;
- function lock(value:boolean){busy=value;save.disabled=cancel.disabled=value;nameInput.disabled=value;for(const input of inputs.values())input.disabled=value;}
+ function showLoading(value:boolean){profileFields.hidden=value;profileFields.setAttribute('aria-hidden',String(value));skeleton.hidden=!value;}
+ function lock(value:boolean){busy=value;form.setAttribute('aria-busy',String(value));status.classList.toggle('profile-status-busy',value);save.disabled=cancel.disabled=value;save.textContent=value?(loaded?'Saving…':'Loading…'):'Save profile';nameInput.disabled=value;for(const input of inputs.values())input.disabled=value;if(value&&!loaded)showLoading(true);else if(!value)showLoading(false);}
  function close(){generation++;dialog.close();}
  cancel.onclick=close;dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();else generation++;});dialog.addEventListener('keydown',event=>event.stopPropagation());
  form.onsubmit=async event=>{
@@ -46,7 +49,7 @@ export function setupProfileEditor(onSave:(displayName:string)=>Promise<void>) {
  };
  return {close,async open(){
   if(!auth||!session||guestName)return;
-  const id=session.user.id,attempt=++generation;loaded=false;status.textContent='Loading your profile…';lock(true);if(!dialog.open)dialog.showModal();
+  const id=session.user.id,attempt=++generation;loaded=false;status.textContent='Loading your profile…';showLoading(true);lock(true);if(!dialog.open)dialog.showModal();
   try{const {data,error}=await auth.auth.getUser();if(error)throw error;if(attempt!==generation)return;if(data.user?.id!==id||session?.user.id!==id||guestName)throw Error('Please log in again.');
    nameInput.value=String(data.user.user_metadata?.display_name||'').slice(0,18);
    for(const {key,max} of fields){const value=data.user.user_metadata?.profile?.[key];inputs.get(key)!.value=typeof value==='string'?value.slice(0,max):'';}

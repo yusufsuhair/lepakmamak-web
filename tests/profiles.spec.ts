@@ -26,6 +26,14 @@ test('profile reads and refreshes trust the authenticated account, not guest or 
  guest.ws.send(JSON.stringify({type:'profile-refresh',accessToken:token}));await new Promise(r=>setTimeout(r,270));guest.ws.send(JSON.stringify({type:'profile-view',id:guest.id}));await expect.poll(()=>guest.messages.filter(m=>m.type==='profile').at(-1)?.profile?.registered).toBe(false);
  }finally{clients.forEach(ws=>ws.close());server.kill();authServer.close();}
 });
+test('profile editor shows a skeleton while the account is loading',async({page})=>{
+ await page.route('**/profile-loading-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><main></main>'}));
+ await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export let guestName='';export let session={user:{id:'member'}};export const auth={auth:{getUser:()=>new Promise(resolve=>{window.releaseProfile=()=>resolve({data:{user:{id:'member',user_metadata:{display_name:'Member',profile:{}}}},error:null});}),updateUser:async()=>({error:null})}};`}));
+ await page.goto('/profile-loading-harness');
+ await page.evaluate(async()=>{const m=await import('/src/profile.ts');const editor=m.setupProfileEditor(async()=>{});(window as any).profileOpen=editor.open();});
+ await expect(page.locator('#profile-editor-skeleton')).toBeVisible();await expect(page.locator('#profile-fields')).toBeHidden();await expect(page.locator('#profile-save-status')).toContainText('Loading your profile');await expect(page.getByRole('button',{name:'Loading…'})).toBeDisabled();
+ await page.evaluate(()=>{(window as any).releaseProfile();});await page.evaluate(()=> (window as any).profileOpen);await expect(page.locator('#profile-editor-skeleton')).toBeHidden();await expect(page.locator('#profile-fields')).toBeVisible();await expect(page.getByRole('button',{name:'Save profile',exact:true})).toBeEnabled();
+});
 test('profile editor saves optional account fields, reloads them and renders safely on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.route('**/profile-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="profile-details"></div>'}));

@@ -449,8 +449,22 @@ html, body, #app { touch-action: manipulation; }
 #profile-fields label { display:block; margin:15px 0; font-size:12px; font-weight:600; }
 #profile-fields input,#profile-fields textarea { display:block; width:100%; margin-top:7px; padding:11px; font:16px 'Oxanium'; border:1px solid #b0bb9b; border-radius:6px; background:#fffdf4; color:#214939; }
 #profile-fields textarea { min-height:94px; resize:vertical; }
+#edit-profile form[aria-busy='true'] { cursor:progress; }
+#profile-editor-skeleton { display:grid; gap:15px; margin:15px 0; }
+#profile-editor-skeleton[hidden] { display:none; }
+.profile-skeleton-field { display:grid; gap:7px; }
+.profile-skeleton-label,.profile-skeleton-control { display:block; position:relative; overflow:hidden; border:1px solid #c6cdb8; border-radius:7px; background:linear-gradient(100deg,#dfe3d2 0%,#f8f3e2 42%,#dfe3d2 66%); background-size:300% 100%; animation:profile-skeleton-shimmer 1.45s ease-in-out infinite; }
+.profile-skeleton-label { width:104px; height:9px; border:0; border-radius:99px; }
+.profile-skeleton-control { height:44px; }
+.profile-skeleton-control-large { height:94px; }
+#profile-save-status { display:flex; align-items:center; gap:8px; min-height:20px; margin:8px 0 0; color:#597064; font-size:12px; }
+#profile-save-status.profile-status-busy::before { content:''; width:12px; height:12px; flex:none; border:2px solid #b4c2a8; border-top-color:#214939; border-radius:50%; animation:profile-editor-spin .8s linear infinite; }
+@keyframes profile-skeleton-shimmer { 0% { background-position:100% 0; } 100% { background-position:-100% 0; } }
+@keyframes profile-editor-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .profile-skeleton-label,.profile-skeleton-control,#profile-save-status.profile-status-busy::before { animation:none; } }
 .profile-editor-actions { display:flex; gap:8px; }
 .profile-editor-actions button { min-height:44px; flex:1; padding:10px; border:0; border-radius:6px; background:#214939; color:#fff8e7; font:600 14px 'Oxanium'; }
+.profile-editor-actions button:disabled { cursor:wait; }
 .profile-editor-actions button:disabled { opacity:.5; }
 
 #mamak-order-status { font-size:14px; }
