@@ -15,6 +15,7 @@ import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
 import {createRefresher} from './refresh';
 import {createRipples} from './ripple';
+import {createCarFinder,drawCarPin} from './car-finder';
 import {districtFor} from '../shared/districts.mjs';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
@@ -947,6 +948,7 @@ async function init() {
         if (socket !== networkSocket) return;
         showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 86);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
+        carFinder.clear();
         socket.send(JSON.stringify({ type: 'join', deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       const processMessage = (raw: string) => {
@@ -958,7 +960,7 @@ async function init() {
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
         if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;{const seat=seatOffset(lrtSeat);lrtAlong=seat.along;lrtAcross=seat.across;lrtSentAlong=seat.along;lrtSentAcross=seat.across;}riding=true;vehicle='car';orbit=.65;const p=riderPoint({lrtId,lrtSeat,lrtAlong,lrtAcross},lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
         if(message.type==='lrt-exited'){lrtId=null;riding=false;speed=0;pos.set(message.x!,.12,message.z!);player.group.position.copy(pos);keys.clear();resetStick();}
-        if(message.type==='fleet'&&message.cars){for(const state of message.cars){const item=world.traffic.find(c=>c.id===state.id);if(item)Object.assign(item,state);}}
+        if(message.type==='fleet'&&message.cars){carFinder.receive(message.cars);for(const state of message.cars){const item=world.traffic.find(c=>c.id===state.id);if(item)Object.assign(item,state);}}
         if(message.type==='car-angry')angryDriver(message.x!,message.z!,message.yaw!);
         if(message.type==='car-claimed'&&message.car){
           const item=world.traffic.find(c=>c.id===message.car!.id);claimPendingUntil=0;
@@ -1046,7 +1048,7 @@ async function init() {
         const data = event.data;
         frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite
         // it with RECONNECTING…, so a full city and an expired login both looked like a
         // reconnect that never finished. Keep the reason the server gave.
@@ -1520,7 +1522,7 @@ async function init() {
   let mapZoom=defaultMapZoom;
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
   expandedCanvas.dataset.mode=mapMode;
-  const selectMapPlace=(id:string)=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
+  const selectMapPlace=(id:string)=>{carFinder.deselect();selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
   const mapDirectory=setupCityDirectory($('city-directory'),expandedCanvas,selectMapPlace);
   const overview=createMapOverview(scene,expandedCanvas,selectMapPlace);
   const viewControls=document.createElement('div');viewControls.className='map-view-controls';viewControls.setAttribute('role','group');viewControls.setAttribute('aria-label','Map view');
@@ -1544,8 +1546,12 @@ async function init() {
   for(const type of ['pointerup','pointercancel','lostpointercapture'])expandedCanvas.addEventListener(type,event=>endMapTouch(event as PointerEvent));
   expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
 
+  const carFinderRoot=document.createElement('div');mapFrame.after(carFinderRoot);
+  const carFinder=createCarFinder(carFinderRoot,()=>{selectedMapPlace='';mapDirectory.selected('');teleportButton.disabled=true;teleportButton.textContent='Select a place to teleport';drawMap(true);});
+
   function drawMap(expanded = false) {
-    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace,mapZoom);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
+    const carPin=expanded?carFinder.update(networkConnected,pos,roomPlayers):undefined;
+    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace,mapZoom,carPin);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w=map.width,h=map.height;let scale=1.13,centerX=0,centerZ=0;
     if(expanded){
@@ -1584,6 +1590,12 @@ async function init() {
     if (expanded) {
       ctx.fillText('N ↑', 140, -145);
       for (const remote of remotePlayers.values()) { ctx.fillStyle = '#e4b87b'; ctx.beginPath(); ctx.arc(remote.group.position.x, remote.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
+    }
+    if(carPin){
+      drawCarPin(ctx,carPin,pos,10);
+      // The mobile 2D canvas scrolls: keep the tracked car inside the visible viewport.
+      const x=((carPin.x+180)*scale+w/2)/w*map.clientWidth,z=((carPin.z+50)*scale+h/2)/h*map.clientHeight;
+      if(x<mapViewport.scrollLeft+35||x>mapViewport.scrollLeft+mapViewport.clientWidth-35||z<mapViewport.scrollTop+35||z>mapViewport.scrollTop+mapViewport.clientHeight-35)mapViewport.scrollTo(x-mapViewport.clientWidth/2,z-mapViewport.clientHeight/2);
     }
     ctx.restore();
   }

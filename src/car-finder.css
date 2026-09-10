@@ -1,0 +1,9 @@
+#car-finder{margin:12px 0;padding:12px;border:1px solid #8ba99b;border-radius:12px;background:#163c31;color:#f3f2df}
+#car-finder summary{min-height:44px;display:list-item;align-content:center;cursor:pointer;font-weight:700;font-size:16px}
+#car-finder p{font-size:13px;line-height:1.5;margin:8px 0}
+#car-finder button{display:inline-flex;flex-direction:column;gap:4px;min-height:56px;max-width:100%;margin:4px 8px 4px 0;padding:10px 14px;border:1px solid #819c8e;border-radius:8px;background:#234f40;color:#fff7df;text-align:left;cursor:pointer;font:inherit}
+#car-finder button span{font-size:12px}
+#car-finder button[aria-pressed=true]{background:#ffdf70;color:#173c32;border-color:#ffdf70}
+#car-finder :is(button,summary):focus-visible{outline:3px solid #fff;outline-offset:3px}
+#car-finder .car-finder-status{padding-top:8px;border-top:1px solid #ffffff30;overflow-wrap:anywhere}
+@media(max-width:600px){#car-finder button{display:flex;width:100%;margin-right:0}}
