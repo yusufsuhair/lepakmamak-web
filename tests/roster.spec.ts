@@ -40,9 +40,9 @@ test('a game lobby says who is in it and whether each of them is ready',async({p
  await expect(seats.nth(1)).toContainText('Mei');
  // Both states say what they are; not-ready used to be an empty element, which reads the
  // same as no information at all.
- await expect(seats.first().locator('i[data-ready]')).toHaveText('✓ Sedia');
+ await expect(seats.first().locator('i[data-ready]')).toHaveText('✓ Ready');
  await expect(seats.first().locator('i[data-ready]')).toHaveAttribute('data-ready','true');
- await expect(seats.nth(1).locator('i[data-ready]')).toHaveText('Tunggu…');
+ await expect(seats.nth(1).locator('i[data-ready]')).toHaveText('Waiting…');
  await expect(seats.nth(1).locator('i[data-ready]')).toHaveAttribute('data-ready','false');
 
  // And the empty seats are still countable.

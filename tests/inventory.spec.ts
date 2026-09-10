@@ -33,6 +33,12 @@ for(const width of [390,1280])test(`one screen holds items, equipment and clothe
  await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-shirt','#628fbb');
  await expect(page.locator('.outfit-slots')).toContainText('Blue');
  await expect(page.locator('.inventory-look-name')).toContainText('Blue top');
+ await page.getByRole('button',{name:'Tudung',exact:true}).click();
+ await expect(page.getByRole('radio',{name:'Tudung labuh tudung'})).toBeVisible();
+ await page.getByRole('radio',{name:'Tudung labuh tudung'}).click();
+ await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-tudung','long');
+ await expect(page.locator('.inventory-look-name')).toContainText('Tudung labuh');
+ await expect(page.getByRole('radio',{name:'dUCk Luxe tudung'})).toBeDisabled();
  // The world is told at once; there is no Save button to press.
  expect(await page.evaluate(()=>(window as any).looks.at(-1).shirt)).toBeTruthy();
 

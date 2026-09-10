@@ -380,3 +380,41 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
 }
+
+/* One lightweight notification rail for city notices, the LRT board and the KLCC lift.
+ * The world remains visible underneath; actions stay text-sized and easy to reach. */
+#notification-stack {
+  position: fixed; z-index: 55; top: calc(18px + var(--safe-top)); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  width: min(460px, calc(100vw - 28px)); pointer-events: none; color: var(--ui-ivory);
+  text-shadow: 0 2px 9px rgb(0 0 0 / 72%);
+}
+#notification-stack > #toast,
+#notification-stack > .lrt-panel,
+#notification-stack > #klcc-lift-status {
+  position: relative; inset: auto; left: auto; top: auto; right: auto; bottom: auto; transform: none;
+  width: auto; max-width: 100%; margin: 0; padding: 4px 8px; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; backdrop-filter: none; color: inherit; text-align: center;
+}
+#notification-stack > #toast { font-size: 11px; line-height: 1.35; }
+#notification-stack > #toast strong { display: inline; margin-right: 7px; color: var(--ui-lime-hot); font: 800 11px/1.35 'Oxanium'; }
+#notification-stack > .lrt-panel { display: block; pointer-events: none; }
+#notification-stack > .lrt-panel strong { display: inline; color: var(--ui-lime-hot); font-size: 12px; }
+#notification-stack > .lrt-panel small { display: inline; margin: 0 7px; color: var(--ui-ivory); font-size: 11px; }
+#notification-stack > .lrt-panel button,
+#notification-stack > #klcc-lift-status button {
+  pointer-events: auto; width: auto; min-height: 0; margin: 0 0 0 7px; padding: 2px 0;
+  border: 0; border-radius: 0; background: transparent; color: var(--ui-lime-hot);
+  font: 700 10px/1.35 'Oxanium'; text-decoration: underline; text-underline-offset: 3px;
+}
+#notification-stack > #klcc-lift-status { display: grid; grid-template-columns: auto auto; gap: 0 9px; pointer-events: auto; }
+#notification-stack > #klcc-lift-status strong { color: var(--ui-lime-hot); font-size: 12px; }
+#notification-stack > #klcc-lift-status small { grid-column: 1 / -1; color: var(--ui-ivory); font-size: 11px; }
+#notification-stack > #klcc-lift-status b { justify-self: end; color: var(--ui-gold); font: 700 13px/1.35 'Oxanium'; }
+#notification-stack > #klcc-lift-status button { grid-column: 1 / -1; margin: 2px auto 0; }
+#notification-stack > #klcc-lift-status[hidden], #notification-stack > .lrt-panel[hidden] { display: none; }
+
+@media (max-width: 600px) {
+  #notification-stack { top: calc(10px + var(--safe-top)); width: min(360px, calc(100vw - 20px)); }
+  #notification-stack > #toast, #notification-stack > .lrt-panel, #notification-stack > #klcc-lift-status { padding-inline: 3px; }
+}

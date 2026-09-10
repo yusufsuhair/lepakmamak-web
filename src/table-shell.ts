@@ -21,8 +21,8 @@ export function createTableShell(send: (message: object) => boolean) {
   root.innerHTML = `<header class="table-shell-head"><h3 id="table-game-name"></h3><p id="table-scope"></p></header>
     <div id="table-ring" class="table-ring"></div>
     <p id="table-hint" role="status"></p>
-    <div id="table-countdown" hidden><strong></strong><small>Bersedia…</small></div>
-    <div class="table-actions"><button type="button" id="table-ready"></button><button type="button" id="table-rematch" hidden>Main lagi</button></div>
+    <div id="table-countdown" hidden><strong></strong><small>Get ready…</small></div>
+    <div class="table-actions"><button type="button" id="table-ready"></button><button type="button" id="table-rematch" hidden>Play again</button></div>
     <div class="table-reactions" role="group" aria-label="Reactions"></div>
     <div class="table-shell-stage"></div>`;
 
@@ -65,8 +65,8 @@ export function createTableShell(send: (message: object) => boolean) {
     title.textContent = TITLES[lobby.game] || lobby.game;
     // A city game must not pretend the three chairs at this table are the roster.
     scopeLine.textContent = lobby.scope === 'city'
-      ? 'Lobi bandar · semua meja berkongsi permainan ini'
-      : `Meja ini · ${lobby.members.length}/${lobby.max} pemain`;
+      ? 'City lobby · all tables share this game'
+      : `This table · ${lobby.members.length}/${lobby.max} players`;
 
     ring.hidden = playing;
     ring.replaceChildren();
@@ -80,7 +80,7 @@ export function createTableShell(send: (message: object) => boolean) {
         // Not-ready was an empty element, which reads the same as "no information". Both
         // states say what they are now.
         const tick = document.createElement('i');
-        tick.textContent = member.ready ? '✓ Sedia' : 'Tunggu…';
+        tick.textContent = member.ready ? '✓ Ready' : 'Waiting…';
         tick.dataset.ready = String(!!member.ready);
         seat.append(face, name, tick);
       } else {
@@ -88,15 +88,15 @@ export function createTableShell(send: (message: object) => boolean) {
         // exists, so this needs nothing new from the server.
         const invite = document.createElement('button');
         invite.type = 'button'; invite.className = 'seat-invite';
-        invite.textContent = '+ Ajak';
+        invite.textContent = '+ Invite';
         invite.disabled = partySize < 1;
-        invite.title = partySize < 1 ? 'Masuk geng dahulu untuk ajak member.' : 'Ajak geng anda ke meja ini.';
+        invite.title = partySize < 1 ? 'Join a party first to invite members.' : 'Invite your party to this table.';
         invite.onclick = () => {
           if (!lobby || partySize < 1) return;
-          const where = lobby.scope === 'city' ? 'bandar' : 'meja';
-          send({type: 'chat', channel: 'party', text: `Jom main ${TITLES[lobby.game] || lobby.game} di ${where} ni!`});
-          invite.textContent = 'Dah ajak ✓';
-          window.setTimeout(() => { invite.textContent = '+ Ajak'; }, 2500);
+          const where = lobby.scope === 'city' ? 'city' : 'table';
+          send({type: 'chat', channel: 'party', text: `Join ${TITLES[lobby.game] || lobby.game} at this ${where}!`});
+          invite.textContent = 'Invited ✓';
+          window.setTimeout(() => { invite.textContent = '+ Invite'; }, 2500);
         };
         seat.append(invite);
       }
@@ -106,12 +106,12 @@ export function createTableShell(send: (message: object) => boolean) {
     const short = Math.max(0, lobby.min - lobby.members.length);
     hint.hidden = playing;
     hint.textContent = playing ? ''
-      : short ? `Perlu ${short} orang lagi.`
-      : lobby.phase === 'countdown' ? 'Semua dah sedia.'
-      : 'Tekan SEDIA bila dah bersedia.';
+      : short ? `${short} more player${short === 1 ? '' : 's'} needed.`
+      : lobby.phase === 'countdown' ? 'Everyone is ready.'
+      : 'Press READY when you are ready.';
 
     readyButton.hidden = playing || lobby.phase === 'countdown';
-    readyButton.textContent = mine()?.ready ? 'SEDIA ✓' : 'SEDIA';
+    readyButton.textContent = mine()?.ready ? 'READY ✓' : 'READY';
     readyButton.classList.toggle('on', !!mine()?.ready);
     readyButton.disabled = short > 0;
     rematchButton.hidden = !playing;

@@ -53,8 +53,9 @@ test('outfit updates reach peers and preserve other appearance fields', async ()
         socket.on('message', raw => { const message = JSON.parse(String(raw)); if (i === 1 && message.players) players = message.players; if (message.type === 'welcome') { ids.push(message.id); resolve(); } });
       });
     }
-    clients[0].send(JSON.stringify({ type: 'outfit', shirt: '#628fbb', trousers: '#253a40', gender: 'female' }));
+    clients[0].send(JSON.stringify({ type: 'outfit', shirt: '#628fbb', trousers: '#253a40', tudung: 'shawl', gender: 'female' }));
     await expect.poll(() => players.find(p => p.id === ids[0])?.appearance?.shirt).toBe('#628fbb');
+    expect(players.find(p => p.id === ids[0]).appearance.tudung).toBe('shawl');
     expect(players.find(p => p.id === ids[0]).appearance.gender).toBe('male');
     clients[0].send(JSON.stringify({ type: 'outfit', shirt: 'invalid', trousers: '#436485' }));
     await expect.poll(() => players.find(p => p.id === ids[0])?.appearance?.shirt).toBe('#ef734c');

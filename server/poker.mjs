@@ -32,11 +32,11 @@ export function createPoker(send,now=Date.now){
  function publish(ps,g){g.revision++;for(const p of members(ps,g.tableId))send(p.ws,{type:'poker-state',game:view(g,p)});}
  function finish(g){
   const live=g.players.filter(p=>!p.folded);let winners=live;
-  if(!live.length){g.phase='finished';g.turn=-1;g.ends=0;g.result='Pusingan tamat · semua pemain telah keluar';return;}
-  if(live.length>1){const ranked=live.map(p=>({p,rank:rankHand([...p.cards,...g.board])})).sort((a,b)=>compare(b.rank,a.rank));winners=ranked.filter(x=>compare(x.rank,ranked[0].rank)===0).map(x=>x.p);g.result=labels[ranked[0].rank[0]];}else g.result='Semua lawan fold';
+  if(!live.length){g.phase='finished';g.turn=-1;g.ends=0;g.result='Hand over · all players left';return;}
+  if(live.length>1){const ranked=live.map(p=>({p,rank:rankHand([...p.cards,...g.board])})).sort((a,b)=>compare(b.rank,a.rank));winners=ranked.filter(x=>compare(x.rank,ranked[0].rank)===0).map(x=>x.p);g.result=labels[ranked[0].rank[0]];}else g.result='Every opponent folded';
   const share=Math.floor(g.pot/winners.length),remainder=g.pot%winners.length;
   winners.forEach((p,i)=>p.chips+=share+(i<remainder?1:0));
-  g.result=`${winners.map(p=>p.name).join(' & ')} menang ${g.pot} cip · ${g.result}`;g.phase='finished';g.turn=-1;g.ends=0;
+  g.result=`${winners.map(p=>p.name).join(' & ')} win ${g.pot} chips · ${g.result}`;g.phase='finished';g.turn=-1;g.ends=0;
  }
  function advance(g){
   if(g.players.filter(p=>!p.folded).length<=1){finish(g);return;}
@@ -50,12 +50,12 @@ export function createPoker(send,now=Date.now){
  function act(g,action){const p=g.players[g.turn];if(action==='fold')p.folded=true;else {if(action==='raise'){g.bet+=10;g.players.forEach(q=>q.acted=false);}const cost=g.bet-p.paid;p.chips-=cost;p.paid=g.bet;g.pot+=cost;}p.acted=true;advance(g);}
  function startGame(ps,p,roster){
   tick(ps);
-  const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Duduk di meja bersama member untuk Poker Kampung.'});return true;}
+  const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Sit at a table with other players to play Poker Kampung.'});return true;}
   subscriptions.set(p,id);const map=mapFor(ps);let g=map.get(id);
   if(g&&g.phase!=='finished')return true;
   if(g&&now()-g.finishedStartedAt<3000)return true;
   const people=(roster||members(ps,id)).filter(q=>ps.get(q.id)===q&&tableOf(q)===id);
-  if(people.length<2){send(p.ws,{type:'notice',message:'Poker perlukan 2 atau 3 orang duduk semeja.'});return true;}
+  if(people.length<2){send(p.ws,{type:'notice',message:'Poker needs 2 or 3 players sitting at the table.'});return true;}
   const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}
   const previous=g?.dealer,index=(people.findIndex(q=>q.id===previous)+1)%people.length;
   g={tableId:id,hand:randomUUID(),revision:0,phase:'preflop',board:[],deck,players:people.map(q=>({id:q.id,name:q.name,cards:[deck.pop(),deck.pop()],chips:200,paid:0,folded:false,acted:false})),dealer:people[index].id,bet:10,pot:15,turn:0,ends:now()+25000,result:'',finishedStartedAt:now()};
@@ -74,7 +74,7 @@ export function createPoker(send,now=Date.now){
  }
  return {tick,canRematch(ps,p){return rooms.get(ps)?.get(tableOf(p))?.phase==='finished';},start(ps,p,roster){return startGame(ps,p,roster)},handle(ps,p,m){
   if(!['poker-open','poker-start','poker-action'].includes(m.type))return false;tick(ps);
-  const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Duduk di meja bersama member untuk Poker Kampung.'});return true;}
+  const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Sit at a table with other players to play Poker Kampung.'});return true;}
   if(m.type==='poker-start')return startGame(ps,p);
   subscriptions.set(p,id);const map=mapFor(ps);let g=map.get(id);
   if(m.type==='poker-open'){send(p.ws,{type:'poker-state',game:g?view(g,p):null});return true;}

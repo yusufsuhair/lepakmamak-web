@@ -37,11 +37,11 @@ export function createLukis(send,now=Date.now,pick=randomInt){
  }}
  function startGame(ps,p,roster,version,rounds){
   tick(ps);
-  const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}
+  const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Sit at a table first to play Lukis Lah!'});return true;}
   if(!games.has(ps))games.set(ps,new Map());
   const map=games.get(ps),people=(roster||members(ps,tableId)).filter(q=>ps.get(q.id)===q&&tableOf(q)===tableId);let g=map.get(tableId);
   if(g&&g.phase!=='finished')return true;
-  if(people.length<2){send(p.ws,{type:'notice',message:'Ajak seorang lagi duduk semeja.'});return true;}
+  if(people.length<2){send(p.ws,{type:'notice',message:'Invite one more person to sit at the table.'});return true;}
   g={id:randomUUID(),tableId,protocol:version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false,pausedAt:0};map.set(tableId,g);next(g);state(ps,g);return true;
  }
  function validLine(a){return Array.isArray(a)&&a.length===7&&a.slice(0,4).every(n=>Number.isFinite(n)&&n>=0&&n<=1)&&colors.includes(a[4])&&config.sizes.includes(a[5])&&Number.isSafeInteger(a[6])&&a[6]>=0&&a[6]<1e9;}
@@ -54,21 +54,21 @@ export function createLukis(send,now=Date.now,pick=randomInt){
   return !!g&&g.phase!=='finished'&&g.phase!=='lobby';
  }
  const canJoin=(ps,p)=>{const g=games.get(ps)?.get(tableOf(p));return !g||g.phase==='finished'||g.order.includes(key(p));};
- return {tick,live,canJoin,canRematch(ps,p){return games.get(ps)?.get(tableOf(p))?.phase==='finished';},start(ps,p,roster){return startGame(ps,p,roster,2)},handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;if(m.type==='lukis-start')return startGame(ps,p,undefined,m.version,m.rounds);tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
-  if(g&&g.phase!=='finished'&&!g.order.includes(id)){send(p.ws,{type:'lukis-state',game:null});send(p.ws,{type:'notice',message:'Game ini sedang berlangsung. Tunggu game seterusnya untuk sertai.'});return true;}
+ return {tick,live,canJoin,canRematch(ps,p){return games.get(ps)?.get(tableOf(p))?.phase==='finished';},start(ps,p,roster){return startGame(ps,p,roster,2)},handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;if(m.type==='lukis-start')return startGame(ps,p,undefined,m.version,m.rounds);tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Sit at a table first to play Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
+  if(g&&g.phase!=='finished'&&!g.order.includes(id)){send(p.ws,{type:'lukis-state',game:null});send(p.ws,{type:'notice',message:'This game is already in progress. Wait for the next game to join.'});return true;}
   if(m.type==='lukis-open'){if(g)state(ps,g,p);else send(p.ws,{type:'lukis-state',game:null});return true;}if(!g)return true;
   const epoch=m.gameId===g.id&&m.round===g.round;
   if(g.protocol===2&&!epoch)return true;
   if(m.type==='lukis-choose'&&g.phase==='choosing'&&id===g.drawer&&Number.isInteger(m.choice)&&m.choice>=0&&m.choice<3){choose(g,m.choice);state(ps,g);return true;}
   if(g.phase!=='drawing')return true;
   if(m.type==='lukis-ink'&&id===g.drawer){if(!epoch||m.boardVersion!==g.boardVersion){state(ps,g,p);return true;}if(!Number.isSafeInteger(m.seq)||m.seq>=1e9||m.seq<=g.lastBatch)return true;g.lastBatch=m.seq;const lines=m.lines;
-   if(!Array.isArray(lines)||!lines.length||lines.length>24||!lines.every(validLine)||!lines.every(a=>a[6]===lines[0][6])||lines[0][6]<g.maxStroke||g.totalPoints+lines.length>18000||g.cursor>=600){send(p.ws,{type:'lukis-feedback',kind:'limit',message:'Strok tidak diterima atau papan penuh. Buka semula papan; jika penuh, tunggu giliran seterusnya.'});state(ps,g,p);return true;}
+   if(!Array.isArray(lines)||!lines.length||lines.length>24||!lines.every(validLine)||!lines.every(a=>a[6]===lines[0][6])||lines[0][6]<g.maxStroke||g.totalPoints+lines.length>18000||g.cursor>=600){send(p.ws,{type:'lukis-feedback',kind:'limit',message:'Stroke rejected or the board is full. Reopen the board; if it is full, wait for the next turn.'});state(ps,g,p);return true;}
    append(g,lines);for(const q of people.filter(q=>g.order.includes(key(q))))send(q.ws,{type:'lukis-ink',gameId:g.id,round:g.round,boardVersion:g.boardVersion,seq:m.seq,lines});return true;
   }
   if(m.type==='lukis-line'&&id===g.drawer&&g.protocol===1){const a=Array.isArray(m.line)&&m.line.length===6?[...m.line,0]:m.line;if(validLine(a)&&g.totalPoints<18000){append(g,[a]);for(const q of people.filter(q=>g.order.includes(key(q))))send(q.ws,{type:'lukis-line',line:a});}return true;}
   if(['lukis-undo','lukis-redo','lukis-clear'].includes(m.type)&&id===g.drawer){if(g.protocol===2&&m.boardVersion!==g.boardVersion){state(ps,g,p);return true;}if(m.type==='lukis-undo'&&g.cursor>0)g.cursor--;else if(m.type==='lukis-redo'&&g.cursor<g.history.length)g.cursor++;else if(m.type==='lukis-clear'&&g.lines.length){g.history=g.history.slice(0,g.cursor);g.history.push({clear:true});g.cursor++;}else return true;g.boardVersion++;rebuild(g);state(ps,g);return true;}
-  if(m.type==='lukis-guess'&&id!==g.drawer&&g.order.includes(id)&&!g.solved.includes(id)&&typeof m.text==='string'&&m.text.length<=60&&normal(m.text)){if(now()-(g.guessAt[id]||0)<600){send(p.ws,{type:'lukis-feedback',kind:'wait',message:'Sekejap… cuba lagi.'});return true;}g.guessAt[id]=now();const answers=[g.word.text,...(g.word.aliases||[])];
+  if(m.type==='lukis-guess'&&id!==g.drawer&&g.order.includes(id)&&!g.solved.includes(id)&&typeof m.text==='string'&&m.text.length<=60&&normal(m.text)){if(now()-(g.guessAt[id]||0)<600){send(p.ws,{type:'lukis-feedback',kind:'wait',message:'One moment… try again.'});return true;}g.guessAt[id]=now();const answers=[g.word.text,...(g.word.aliases||[])];
    if(answers.some(w=>normal(m.text)===normal(w))){const place=g.solved.length+1,timeBonus=Math.min(300,Math.max(0,Math.ceil((g.ends-now())/1000)*5)),placeBonus=Math.max(0,100-(place-1)*35),points=100+timeBonus+placeBonus,eligible=g.order.length-1,artistPoints=Math.round((150+timeBonus/2)/eligible);g.solved.push(id);g.scores[id]+=points;g.scores[g.drawer]+=artistPoints;g.roundPoints[id]=points;g.roundPoints[g.drawer]=(g.roundPoints[g.drawer]||0)+artistPoints;const result={id,name:p.name,points,place,base:100,timeBonus,placeBonus,artistPoints};g.roundWinners.push(result);for(const q of people.filter(q=>g.order.includes(key(q))))send(q.ws,{type:'lukis-correct',...result,gameId:g.id,round:g.round});if(people.filter(q=>g.order.includes(key(q))&&key(q)!==g.drawer).every(q=>g.solved.includes(key(q))))reveal(g);state(ps,g,undefined,false);
-   }else{g.guesses.push({name:p.name,text:filterChat(m.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim())});g.guesses=g.guesses.slice(-10);state(ps,g,undefined,false);const near=answers.some(w=>isClose(m.text,w));send(p.ws,{type:'lukis-feedback',kind:near?'close':'wrong',message:near?'Hampir tepat! Cuba ejaan sekali lagi.':'Belum tepat. Cuba lagi!'});}return true;}
+   }else{g.guesses.push({name:p.name,text:filterChat(m.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim())});g.guesses=g.guesses.slice(-10);state(ps,g,undefined,false);const near=answers.some(w=>isClose(m.text,w));send(p.ws,{type:'lukis-feedback',kind:near?'close':'wrong',message:near?'Almost there! Check your spelling.':'Not quite. Try again!'});}return true;}
   return true;}};
 }

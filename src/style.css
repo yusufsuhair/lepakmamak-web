@@ -352,9 +352,9 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 #coin-packs button:hover { background:#efffc9; border-color:#64803c; }#coin-packs button:disabled{opacity:.5;cursor:default;}
 #coin-packs span { font-size:8px; font-weight:800; letter-spacing:.07em; color:#85691c; }#coin-packs strong { font:700 20px/1 'Oxanium'; }#coin-packs small { font-size:11px; }
 #shop-items { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-#shop-items article { padding:14px; border:1px solid #bcc6a9; border-radius:10px; }
+#shop-items article { display:flex; flex-direction:column; padding:14px; border:1px solid #bcc6a9; border-radius:10px; }
 #shop-items h3 { font:700 24px 'Oxanium'; margin:12px 0 6px; }
-#shop-items .primary { width:100%; padding:12px; font-size:13px; }
+#shop-items .primary { width:100%; margin-top:auto; padding:12px; font-size:13px; }
 #shop-items button:disabled { opacity:.5; cursor:default; }
 .shop-kind { display:inline-block; margin-top:10px; padding:3px 6px; border-radius:4px; background:#d6dfc6; font-size:9px; font-weight:700; letter-spacing:.1em; }
 .shop-art { height:94px; background:#dbe1cb; border-radius:8px; display:flex; justify-content:center; align-items:center; position:relative; }

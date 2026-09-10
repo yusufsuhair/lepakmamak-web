@@ -16,34 +16,34 @@ type WerewolfState = {id: string; day: number; phase: string; self: string; role
 
 export function unoAlert(g: UnoState | null): Alert {
  if (!g) return NO_ALERT;
- if (g.phase === 'playing' && g.turn === g.self) return {key: `turn:${g.ends}`, title: 'UNO Lepak', body: 'Giliran anda.'};
- if (g.unoTarget === g.self) return {key: `uno:${g.id}:${g.round}`, title: 'UNO Lepak', body: 'Tekan UNO! sebelum kena tangkap.'};
- if (g.phase === 'dealing') return {key: `deal:${g.id}:${g.round}`, title: 'UNO Lepak', body: 'Kad sedang dibahagi — jom main.'};
+ if (g.phase === 'playing' && g.turn === g.self) return {key: `turn:${g.ends}`, title: 'UNO Lepak', body: 'It is your turn.'};
+ if (g.unoTarget === g.self) return {key: `uno:${g.id}:${g.round}`, title: 'UNO Lepak', body: 'Call UNO before someone catches you.'};
+ if (g.phase === 'dealing') return {key: `deal:${g.id}:${g.round}`, title: 'UNO Lepak', body: 'Dealing cards — let’s play.'};
  return NO_ALERT;
 }
 
 export function pokerAlert(g: PokerState | null, self: string): Alert {
  if (!g || g.phase === 'finished' || !g.players.some(p => p.id === self)) return NO_ALERT;
- if (g.actions) return {key: `turn:${g.hand}:${g.ends}`, title: 'Poker Kampung', body: 'Giliran anda.'};
- return {key: `hand:${g.hand}`, title: 'Poker Kampung', body: 'Pusingan baharu bermula di meja anda.'};
+ if (g.actions) return {key: `turn:${g.hand}:${g.ends}`, title: 'Poker Kampung', body: 'It is your turn.'};
+ return {key: `hand:${g.hand}`, title: 'Poker Kampung', body: 'A new hand is starting at your table.'};
 }
 
 export function lukisAlert(g: LukisState | null): Alert {
  if (!g || g.phase === 'finished' || !g.scores.some(p => p.id === g.self)) return NO_ALERT;
- if (g.drawer === g.self && g.phase === 'choosing') return {key: `pick:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'Pilih perkataan anda.'};
- if (g.drawer === g.self && g.phase === 'drawing') return {key: `draw:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'Giliran anda melukis.'};
- if (g.phase === 'drawing') return {key: `guess:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'Pusingan bermula — masa untuk meneka.'};
+ if (g.drawer === g.self && g.phase === 'choosing') return {key: `pick:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'Choose your word.'};
+ if (g.drawer === g.self && g.phase === 'drawing') return {key: `draw:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'It is your turn to draw.'};
+ if (g.phase === 'drawing') return {key: `guess:${g.id}:${g.round}`, title: 'Lukis Lah!', body: 'The round has started — time to guess.'};
  return NO_ALERT;
 }
 
 export function werewolfAlert(g: WerewolfState | null): Alert {
  if (!g?.players.find(p => p.id === g.self)?.alive) return NO_ALERT;
  if (g.phase === 'night') {
-  if (g.role && NIGHT_ROLES.includes(g.role) && !g.selected) return {key: `night:${g.day}`, title: 'Werewolf', body: 'Malam — pilih sasaran anda.'};
-  return g.day === 1 ? {key: `start:${g.id}`, title: 'Werewolf', body: 'Permainan bermula — peranan telah dibahagi.'} : NO_ALERT;
+  if (g.role && NIGHT_ROLES.includes(g.role) && !g.selected) return {key: `night:${g.day}`, title: 'Werewolf', body: 'Night — choose your target.'};
+  return g.day === 1 ? {key: `start:${g.id}`, title: 'Werewolf', body: 'The game has started — roles have been dealt.'} : NO_ALERT;
  }
- if (g.phase === 'vote' && !g.selected) return {key: `vote:${g.day}`, title: 'Werewolf', body: 'Masa mengundi.'};
- if (g.phase === 'judgment' && g.canJudge && !g.selected) return {key: `judgment:${g.day}`, title: 'Werewolf', body: 'Beri penghakiman anda.'};
+ if (g.phase === 'vote' && !g.selected) return {key: `vote:${g.day}`, title: 'Werewolf', body: 'Time to vote.'};
+ if (g.phase === 'judgment' && g.canJudge && !g.selected) return {key: `judgment:${g.day}`, title: 'Werewolf', body: 'Cast your judgment.'};
  return NO_ALERT;
 }
 

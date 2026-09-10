@@ -2,35 +2,35 @@
  "colors": [
   {
    "value": "#20382e",
-   "label": "Hitam"
+   "label": "Black"
   },
   {
    "value": "#e34b4b",
-   "label": "Merah"
+   "label": "Red"
   },
   {
    "value": "#327bd1",
-   "label": "Biru"
+   "label": "Blue"
   },
   {
    "value": "#2caa68",
-   "label": "Hijau"
+   "label": "Green"
   },
   {
    "value": "#e9b52c",
-   "label": "Kuning"
+   "label": "Yellow"
   },
   {
    "value": "#9b59b6",
-   "label": "Ungu"
+   "label": "Purple"
   },
   {
    "value": "#f08bb4",
-   "label": "Merah jambu"
+   "label": "Pink"
   },
   {
    "value": "#8b5a2b",
-   "label": "Coklat"
+   "label": "Brown"
   }
  ],
  "sizes": [

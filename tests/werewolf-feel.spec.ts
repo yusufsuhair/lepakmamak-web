@@ -52,7 +52,7 @@ test('the ending is a moment, and it names roles rather than accusations',async(
  const verdict=page.locator('.ww-verdict');
  await expect(verdict).toBeVisible();
  await expect(verdict).toHaveAttribute('data-side','good');
- await expect(verdict.locator('strong')).toHaveText('Penduduk menang!');
+ await expect(verdict.locator('strong')).toHaveText('The villagers win!');
  await expect(verdict).toHaveClass(/game-burst/);
 
  // Every player's role is shown, and the wolves are marked as wolves.
@@ -67,5 +67,5 @@ test('the wolves winning reads differently from the village winning',async({page
  await mount(page,'ww-evil-harness');
  await village(page,{phase:'finished',winner:'evil'});
  await expect(page.locator('.ww-verdict')).toHaveAttribute('data-side','evil');
- await expect(page.locator('.ww-verdict strong')).toHaveText('Serigala menang!');
+ await expect(page.locator('.ww-verdict strong')).toHaveText('The wolves win!');
 });

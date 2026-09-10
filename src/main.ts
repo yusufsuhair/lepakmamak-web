@@ -3,6 +3,7 @@ import {createLegoland} from './legoland';
 import type {ParkRide} from '../shared/legoland.mjs';
 import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
+import {setupUiSounds} from './ui-sound';
 import {setupVehicleRadio} from './vehicle-radio';
 import {setupLocationArrival} from './location-arrival';
 import {createMapOverview} from './map-overview';
@@ -196,7 +197,8 @@ async function init() {
     addEventListener('pointerdown', event => { if (!row.contains(event.target as Node)) shut(); });
   }
   const refresher = createRefresher($('hud'));
-  const lrtPanel=document.createElement('section');lrtPanel.className='lrt-panel';lrtPanel.hidden=true;lrtPanel.innerHTML='<strong></strong><small></small><button type="button">Turun di stesen</button>';$('hud').append(lrtPanel);
+  const notificationStack=document.createElement('div');notificationStack.id='notification-stack';$('hud').append(notificationStack);notificationStack.append($('toast'));
+  const lrtPanel=document.createElement('section');lrtPanel.className='lrt-panel';lrtPanel.hidden=true;lrtPanel.innerHTML='<strong></strong><small></small><button type="button">Turun di stesen</button>';notificationStack.append(lrtPanel);
   lrtPanel.querySelector('button')!.onclick=()=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-exit'}));};
   const village=createVillageResidents(scene);
   const villageTalk=document.createElement('button');villageTalk.className='village-talk';villageTalk.hidden=true;document.body.append(villageTalk);
@@ -301,7 +303,7 @@ async function init() {
   klccLiftPanel.id = 'klcc-lift-status'; klccLiftPanel.setAttribute('role', 'status'); klccLiftPanel.setAttribute('aria-live', 'polite');
   klccLiftPanel.hidden = true;
   klccLiftPanel.innerHTML = '<strong>Lif KLCC</strong><small></small><b></b><button type="button">Turun lif KLCC</button>';
-  $('hud').append(klccLiftPanel);
+  notificationStack.append(klccLiftPanel);
   const klccLiftPhase = klccLiftPanel.querySelector('small')!;
   const klccLiftCountdown = klccLiftPanel.querySelector('b')!;
   const klccLiftDown = klccLiftPanel.querySelector('button')!;
@@ -512,6 +514,7 @@ async function init() {
   document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   createRipples(document.body, {reducedMotion});
+  setupUiSounds($<HTMLInputElement>('sound-toggle'));
   $('touch-controls').hidden = !touch;
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
@@ -577,6 +580,7 @@ async function init() {
   const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: '#d7e5de', transparent: true, opacity: .45 })); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
+  const trainDoorStates = new Map<number, boolean>();
   const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'auto';
   const buskingSong=new Audio('/busking.mp3');buskingSong.loop=true;buskingSong.preload='metadata';
   const watsonsSong=new Audio('/watson.mp3');watsonsSong.loop=true;watsonsSong.preload='metadata';
@@ -731,6 +735,28 @@ async function init() {
       const o = audioContext.createOscillator(), gain = audioContext.createGain(); o.connect(gain); gain.connect(citySoundsGain!);
       const time = audioContext.currentTime + i * .12; o.frequency.value = [523, 659, 784][i]; gain.gain.setValueAtTime(.035, time); gain.gain.exponentialRampToValueAtTime(.001, time + .23); o.start(time); o.stop(time + .25);
     }
+  }
+  function trainDoorSound(open: boolean, train: number) {
+    if (!audioEnabled || !started) return;
+    ensureAudio(); if (!audioContext || audioContext.state !== 'running') return;
+    const now = audioContext.currentTime;
+    // A small two-step electronic chime reads as carriage doors without sounding like a
+    // car horn. Closing is lower and shorter; opening rises so both states are obvious.
+    const notes = open ? [392, 523, 659] : [494, 370];
+    notes.forEach((frequency, index) => {
+      const oscillator = audioContext!.createOscillator();
+      const gain = audioContext!.createGain();
+      const at = now + index * (open ? .065 : .08);
+      oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(frequency, at);
+      gain.gain.setValueAtTime(.0001, at); gain.gain.linearRampToValueAtTime(.026, at + .012);
+      gain.gain.exponentialRampToValueAtTime(.0001, at + (open ? .18 : .14));
+      oscillator.connect(gain); gain.connect(citySoundsGain!);
+      oscillator.start(at); oscillator.stop(at + (open ? .2 : .16));
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    });
+    // Keep this argument in the call signature so a later shared-train mixer can pan
+    // the sound per carriage without changing the transition detection.
+    void train;
   }
   function toast(title: string, body: string, seconds = 4) {
     $('toast').replaceChildren(); const strong = document.createElement('strong'); strong.textContent = title; $('toast').append(strong, document.createTextNode(body)); $('toast').hidden = false; toastRemaining = seconds;
@@ -1130,7 +1156,7 @@ async function init() {
   const itemShop = setupShop(setAccessories);
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
-    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers }));
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers, tudung: look.tudung }));
   });
   const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';// Wall · recentre · Kedai · character · settings, reading outwards along the top bar.
   const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
@@ -1649,6 +1675,16 @@ async function init() {
     const active = started;
     park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
     lrt.update(lrtNow(),pos,lrtId);
+    for (const id of [0, 1]) {
+      const state = trainState(id, lrtNow());
+      const previous = trainDoorStates.get(id);
+      if (previous !== undefined && previous !== state.doors) {
+        const station = state.station >= 0 ? lrtStations[state.station] : undefined;
+        const nearby = lrtId === id || !!station && Math.hypot(pos.x - station.x, pos.z - station.z) < 28;
+        if (nearby) trainDoorSound(state.doors, id);
+      }
+      trainDoorStates.set(id, state.doors);
+    }
     lrtPanel.hidden=!started||lrtId==null||cityMap.open||paused;
     if(lrtId!=null){const state=trainState(lrtId,lrtNow());lrtPanel.querySelector('strong')!.textContent=state.station>=0?`LRT · ${lrtStations[state.station].name}`:`Seterusnya · ${lrtStations[state.next].name}`;lrtPanel.querySelector('small')!.textContent=state.doors?'Pintu dibuka · Boleh turun':`${state.station>=0?'Berlepas':'Tiba'} dalam ${Math.ceil(state.remaining)}s`;lrtPanel.querySelector('button')!.disabled=!state.doors;}
     {

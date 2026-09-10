@@ -37,7 +37,7 @@ import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
 const { version } = packageInfo;
 import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
-const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c' };
+const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c', tudung: 'none' };
 function cleanAppearance(value) { return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, Object.values(appearanceOptions[key]).includes(value?.[key]) ? value[key] : fallback])); }
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
@@ -570,7 +570,12 @@ webSocketServer.on('connection', ws => {
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'outfit') {
-      player.appearance = cleanAppearance({ ...player.appearance, shirt: message.shirt, trousers: message.trousers });
+      player.appearance = cleanAppearance({
+        ...player.appearance,
+        ...(typeof message.shirt === 'string' ? { shirt: message.shirt } : {}),
+        ...(typeof message.trousers === 'string' ? { trousers: message.trousers } : {}),
+        ...(typeof message.tudung === 'string' ? { tudung: message.tudung } : {}),
+      });
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'ping') { send(ws, { type: 'pong', t: message.t }); return; }

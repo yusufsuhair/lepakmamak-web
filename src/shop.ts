@@ -8,7 +8,7 @@ type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: b
 
 export function setupShop(onEquip: (items: string[]) => void, endpoint?: string) {
   const dialog = document.createElement('dialog'); dialog.id = 'item-shop'; dialog.setAttribute('aria-labelledby', 'shop-title');
-  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan pakai bila-bila masa.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p><button type="button" id="shop-refresh" class="secondary">Refresh kedai</button>`;
+  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan item anda akan terus muncul di sini.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog);
   const message = dialog.querySelector<HTMLElement>('#shop-message')!;
   const balanceLabel = dialog.querySelector<HTMLElement>('#shop-balance')!;
@@ -67,7 +67,7 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
       const kind = document.createElement('small'); kind.className = 'shop-kind'; kind.textContent = item.type === 'skin' ? 'SKIN' : 'ACCESSORY';
       const title = document.createElement('h3'); title.textContent = item.name;
       const description = document.createElement('p'); description.textContent = item.description;
-      const button = document.createElement('button'); button.className = 'primary'; button.type = 'button'; button.disabled = busy || !available || !session;
+      const button = document.createElement('button'); button.className = 'primary shop-item-action'; button.type = 'button'; button.disabled = busy || !available || !session;
       // Beli or Pakai turns on whether this is already owned, so before the inventory lands
       // every card claimed the player did not own it.
       if (loading) skeleton(button, `${item.name} · memuatkan`, '100%');
@@ -97,7 +97,7 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
       const params = new URLSearchParams(location.search), sessionId = params.get('session_id');
       if (session && params.get('coins') === 'success' && sessionId) {
         const paid = await request('checkout-status', { sessionId }); applyState(paid);
-        message.textContent = paid.pending ? 'Bayaran sedang diproses. Tekan Refresh sebentar lagi.' : 'Pembayaran berjaya — Syiling Lepak sudah masuk!';
+        message.textContent = paid.pending ? 'Bayaran sedang diproses. Buka semula Kedai sebentar lagi.' : 'Pembayaran berjaya — Syiling Lepak sudah masuk!';
         if (!paid.pending) { params.delete('coins'); params.delete('session_id'); history.replaceState({}, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`); }
       } else if (params.get('coins') === 'cancelled') {
         message.textContent = 'Pembayaran dibatalkan. Tiada caj dibuat.'; params.delete('coins'); history.replaceState({}, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
@@ -112,7 +112,6 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
     finally { busy = false; draw(); }
   };
   dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
-  dialog.querySelector('#shop-refresh')!.addEventListener('click', () => void refresh());
   dialog.addEventListener('keydown', event => event.stopPropagation());
   return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }

@@ -5,7 +5,7 @@ import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { appearance, type Appearance } from './appearance';
+import { appearance, tudungColour, type Appearance } from './appearance';
 import type { Solid } from './physics';
 import { masjidSpots } from './masjid';
 import {createTaycan} from './taycan';
@@ -99,7 +99,77 @@ export function applyAppearance(group: THREE.Group, value: unknown) {
   } else if (look.hairstyle === 'ponytail') {
     const tail = ball(extra, 0, 1.76, -.29, .15, look.hair); tail.scale.y = .36;
   }
+  applyTudung(group, look.tudung);
   group.userData.appearance = look;
+}
+
+/** Add a readable, low-poly head covering to the same avatar rig used in the city. */
+function applyTudung(group: THREE.Group, style: string) {
+  const old = group.getObjectByName('avatar-tudung'); if (old) group.remove(old);
+  if (!style || style === 'none') return;
+  const tudung = new THREE.Group(); tudung.name = 'avatar-tudung'; group.add(tudung);
+  const colour = tudungColour(style);
+  const roughness = style === 'satin' || style === 'duck-luxe' ? .28 : .78;
+  const cloth = (x: number, y: number, z: number, w: number, h: number, d: number, rotation = 0, tone = colour) => {
+    const mesh = box(tudung, x, y, z, w, h, d, material(tone, roughness)); mesh.rotation.z = rotation; return mesh;
+  };
+  const crown = ball(tudung, 0, 2.035, -.075, .285, colour); crown.scale.set(.285 * 1.02, .285 * .72, .285 * .72);
+  // A clean band frames the face, which keeps each style recognisable at the game's camera
+  // distance without covering the eyes or changing the underlying face rig.
+  cloth(0, 1.985, .145, .285, .075, .055);
+  switch (style) {
+    case 'long':
+      cloth(-.255, 1.68, .015, .125, .62, .12, .04);
+      cloth(.255, 1.68, .015, .125, .62, .12, -.04);
+      cloth(0, 1.52, -.16, .43, .55, .12);
+      break;
+    case 'turban': {
+      for (const [y, scale] of [[2.03, 1], [2.095, .88], [2.15, .7]] as const) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.235, .037, 6, 18), material(colour, roughness));
+        ring.position.set(0, y, .03); ring.scale.set(1, .56 * scale, .7); ring.castShadow = true; tudung.add(ring);
+      }
+      const knot = ball(tudung, .12, 2.16, .03, .085, colour); knot.scale.set(.085 * 1.2, .085 * .72, .085 * .72);
+      break;
+    }
+    case 'short':
+      cloth(-.245, 1.79, .02, .12, .3, .11, .05);
+      cloth(.245, 1.79, .02, .12, .3, .11, -.05);
+      break;
+    case 'shawl':
+      cloth(-.255, 1.74, .02, .12, .4, .11, .1);
+      cloth(.19, 1.77, -.01, .11, .35, .1, -.08);
+      cloth(.285, 1.52, -.13, .16, .54, .12, -.1);
+      break;
+    case 'bawal':
+      cloth(-.255, 1.76, .02, .12, .34, .11, .04);
+      cloth(.255, 1.76, .02, .12, .34, .11, -.04);
+      cloth(0, 1.58, -.12, .38, .36, .11);
+      break;
+    case 'satin':
+      cloth(-.25, 1.74, .02, .12, .4, .11, .04);
+      cloth(.25, 1.65, -.04, .12, .57, .11, -.04);
+      cloth(.27, 1.42, -.12, .18, .42, .12, -.05);
+      break;
+    case 'instant':
+      cloth(-.245, 1.71, .02, .13, .48, .12, .03);
+      cloth(.245, 1.71, .02, .13, .48, .12, -.03);
+      cloth(0, 1.57, -.13, .4, .38, .12);
+      break;
+    case 'duck-luxe':
+      cloth(-.255, 1.72, .02, .12, .44, .11, .08);
+      cloth(.21, 1.69, -.01, .11, .48, .11, -.06);
+      cloth(.27, 1.49, -.13, .18, .5, .12, -.08);
+      cloth(0, 1.985, .18, .12, .025, .018, 0, '#f7e0a1');
+      break;
+    case 'ruffle':
+      cloth(-.245, 1.76, .02, .12, .34, .11, .05);
+      cloth(.245, 1.76, .02, .12, .34, .11, -.05);
+      for (const x of [-.16, -.08, 0, .08, .16]) cloth(x, 1.62, .02, .055, .13, .1, x * .5);
+      break;
+    default:
+      cloth(-.245, 1.76, .02, .12, .34, .11, .04);
+      cloth(.245, 1.76, .02, .12, .34, .11, -.04);
+  }
 }
 
 export function applyAccessories(group: THREE.Group, items: string[]) {

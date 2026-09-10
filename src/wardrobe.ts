@@ -1,7 +1,7 @@
 import { auth, session } from './auth';
-import { appearance, appearanceOptions, type Appearance } from './appearance';
+import { appearance, appearanceOptions, tudungColour, type Appearance } from './appearance';
 
-type ClothingKey = 'shirt' | 'trousers';
+type ClothingKey = 'shirt' | 'trousers' | 'tudung';
 
 export function savedLook(): Appearance {
   if (session) return appearance(session.user.user_metadata?.appearance);
@@ -9,7 +9,9 @@ export function savedLook(): Appearance {
 }
 
 export type ClothingCategory = ClothingKey;
-export const CLOTHING: {key: ClothingKey; title: string}[] = [{key: 'shirt', title: 'Tops'}, {key: 'trousers', title: 'Bottoms'}];
+export const CLOTHING: {key: ClothingKey; title: string}[] = [
+  {key: 'shirt', title: 'Tops'}, {key: 'trousers', title: 'Bottoms'}, {key: 'tudung', title: 'Tudung'},
+];
 export const lookLabel = (key: ClothingKey, value: string) =>
   Object.entries(appearanceOptions[key]).find(([, colour]) => colour === value)?.[0] || 'Custom';
 
@@ -33,6 +35,14 @@ export function drawLook(canvas: HTMLCanvasElement, look: Appearance) {
   if (look.hairstyle === 'bob') { ctx.beginPath(); ctx.ellipse(140, 57, 49, 51, 0, Math.PI, Math.PI * 2); ctx.fill(); roundRect(ctx, 93, 49, 17, 62, 8); roundRect(ctx, 170, 49, 17, 62, 8); }
   else if (look.hairstyle === 'ponytail') { ctx.beginPath(); ctx.ellipse(140, 47, 44, 35, 0, Math.PI, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(185, 54, 15, 29, -.35, 0, Math.PI * 2); ctx.fill(); }
   else { ctx.beginPath(); ctx.ellipse(140, 43, 44, 31, 0, Math.PI, Math.PI * 2); ctx.fill(); roundRect(ctx, 99, 37, 82, 18, 7); }
+  if (look.tudung !== 'none') {
+    const colour = tudungColour(look.tudung);
+    ctx.fillStyle = colour; ctx.beginPath(); ctx.ellipse(140, 49, 49, 42, 0, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillRect(110, 47, 16, look.tudung === 'long' ? 76 : 38);
+    ctx.fillRect(154, 47, 16, look.tudung === 'long' ? 76 : 38);
+    if (look.tudung === 'turban') { ctx.fillStyle = '#ffffff35'; roundRect(ctx, 101, 42, 78, 9, 4); roundRect(ctx, 108, 34, 64, 8, 4); }
+    if (look.tudung === 'ruffle') { ctx.fillStyle = '#ffffff45'; for (const x of [112, 126, 140, 154, 168]) roundRect(ctx, x - 5, 91, 10, 14, 4); }
+  }
   ctx.fillStyle = '#22362f'; ctx.beginPath(); ctx.arc(124, 68, 3, 0, Math.PI * 2); ctx.arc(156, 68, 3, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#7c4d3f'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(140, 79, 10, .18, Math.PI - .18); ctx.stroke();
   ctx.restore();

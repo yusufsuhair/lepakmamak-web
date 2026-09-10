@@ -1,6 +1,6 @@
 import { createClient, type Session } from '@supabase/supabase-js';
 
-import { appearance, appearanceOptions, defaultAppearance } from './appearance';
+import { appearance, appearanceOptions, defaultAppearance, TUDUNG_COMING_SOON, tudungColour } from './appearance';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -43,12 +43,16 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     el('guest-name').oninput = () => el<HTMLInputElement>('guest-name').setCustomValidity('');
   }
 
-  const labels = { gender: 'Gender', hairstyle: 'Hair style', hair: 'Hair colour', skin: 'Skin tone', shirt: 'Shirt colour', trousers: 'Trouser colour' };
+  const labels = { gender: 'Gender', hairstyle: 'Hair style', hair: 'Hair colour', skin: 'Skin tone', shirt: 'Shirt colour', trousers: 'Trouser colour', tudung: 'Tudung style' };
   const choices = el('avatar-choices');
   for (const [key, values] of Object.entries(appearanceOptions)) {
     const label = document.createElement('label'); label.textContent = labels[key as keyof typeof labels];
     const select = document.createElement('select'); select.id = `avatar-${key}`; select.setAttribute('aria-label', labels[key as keyof typeof labels]);
-    for (const [name, value] of Object.entries(values)) select.add(new Option(name, value));
+    for (const [name, value] of Object.entries(values)) {
+      const option = new Option(name, value);
+      if (key === 'tudung' && TUDUNG_COMING_SOON.has(value)) { option.disabled = true; option.textContent = `${name} · Coming soon`; }
+      select.add(option);
+    }
     select.value = defaultAppearance[key as keyof typeof defaultAppearance]; label.append(select); choices.append(label);
   }
   const selectedAppearance = () => appearance(Object.fromEntries(Object.keys(appearanceOptions).map(key => [key, el<HTMLSelectElement>(`avatar-${key}`).value])));
@@ -61,6 +65,12 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     ctx.fillStyle = look.hair; ctx.beginPath(); ctx.ellipse(90, 23, 26, 13, 0, Math.PI, Math.PI * 2); ctx.fill(); ctx.fillRect(65, 21, 50, 12);
     if (look.hairstyle === 'bob') { ctx.fillRect(63, 26, 8, 46); ctx.fillRect(109, 26, 8, 46); }
     if (look.hairstyle === 'ponytail') ctx.fillRect(112, 26, 12, 44);
+    if (look.tudung !== 'none') {
+      ctx.fillStyle = tudungColour(look.tudung); ctx.beginPath(); ctx.ellipse(90, 28, 29, 23, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.fillRect(72, 31, 9, look.tudung === 'long' ? 62 : 32); ctx.fillRect(99, 31, 9, look.tudung === 'long' ? 62 : 32);
+      if (look.tudung === 'turban') { ctx.fillStyle = '#ffffff35'; ctx.fillRect(67, 24, 46, 5); ctx.fillRect(72, 18, 36, 5); }
+      if (look.tudung === 'ruffle') { ctx.fillStyle = '#ffffff45'; for (const x of [75, 83, 90, 97, 105]) ctx.fillRect(x - 3, 60, 6, 8); }
+    }
     ctx.fillStyle = '#253a40'; ctx.fillRect(78, 40, 4, 4); ctx.fillRect(98, 40, 4, 4); ctx.fillRect(66, 182, 21, 8); ctx.fillRect(93, 182, 21, 8);
   }
   choices.addEventListener('change', preview); preview();

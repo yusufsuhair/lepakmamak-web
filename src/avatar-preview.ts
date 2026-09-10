@@ -28,6 +28,12 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   let frame = 0;
   let width = 0;
   let height = 0;
+  let yaw = 0;
+  let pointerId: number | null = null;
+  let pointerX = 0;
+  let dragging = false;
+  const publishYaw = () => { canvas.dataset.rotation = String(Math.round(THREE.MathUtils.euclideanModulo(yaw + Math.PI, Math.PI * 2) * 180 / Math.PI - 180)); };
+  const draw = () => { avatar.group.rotation.y = yaw; renderOnce(); };
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
     const nextWidth = Math.max(1, Math.round(rect.width || canvas.width || 280));
@@ -42,20 +48,53 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   observer?.observe(canvas);
 
-  const paint = (now: number) => {
+  const paint = () => {
     if (!running) return;
     resize();
-    avatar.group.rotation.y = Math.sin(now * .00045) * .1;
+    avatar.group.rotation.y = yaw;
     renderer.render(scene, camera);
     frame = requestAnimationFrame(paint);
   };
   const renderOnce = () => { resize(); renderer.render(scene, camera); };
+  const onPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || pointerId !== null) return;
+    event.preventDefault();
+    pointerId = event.pointerId;
+    pointerX = event.clientX;
+    dragging = false;
+    canvas.classList.add('is-dragging');
+    canvas.setPointerCapture?.(event.pointerId);
+  };
+  const onPointerMove = (event: PointerEvent) => {
+    if (event.pointerId !== pointerId) return;
+    const delta = event.clientX - pointerX;
+    if (Math.abs(delta) > .25) dragging = true;
+    pointerX = event.clientX;
+    if (!dragging) return;
+    event.preventDefault();
+    yaw += delta * .012;
+    publishYaw();
+    if (!running) draw();
+  };
+  const onPointerEnd = (event: PointerEvent) => {
+    if (event.pointerId !== pointerId) return;
+    pointerId = null;
+    canvas.classList.remove('is-dragging');
+    if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  };
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerEnd);
+  canvas.addEventListener('pointercancel', onPointerEnd);
+  canvas.addEventListener('lostpointercapture', onPointerEnd);
+  publishYaw();
   const setLook = (value: Appearance) => {
     const look = appearance(value);
     applyAppearance(avatar.group, look);
     canvas.dataset.preview = 'live-3d';
     canvas.dataset.shirt = look.shirt;
     canvas.dataset.trousers = look.trousers;
+    canvas.dataset.tudung = look.tudung;
     if (!running) renderOnce();
   };
   const start = () => {
@@ -70,6 +109,11 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   };
   const dispose = () => {
     stop(); observer?.disconnect();
+    canvas.removeEventListener('pointerdown', onPointerDown);
+    canvas.removeEventListener('pointermove', onPointerMove);
+    canvas.removeEventListener('pointerup', onPointerEnd);
+    canvas.removeEventListener('pointercancel', onPointerEnd);
+    canvas.removeEventListener('lostpointercapture', onPointerEnd);
     avatar.group.traverse(object => {
       if (object instanceof THREE.Mesh) {
         object.geometry.dispose();
@@ -80,5 +124,5 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
     renderer.dispose();
   };
 
-  return {setLook, start, stop, dispose, avatar: avatar.group};
+  return {setLook, start, stop, dispose, avatar: avatar.group, rotate(delta: number) { yaw += delta; publishYaw(); if (!running) draw(); }};
 }

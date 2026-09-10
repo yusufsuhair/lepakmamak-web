@@ -17,7 +17,7 @@ test('table snapshots retain the character appearance used by roster portraits',
 for(const width of [390,1280])test(`only current table and games at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:844});await page.route('**/table-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css">'}));await page.goto('/table-harness');
  await page.evaluate(async()=>{const {setupTableSocial}=await import('/src/table-social.ts');const ui=setupTableSocial(()=>true,'geng',()=>{},()=>{});(window as any).tableUI=ui;ui.state([{id:'meja-2',name:'Old custom name',capacity:2,occupants:[{id:'self',name:'Yusuf',chairId:'chair-3'}]}],'self',true);ui.open('meja-1');});
- await expect(page.locator('#table-name')).toHaveText('Meja 2');await expect(page.locator('#table-seats')).toContainText('Anda duduk di Meja 2');await expect(page.locator('.table-game-grid')).toBeVisible();await expect(page.locator('.lukis')).toBeHidden();await expect(page.locator('.poker')).toBeHidden();await expect(page.locator('#table-name-form, #table-round, #get-receipt, #table-link, #table-list')).toHaveCount(0);
+ await expect(page.locator('#table-name')).toHaveText('Meja 2');await expect(page.locator('#table-seats')).toContainText('You are sitting at Meja 2');await expect(page.locator('.table-game-grid')).toBeVisible();await expect(page.locator('.lukis')).toBeHidden();await expect(page.locator('.poker')).toBeHidden();await expect(page.locator('#table-name-form, #table-round, #get-receipt, #table-link, #table-list')).toHaveCount(0);
  await page.evaluate(()=>(window as any).tableUI.state([],'self',true));await expect(page.locator('#table-detail')).toBeHidden();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
@@ -35,7 +35,7 @@ test('songs duck while a table game is open and return when it closes',async({pa
  expect(await playing()).toBe(false);                       // open, but still on the game menu
  await page.locator('[data-select="lukis"]').click();
  expect(await playing()).toBe(true);                        // actually playing -> songs duck
- await page.getByText('← Semua permainan').click();
+ await page.getByText('← All games').click();
  expect(await playing()).toBe(false);                       // back to the menu -> songs return
  await page.locator('[data-select="uno"]').click();
  expect(await playing()).toBe(true);
@@ -56,14 +56,14 @@ test('one list combines the unjoined lobby, game art and joined users',async({pa
  });
  await expect(page.locator('#table-seats')).not.toContainText('Dalam:');
  await expect(page.locator('.table-roster').first()).toHaveClass(/neutral/);
- await expect(page.locator('.table-roster').first()).toContainText('LOBI MEJA · BELUM JOIN');
+ await expect(page.locator('.table-roster').first()).toContainText('TABLE LOBBY · NOT IN A GAME');
  await expect(page.locator('.table-roster').first()).toContainText('Joe');
  await expect(page.locator('.table-roster.seated .table-roster-person')).toHaveCount(1);
- await expect(page.locator('[data-select="lukis"] .game-members')).toContainText('DALAM GAME');
+ await expect(page.locator('[data-select="lukis"] .game-members')).toContainText('IN GAME');
  await expect(page.locator('[data-select="lukis"] .game-member')).toContainText('Ali');
- await expect(page.locator('[data-select="uno"] .game-members')).toContainText('MENUNGGU');
+ await expect(page.locator('[data-select="uno"] .game-members')).toContainText('WAITING');
  await expect(page.locator('[data-select="uno"] .game-member')).toContainText('Mei');
- await expect(page.locator('[data-select="poker"] .game-members')).toContainText('BELUM ADA PEMAIN');
+ await expect(page.locator('[data-select="poker"] .game-members')).toContainText('NO PLAYERS YET');
  expect(await page.locator('[data-select="lukis"] .player-face').first().evaluate(el=>getComputedStyle(el).getPropertyValue('--face-shirt').trim())).toBe('#62876b');
  await expect(page.locator('#table-social > #speaking')).toHaveCount(1);
  await page.evaluate(()=>(window as any).ui.close());

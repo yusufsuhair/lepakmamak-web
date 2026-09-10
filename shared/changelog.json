@@ -1,4 +1,23 @@
-[
+[{
+  "version": "1.39.24",
+  "date": "2026-09-11",
+  "title": "English table games and tudung wardrobe",
+  "notes": [
+    "Lukis Lah, Poker Kampung, UNO Lepak and Werewolf now use clear English across their lobbies, actions, rules and results.",
+    "Character wardrobe now includes long tudung, turban, short tudung, shawl, bawal, satin and instant styles.",
+    "dUCk Luxe and Ruffle are shown as Coming Soon while the live 3D character preview supports rotating the selected look."
+  ]
+},
+{
+  "version": "1.39.23",
+  "date": "2026-09-10",
+  "title": "Character boleh diputar dan Kedai lebih kemas",
+  "notes": [
+    "Character dalam Inventory kini boleh diputar 360° dengan drag menggunakan mouse atau swipe pada mobile.",
+    "Kedai kini menyusun butang Pakai dan Tanggalkan sejajar di bahagian bawah setiap kad item.",
+    "Butang Refresh kedai dibuang supaya paparan kekal seperti menu game dan tidak seperti halaman web."
+  ]
+},
 {
   "version": "1.39.22",
   "date": "2026-09-10",
