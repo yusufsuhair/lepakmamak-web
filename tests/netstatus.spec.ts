@@ -73,8 +73,8 @@ test('only whoever is talking right now appears under the map',async({page})=>{
  await page.evaluate(()=>(window as any).sp.heard('u1','Aina'));
  await expect(page.locator('#speaking .speaker')).toHaveCount(1);
  await expect(page.locator('#speaking .speaker')).toContainText('Aina');
- // A small face, the way Discord shows one.
- await expect(page.locator('#speaking .speaker-face')).toHaveText('A');
+ // A small live character face, the way Discord shows an avatar.
+ await expect(page.locator('#speaking .speaker-face .player-face-head')).toHaveCount(1);
 
  await page.evaluate(()=>(window as any).sp.heard('u2','Bala'));
  await expect(page.locator('#speaking .speaker')).toHaveCount(2);

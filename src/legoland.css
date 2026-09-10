@@ -1,4 +1,4 @@
-#legoland-panel{position:fixed;left:16px;bottom:110px;width:285px;max-height:60vh;overflow:auto;padding:16px;border:1px solid #eee1b2;border-radius:16px;background:#fff8e9f5;color:#173c32;pointer-events:auto;z-index:9;box-shadow:0 8px 30px #173c3233}
+#legoland-panel{position:fixed;left:16px;bottom:110px;width:285px;max-height:60vh;overflow:auto;padding:16px;border:1px solid #eee1b2;border-radius:16px;background:#fff8e9f5;color:#173c32;pointer-events:auto;z-index:10002;box-shadow:0 8px 30px #173c3233}
 #legoland-panel[hidden],#legoland-panel [hidden]{display:none!important}
 #legoland-panel h2{font-size:20px;line-height:1.2;margin:8px 0}
 #legoland-panel p{font-size:13px;line-height:1.45;margin:8px 0}

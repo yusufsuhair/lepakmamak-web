@@ -1536,7 +1536,7 @@ async function init() {
   function setMapZoom(next:number){
     mapZoom=Math.max(minMapZoom,Math.min(maxMapZoom,Math.round(next*100)/100));expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=maxMapZoom;zoomOut.disabled=mapZoom<=minMapZoom;drawMap(true);
   }
-  zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=()=>setMapZoom(defaultMapZoom);setMapZoom(defaultMapZoom);
+  zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=()=>setMapZoom(defaultMapZoom);
   mapViewport.addEventListener('wheel',event=>{event.preventDefault();setMapZoom(mapZoom+(event.deltaY<0?mapZoomStep:-mapZoomStep));},{passive:false});
   const mapTouches=new Map<number,{x:number;y:number}>();let mapPinchSpan=0;
   const mapTouchSpan=()=>{const [a,b]=[...mapTouches.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
@@ -1548,6 +1548,7 @@ async function init() {
 
   const carFinderRoot=document.createElement('div');mapFrame.after(carFinderRoot);
   const carFinder=createCarFinder(carFinderRoot,()=>{selectedMapPlace='';mapDirectory.selected('');teleportButton.disabled=true;teleportButton.textContent='Select a place to teleport';drawMap(true);});
+  setMapZoom(defaultMapZoom);
 
   function drawMap(expanded = false) {
     const carPin=expanded?carFinder.update(networkConnected,pos,roomPlayers):undefined;
