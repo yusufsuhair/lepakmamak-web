@@ -6,7 +6,10 @@ import {createTableAlert,unoAlert,pokerAlert,lukisAlert,werewolfAlert} from './t
 import './table-lobby.css';
 import {createTableShell} from './table-shell';
 import locations from '../shared/tables.json';
-export type TableState={id:string;name:string;capacity:number;occupants:{id:string;name:string;chairId:string}[]};
+export type TableGameState={game:string;phase:string;members:{id:string;name:string}[]};
+export type TableState={id:string;name:string;capacity:number;occupants:{id:string;name:string;chairId:string}[];activeGame?:TableGameState|null};
+const GAME_TITLES:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
+const GAME_PHASES:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
 export function setupTableSocial(send:(message:object)=>boolean,_room:string,releaseInput:()=>void,toast:(title:string,body:string)=>void){
  const dialog=document.createElement('dialog');dialog.id='table-social';dialog.setAttribute('aria-labelledby','table-name');
  dialog.innerHTML='<header><div><small>PERMAINAN MEJA</small><h2 id="table-name">Meja</h2></div><button id="close-table-social" type="button" aria-label="Close Meja Kita">×</button></header><p id="table-seats" role="status"></p><section id="table-detail" hidden><div class="table-game-menu"><h3>Jom main, geng.</h3><p>Pilih permainan untuk meja anda.</p><div class="table-game-grid"><button type="button" data-select="lukis"><span class="game-art draw-art" aria-hidden="true">✎<i>?</i></span><strong>Lukis Lah!</strong><small>Lukis, teka & ketawa bersama</small><b>2+ pemain · Pilih →</b></button><button type="button" data-select="poker"><span class="game-art card-art" aria-hidden="true">♠<i>♥</i></span><strong>Poker Kampung</strong><small>Uji strategi, baca gerak member</small><b>2+ pemain · Pilih →</b></button><button type="button" data-select="werewolf"><span class="game-art wolf-art" aria-hidden="true">☾<i>✦</i></span><strong>Werewolf</strong><small>Rahsiakan peranan, cari serigala</small><b>7–9 pemain · Pilih →</b></button><button type="button" data-select="uno"><span class="game-art uno-art" aria-hidden="true">7<i>+4</i></span><strong>UNO Lepak</strong><small>Padan warna, habiskan kad</small><b>2+ pemain · Pilih →</b></button></div></div><button type="button" class="table-back" hidden>← Semua permainan</button><div class="table-game-stage"></div></section>';
@@ -32,9 +35,12 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  selectGame('');
  dialog.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(button=>button.onclick=()=>selectGame(button.dataset.select!));
  dialog.querySelector<HTMLButtonElement>('.table-back')!.onclick=()=>selectGame('');
- function render(){const seated=own(),id=seated?.id||selected,name=locations.find(t=>t.id===id)?.name||'Meja';
+ function render(){const seated=own(),id=seated?.id||selected,name=locations.find(t=>t.id===id)?.name||'Meja',snapshot=tables.find(t=>t.id===id),occupants=snapshot?.occupants||[],activeGame=snapshot?.activeGame||null;
   dialog.querySelector('#table-name')!.textContent=name;
-  dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seated.occupants.length}/${seated.capacity} pemain`:online?'Duduk di kerusi meja ini untuk bermain.':'Sambung ke city online untuk bermain.';
+  const names=occupants.length?occupants.map(player=>player.name).join(', '):'Tiada siapa';
+  const game=activeGame?`${GAME_TITLES[activeGame.game]||activeGame.game} · ${GAME_PHASES[activeGame.phase]||activeGame.phase}`:online?'Belum ada game':'Sambung ke city online';
+  const seats=snapshot?`${occupants.length}/${snapshot.capacity} pemain`:'Status pemain belum tersedia';
+  dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seats} · Dalam: ${names} · Game: ${game}`:`${seats} · Dalam: ${names} · Game: ${game}`;
   (dialog.querySelector('#table-detail') as HTMLElement).hidden=!seated;
   const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);}
   poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);

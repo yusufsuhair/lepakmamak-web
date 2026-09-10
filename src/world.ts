@@ -255,6 +255,48 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
   }
 }
 
+export const KLCC_LIFT_TOP = 76.5;
+export interface KlccLift {
+  id: string;
+  x: number;
+  z: number;
+  topY: number;
+  cabin: THREE.Group;
+}
+
+function createKlccLift(parent: THREE.Object3D, x: number, z: number, id: string): KlccLift {
+  const metal = material('#cdd9cf', .38);
+  const glass = new THREE.MeshStandardMaterial({ color: '#8fd4d0', transparent: true, opacity: .16, roughness: .18, depthWrite: false, side: THREE.DoubleSide });
+  const topY = KLCC_LIFT_TOP;
+  // The shafts sit just south of the podium, so the entrance remains reachable without
+  // punching a hole through the existing building collision box.
+  for (const side of [-1, 1]) {
+    const wallX = box(parent, x + side * 1.55, topY / 2, z, .08, topY, 3.1, glass); wallX.renderOrder = 2;
+    const wallZ = box(parent, x, topY / 2, z + side * 1.55, 3.1, topY, .08, glass); wallZ.renderOrder = 2;
+    box(parent, x + side * 1.55, topY / 2, z, .13, topY, .13, metal);
+    box(parent, x, topY / 2, z + side * 1.55, .13, topY, .13, metal);
+  }
+  box(parent, x, .08, z, 4.1, .16, 4.1, '#a9b6a9');
+  box(parent, x, topY - .08, z, 7.2, .16, 7.2, '#a9b6a9');
+  for (const side of [-1, 1]) {
+    box(parent, x + side * 3.25, topY + 1.35, z, .12, 2.7, 7.2, metal);
+    box(parent, x, topY + 1.35, z + side * 3.25, 7.2, 2.7, .12, metal);
+  }
+  sign(parent, 'LIFT · KLCC', x, 3.1, z - 1.66, 2.7, .58, '#245848', '#f8e8ad', Math.PI);
+
+  const cabin = new THREE.Group(); cabin.name = `${id}-cabin`; cabin.position.set(x, 0, z); parent.add(cabin);
+  box(cabin, 0, .12, 0, 2.45, .22, 2.45, metal);
+  box(cabin, 0, 2.42, 0, 2.45, .14, 2.45, metal);
+  for (const side of [-1, 1]) {
+    const wallX = box(cabin, side * 1.17, 1.25, 0, .05, 2.5, 2.35, glass); wallX.renderOrder = 3;
+    const wallZ = box(cabin, 0, 1.25, side * 1.17, 2.35, 2.5, .05, glass); wallZ.renderOrder = 3;
+    box(cabin, side * 1.17, 1.25, 0, .1, 2.5, .1, metal);
+    box(cabin, 0, 1.25, side * 1.17, .1, 2.5, .1, metal);
+  }
+  sign(cabin, 'LIFT · KLCC', 0, 1.25, -1.2, 1.95, .32, '#245848', '#f8e8ad', Math.PI);
+  return { id, x, z, topY, cabin };
+}
+
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
 export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police' | 'taycan';
 export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police', 'taycan'];
@@ -432,7 +474,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[] }
+export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[] }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -526,6 +568,10 @@ export function createWorld(scene: THREE.Scene): World {
   box(group, 0, .42, -104, 76, .12, 6.5, '#75b3b1');
   block(-22, -122, 21, 3, 24, '#c8cbb9'); block(22, -122, 21, 3, 24, '#c8cbb9');
   tower(group, -22, -122); tower(group, 22, -122);
+  const klccLifts = [
+    createKlccLift(group, -22, -107.8, 'klcc-west-lift'),
+    createKlccLift(group, 22, -107.8, 'klcc-east-lift'),
+  ];
   box(group, 0, 39, -122, 31, 2.2, 3.4, '#aebfba');
   box(group, 0, 40.4, -122, 31, .35, 4, '#dce0cd');
   for (const side of [-1, 1]) {
@@ -1157,7 +1203,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can

@@ -45,7 +45,7 @@ import * as THREE from 'three';
 import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
+import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle, type KlccLift } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -262,7 +262,7 @@ async function init() {
   const standPosition = new THREE.Vector3();
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
-    if (!started || paused || seated || beachResting || riding || jumpHeight > 0 || jumpVelocity > 0) return;
+    if (!started || paused || seated || beachResting || riding || klccLiftRide || jumpHeight > 0 || jumpVelocity > 0) return;
     jumpVelocity = 6.5; movementSound('jump');
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
@@ -272,7 +272,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -283,6 +283,8 @@ async function init() {
   let partyMembers = new Set<string>();
   // The only raised floor in the city. onBridge is what keeps the road underneath open.
   let onBridge = false, deckY = 0;
+  type KlccLiftRide = { lift: KlccLift; direction: 'up' | 'down'; elapsed: number; phase: 'moving' | 'top' };
+  let klccLiftRide: KlccLiftRide | null = null;
   // The Game Master floats, wings out, over a turning seal. Gated on the server's
   // gameMaster flag, which only the Game Master account carries.
   let isGm = false;
@@ -433,6 +435,8 @@ async function init() {
   const tableLabels = tableLocations.map(table=>{
     const button=document.createElement('button');button.className='table-label';button.hidden=true;button.onclick=()=>tableSocial.open(table.id);$('hud').append(button);return {table,button};
   });
+  const tableGameTitles:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
+  const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
@@ -463,6 +467,54 @@ async function init() {
   createRipples(document.body, {reducedMotion});
   $('touch-controls').hidden = !touch;
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
+  function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    let u = Math.max(0, Math.min(1, t));
+    for (let i = 0; i < 5; i++) {
+      const x = ((ax * u + bx) * u + cx) * u - t;
+      const derivative = (3 * ax * u + 2 * bx) * u + cx;
+      if (Math.abs(derivative) < .0001) break;
+      u = Math.max(0, Math.min(1, u - x / derivative));
+    }
+    return ((ay * u + by) * u + cy) * u;
+  }
+  function setKlccLiftHeight(lift: KlccLift, y: number) {
+    lift.cabin.position.y = y;
+  }
+  function startKlccLift(lift: KlccLift, direction: 'up' | 'down') {
+    if (klccLiftRide || riding || seated || lrtId != null) return;
+    const from = direction === 'up' ? 0 : lift.topY;
+    klccLiftRide = {lift, direction, elapsed: 0, phase: 'moving'};
+    pos.set(lift.x, .12, lift.z); deckY = from; onBridge = false;
+    setKlccLiftHeight(lift, from);
+    player.group.visible = true; bike.rider.visible = false; car.driver.visible = false;
+    player.group.position.set(pos.x, deckY + .12, pos.z);
+    jumpHeight = 0; jumpVelocity = 0; walkSpeed = 0; keys.clear(); resetStick();
+    toast('Lif KLCC', direction === 'up' ? 'Naik perlahan ke rooftop KLCC…' : 'Turun perlahan ke bawah…', 4);
+  }
+  function updateKlccLift(dt: number) {
+    const ride = klccLiftRide;
+    if (!ride || ride.phase !== 'moving') return;
+    const duration = reducedMotion ? .35 : 16;
+    ride.elapsed = Math.min(duration, ride.elapsed + dt);
+    const progress = ride.elapsed / duration;
+    const eased = reducedMotion ? progress : cubicBezier(progress, .77, 0, .175, 1);
+    const from = ride.direction === 'up' ? 0 : ride.lift.topY;
+    const to = ride.direction === 'up' ? ride.lift.topY : 0;
+    deckY = THREE.MathUtils.lerp(from, to, eased);
+    setKlccLiftHeight(ride.lift, deckY);
+    player.group.position.set(pos.x, deckY + .12, pos.z);
+    if (progress < 1) return;
+    if (ride.direction === 'up') {
+      deckY = ride.lift.topY; ride.phase = 'top';
+      toast('Sampai rooftop KLCC', 'Jalan sikit atas platform, atau tekan Turun lif KLCC.', 5);
+    } else {
+      setKlccLiftHeight(ride.lift, 0); deckY = 0; klccLiftRide = null;
+      player.group.position.set(pos.x, .12, pos.z);
+      toast('Sampai bawah', 'Jom sambung jalan.', 3);
+    }
+  }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
 
   const rainCount = 1100;
@@ -948,7 +1000,7 @@ async function init() {
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
     if (networkSocket.bufferedAmount >= 16384) return;
-    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, y: deckY, yaw, riding, speed, jumpHeight, seated, resting: beachResting, restSpotId: beachRestSpot?.id || null, vehicle, fleetId });
+    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, y: deckY, liftId: klccLiftRide?.lift.id || null, yaw, riding, speed, jumpHeight, seated, resting: beachResting, restSpotId: beachRestSpot?.id || null, vehicle, fleetId });
     if (state === lastNetworkState && networkIdleTimer < .5) return;
     lastNetworkState = state; networkIdleTimer = 0; networkSocket.send(state);
   }
@@ -1045,6 +1097,8 @@ async function init() {
     vehicleRadio.update(false);
     locationArrival.reset();
     saveLocation();danceAudio.stop();localSupermanUntil=0;
+    if (klccLiftRide) setKlccLiftHeight(klccLiftRide.lift, 0);
+    klccLiftRide = null; deckY = 0; onBridge = false; player.group.position.set(pos.x, .12, pos.z);
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
@@ -1062,6 +1116,7 @@ async function init() {
   $('reset').remove();
   document.querySelector('.pause-controls')!.remove();
   function distanceTo(point: { x: number; z: number }) { return Math.hypot(pos.x - point.x, pos.z - point.z); }
+  function nearbyKlccLift() { return world.klccLifts.filter(lift => distanceTo(lift) < 3.8).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => roomPlayers.find(q=>q.id===p.id)?.lrtId==null && p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
@@ -1077,7 +1132,7 @@ async function init() {
   }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
-    if(lrtId!=null)return null;
+    if(lrtId!=null || klccLiftRide?.phase === 'moving')return null;
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
     if (beachResting && beachRestSpot) return { point: beachRestSpot, height: beachRestSpot.height + 1.15, label: 'Bangun', disabled: false };
     if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
@@ -1087,6 +1142,8 @@ async function init() {
     if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
     const chair = nearbyChair();
     if (chair) return { point: chair, height: 1.3, label: chairOccupied(chair.id) ? 'Occupied' : 'Sit', disabled: chairOccupied(chair.id) };
+    const lift = nearbyKlccLift();
+    if (lift) return { point: lift, height: klccLiftRide?.phase === 'top' ? lift.topY + 2.6 : 3, label: klccLiftRide?.phase === 'top' ? 'Turun lif KLCC' : 'Naik lif KLCC', disabled: false };
     const station=lrtStations.find(s=>distanceTo(s)<5);
     if(station){const train=[0,1].find(id=>{const t=trainState(id,lrtNow());return t.doors&&lrtStations[t.station]?.id===station.id;});return{point:station,height:2,label:train!=null?'Naik LRT':`LRT ${station.name} · ${arrivalIn(lrtStations.indexOf(station),lrtNow())}s`,disabled:train==null||!networkConnected};}
     // Lamps stand on the kerb of the roads the traffic drives down, and a car counts as
@@ -1110,7 +1167,7 @@ async function init() {
     return null;
   }
   function interact() {
-    if(lrtId!=null)return;
+    if(lrtId!=null || klccLiftRide?.phase === 'moving')return;
     if (!started || paused || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (beachResting && beachRestSpot) {
@@ -1135,6 +1192,8 @@ async function init() {
     if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
     const chair = !riding && nearbyChair();
     if (chair) { if (chairOccupied(chair.id)) return; if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { keys.clear(); resetStick(); networkSocket.send(JSON.stringify({ type: 'chair-sit', chairId: chair.id })); return; } if (auth) return; standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
+    const lift = !riding && !seated && nearbyKlccLift();
+    if (lift) { startKlccLift(lift, klccLiftRide?.phase === 'top' ? 'down' : 'up'); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
       const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => ({ x: c.x, z: c.z, hx: 1.8, hz: 1.8 }))], vehicle === 'car' ? 2.7 : 2.2);
@@ -1574,13 +1633,16 @@ async function init() {
       }
     }
     if (active) {
+      if (!paused) updateKlccLift(dt);
       const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
       const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => ({ x: c.x, z: c.z, hx: 1.2+Math.abs(Math.sin(c.yaw))*1.1, hz: 1.2+Math.abs(Math.cos(c.yaw))*1.1 }));
       const solids = [...world.solids, ...dynamicSolids];
       if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
       if (!riding || vehicle !== 'car'||car!==personalCar) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
-      if(lrtId!=null){
+      if(klccLiftRide?.phase === 'moving'){
+        walkSpeed=0;
+      } else if(lrtId!=null){
         // Walking inside a moving carriage: the keys move you within the coach, not across
         // the city, and the walls are where the clamp is.
         const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
@@ -1646,10 +1708,17 @@ async function init() {
           const dz = Math.cos(reference) * input.y + Math.sin(reference) * input.x;
           yaw = dampAngle(yaw, Math.atan2(dx, dz), 1 - Math.exp(-14 * dt));
           moveWithCollisions(pos, dx * walkSpeed * dt, dz * walkSpeed * dt, .46, solids);
-          const footing = salomaGround(pos.x, pos.z, onBridge);
-          // Up on the deck the railings are the edge of the world, so hold the walk to it.
-          if (footing.elevated) pos.z = Math.max(SALOMA.z - SALOMA.walkHalfWidth, Math.min(SALOMA.z + SALOMA.walkHalfWidth, pos.z));
-          onBridge = footing.elevated; deckY = footing.y;
+          if (klccLiftRide?.phase === 'top') {
+            const edge = 3.15;
+            pos.x = Math.max(klccLiftRide.lift.x - edge, Math.min(klccLiftRide.lift.x + edge, pos.x));
+            pos.z = Math.max(klccLiftRide.lift.z - edge, Math.min(klccLiftRide.lift.z + edge, pos.z));
+            onBridge = false; deckY = klccLiftRide.lift.topY;
+          } else {
+            const footing = salomaGround(pos.x, pos.z, onBridge);
+            // Up on the deck the railings are the edge of the world, so hold the walk to it.
+            if (footing.elevated) pos.z = Math.max(SALOMA.z - SALOMA.walkHalfWidth, Math.min(SALOMA.z + SALOMA.walkHalfWidth, pos.z));
+            onBridge = footing.elevated; deckY = footing.y;
+          }
         }
         const travelled = Math.hypot(pos.x - previousX, pos.z - previousZ);
         if (jumpHeight === 0 && travelled > .001) {
@@ -1680,7 +1749,7 @@ async function init() {
       const distance = (lrtId!=null?Math.max(22,zoom):zoom) + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
       // Shorten the camera arm when a building would obscure the player.
-      for (let step = 1.5; lrtId==null && step < distance; step += .65) {
+      for (let step = 1.5; lrtId==null && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
         if (world.solids.some(s => overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
       }
@@ -1737,7 +1806,7 @@ async function init() {
       const proximity = Math.max(0, Math.min(1, (LAMBO_REACH - distance) / (LAMBO_REACH - LAMBO_FULL)));
       lamboGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? LAMBO_PEAK * proximity * proximity : 0, audioContext.currentTime, .18);
     }
-    if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:0) + 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
+    if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:deckY) + 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);
     for (const remote of roomPlayers) {
       const entity = remotePlayers.get(remote.id);
@@ -1748,7 +1817,7 @@ async function init() {
       }
     }
     voiceRadius.visible=started&&voice.micActive&&!voice.partyOnly;
-    if(voiceRadius.visible){voiceRadius.position.set(pos.x,pos.y+.08,pos.z);voiceRadius.material.opacity=reducedMotion ? .65 : .6+Math.sin(elapsed*3)*.12;}
+    if(voiceRadius.visible){voiceRadius.position.set(pos.x,deckY+.08,pos.z);voiceRadius.material.opacity=reducedMotion ? .65 : .6+Math.sin(elapsed*3)*.12;}
     camera.updateMatrixWorld();
     const actionButton = $<HTMLButtonElement>('interaction');
     const action = objectAction();
@@ -1797,9 +1866,11 @@ async function init() {
       const seated=state?.occupants||[];
       const capacity=state?.capacity||seatsPerTable.get(table.id)||3;
       const names=seated.map(o=>o.name).join(', ');
+      const game=state?.activeGame;
+      const gameText=game?` · ${tableGameTitles[game.game]||game.game} · ${tableGamePhases[game.phase]||game.phase}`:'';
       const label=seated.length
-        ? `${name} · ${seated.length}/${capacity} · ${names}`
-        : `${name} · kosong · ${capacity} tempat`;
+        ? `${name} · ${seated.length}/${capacity} · ${names}${gameText}`
+        : `${name} · kosong · ${capacity} tempat${gameText}`;
       if(button.textContent!==label)button.textContent=label;
       button.setAttribute('aria-label',`Open games at ${name}`);
     }
@@ -1843,7 +1914,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

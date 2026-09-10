@@ -64,7 +64,8 @@ setInterval(() => {
   for (const players of pending) if (players.size) broadcast(players, { type: 'players', players: snapshot(players) });
 }, 50).unref();
 const accountConnections = new Map();
-const tableSocial = createTableSocial(send);
+let tableLobby;
+const tableSocial = createTableSocial(send, players => tableLobby?.summary(players));
 const party = createParty(send);
 const leaderboard=createLeaderboard();
 const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
@@ -73,7 +74,7 @@ const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
 // The lobby starts the games; the games keep their own rules once running.
-const tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
+tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
 const pickleball = createPickleball(send);
 const basketball = createBasketball(send,Date.now,(player,points)=>socialProfiles.event(player,'basketball_points',points));
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
@@ -152,6 +153,16 @@ function finiteNumber(value, fallback, min, max) {
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
 }
 
+const KLCC_LIFTS = [
+  {id: 'klcc-west-lift', x: -22, z: -107.8},
+  {id: 'klcc-east-lift', x: 22, z: -107.8},
+];
+const KLCC_LIFT_TOP = 76.5;
+function klccLiftFor(player, id) {
+  const lift = KLCC_LIFTS.find(item => item.id === id);
+  return lift && Math.hypot(player.x - lift.x, player.z - lift.z) < 4.5 ? lift : null;
+}
+
 function followDriver(passenger, driver) {
   const [x, z] = vehicleSeats[driver.vehicle][passenger.seatIndex || 0];
   passenger.x = driver.x + Math.cos(driver.yaw) * x + Math.sin(driver.yaw) * z; passenger.z = driver.z - Math.sin(driver.yaw) * x + Math.cos(driver.yaw) * z;
@@ -204,7 +215,7 @@ function broadcast(players, message) {
 const weather=createWeather();
 const fleet=createFleet(send,broadcast);
 const lrt=createLrt(send);
-setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
+setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);tableSocial.sync(players);lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
 const lamps=createLamps(send,broadcast);
@@ -352,6 +363,7 @@ webSocketServer.on('connection', ws => {
         yaw: Math.PI,
         riding: false, vehicle: 'bike', passengerOf: null, seatIndex: null,
         speed: 0,
+        y: 0, liftId: null,
         jumpHeight: 0, seated: false, chairId: null, resting: null, restSpotId: null,
         mic: false, speaker: false,
         deflate: message.deflate === true,
@@ -661,7 +673,9 @@ webSocketServer.on('connection', ws => {
       if(player.fleetId&&message.fleetId!==player.fleetId)return;
       player.x = finiteNumber(message.x, player.x, -153, 153);
       player.z = finiteNumber(message.z, player.z, -153, 153);
-      player.y = finiteNumber(message.y, 0, 0, 6);
+      const lift = klccLiftFor(player, typeof message.liftId === 'string' ? message.liftId : '');
+      player.liftId = lift?.id || null;
+      player.y = lift ? finiteNumber(message.y, 0, 0, KLCC_LIFT_TOP) : finiteNumber(message.y, 0, 0, 6);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);

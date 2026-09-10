@@ -91,6 +91,18 @@ export function createTableLobby(send, games, now = Date.now) {
     [...lobbies(players).values()].find(lobby => lobby.members.some(member => member.id === player.id));
 
   return {
+    summary(players) {
+      const result = {};
+      for (const lobby of lobbies(players).values()) {
+        if (LOBBY_RULES[lobby.game].scope !== 'table') continue;
+        result[lobby.key] = {
+          game: lobby.game,
+          phase: lobby.phase,
+          members: lobby.members.map(member => ({id: member.id, name: member.name})),
+        };
+      }
+      return result;
+    },
     remove(players, player) {
       const lobby = lobbyOf(players, player);
       if (lobby) drop(players, player, lobby);
