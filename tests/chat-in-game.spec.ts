@@ -48,6 +48,26 @@ test('the panel is restored by the close event, not only by the close button',()
  expect(source).not.toMatch(/setupChat\(/);
 });
 
+test('chat keeps readable text and stays above the game action prompt',async({page})=>{
+ await page.route('**/chat-table-contrast-harness',(r:any)=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"></div><dialog id="table-social"></dialog><button id="interaction">Stand</button>'}));
+ await page.goto('/chat-table-contrast-harness');
+ await page.evaluate(async()=>{
+  const {setupChat}=await import('/src/social.ts');
+  (window as any).chat=setupChat(()=>true,()=>{});
+  (window as any).chat.append('Ali','Jom main',undefined,false,false,'all');
+  const dialog=document.getElementById('table-social')! as HTMLDialogElement;
+  dialog.showModal(); dialog.append(document.getElementById('city-chat')!);
+ });
+ const style=await page.locator('.chat-said').evaluate(el=>({
+  color:getComputedStyle(el).color,
+  body:getComputedStyle(document.getElementById('chat-body')!).backgroundColor,
+  zIndex:getComputedStyle(document.getElementById('city-chat')!).zIndex,
+ }));
+ expect(style.color).toBe('rgb(255, 248, 231)');
+ expect(style.body).toBe('rgba(23, 60, 50, 0.95)');
+ expect(Number(style.zIndex)).toBeGreaterThan(6);
+});
+
 test('the table tab appears on sitting down and retires on standing up',async({page})=>{
  await page.route('**/table-tab-harness',(r:any)=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>'}));
  await page.goto('/table-tab-harness');

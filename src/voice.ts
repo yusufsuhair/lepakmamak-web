@@ -5,12 +5,13 @@ const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="fals
 type VoiceScope = 'all' | 'party';
 type VoiceCodec = 'pcm' | 'opus';
 type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string; codec?: VoiceCodec; micScope?: VoiceScope; speakerScope?: VoiceScope };
+export type VoiceActivity = (id: string, name: string, level: number) => void;
 // Opus at 24 kbps carries a 40 ms frame in about 120 bytes where the raw PCM took 1280.
 export const OPUS = { codec: 'opus', sampleRate: 16000, numberOfChannels: 1, bitrate: 24000, opus: { frameDuration: 40000 } };
 const FRAME_US = 40000;
 export const opusCapable = typeof AudioEncoder === 'function' && typeof AudioDecoder === 'function'
   && typeof AudioData === 'function' && typeof EncodedAudioChunk === 'function';
-export function setupVoice(send: (message: VoiceMessage) => boolean) {
+export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?: VoiceActivity) {
   const panel = document.createElement('aside'); panel.id = 'voice-panel'; panel.hidden = true;
   panel.innerHTML = `<div class="voice-buttons"><button id="voice-mic" type="button" aria-pressed="false" aria-label="Turn microphone on" title="Microphone off">${micIcon}</button><button id="voice-speaker" type="button" aria-pressed="false" aria-label="Turn speakers on" title="Speakers off">${speakerIcon}</button></div><div class="voice-scopes"><button id="mic-scope" type="button" hidden></button><button id="speaker-scope" type="button" hidden></button></div><strong id="voice-audience" hidden>No one nearby</strong><small id="voice-status" role="status">Voice connects when you enter the city</small>`;
   document.getElementById('hud')!.append(panel);
@@ -87,10 +88,22 @@ export function setupVoice(send: (message: VoiceMessage) => boolean) {
     const buffer = context.createBuffer(1, samples.length, rate);
     const channel = buffer.getChannelData(0);
     const gain = Math.max(0, Math.min(1, Number.isFinite(volume) ? volume : 0));
-    let energy = 0;
-    for (let i = 0; i < samples.length; i++) { channel[i] = samples[i] * gain; energy += channel[i] ** 2; }
+    let energy = 0, peak = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const sample = samples[i];
+      channel[i] = sample * gain;
+      energy += sample ** 2;
+      peak = Math.max(peak, Math.abs(sample));
+    }
+    // RMS tracks the voice body while peak catches a consonant or laugh. A little noise
+    // gate prevents microphone hiss from keeping the Discord-style glow lit. Distance
+    // dims the glow gently, but never makes a nearby voice disappear at the edge of range.
+    const rms = Math.sqrt(energy / Math.max(1, samples.length));
+    const signal = Math.max((rms - .008) / .12, (peak - .025) / .55);
+    const level = Math.max(0, Math.min(1, signal)) * (.55 + .45 * gain);
+    onActivity?.(id, speakerNames.get(id) || 'Player', level);
     schedule(id, buffer, samples.length / rate);
-    if (energy / samples.length > .0001) status.textContent = `${speakerNames.get(id) || 'Someone'} is talking`;
+    if (level > .02) status.textContent = `${speakerNames.get(id) || 'Someone'} is talking`;
   }
   function decoderFor(id: string) {
     const existing = decoders.get(id);

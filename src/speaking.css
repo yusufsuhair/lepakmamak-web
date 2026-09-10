@@ -1,9 +1,14 @@
-/* Under the map, and only while somebody is actually talking. */
-#speaking { position: absolute; top: calc(152px + var(--safe-top)); left: 24px; display: grid; gap: 4px; pointer-events: none; z-index: 3; }
+/* Only while somebody is actually talking. The voice stack lives above the speedometer
+   so it reads with the other driving HUD, instead of competing with the map. */
+#speaking { position: fixed; top: auto; right: 24px; bottom: 140px; left: auto; display: grid; justify-items: end; gap: 5px; max-width: min(250px, calc(100vw - 24px)); pointer-events: none; z-index: 11; }
 #speaking:empty { display: none; }
-.speaker { display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border-radius: 20px; background: #12332be6; border: 1px solid #7fd08a88; animation: speaker-in .16s ease-out; }
-.speaker-face { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #7fd08a; color: #12332b; font-size: 11px; font-weight: 700; }
-.speaker b { font-size: 11px; color: #eaf3dd; font-weight: 600; }
+.speaker { --voice-level: 0; --voice-alpha: .08; --voice-border-alpha: .18; --voice-glow: 0px; --voice-face-glow: 0px; display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border-radius: 20px; background: #0d211be8; border: 1px solid #3b5549; box-shadow: 0 0 var(--voice-glow) rgb(221 246 154 / var(--voice-alpha)); opacity: .64; transition: background .12s, border-color .12s, box-shadow .12s, opacity .16s; animation: speaker-in .16s ease-out; }
+.speaker-face { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #485950; color: #c8d3c9; font-size: 11px; font-weight: 700; transition: background .12s, color .12s, box-shadow .12s; }
+.speaker b { font-size: 11px; color: #a9b8ab; font-weight: 600; transition: color .12s; }
+.speaker-active { background: #174a38ed; border-color: rgb(221 246 154 / var(--voice-border-alpha)); opacity: 1; }
+.speaker-active .speaker-face { background: #ddf69a; color: #173c32; box-shadow: 0 0 var(--voice-face-glow) rgb(221 246 154 / var(--voice-alpha)); }
+.speaker-active b { color: #fff8e7; }
 @keyframes speaker-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
-@media (max-width: 600px) { #speaking { top: calc(138px + var(--safe-top)); left: 18px; } .speaker b { font-size: 10px; } }
+@media (min-width: 601px) and (max-width: 1100px) { #speaking { right: 26px; bottom: 232px; } }
+@media (max-width: 600px) { #speaking { right: 12px; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 165px); max-width: calc(100vw - 24px); } .speaker b { font-size: 10px; } }
 @media (prefers-reduced-motion: reduce) { .speaker { animation: none; } }

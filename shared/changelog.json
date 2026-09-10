@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.39.13",
+    "date": "2026-09-10",
+  "title": "Chat, suara dan busking lebih kemas",
+  "notes": [
+    "City chat kini sentiasa berada di atas action prompt seperti Stand dan menggunakan teks cerah yang jelas ketika game meja dibuka.",
+    "Penanda pemain yang sedang bercakap dipindahkan ke kanan bawah, tepat di atas meter KM/H, dengan susun atur responsif.",
+    "Penanda suara kini menyala mengikut kekuatan suara dan bertukar gelap apabila pemain masih dekat tetapi sudah tidak bercakap.",
+    "Busking Santai dipindahkan ke ruang hadapan PETRONAS supaya persembahan berada di forecourt stesen."
+  ]
+  },
+  {
     "version": "1.39.12",
     "date": "2026-09-10",
     "title": "Wardrobe karakter sebenar dan live",

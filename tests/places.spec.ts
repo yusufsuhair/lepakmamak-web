@@ -10,6 +10,13 @@ test('the PETRONAS pin sits on the forecourt, not beside it',()=>{
  // The station stands at (-31, 112) in world.ts; a pin anywhere else sends people to grass.
  expect(places).toContainEqual(expect.objectContaining({id:'16',name:'PETRONAS · Kedai Mesra',kind:'minyak',x:-31,z:112}));
 });
+test('Busking Santai sits in front of PETRONAS',()=>{
+ const petronas=places.find(place=>place.id==='16')!;
+ const busking=places.find(place=>place.id==='14')!;
+ expect(busking).toMatchObject({name:'Busking Santai',kind:'lepak',x:-31,z:86});
+ expect(busking.z).toBeLessThan(petronas.z);
+ expect(petronas.z-busking.z).toBeGreaterThan(20);
+});
 test('the mosque pin follows the mosque itself, wherever it stands',()=>{
  // masjidSpots drives the call to prayer, so the pin has to agree with it or the map and
  // the audio disagree about where the mosque is.

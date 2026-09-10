@@ -90,13 +90,13 @@
   "z": 65,
   "kind": "gerai"
  },
- {
-  "id": "14",
-  "name": "Busking Santai",
-  "x": -40,
-  "z": 64,
-  "kind": "lepak"
- },
+  {
+    "id": "14",
+    "name": "Busking Santai",
+    "x": -31,
+    "z": 86,
+    "kind": "lepak"
+  },
  {
   "id": "15",
   "name": "KLCC",

@@ -745,3 +745,20 @@ html, body, #app { touch-action: manipulation; }
 #force-refresh.refresh-optional { inset: auto 16px 90px auto; width: min(360px, calc(100vw - 32px)); background: transparent; backdrop-filter: none; }
 .refresh-optional .refresh-card { padding: 18px; }
 .refresh-card button { margin: 8px 6px 0 0; }
+#city-chat{z-index:1000;color:#fff8e7}#city-chat #chat-body{color:#fff8e7}#city-chat .chat-log,#city-chat .chat-log p,#city-chat .chat-said{color:#fff8e7}#city-chat .chat-who strong,#city-chat .chat-log strong{color:#ddf69a}#city-chat .chat-area,#city-chat time{color:#b9c9b2}#city-chat #chat-status{color:#d4dbc9}#city-chat #chat-input{background:#fffcf2;color:#173c32}#city-chat.chat-expanded{z-index:2000}#table-social #city-chat{z-index:1000;color:#fff8e7}#table-social #city-chat #chat-body{background:#173c32f2;color:#fff8e7}#table-social #city-chat .chat-log,#table-social #city-chat .chat-log p,#table-social #city-chat .chat-said{color:#fff8e7}#table-social #city-chat .chat-who strong,#table-social #city-chat .chat-log strong{color:#ddf69a}#table-social #city-chat .chat-area,#table-social #city-chat time{color:#b9c9b2}#table-social #city-chat #chat-status{color:#d4dbc9}#table-social #city-chat #chat-input{background:#fffcf2;color:#173c32}
+
+/* The speaking stack shares the lower-right HUD column with the speedometer. These
+   late overrides also win over the older tablet rule above. */
+#speaking { position: fixed; top: auto; right: 24px; bottom: 140px; left: auto; justify-items: end; z-index: 11; }
+@media (any-pointer: coarse) and (min-width: 601px) {
+  #speaking { top: auto; right: 26px; bottom: 232px; left: auto; }
+}
+@media (min-width: 601px) and (max-width: 1100px) {
+  #speaking { top: auto; right: 26px; bottom: 232px; left: auto; }
+}
+@media (any-pointer: coarse) and (max-width: 600px) {
+  #speaking { top: auto; right: 12px; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 165px); left: auto; }
+}
+@media (max-width: 600px) {
+  #speaking { top: auto; right: 12px; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 165px); left: auto; }
+}

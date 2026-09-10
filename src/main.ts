@@ -851,6 +851,8 @@ async function init() {
       }
       for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
+      if (remote.mic && Math.hypot(remote.x - pos.x, remote.z - pos.z) < voiceConfig.hearingRadius) speaking.nearby(remote.id, remote.name);
+      else speaking.away(remote.id);
       entity.resting = remote.resting || null;
       const remoteBaseY = entity.resting ? .12 : remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12;
       entity.target.set(remote.x, remoteBaseY + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
@@ -867,9 +869,16 @@ async function init() {
     if (message.type === 'voice-state' && localName) updateNameTagVoice(localName, !!message.mic, !!message.speaker);
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
     networkSocket.send(JSON.stringify(message)); return true;
-  });
+  }, (id, name, level) => speaking.heard(id, name, level));
   const voiceRadius=new THREE.Mesh(new THREE.RingGeometry(voiceConfig.hearingRadius-.5,voiceConfig.hearingRadius,72),new THREE.MeshBasicMaterial({color:'#ddf69a',transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
   voiceRadius.renderOrder=10;voiceRadius.rotation.x=-Math.PI/2;voiceRadius.position.y=.035;voiceRadius.visible=false;scene.add(voiceRadius);
+  function updateSpeakingProximity() {
+    for (const remote of roomPlayers) {
+      if (remote.id === networkPlayerId) continue;
+      if (remote.mic && Math.hypot(remote.x - pos.x, remote.z - pos.z) < voiceConfig.hearingRadius) speaking.nearby(remote.id, remote.name);
+      else speaking.away(remote.id);
+    }
+  }
   function disconnectMultiplayer() {
     if(lrtId!=null){lrtId=null;riding=false;speed=0;pos.y=.12;}
     saveLocation();
@@ -1001,7 +1010,7 @@ async function init() {
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
-        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') { voice.receive(message.id, message.name || 'Player', message.audio, message.volume, message.codec === 'opus' ? 'opus' : 'pcm'); speaking.heard(message.id, message.name || 'Player'); }
+        if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume, message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-codec')voice.codec(message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
         if (message.type === 'error' && message.code === 'SESSION_REPLACED') { sessionReplaced(); return; }
@@ -1512,7 +1521,7 @@ async function init() {
   expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
 
   function drawMap(expanded = false) {
-    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);$('map-place-info').textContent='3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
+    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w = map.width, h = map.height, scale = expanded ? Math.min(w / 730,h / 520) : 1.13;
     ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale); ctx.translate(expanded?180:pos.x< -145?-pos.x:0,expanded?50:pos.x< -145?-pos.z:0);
@@ -1601,6 +1610,7 @@ async function init() {
     if(lrtId!=null){const state=trainState(lrtId,lrtNow());lrtPanel.querySelector('strong')!.textContent=state.station>=0?`LRT · ${lrtStations[state.station].name}`:`Seterusnya · ${lrtStations[state.next].name}`;lrtPanel.querySelector('small')!.textContent=state.doors?'Pintu dibuka · Boleh turun':`${state.station>=0?'Berlepas':'Tiba'} dalam ${Math.ceil(state.remaining)}s`;lrtPanel.querySelector('button')!.disabled=!state.doors;}
     {
       simTime += dt;
+      updateSpeakingProximity();
       streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
         if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan, citySoundsGain!);
       });

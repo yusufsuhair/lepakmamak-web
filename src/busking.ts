@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createPerson,box,material} from './world';
 import type {Solid} from './physics';
-export const buskingSpot={x:-40,z:64};
+// PETRONAS faces south onto the open forecourt; the stage sits in that frontage,
+// with the audience between the performers and the station canopy.
+export const buskingSpot={x:-31,z:86};
 // Full volume within 3m; smooth falloff and silence at 22m.
 export function buskingVolume(distance:number){const t=Math.max(0,Math.min(1,(22-distance)/19));return .55*t*t*(3-2*t);}
 export const rembayungBuskingSpot={x:-116,z:119};
