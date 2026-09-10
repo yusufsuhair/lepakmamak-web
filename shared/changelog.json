@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.20.0",
+  "date": "2026-09-10",
+  "title": "Papan minggu ini di Lepak Wall",
+  "notes": [
+   "The Lepak Wall now has a weekly board: the top five for basketball points and for time spent at mamak tables. It resets every Monday morning, so a quiet week is never a lost cause.",
+   "Punches, recalls, dances and logins are counted for your own profile but are not ranked. A public ranking of punches would just reward punching people, and the rest can be racked up alone in a corner."
+  ]
+ },
+ {
   "version": "1.19.2",
   "date": "2026-09-10",
   "title": "Suis lampu lebih senang dicapai",

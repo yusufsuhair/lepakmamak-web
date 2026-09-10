@@ -10,7 +10,7 @@ function timeLabel(value:string){const date=new Date(value);return Number.isNaN(
 
 export function setupWall(endpoint:string,releaseInput:()=>void){
  const base=apiBase(endpoint),dialog=document.createElement('dialog');dialog.id='social-wall';dialog.setAttribute('aria-labelledby','wall-title');
- dialog.innerHTML=`<div class="wall-shell"><header><div><span class="wall-kicker">LEPAKMAMAK SOCIAL</span><h2 id="wall-title">The Lepak Wall.</h2><p>What is happening around the city?</p></div><button id="wall-close" type="button" aria-label="Close wall">Close ×</button></header><section id="wall-composer"><label for="wall-text">Share with the city</label><textarea id="wall-text" maxlength="500" placeholder="Cerita sikit…"></textarea><div id="wall-media-preview" hidden></div><div class="wall-compose-actions"><label class="wall-attach">📷 Photo<input id="wall-image" type="file" accept="image/jpeg,image/png,image/webp" /></label><button id="wall-record" type="button">🎙 Voice note</button><button id="wall-post" type="button">Post</button></div><small id="wall-compose-status" role="status">Text, photo up to 4 MB, or a 30-second voice note.</small></section><section class="wall-feed-head"><h3>City feed</h3><button id="wall-refresh" type="button">Refresh</button></section><div id="wall-feed" aria-live="polite"></div></div>`;
+ dialog.innerHTML=`<div class="wall-shell"><header><div><span class="wall-kicker">LEPAKMAMAK SOCIAL</span><h2 id="wall-title">The Lepak Wall.</h2><p>What is happening around the city?</p></div><button id="wall-close" type="button" aria-label="Close wall">Close ×</button></header><section id="wall-composer"><label for="wall-text">Share with the city</label><textarea id="wall-text" maxlength="500" placeholder="Cerita sikit…"></textarea><div id="wall-media-preview" hidden></div><div class="wall-compose-actions"><label class="wall-attach">📷 Photo<input id="wall-image" type="file" accept="image/jpeg,image/png,image/webp" /></label><button id="wall-record" type="button">🎙 Voice note</button><button id="wall-post" type="button">Post</button></div><small id="wall-compose-status" role="status">Text, photo up to 4 MB, or a 30-second voice note.</small></section><section id="wall-board" aria-labelledby="wall-board-title"><h3 id="wall-board-title">Papan minggu ini</h3><p id="wall-board-week"></p><div id="wall-board-lists"></div></section><section class="wall-feed-head"><h3>City feed</h3><button id="wall-refresh" type="button">Refresh</button></section><div id="wall-feed" aria-live="polite"></div></div>`;
  const profile=document.createElement('dialog');profile.id='wall-profile';profile.setAttribute('aria-labelledby','wall-profile-name');profile.innerHTML='<h2 id="wall-profile-name">Player profile</h2><div id="wall-profile-details"></div><button id="wall-profile-close" type="button">Close</button>';
  document.body.append(dialog,profile);
  const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
@@ -87,5 +87,30 @@ export function setupWall(endpoint:string,releaseInput:()=>void){
  function updateBadge(){badge.textContent=unread>9?'9+':String(unread);badge.hidden=!unread;}
  function close(){stopRecording();if(dialog.open)dialog.close();}
  el('wall-close').onclick=close;el('wall-refresh').onclick=()=>void refresh();el('wall-profile-close').onclick=()=>profile.close();dialog.addEventListener('cancel',event=>{event.preventDefault();close();});dialog.addEventListener('keydown',event=>event.stopPropagation());profile.addEventListener('keydown',event=>event.stopPropagation());
- return{get opened(){return dialog.open||profile.open;},close,account,open(){releaseInput();account();unread=0;updateBadge();if(!dialog.open)dialog.showModal();void refresh();},receive(item:WallPost){posts=[item,...posts.filter(value=>value.id!==item.id)].slice(0,30);if(dialog.open)render();else{unread++;updateBadge();}}};
+ // The weekly board is read when the Wall is opened, never pushed: a number nobody is
+ // looking at does not need to be live, and per-frame broadcast is what costs bandwidth.
+ // Only two counters are ranked. Punches are player-versus-player and a public ranking of
+ // them rewards what it counts; recalls, dances and sessions are farmable alone in a corner.
+ const BOARD_TITLES:Record<string,string>={basketball_points:'Basketball',tables_sat:'Lepak di meja'};
+ async function loadBoard(){
+  const lists=el('wall-board-lists'),when=el('wall-board-week');
+  try{
+   const data=await request<{weekStart:string;boards:Record<string,{name:string;value:number}[]>}>('/leaderboard');
+   when.textContent=`Bermula Isnin ${new Intl.DateTimeFormat('en-MY',{dateStyle:'medium',timeZone:'Asia/Kuala_Lumpur'}).format(new Date(`${data.weekStart}T00:00:00+08:00`))} · reset setiap Isnin`;
+   lists.replaceChildren();
+   for(const [field,title] of Object.entries(BOARD_TITLES)){
+    const column=document.createElement('div');column.className='wall-board-column';
+    const heading=document.createElement('h4');heading.textContent=title;column.append(heading);
+    const rows=data.boards?.[field]||[];
+    if(!rows.length){const empty=document.createElement('p');empty.className='wall-board-empty';empty.textContent='Belum ada sesiapa minggu ini.';column.append(empty);}
+    else{
+     const list=document.createElement('ol');
+     for(const row of rows){const entry=document.createElement('li');const who=document.createElement('b');who.textContent=row.name;const score=document.createElement('span');score.textContent=String(row.value);entry.append(who,score);list.append(entry);}
+     column.append(list);
+    }
+    lists.append(column);
+   }
+  }catch{when.textContent='Papan tidak dapat dimuatkan sekarang.';}
+ }
+ return{get opened(){return dialog.open||profile.open;},close,account,open(){releaseInput();account();unread=0;updateBadge();if(!dialog.open)dialog.showModal();void refresh();void loadBoard();},receive(item:WallPost){posts=[item,...posts.filter(value=>value.id!==item.id)].slice(0,30);if(dialog.open)render();else{unread++;updateBadge();}}};
 }

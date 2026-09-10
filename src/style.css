@@ -620,3 +620,18 @@ html, body, #app { touch-action: manipulation; }
 #open-shop { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
 #open-shop svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
 #open-shop[hidden] { display: none; }
+
+/* The weekly board reads on open and never pushes, so it is plain markup with no state.
+   The Wall is a cream panel, so this matches the feed cards rather than the dark HUD. */
+#wall-board { margin: 10px 22px 4px; padding: 15px 17px; border: 1px solid #c1ccb2; border-radius: 9px; background: #fffdf4; box-shadow: 0 5px 14px #173c320c; }
+#wall-board h3 { margin: 0; font: 700 23px 'Oxanium', sans-serif; text-transform: uppercase; }
+#wall-board-week { margin: 2px 0 13px; color: #72806d; font-size: 10px; }
+#wall-board-lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.wall-board-column h4 { margin: 0 0 8px; font: 800 9px 'Oxanium', sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #4e6a4f; }
+.wall-board-column ol { margin: 0; padding: 0; list-style: none; counter-reset: rank; display: grid; gap: 6px; font-size: 13px; }
+.wall-board-column li b::before { counter-increment: rank; content: counter(rank) '. '; color: #7d8f76; }
+.wall-board-column li { display: flex; justify-content: space-between; gap: 10px; }
+.wall-board-column li b { font-weight: 700; overflow-wrap: anywhere; }
+.wall-board-column li span { color: #4e6a4f; font-variant-numeric: tabular-nums; font-weight: 700; }
+.wall-board-empty { margin: 0; color: #72806d; font-size: 11px; }
+@media (max-width: 600px) { #wall-board { margin: 10px 10px 4px; padding: 12px 13px; } #wall-board h3 { font-size: 19px; } #wall-board-lists { grid-template-columns: 1fr; gap: 12px; } }

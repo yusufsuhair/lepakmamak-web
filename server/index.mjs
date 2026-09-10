@@ -25,6 +25,7 @@ import { filterChat } from './chat-filter.mjs';
 import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
 import {createAccounts} from './account.mjs';
+import {createLeaderboard} from './leaderboard.mjs';
 import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
@@ -51,7 +52,8 @@ setInterval(() => {
 const accountConnections = new Map();
 const tableSocial = createTableSocial(send);
 const party = createParty(send);
-const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges})});
+const leaderboard=createLeaderboard();
+const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
 const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
@@ -175,6 +177,7 @@ const server = http.createServer(async (request, response) => {
   if (await socialProfiles.handle(request,response)) return;
   if (await wall.handle(request,response)) return;
   if (await accounts.handle(request,response)) return;
+  if (await leaderboard.handle(request,response)) return;
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     response.end(JSON.stringify(metrics.report({ rooms, sockets: webSocketServer.clients.size, version })));
