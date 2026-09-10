@@ -648,3 +648,9 @@ html, body, #app { touch-action: manipulation; }
 #report-form button{min-height:44px;padding:10px 18px;border:0;border-radius:8px;background:#d8ddc9;color:#274a37;font:700 14px 'Oxanium';cursor:pointer}
 #report-form #send-report{background:#a13f31;color:#fff0bd}
 #report-form button:focus-visible,#report-form select:focus-visible,#report-form textarea:focus-visible{outline:3px solid #dff092;outline-offset:2px}
+
+/* Google sign-in sits with the other secondary choices, but is marked by its own initial
+   rather than a remote logo — the CSP allows no third-party images. */
+#auth-google { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; }
+#auth-google span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #fff; color: #4285f4; font: 800 13px 'Oxanium', sans-serif; }
+#auth-google[hidden] { display: none; }

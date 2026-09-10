@@ -18,7 +18,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
-  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
+  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p><button type="button" class="secondary" id="auth-google"><span aria-hidden="true">G</span> Continue with Google</button>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
   document.getElementById('app')!.append(overlay);
   const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const password = el<HTMLInputElement>('auth-password');
@@ -64,24 +64,50 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     ctx.fillStyle = '#253a40'; ctx.fillRect(78, 40, 4, 4); ctx.fillRect(98, 40, 4, 4); ctx.fillRect(66, 182, 21, 8); ctx.fillRect(93, 182, 21, 8);
   }
   choices.addEventListener('change', preview); preview();
-  let mode: 'register'  | 'login' | 'recovery' = 'register';
+  // 'username' is the step a Google account lands on: signed in, but with no name of its
+  // own yet. Google's own name is never read — you pick what the city calls you.
+  let mode: 'register' | 'login' | 'recovery' | 'username' = 'register';
+  const named = (value: Session | null) => String(value?.user.user_metadata?.display_name || '').trim().length >= 2;
   let busy = false;
-  const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter' : 'Save password';
+  const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter' : mode === 'username' ? 'Enter the city' : 'Save password';
   function render() {
-    el('avatar-fields').hidden = mode !== 'register';
-    el('name-field').hidden = mode !== 'register'; name.required = mode === 'register';
-    email.parentElement!.hidden = mode === 'recovery'; email.required = mode !== 'recovery';
+    const picking = mode === 'register' || mode === 'username';
+    el('avatar-fields').hidden = !picking;
+    el('name-field').hidden = !picking; name.required = picking;
+    // A Google account is already signed in: it needs a name, not credentials.
+    email.parentElement!.hidden = mode === 'recovery' || mode === 'username'; email.required = mode === 'register' || mode === 'login';
+    password.parentElement!.hidden = mode === 'username'; password.required = mode !== 'username';
+    el('auth-google').hidden = mode === 'recovery' || mode === 'username';
+    const guestButton = document.getElementById('auth-guest');
+    if (guestButton) guestButton.hidden = mode === 'recovery' || mode === 'username';
     password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
     password.minLength = mode === 'login' ? 1 : 8;
-    el('auth-title').textContent = mode === 'register' ? 'Join the lepak.' : mode === 'login' ? 'Welcome back.' : 'New password.';
+    el('auth-title').textContent = mode === 'register' ? 'Join the lepak.' : mode === 'login' ? 'Welcome back.' : mode === 'username' ? 'Pick your name.' : 'New password.';
+    overlay.querySelector('.auth-card > p')!.textContent = mode === 'username'
+      ? 'You are signed in. Choose the name the city knows you by — it does not have to be your Google name.'
+      : 'Create an account or log in to enter the city.';
     submit.textContent = submitLabel();
-    el('auth-mode').hidden = mode === 'recovery';
+    el('auth-mode').hidden = mode === 'recovery' || mode === 'username';
     el('auth-mode').textContent = mode === 'register' ? 'Already registered? Log in' : 'New here? Create account';
     el('auth-forgot').hidden = mode !== 'login';
+    el('auth-back').hidden = mode === 'username';
     message.textContent = '';
   }
   el('auth-mode').onclick = () => { if (!busy) { mode = mode === 'register' ? 'login' : 'register'; render(); } };
   el('auth-back').onclick = () => { if (!busy) overlay.hidden = true; };
+  el('auth-google').onclick = async () => {
+    if (!auth || busy) return;
+    busy = true; message.textContent = 'Opening Google…';
+    try {
+      // Back to this origin, where the restored session finds itself without a name and
+      // is asked for one.
+      const {error} = await auth.auth.signInWithOAuth({provider: 'google', options: {redirectTo: location.origin}});
+      if (error) throw error;
+    } catch (error) {
+      message.textContent = error instanceof Error ? error.message : 'Could not reach Google. Please try again.';
+      busy = false;
+    }
+  };
   el('auth-forgot').onclick = async () => {
     if (!auth || busy || !email.reportValidity()) return;
     busy = true;
@@ -95,9 +121,14 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     event.preventDefault(); if (!auth || busy) return;
     if (mode === 'register' && name.value.trim().length < 2) { message.textContent = 'Enter a name with at least 2 characters.'; return; }
     busy = true; submit.disabled = true; submit.dataset.loading = 'true'; submit.setAttribute('aria-busy','true');
-    submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'login' ? 'Signing in…' : 'Saving password…'; message.textContent = 'One moment…';
+    submit.textContent = mode === 'register' ? 'Creating account…' : mode === 'login' ? 'Signing in…' : mode === 'username' ? 'Saving your name…' : 'Saving password…'; message.textContent = 'One moment…';
     try {
-      if (mode === 'recovery') {
+      if (mode === 'username') {
+        // The name and the look are the player's own; nothing is copied from the provider.
+        const { data, error } = await auth.auth.updateUser({ data: { display_name: name.value.trim(), appearance: selectedAppearance() } });
+        if (error) throw error;
+        if (data.user) session = { ...(session as Session), user: data.user };
+      } else if (mode === 'recovery') {
         const { error } = await auth.auth.updateUser({ password: password.value });
         if (error) throw error;
       } else {
@@ -126,6 +157,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     auth.auth.onAuthStateChange((event, next) => {
       session = next;
       if (event === 'SIGNED_OUT') onLeave();
+      if (event === 'SIGNED_IN' && !named(next)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); }
       if (event === 'PASSWORD_RECOVERY') { mode = 'recovery'; render(); overlay.hidden = false; password.focus(); }
     });
     try { session = (await auth.auth.getSession()).data.session; } catch { session = null; }
@@ -136,6 +168,9 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       message.textContent = 'Registration is being connected. Please try again shortly.';
       return;
     }
+    // A Google account arrives named by Google. It does not get to keep that name here,
+    // and it does not get into the city until it has chosen one.
+    if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
     if (session && mode !== 'recovery') { onEnter(); return; }
     render(); overlay.hidden = false; (mode === 'register' ? name : email).focus();
   };

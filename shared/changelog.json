@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.23.0",
+  "date": "2026-09-10",
+  "title": "Masuk dengan Google",
+  "notes": [
+   "You can now sign in with Google instead of making a password.",
+   "Your Google name is not used. After signing in you pick the name the city knows you by, and your character's look, exactly like anyone registering with an email. Nothing from your Google profile is copied across."
+  ]
+ },
+ {
   "version": "1.22.0",
   "date": "2026-09-10",
   "title": "Polis senyap",
