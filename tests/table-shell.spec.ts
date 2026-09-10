@@ -12,15 +12,15 @@ const mount=async(page:any,route:string)=>{
  });
 };
 const lobby=(over:Record<string,unknown>={})=>({
- key:'meja-1',game:'lukis',scope:'table',phase:'lobby',ends:0,serverTime:0,min:2,max:3,
+ key:'meja-1',game:'lukis',scope:'table',phase:'lobby',ends:0,serverTime:0,min:2,max:4,
  members:[{id:'a',name:'Ali',ready:false},{id:'b',name:'Mei',ready:false}],...over});
 
 test('the ring shows who is here, who is ready and how many seats are still open',async({page})=>{
  await mount(page,'shell-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
- await expect(page.locator('.table-seat')).toHaveCount(3);
+ await expect(page.locator('.table-seat')).toHaveCount(4);
  await expect(page.locator('.table-seat.filled')).toHaveCount(2);
- await expect(page.locator('.table-seat.empty')).toHaveCount(1);
+ await expect(page.locator('.table-seat.empty')).toHaveCount(2);
  await expect(page.locator('.table-seat').first()).toContainText('Ali');
 
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby({members:[{id:'a',name:'Ali',ready:true},{id:'b',name:'Mei',ready:false}]}));
@@ -67,7 +67,7 @@ test('a city lobby says so, instead of pretending to be this table',async({page}
  await mount(page,'city-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby({game:'werewolf',scope:'city',min:7,max:9,key:'city'}));
  await expect(page.locator('#table-scope')).toContainText('City lobby');
- // Nine seats, not the three at this table.
+ // Nine seats, not the four at this table.
  await expect(page.locator('.table-seat')).toHaveCount(9);
 });
 
@@ -76,13 +76,13 @@ test('an empty seat offers a Geng invite, while game entry stays open without on
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
 
  // No party yet: the seat must not pretend it can do anything.
- const idle=page.locator('.table-seat.empty button');
+ const idle=page.locator('.table-seat.empty button').first();
  await expect(idle).toBeDisabled();
  await expect(idle).toHaveAttribute('title',/Geng is optional/);
 
  await page.evaluate(()=>(window as any).shell.party(2));
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
- const invite=page.locator('.table-seat.empty button');
+ const invite=page.locator('.table-seat.empty button').first();
  await expect(invite).toBeEnabled();
  await invite.click();
 
@@ -90,7 +90,7 @@ test('an empty seat offers a Geng invite, while game entry stays open without on
  const sent=await page.evaluate(()=>(window as any).sent);
  expect(sent.at(-1)).toMatchObject({type:'chat',channel:'party'});
  expect(sent.at(-1).text).toContain('Lukis Lah!');
- await expect(page.locator('.table-seat.empty button')).toContainText('Invite sent');
+ await expect(invite).toContainText('Invite sent');
 });
 
 test('a live Geng table invite is clickable and does not auto-enrol anyone',async({page})=>{
@@ -102,7 +102,7 @@ test('a live Geng table invite is clickable and does not auto-enrol anyone',asyn
    const shell=createTableShell((message:any)=>{(window as any).sent.push(message);return true},(request:any)=>{(window as any).requests.push(request);return true});
    document.getElementById('root')!.append(shell.root);shell.geng(2,true);shell.state(l,'a');
  },lobby());
- await page.locator('.seat-invite').click();
- expect(await page.evaluate(()=>(window as any).requests)).toEqual([{game:'lukis',key:'meja-1',scope:'table',max:3,available:1}]);
+ await page.locator('.seat-invite').first().click();
+ expect(await page.evaluate(()=>(window as any).requests)).toEqual([{game:'lukis',key:'meja-1',scope:'table',max:4,available:2}]);
  expect(await page.evaluate(()=>(window as any).sent)).toEqual([]);
 });

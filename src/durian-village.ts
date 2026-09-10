@@ -134,10 +134,19 @@ export function createVillageResidents(scene:THREE.Scene){
      }
     }else if(activity==='idle'){
      // Small open-ground loops remain outside house, table and playground colliders.
-     const angle=time*.4+phase,walking=resident.child||['Abang Salleh','Abang Iz','Ah Tong'].includes(resident.name);
-     const radius=walking?.65:0;
-     rig.group.position.set(resident.x+Math.sin(angle)*radius,.18,resident.z+Math.cos(angle)*radius*.5);
-     rig.group.rotation.y=walking?Math.atan2(Math.cos(angle),-.5*Math.sin(angle)):Math.sin(time*.3+phase)*.4;
+     const walking=resident.child||['Abang Salleh','Abang Iz','Ah Tong'].includes(resident.name);
+     const angle=time*.4+phase;
+     if(resident.name==='Ah Tong'){
+      // Ah Tong used to orbit the warung doorway, where his idle loop could look frozen
+      // against the building. Give him a dedicated open path in front of the shop.
+      const safeAngle=time*.25+phase;
+      rig.group.position.set(28+Math.sin(safeAngle)*2.4,.18,-7+Math.cos(safeAngle)*1.3);
+      rig.group.rotation.y=Math.atan2(Math.cos(safeAngle),-.5*Math.sin(safeAngle));
+     }else{
+      const radius=walking?.65:0;
+      rig.group.position.set(resident.x+Math.sin(angle)*radius,.18,resident.z+Math.cos(angle)*radius*.5);
+      rig.group.rotation.y=walking?Math.atan2(Math.cos(angle),-.5*Math.sin(angle)):Math.sin(time*.3+phase)*.4;
+     }
      const stride=walking?Math.sin(time*5+phase)*.38:0;
      rig.leftLeg.rotation.x=stride;rig.rightLeg.rotation.x=-stride;
      rig.leftArm.rotation.x=-stride;rig.rightArm.rotation.x=walking?stride:Math.sin(time*1.5+phase)*.25;

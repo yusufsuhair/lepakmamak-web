@@ -20,13 +20,13 @@ test('time scoring, hints and undo are authoritative',()=>{
  expect(scoreGuess(60,1)).toBe(500);expect(scoreGuess(10,2)).toBe(215);expect(scoreGuess(0,1)).toBe(200);
 });
 test('seating opens game cards and one selected game on mobile',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');await page.evaluate(async()=>{const{setupTableSocial}=await import('/src/table-social.ts');const ui=(window as any).ui=setupTableSocial(()=>true,'test',()=>{},()=>{});ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'a',name:'A',chairId:'chair-1'}]}],'a',true);ui.open('meja-1');});
+ await page.setViewportSize({width:390,height:844});await page.goto('/');await page.evaluate(async()=>{const{setupTableSocial}=await import('/src/table-social.ts');const ui=(window as any).ui=setupTableSocial(()=>true,'test',()=>{},()=>{});ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'a',name:'A',chairId:'chair-1'}]}],'a',true);ui.open('meja-1');});
  const dialog=page.locator('#table-social[open]');await expect(dialog).toBeVisible();await expect(dialog.locator('.table-game-grid')).toBeVisible();await expect(dialog.locator('.lukis')).toBeHidden();await dialog.locator('[data-select="lukis"]').click();await page.evaluate(g=>(window as any).ui?.lobby({key:'meja-1',game:g,scope:g==='werewolf'?'city':'table',phase:'playing',ends:0,serverTime:0,min:2,max:9,members:[{id:'self',name:'You',ready:true},{id:'p2',name:'Kawan',ready:true}]}),'lukis');await expect(dialog.locator('.lukis')).toBeVisible();await expect(dialog.locator('.poker')).toBeHidden();await dialog.getByText('← All games').click();await dialog.locator('[data-select="poker"]').click();await page.evaluate(g=>(window as any).ui?.lobby({key:'meja-1',game:g,scope:g==='werewolf'?'city':'table',phase:'playing',ends:0,serverTime:0,min:2,max:9,members:[{id:'self',name:'You',ready:true},{id:'p2',name:'Kawan',ready:true}]}),'poker');await expect(dialog.locator('.poker')).toBeVisible();await expect(dialog.locator('.lukis')).toBeHidden();const box=await dialog.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(390);
 });
 
 test('Start game stays disabled until a second player sits down',async({page})=>{
  await page.goto('/');await page.waitForTimeout(300);
- const table=(...occupants:{id:string;name:string;chairId:string}[])=>[{id:'meja-1',name:'Meja 1',capacity:3,occupants}];
+ const table=(...occupants:{id:string;name:string;chairId:string}[])=>[{id:'meja-1',name:'Meja 1',capacity:4,occupants}];
  await page.evaluate(async seats=>{
   document.querySelectorAll('#table-social').forEach(e=>e.remove());
   const{setupTableSocial}=await import('/src/table-social.ts');

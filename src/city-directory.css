@@ -9,3 +9,14 @@
 .map-zoom-controls{position:absolute;top:76px;right:12px;z-index:5;display:grid;overflow:hidden;border:1px solid #ffffff36;border-radius:12px;background:#0b281fee;box-shadow:0 5px 18px #0005;backdrop-filter:blur(10px)}.map-zoom-controls button{width:48px;min-height:44px;padding:0;border:0;border-bottom:1px solid #ffffff24;background:transparent;color:#fff5dc;font:700 21px 'Oxanium',sans-serif;cursor:pointer}.map-zoom-controls button:nth-child(2){font-size:10px}.map-zoom-controls button:last-child{border-bottom:0}.map-zoom-controls button:hover,.map-zoom-controls button:focus-visible{background:#f4d17d;color:#173c32;outline:0}.map-zoom-controls button:disabled{color:#81968c;cursor:default}.city-map-viewport #expanded-map{touch-action:pan-x pan-y}@media(max-width:600px){.map-zoom-controls{top:70px;right:8px}.map-zoom-controls button{width:44px;min-height:42px}}
 /* Keep the map chrome minimal; retain an accessible dialog name. */
 #city-map header{justify-content:flex-end;margin-bottom:8px}#city-map #map-place-info,#city-map .city-map-hint,#city-map footer{display:none}
+
+/* The park has its own authored map and no city directory or city teleport targets. */
+#city-map.park-map #city-directory,
+#city-map.park-map .map-teleport-bar,
+#city-map.park-map .map-view-controls{display:none}
+#city-map.park-map #map-place-info,
+#city-map.park-map .city-map-hint,
+#city-map.park-map footer{display:block}
+#city-map.park-map #map-place-info{margin:0 0 12px;padding:8px 10px;border:1px solid #f4d17d55;border-radius:9px;background:#0b281f;color:#e8f2d7;font:700 12px 'Oxanium',sans-serif}
+#city-map.park-map .city-map-hint{color:#cfe4d0;margin:8px 0 0}
+#city-map.park-map footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#d9e7d3}

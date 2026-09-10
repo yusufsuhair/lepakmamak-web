@@ -8,7 +8,7 @@ test('a table knows how many seats it has, from the chairs it actually has',()=>
  for(const chair of chairs) if(chair.tableId) seats.set(chair.tableId,(seats.get(chair.tableId)||0)+1);
  // Meja Besar is the one the old guess got wrong: nine chairs, told it had three.
  expect(seats.get('meja-9')).toBe(9);
- expect(seats.get('meja-2')).toBe(2);
+ expect(seats.get('meja-2')).toBe(4);
  for(const table of tables) expect(seats.get(table.id)).toBeGreaterThan(0);
  // The guess is gone from the source.
  const main=readFileSync('src/main.ts','utf8');

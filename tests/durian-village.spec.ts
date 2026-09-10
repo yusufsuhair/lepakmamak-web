@@ -11,6 +11,7 @@ test('village residents move safely, dialogue follows them and badminton clears 
   const village=createVillageResidents(new THREE.Scene());
   village.update(0);
   const initial=village.people.map(p=>p.rig.group.position.clone());
+  const ahTongIndex=village.people.findIndex(p=>p.resident.name==='Ah Tong');
   const collisions:string[]=[];
   let dialogueMisses=0,netHeight=0;
   for(let step=0;step<640;step++){
@@ -25,6 +26,7 @@ test('village residents move safely, dialogue follows them and badminton clears 
   village.update(5);
   return {count:village.people.length,collisions,dialogueMisses,netHeight,
    moving:village.people.filter((p,i)=>p.rig.group.position.distanceTo(initial[i])>.1).length,
+   ahTongTravel:village.people[ahTongIndex].rig.group.position.distanceTo(initial[ahTongIndex]),
    far:village.nearby(0,0)?.name??null};
  });
  expect(result.count).toBe(21);
@@ -32,6 +34,7 @@ test('village residents move safely, dialogue follows them and badminton clears 
  expect(result.dialogueMisses).toBe(0);
  expect(result.netHeight).toBeGreaterThan(1.8);
  expect(result.moving).toBeGreaterThan(10);
+ expect(result.ahTongTravel).toBeGreaterThan(.1);
  expect(result.far).toBeNull();
 });
 

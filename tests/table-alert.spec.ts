@@ -60,7 +60,7 @@ test('a turn nudge reaches the world toast when the table dialog is closed',asyn
   const{setupTableSocial}=await import('/src/table-social.ts');
   const seen:string[]=[];
   const ui=setupTableSocial(()=>true,'test',()=>{},(title:string,body:string)=>seen.push(`${title}|${body}`));
-  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'a',name:'A',chairId:'chair-0'}]}],'a',true);
+  ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'a',name:'A',chairId:'chair-0'}]}],'a',true);
   const turn={id:'g1',tableId:'meja-1',revision:1,phase:'playing',round:1,host:'a',self:'a',turn:'a',direction:1,
    color:'red',top:{id:'t',color:'red',value:'5'},ends:Date.now()+25000,serverTime:Date.now(),event:null,winner:null,
    roundPoints:0,unoTarget:null,drawn:null,hand:[{id:'c1',color:'red',value:'7'}],

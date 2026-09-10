@@ -56,6 +56,7 @@ for(const width of [1280,390])test(`park is inside city canvas, ride and exit re
   ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join'){joins++;ws.send(JSON.stringify({type:'welcome',id:'a',players:[p]}));}else if(park.handle(players,p,m)){ws.send(JSON.stringify({type:'players',players:[p]}));}});
  });
  await page.goto('/');await expect(page.locator('#legoland-panel')).toBeVisible();await expect(page.locator('#legoland-panel h2')).toHaveText(attraction.name);
+ await page.keyboard.press('m');await expect(page.locator('#city-map.park-map')).toBeVisible();await expect(page.locator('#expanded-map')).toHaveAttribute('data-scope','legoland');await expect(page.locator('#map-place-info')).toContainText('LEGOLAND MAP');await expect(page.locator('#city-directory')).toBeHidden();await page.getByRole('button',{name:'Close city map'}).click();
  await page.getByRole('button',{name:'Main tarikan',exact:true}).click();await expect(page.getByRole('button',{name:'Keluar tarikan',exact:true})).toBeVisible();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.bridge.deckY)).toBeGreaterThan(2.5);
  await page.getByRole('button',{name:'Keluar tarikan',exact:true}).click();await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.bridge.deckY)).toBe(0);

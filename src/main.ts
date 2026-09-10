@@ -29,6 +29,7 @@ import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
 import {setupCityDirectory,drawPlaceLabels} from './city-directory';
+import {drawLegolandMap,isInLegoland} from './legoland-map';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
@@ -376,7 +377,7 @@ async function init() {
     tableInvite.querySelector<HTMLButtonElement>('#table-invite-open')!.disabled = true;
     tableInvite.hidden = false;
   }
-  let peerDots: {x: number; z: number; party: boolean}[] = [];
+  let peerDots: {x: number; z: number; party: boolean; name?: string}[] = [];
   let partyLeaderId = '';
   let afkNote = '';
   // A Geng belongs to the account and is changed through the server-backed social module.
@@ -499,12 +500,12 @@ async function init() {
   }, roomName, () => { keys.clear(); resetStick(); dragging = false; }, (title, body) => toast(title, body, 6), tableId => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify({type: 'table-go', tableId})); return true;
-  });
+  }, () => document.getElementById('voice-panel'));
   const streetStalls=setupStalls($('hud'));
   const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
   $('open-wall').onclick=()=>wall.open();
-  // Seats per table, counted from the chairs themselves. The fallback used to be
-  // `id==='meja-2' ? 2 : 3`, which told Meja Besar — nine chairs — that it had three.
+  // Seats per table are counted from the same chair data used to render the world. Normal
+  // game tables have four seats; the nine-seat tables keep their larger social layout.
   const seatsPerTable = new Map<string, number>();
   for (const chair of chairLocations) if (chair.tableId) seatsPerTable.set(chair.tableId, (seatsPerTable.get(chair.tableId) || 0) + 1);
   let pressedTableId: string | null = null;
@@ -879,7 +880,7 @@ async function init() {
     return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
-    peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!)}));
+    peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!), name: p.name}));
     const me = players.find(p => p.id === networkPlayerId);
     if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
     roomPlayers = players;
@@ -1675,13 +1676,32 @@ async function init() {
   expandedCanvas.addEventListener('pointermove',event=>{if(!mapTouches.has(event.pointerId))return;mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(mapTouches.size!==2||!mapPinchSpan)return;event.preventDefault();const span=mapTouchSpan();if(span>0){setMapZoom(mapZoom*span/mapPinchSpan);mapPinchSpan=span;}});
   const endMapTouch=(event:PointerEvent)=>{mapTouches.delete(event.pointerId);if(mapTouches.size<2){mapPinchSpan=0;setTimeout(()=>delete expandedCanvas.dataset.gesture,100);}};
   for(const type of ['pointerup','pointercancel','lostpointercapture'])expandedCanvas.addEventListener(type,event=>endMapTouch(event as PointerEvent));
-  expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
+  expandedCanvas.addEventListener('click',event=>{if(expandedCanvas.dataset.scope!=='legoland'&&mapMode==='3d')overview.click(event);});
 
   const carFinderRoot=document.createElement('div');mapFrame.after(carFinderRoot);
   const carFinder=createCarFinder(carFinderRoot,()=>{selectedMapPlace='';mapDirectory.selected('');teleportButton.disabled=true;teleportButton.textContent='Select a place to teleport';drawMap(true);});
   setMapZoom(defaultMapZoom);
 
+  function syncMapScope(inPark:boolean){
+    const scope=inPark?'legoland':'city';
+    expandedCanvas.dataset.scope=scope;
+    $('minimap').dataset.scope=scope;
+    cityMap.classList.toggle('park-map',inPark);
+    $('open-map').setAttribute('aria-label',inPark?'Open Legoland map':'Open city map');
+    $('city-map-title').textContent=inPark?'LEGOLAND map':'City map';
+    const hint=document.querySelector<HTMLElement>('.city-map-hint');
+    if(hint)hint.textContent=inPark?'LEGOLAND · Your position and Geng are shown here.':mapMode==='3d'?'Angled city overview · Numbered pins match the directory.':'N ↑ · On mobile, swipe the map to explore.';
+  }
+
   function drawMap(expanded = false) {
+    const inPark=isInLegoland(pos.x);
+    syncMapScope(inPark);
+    if(inPark){
+      const map=$<HTMLCanvasElement>(expanded?'expanded-map':'minimap');
+      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86);
+      if(expanded)$('map-place-info').textContent='LEGOLAND MAP · Park lands, attractions and Geng are shown here.';
+      return;
+    }
     const carPin=expanded?carFinder.update(networkConnected,pos,roomPlayers):undefined;
     if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace,mapZoom,carPin);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
@@ -2100,13 +2120,16 @@ async function init() {
     }
     }
     const voicePanel = document.getElementById('voice-panel') as HTMLElement | null;
+    const voiceInTable=!!voicePanel?.closest('#table-social');
     if (voicePanel) voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
-    if(localName && voicePanel && !voicePanel.hidden){
+    if(localName && voicePanel && !voicePanel.hidden && !voiceInTable){
       camera.updateMatrixWorld();
       const anchor=localName.position.clone().add(new THREE.Vector3(0,.35,0)).project(camera);
       voicePanel.hidden=anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x)>1;
       voicePanel.style.left=`${Math.max(60,Math.min(innerWidth-60,(anchor.x+1)*innerWidth/2))}px`;
       voicePanel.style.top=`${Math.max(105,Math.min(innerHeight-65,(1-anchor.y)*innerHeight/2))}px`;
+    }else if(voiceInTable&&voicePanel){
+      voicePanel.style.removeProperty('left');voicePanel.style.removeProperty('top');
     }
 
 
@@ -2133,7 +2156,7 @@ async function init() {
       const name=state?.name||table.name;
       // Who is actually sitting here, by name — the table already knows, it just never said.
       const seated=state?.occupants||[];
-      const capacity=state?.capacity||seatsPerTable.get(table.id)||3;
+      const capacity=state?.capacity||seatsPerTable.get(table.id)||4;
       const names=seated.map(o=>o.name).join(', ');
       const game=state?.activeGame;
       const gameText=game?` · ${tableGameTitles[game.game]||game.game} · ${tableGamePhases[game.phase]||game.phase}`:'';

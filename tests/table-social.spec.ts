@@ -28,7 +28,7 @@ test('songs duck while a table game is open and return when it closes',async({pa
  await page.evaluate(async()=>{
   const {setupTableSocial}=await import('/src/table-social.ts');
   const ui=setupTableSocial(()=>true,'geng',()=>{},()=>{});(window as any).ui=ui;
-  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);
+  ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);
  });
  const playing=()=>page.evaluate(()=>(window as any).ui.playing);
  expect(await playing()).toBe(false);                       // dialog shut
@@ -53,7 +53,7 @@ test('one list combines the unjoined lobby, game art and joined users',async({pa
   const ali={id:'ali',name:'Ali',chairId:'chair-0',appearance:{skin:'#8b583d',hair:'#202c2b',shirt:'#62876b',gender:'male',hairstyle:'short'}};
   const mei={id:'mei',name:'Mei',chairId:'chair-1',appearance:{skin:'#cf986c',hair:'#654331',shirt:'#628fbb',gender:'female',hairstyle:'ponytail'}};
   const joe={id:'joe',name:'Joe',chairId:'chair-2',appearance:{skin:'#b98157',hair:'#202c2b',shirt:'#ef734c',gender:'male',hairstyle:'short'}};
-  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[ali,mei,joe],activeGames:[{game:'lukis',phase:'playing',members:[ali]},{game:'uno',phase:'lobby',members:[mei]}]}],'ali',true);ui.open('meja-1');
+  ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[ali,mei,joe],activeGames:[{game:'lukis',phase:'playing',members:[ali]},{game:'uno',phase:'lobby',members:[mei]}]}],'ali',true);ui.open('meja-1');
  });
  await expect(page.locator('#table-seats')).not.toContainText('Dalam:');
  await expect(page.locator('.table-roster').first()).toHaveClass(/neutral/);
@@ -69,4 +69,22 @@ test('one list combines the unjoined lobby, game art and joined users',async({pa
  await expect(page.locator('#table-social > #speaking')).toHaveCount(1);
  await page.evaluate(()=>(window as any).ui.close());
  await expect(page.locator('#hud > #speaking')).toHaveCount(1);
+});
+
+test('a running game can minimize while table chat and voice stay in the dialog',async({page})=>{
+ await page.route('**/table-minimize',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><aside id="voice-panel"><div id="voice-audience"></div></aside><div id="city-chat"></div></div>'}));
+ await page.goto('/table-minimize');
+ await page.evaluate(async()=>{
+  const {setupTableSocial}=await import('/src/table-social.ts');
+  const ui=setupTableSocial(()=>true,'geng',()=>{},()=>{},()=>true,()=>document.getElementById('voice-panel'));
+  (window as any).ui=ui;ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);ui.open('meja-1');
+ });
+ const dialog=page.locator('#table-social[open]');await dialog.locator('[data-select="lukis"]').click();
+ await expect(dialog.locator('#table-minimize')).toBeVisible();
+ await dialog.locator('#table-minimize').click();
+ await expect(dialog).toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeHidden();
+ await expect(dialog.locator('#city-chat')).toHaveCount(1);await expect(dialog.locator('#voice-panel')).toBeVisible();
+ expect(await dialog.locator('#city-chat').evaluate(element=>element.parentElement?.id)).toBe('table-social');
+ await expect(dialog.locator('#table-minimize')).toHaveAttribute('aria-label','Restore table game');
+ await dialog.locator('#table-minimize').click();await expect(dialog).not.toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeVisible();
 });

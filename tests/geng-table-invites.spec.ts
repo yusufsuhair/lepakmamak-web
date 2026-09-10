@@ -65,7 +65,7 @@ test('table invite includes authoritative game, table and capacity without seati
   const rig = inviteRig();
   rig.invites.handle(rig.players, rig.a, {type: 'table-invite', game: 'lukis', tableId: 'meja-1'});
   const message = rig.sent.find(entry => entry.ws === 'c' && entry.type === 'table-invited');
-  expect(message.invite).toMatchObject({game: 'lukis', tableId: 'meja-1', tableName: 'Meja 1', occupied: 2, capacity: 3, available: 1});
+  expect(message.invite).toMatchObject({game: 'lukis', tableId: 'meja-1', tableName: 'Meja 1', occupied: 2, capacity: 4, available: 2});
   const inviteId = message.invite.id;
 
   rig.invites.handle(rig.players, rig.c, {type: 'table-invite-open', inviteId});
@@ -86,6 +86,7 @@ test('a table invite reports full, changed and expired links instead of opening 
   full.invites.handle(full.players, full.a, {type: 'table-invite', game: 'lukis', tableId: 'meja-1'});
   const fullId = full.sent.find(entry => entry.ws === 'c' && entry.type === 'table-invited').invite.id;
   full.add('d', seat('meja-1', 2).id);
+  full.add('e', seat('meja-1', 3).id);
   full.invites.handle(full.players, full.c, {type: 'table-invite-open', inviteId: fullId});
   expect(full.sent.at(-1)).toMatchObject({ws: 'c', type: 'table-invite-result', ok: false, code: 'TABLE_FULL'});
 

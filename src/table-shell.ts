@@ -64,7 +64,7 @@ export function createTableShell(send: (message: object) => boolean, inviteTable
     if (!lobby) return;
     const playing = lobby.phase === 'playing';
     title.textContent = TITLES[lobby.game] || lobby.game;
-    // A city game must not pretend the three chairs at this table are the roster.
+    // A city game must not pretend the four chairs at this table are the roster.
     scopeLine.textContent = lobby.scope === 'city'
       ? 'City lobby · all tables share this game'
       : `This table · ${lobby.members.length}/${lobby.max} players`;

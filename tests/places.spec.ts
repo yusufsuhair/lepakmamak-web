@@ -5,7 +5,7 @@ import tables from '../shared/tables.json' with {type:'json'};
 import pickleball from '../shared/pickleball.json' with {type:'json'};
 import basketball from '../shared/basketball.json' with {type:'json'};
 import {masjidSpots} from '../src/masjid';
-test('new hangouts have three distinct seats and matching map locations',()=>{for(const id of ['meja-5','meja-6']){const t=tables.find(t=>t.id===id)!;expect(chairs.filter(c=>c.tableId===id)).toHaveLength(3);expect(places.some(p=>p.x===t.x&&p.z===t.z)).toBe(true);}expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);});
+test('normal game tables have four distinct seats and matching map locations',()=>{for(const id of ['meja-1','meja-2','meja-3','meja-4','meja-5','meja-6'])expect(chairs.filter(c=>c.tableId===id)).toHaveLength(4);for(const id of ['meja-5','meja-6']){const t=tables.find(t=>t.id===id)!;expect(places.some(p=>p.x===t.x&&p.z===t.z)).toBe(true);}for(const id of ['pantai-1','pantai-4'])expect(chairs.filter(c=>c.tableId===id)).toHaveLength(4);expect(chairs.filter(c=>c.tableId==='meja-9')).toHaveLength(9);expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);});
 test('the PETRONAS pin sits on the forecourt, not beside it',()=>{
  // The station stands at (-31, 112) in world.ts; a pin anywhere else sends people to grass.
  expect(places).toContainEqual(expect.objectContaining({id:'16',name:'PETRONAS · Kedai Mesra',kind:'minyak',x:-31,z:112}));

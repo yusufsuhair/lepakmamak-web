@@ -55,7 +55,7 @@ export function createPoker(send,now=Date.now){
   if(g&&g.phase!=='finished')return true;
   if(g&&now()-g.finishedStartedAt<3000)return true;
   const people=(roster||members(ps,id)).filter(q=>ps.get(q.id)===q&&tableOf(q)===id);
-  if(people.length<2){send(p.ws,{type:'notice',message:'Poker needs 2 or 3 players sitting at the table.'});return true;}
+  if(people.length<2){send(p.ws,{type:'notice',message:'Poker needs 2 to 4 players sitting at the table.'});return true;}
   const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}
   const previous=g?.dealer,index=(people.findIndex(q=>q.id===previous)+1)%people.length;
   g={tableId:id,hand:randomUUID(),revision:0,phase:'preflop',board:[],deck,players:people.map(q=>({id:q.id,name:q.name,cards:[deck.pop(),deck.pop()],chips:200,paid:0,folded:false,acted:false})),dealer:people[index].id,bet:10,pot:15,turn:0,ends:now()+25000,result:'',finishedStartedAt:now()};

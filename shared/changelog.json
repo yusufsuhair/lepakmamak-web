@@ -1,5 +1,16 @@
 [
 {
+  "version": "1.39.36",
+  "date": "2026-09-11",
+  "title": "Legoland lebih jelas, game lebih selesa",
+  "notes": [
+    "Minimap dan peta penuh kini bertukar kepada peta LEGOLAND apabila anda berada di dalam park, lengkap dengan tarikan, land dan Geng yang berada berdekatan.",
+    "Panel game boleh diminimumkan di desktop dan telefon supaya chat serta voice kekal mudah dicapai ketika permainan berjalan.",
+    "Kerusi meja game biasa diseragamkan kepada empat pemain, manakala meja Werewolf sembilan kerusi kekal luas.",
+    "Ah Tong kini bergerak melalui laluan terbuka di hadapan Warung Muthu supaya tidak tersekat di pintu kedai."
+  ]
+},
+{
   "version": "1.39.35",
   "date": "2026-09-11",
   "title": "Contoh Note lebih jelas",

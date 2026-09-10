@@ -10,8 +10,8 @@ const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 export const ROSTER_GAMES = {werewolf: true, uno: true};
 
 export const LOBBY_RULES = {
-  lukis: {min: 2, max: 8, scope: 'table'},
-  poker: {min: 2, max: 3, scope: 'table'},
+  lukis: {min: 2, max: 4, scope: 'table'},
+  poker: {min: 2, max: 4, scope: 'table'},
   uno: {min: 2, max: 4, scope: 'table'},
   werewolf: {min: 5, max: 9, scope: 'city'},
 };
@@ -58,7 +58,7 @@ export function createTableLobby(send, games, now = Date.now) {
 
   const forget = (players, lobby) => lobbies(players).delete(`${lobby.game}:${lobby.key}`);
 
-  // Ready means ready: no host button, because a three-seat table does not need one.
+  // Ready means ready: no host button, because a four-seat table does not need one.
   function settle(players, lobby) {
     const rule = LOBBY_RULES[lobby.game];
     const everyoneReady = lobby.members.length >= rule.min && lobby.members.every(member => member.ready);

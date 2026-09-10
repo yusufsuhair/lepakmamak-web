@@ -748,16 +748,19 @@ export function createWorld(scene: THREE.Scene): World {
       }
     }
   }
-  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60], ...quietTables.map(t=>[t.x,t.z])]) {
+  const drawSmallTable=(x:number,z:number,angles:number[])=>{
     tube(group, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(group, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
-    for (const a of [0, 2.1, 4.2]) {
-      const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a; group.add(chair);
+    for (const a of angles) {
+      const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a + Math.PI; group.add(chair);
       box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, .33, .73, .8, .1, '#be5142');
       for (const dx of [-.28, .28]) for (const dz of [-.28, .28]) box(chair, dx, .3, dz, .06, .6, .06, '#923e35');
     }
     tube(group, x + .35, 1.23, z, .1, .26, '#c28246');
     tube(group, x - .35, 1.16, z + .12, .27, .04, '#f5efd4');
-  }
+  };
+  const fourSeatAngles=[0,Math.PI/2,Math.PI,Math.PI*1.5];
+  for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60]]) drawSmallTable(x,z,fourSeatAngles);
+  for (const table of quietTables) drawSmallTable(table.x,table.z,[0,2.1,4.2]);
   sign(group, 'LEPAK HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
   for (const x of [-20, -17]) box(group, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
