@@ -68,6 +68,10 @@ export function createWerewolf(send,now=Date.now,pick=randomInt){
   const member=g.players.find(other=>other.id===p.id);
   return !!member&&!member.alive;
  }
+ // A vote reaches every seated player in the city, so one client message is a 26-fold
+ // fan-out and a resubmitting client is an amplifier. A vote that did not change says
+ // nothing worth sending, and nobody changes their mind three times a second. Chat has
+ // held the same shape of guard since it was written.
  return {tick,live,silenced,handle(ps,p,m){if(typeof m.type!=='string'||!m.type.startsWith('werewolf-'))return false;if(!seated(p)){send(p.ws,{type:'notice',message:'Duduk di mana-mana meja untuk Werewolf.'});return true;}tick(ps);let g=room(ps);const id=key(p),me=entry(g,id);const reply=()=>send(p.ws,{type:'werewolf-state',game:view(g,id)});
   if(m.type==='werewolf-open'){reply();return true;}
   if(m.type==='werewolf-join'&&g.phase==='lobby'){if(!me&&g.players.length<g.size){g.players.push({id,name:p.name,alive:true,role:null,used:false,missingAt:0});g.host??=id;publish(ps,g);}else reply();return true;}
@@ -77,6 +81,6 @@ export function createWerewolf(send,now=Date.now,pick=randomInt){
   if(m.type==='werewolf-start'&&g.phase==='lobby'&&g.host===id&&g.players.length===g.size){let roles=werewolfRoles(g.size,pick);for(let i=roles.length-1;i>0;i--){const j=pick(i+1);[roles[i],roles[j]]=[roles[j],roles[i]];}g.players.forEach((q,i)=>q.role=roles[i]);log(g,'Peranan telah dibahagi. Rahsiakan kad anda.');phase(g,'night');publish(ps,g);return true;}
   if(m.type==='werewolf-chat'&&me&&typeof m.text==='string'&&m.text.length<=240){if(now()-(me.chatAt||0)<900)return true;let channel=g.phase==='lobby'||g.phase==='finished'?'day':!me.alive?'ghosts':g.phase==='night'&&evil(me.role)?'wolves':['discussion','vote','judgment'].includes(g.phase)||g.phase==='defense'&&g.accused===id?'day':null;if(channel){const text=filterChat(m.text.replace(/[\u0000-\u001f\u007f]/g,' ').trim());if(text){me.chatAt=now();g.chat.push({name:me.name,text,channel});g.chat=g.chat.slice(-120);publish(ps,g);}}return true;}
   if(!me?.alive||m.gameId!==g.id||m.revision!==g.revision)return true;
-  if(m.type==='werewolf-action'){const target=entry(g,m.target);if(g.phase==='night'&&target?.alive&&(evil(me.role)&&!evil(target.role)||me.role==='doctor'||me.role==='seer'&&target.id!==id)){g.actions[id]=target.id;reply();}else if(g.phase==='vote'&&(m.target==='skip'||target?.alive&&target.id!==id)){g.votes[id]=m.target;publish(ps,g);}else if(g.phase==='judgment'&&g.accusers.includes(id)&&g.accused!==id&&['kill','spare'].includes(m.target)){g.judgments[id]=m.target;publish(ps,g);}}return true;}};
+  if(m.type==='werewolf-action'){const target=entry(g,m.target);if(g.phase==='night'&&target?.alive&&(evil(me.role)&&!evil(target.role)||me.role==='doctor'||me.role==='seer'&&target.id!==id)){g.actions[id]=target.id;reply();}else if(g.phase==='vote'&&(m.target==='skip'||target?.alive&&target.id!==id)){if(g.votes[id]!==m.target&&now()-(me.voteAt||0)>=400){me.voteAt=now();g.votes[id]=m.target;publish(ps,g);}else reply();}else if(g.phase==='judgment'&&g.accusers.includes(id)&&g.accused!==id&&['kill','spare'].includes(m.target)){if(g.judgments[id]!==m.target&&now()-(me.voteAt||0)>=400){me.voteAt=now();g.judgments[id]=m.target;publish(ps,g);}else reply();}}return true;}};
 }
 function presentHost(ps,id){return [...ps.values()].some(p=>key(p)===id&&seated(p));}

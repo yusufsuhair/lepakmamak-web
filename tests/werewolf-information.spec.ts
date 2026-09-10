@@ -87,3 +87,18 @@ test('the Seer keeps every night, not just the most recent one',()=>{
  const villager=[0,1,2,3,4,5,6].find(i=>f.state(i).role==='villager')!;
  expect(f.state(villager).inspections).toEqual([]);
 });
+
+test('a resubmitted vote is not rebroadcast to the whole city',()=>{
+ const f=fixture();f.step(WEREWOLF_TIMES.night);f.step(WEREWOLF_TIMES.discussion);
+ const count=()=>f.events.filter((e:any)=>e.type==='werewolf-state').length;
+ f.act(4,'user-0');
+ const afterFirst=count();
+ // The same vote again carries no news, so it answers the sender and nobody else.
+ f.act(4,'user-0');f.act(4,'user-0');
+ expect(count()-afterFirst).toBe(2);
+ expect(f.state(4).tally).toEqual({'user-0':1});
+ // Changing your mind is allowed — just not faster than a person can mean it.
+ f.step(400);
+ f.act(4,'user-1');
+ expect(f.state(4).tally).toEqual({'user-1':1});
+});
