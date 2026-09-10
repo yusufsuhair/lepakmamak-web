@@ -1,5 +1,18 @@
 [
  {
+  "version": "1.38.0",
+  "date": "2026-09-10",
+  "title": "Undi yang boleh dilihat, nota Seer, dan UNO yang tahu bila nak tamat",
+  "notes": [
+   "Werewolf: you can now watch the vote as it happens — how many have pointed at each suspect, and how many want the accused gone. It counts heads, so the Mayor's double vote stays secret until the very end.",
+   "Werewolf: the Seer keeps every night's reading instead of only the newest one, so what you learned on the first night is still in front of you on the fourth.",
+   "Werewolf: the host can now pick any village from five to nine players. Five, six and eight were always playable, but the panel only ever offered seven or nine.",
+   "UNO: a match between two players now finishes at 200 points, and three players at 300, instead of asking everyone for 500. Two people needed about eighteen rounds to get there.",
+   "UNO: when a round ends, every losing hand turns face up with what it cost, so you can see where the winner's points came from. You can also sort your hand by colour.",
+   "UNO: after someone wins a whole match, everyone can run it back from the table again. The button was there but nothing happened when you pressed it."
+  ]
+ },
+ {
   "version": "1.37.2",
   "date": "2026-09-10",
   "title": "Butang chat balik ke penjuru",
