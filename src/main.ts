@@ -144,28 +144,22 @@ async function init() {
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
   const streetLights = createStreetLights(scene, world.solids);
-  // Night only decides the default. The switch itself is shared: one flip travels to
-  // everybody in the room, and a fresh room starts back on the clock.
-  let cityNight = false, lampOverride: boolean | null = null;
-  const lampsLit = () => lampOverride ?? cityNight;
-  const lampButton = document.createElement('button');
-  lampButton.id = 'lamp-switch'; lampButton.type = 'button';
-  function renderLamps() {
-    const lit = lampsLit();
-    streetLights.setNight(lit);
-    lampButton.textContent = lit ? '💡' : '🌑';
-    lampButton.classList.toggle('on', lit);
-    lampButton.setAttribute('aria-pressed', String(lit));
-    lampButton.setAttribute('aria-label', lit ? 'Switch the city street lights off' : 'Switch the city street lights on');
-    lampButton.title = lit ? 'Lampu jalan: ON' : 'Lampu jalan: OFF';
-  }
-  lampButton.onclick = () => {
-    const next = !lampsLit();
-    // Solo play still gets the switch; online it is the server that decides for everyone.
-    if (networkSocket?.readyState !== WebSocket.OPEN) { lampOverride = next; renderLamps(); return; }
-    networkSocket.send(JSON.stringify({type: 'lamps', on: next}));
+  // Night only decides the default: each lamp carries its own answer once somebody walks
+  // up and flips it, and that answer is shared with everyone in the room.
+  const lampNear = () => {
+    let best = -1, closest = 3.4;
+    streetLights.lamps.forEach((lamp, index) => {
+      const away = Math.hypot(pos.x - lamp.x, pos.z - lamp.z);
+      if (away < closest) { closest = away; best = index; }
+    });
+    return best;
   };
-  renderLamps();
+  function flipLamp(index: number) {
+    const on = !streetLights.lit(index);
+    // Solo play still gets the switch; online it is the server that tells everybody.
+    if (networkSocket?.readyState !== WebSocket.OPEN) { streetLights.setLamp(index, on); return; }
+    networkSocket.send(JSON.stringify({type: 'lamp', index, on}));
+  }
   const lrt=createLrt(scene,world.solids);
   let lrtId:number|null=null,lrtSeat=0,lrtClockOffset=0;
   const lrtNow=()=>Date.now()+lrtClockOffset;
@@ -772,7 +766,8 @@ async function init() {
         if(message.type==='teleported'&&message.id)finishTeleport(message.id);
         if(message.type==='teleport-denied'){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
-        if(message.type==='lamps'){const on=(message as unknown as {on:boolean|null}).on;lampOverride=typeof on==='boolean'?on:null;renderLamps();}
+        if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
+        if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
         if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
@@ -920,7 +915,7 @@ async function init() {
   $('open-security').onclick = () => security();
   const itemShop = setupShop(setAccessories);
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},savedLook);
-  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';$('menu').before(lampButton,inventoryButton);inventoryButton.onclick=()=>inventory.open();
+  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';$('menu').before(inventoryButton);inventoryButton.onclick=()=>inventory.open();
 
   $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
@@ -984,6 +979,9 @@ async function init() {
     if(trafficCar)return {carId:trafficCar.id,point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
     const vehiclePoint = distanceTo(personalCar.group.position) < distanceTo(bike.group.position) ? personalCar.group.position : bike.group.position;
     if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
+    // Lamps come last, so walking past one never steals the prompt from a chair or a car.
+    const lamp = lampNear();
+    if (lamp >= 0) return { point: streetLights.lamps[lamp], height: 5.7, label: streetLights.lit(lamp) ? 'Turn off' : 'Turn on', disabled: false };
     return null;
   }
   function interact() {
@@ -1007,7 +1005,9 @@ async function init() {
     const trafficCar=nearbyCar();
     if(trafficCar){claimCar(trafficCar.id);return;}
     if (distanceTo(personalCar.group.position) < 3.8 && distanceTo(personalCar.group.position) < distanceTo(bike.group.position)) { car=personalCar;fleetId=null;localSupermanUntil=0; vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
-    if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
+    if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); return; }
+    const lamp = lampNear();
+    if (lamp >= 0) flipLamp(lamp);
   }
   $('open-wardrobe').onclick = setupWardrobe(look => {
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
@@ -1019,7 +1019,7 @@ async function init() {
   $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{cityNight=night;renderLamps();});
+  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
@@ -1644,7 +1644,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.17.0",
+  "date": "2026-09-10",
+  "title": "Setiap lampu jalan ada suisnya sendiri",
+  "notes": [
+   "Street lamps are switched at the lamp now, not from a button in the corner. Walk up to any lamp and the prompt offers Turn on or Turn off.",
+   "Each lamp keeps its own state, and everybody in the city sees it change straight away. Night still lights the street by itself; a lamp somebody switched keeps whatever they left it on."
+  ]
+ },
+ {
   "version": "1.16.0",
   "date": "2026-09-10",
   "title": "Security: tukar kata laluan, padam akaun",

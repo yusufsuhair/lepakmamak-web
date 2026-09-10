@@ -1094,18 +1094,25 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
 
   const group = new THREE.Group();
   const poleMaterial = new THREE.MeshStandardMaterial({color: '#46525c', roughness: .8});
-  const headMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', emissive: '#ffcf82', emissiveIntensity: 0, roughness: .5});
-  const glowMaterial = new THREE.MeshBasicMaterial({color: '#ffcf82', transparent: true, opacity: 0, depthWrite: false});
-  const bulbMaterial = new THREE.MeshBasicMaterial({color: '#ffe6b8', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+  const headMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', roughness: .5});
+  // The lit shell wraps the matte head rather than replacing it, so a lamp that is off is
+  // still a lamp. Every per-lamp mesh is switched by scaling its instance, because the
+  // materials are shared across all eighty of them.
+  const litMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', emissive: '#ffcf82', emissiveIntensity: 2.4, roughness: .5});
+  const glowMaterial = new THREE.MeshBasicMaterial({color: '#ffcf82', transparent: true, opacity: .3, depthWrite: false});
+  const bulbMaterial = new THREE.MeshBasicMaterial({color: '#ffe6b8', transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false});
   const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(.1, .14, 5.4, 6), poleMaterial, lamps.length);
   const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, .24, .52), headMaterial, lamps.length);
+  const lit = new THREE.InstancedMesh(new THREE.BoxGeometry(1.76, .3, .58), litMaterial, lamps.length);
   const glows = new THREE.InstancedMesh(new THREE.CircleGeometry(4.4, 14), glowMaterial, lamps.length);
   // A sphere reads the same from every angle, so the halo needs no per-frame billboarding.
   const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(.62, 8, 6), bulbMaterial, lamps.length);
-  glows.visible = false; bulbs.visible = false;
 
   const matrix = new THREE.Matrix4(), euler = new THREE.Euler(), quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3(1, 1, 1), position = new THREE.Vector3();
+  const OFF = new THREE.Vector3(0, 0, 0);
+  // Where each switchable piece sits, kept so a lamp can be re-lit without rebuilding it.
+  const places: {head: THREE.Vector3; quaternion: THREE.Quaternion; bulb: THREE.Vector3; glow: THREE.Vector3; flat: THREE.Quaternion}[] = [];
   lamps.forEach((lamp, index) => {
     // The arm always reaches out over the tarmac, whichever kerb the post stands on.
     const towardRoad = -lamp.side, yaw = lamp.axis === 'ns' ? 0 : Math.PI / 2;
@@ -1115,29 +1122,55 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
     position.set(lamp.x, 2.7, lamp.z);
     poles.setMatrixAt(index, matrix.compose(position, quaternion.identity(), scale));
 
-    quaternion.setFromEuler(euler.set(0, yaw, 0));
-    position.set(lamp.x + armX, 5.3, lamp.z + armZ);
-    heads.setMatrixAt(index, matrix.compose(position, quaternion, scale));
-
-    position.set(lamp.x + armX, 5.18, lamp.z + armZ);
-    bulbs.setMatrixAt(index, matrix.compose(position, quaternion.identity(), scale));
-
-    quaternion.setFromEuler(euler.set(-Math.PI / 2, 0, 0));
-    position.set(lamp.x + armX, .035, lamp.z + armZ);
-    glows.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+    places.push({
+      head: new THREE.Vector3(lamp.x + armX, 5.3, lamp.z + armZ),
+      quaternion: new THREE.Quaternion().setFromEuler(euler.set(0, yaw, 0)),
+      bulb: new THREE.Vector3(lamp.x + armX, 5.18, lamp.z + armZ),
+      glow: new THREE.Vector3(lamp.x + armX, .035, lamp.z + armZ),
+      flat: new THREE.Quaternion().setFromEuler(euler.set(-Math.PI / 2, 0, 0)),
+    });
+    heads.setMatrixAt(index, matrix.compose(places[index].head, places[index].quaternion, scale));
 
     solids?.push({x: lamp.x, z: lamp.z, hx: .22, hz: .22});
   });
-  group.add(poles, heads, bulbs, glows);
+  group.add(poles, heads, lit, bulbs, glows);
   scene.add(group);
+
+  // Night is only the default. A lamp somebody switched keeps its own answer, and that is
+  // what `overrides` holds — sparse, so a room that nobody has touched costs nothing.
+  let night = false;
+  const overrides = new Map<number, boolean>();
+  const isLit = (index: number) => overrides.get(index) ?? night;
+
+  function paint() {
+    for (let index = 0; index < lamps.length; index++) {
+      const on = isLit(index), place = places[index];
+      lit.setMatrixAt(index, matrix.compose(place.head, place.quaternion, on ? scale : OFF));
+      bulbs.setMatrixAt(index, matrix.compose(place.bulb, quaternion.identity(), on ? scale : OFF));
+      glows.setMatrixAt(index, matrix.compose(place.glow, place.flat, on ? scale : OFF));
+    }
+    lit.instanceMatrix.needsUpdate = true;
+    bulbs.instanceMatrix.needsUpdate = true;
+    glows.instanceMatrix.needsUpdate = true;
+  }
+  paint();
 
   return {
     group, lamps, headMaterial,
-    setNight(on: boolean) {
-      headMaterial.emissiveIntensity = on ? 2.4 : 0;
-      bulbMaterial.opacity = on ? .85 : 0;
-      glowMaterial.opacity = on ? .3 : 0;
-      glows.visible = on; bulbs.visible = on;
+    lit: (index: number) => isLit(index),
+    setNight(on: boolean) { if (night === on) return; night = on; paint(); },
+    setLamp(index: number, on: boolean | null) {
+      if (!(index >= 0 && index < lamps.length)) return;
+      if (on === null) overrides.delete(index); else overrides.set(index, on);
+      paint();
+    },
+    setLamps(state: Record<string, boolean>) {
+      overrides.clear();
+      for (const [key, on] of Object.entries(state || {})) {
+        const index = Number(key);
+        if (Number.isInteger(index) && index >= 0 && index < lamps.length && typeof on === 'boolean') overrides.set(index, on);
+      }
+      paint();
     },
   };
 }

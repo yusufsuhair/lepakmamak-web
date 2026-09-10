@@ -644,7 +644,3 @@ html, body, #app { touch-action: manipulation; }
   #city-chat { bottom: 150px; }
   .touch-actions { bottom: max(30px, env(safe-area-inset-bottom)); }
 }
-
-/* The city lamp switch is shared, so it belongs in the HUD where anyone can reach it. */
-#lamp-switch { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; font-size: 19px; line-height: 1; cursor: pointer; pointer-events: auto; }
-#lamp-switch.on { background: #3d3413ee; border-color: #f0d28d80; box-shadow: 0 0 12px #f2ce7a4d; }
