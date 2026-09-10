@@ -292,5 +292,12 @@
   "x": 117,
   "z": -37,
   "kind": "ibadah"
- }
+ },
+{
+ "id": "pantai-senja",
+ "name": "Pantai Senja",
+ "x": 41,
+ "z": 130,
+ "kind": "lepak"
+}
 ]

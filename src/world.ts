@@ -1074,6 +1074,44 @@ export function createWorld(scene: THREE.Scene): World {
     solid(x, z, landmark.width, 16);
     mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'church' ? '#507c9a' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
   }
+  // Pantai Senja: inside the existing playable boundary, reached from the eastern road.
+  box(group, 40, -.025, 142, 52, .04, 25, '#ead4a0');
+  box(group, 40, .008, 130, 52, .035, 3, '#aa8058');
+  box(group, 65, .008, 130, 22, .035, 3, '#aa8058');
+  // The sea begins beyond the walkable shoreline; no invisible water crossing.
+  box(group, 40, -.01, 205, 52, .06, 105, '#4ba8ad');
+  box(group, 40, .025, 154, 52, .025, 2, '#b4e0d1');
+  for (let z = 158; z < 250; z += 9) box(group, 40, .03, z, 49, .02, .2, '#8fcfc8');
+  mapBuildings.push({x:40,z:142,w:52,d:25,color:'#ead4a0'});
+  sign(group, 'PANTAI SENJA', 41, 3.6, 130, 12, 1.6, '#286d70', '#fff0c6');
+  for (const x of [35.5,46.5]) tube(group,x,1.75,130,.13,3.5,'#795b40');
+  for (const [x,z] of [[16,132],[16,148],[62,133],[62,149]]) palm(group,x,z,.85);
+  for (const t of tableLocations.filter(t=>t.id.startsWith('pantai-'))) {
+    const big = t.id === 'pantai-3';
+    tube(group,t.x,1.06,t.z,big?1.95:1.14,.14,'#ead9b3');
+    tube(group,t.x,.53,t.z,.15,1.02,'#695743');
+    solid(t.x,t.z,big?2.4:1.8,big?2.4:1.8);
+    for (const seat of chairLocations.filter(c=>c.tableId===t.id)) {
+      const chair=new THREE.Group();chair.position.set(seat.x,0,seat.z);chair.rotation.y=seat.yaw;group.add(chair);
+      box(chair,0,.6,0,.73,.1,.73,'#387f82');box(chair,0,1.04,-.33,.73,.8,.1,'#387f82');
+      for (const dx of [-.28,.28]) for (const dz of [-.28,.28]) box(chair,dx,.3,dz,.06,.6,.06,'#755b40');
+    }
+    if (!big) {
+      tube(group,t.x,2,t.z,.06,4,'#795b40');
+      const shade=new THREE.Mesh(new THREE.ConeGeometry(2.5,.7,12),new THREE.MeshStandardMaterial({color:'#e7a85a'}));
+      shade.position.set(t.x,4,t.z);group.add(shade);
+    }
+  }
+  // Fire bowl and warm lamps frame the shared seating without blocking its approach.
+  tube(group,48,.25,148,.8,.5,'#72624c');
+  const flame=new THREE.Mesh(new THREE.ConeGeometry(.45,1,7),new THREE.MeshBasicMaterial({color:'#ffae50'}));
+  flame.position.set(48,.9,148);group.add(flame);solid(48,148,1.6,1.6);
+  for (const x of [18,60]) {
+    tube(group,x,1.6,143,.08,3.2,'#795b40');
+    const lamp=ball(group,x,3.25,143,.25,'#ffe0a2');
+    const light=new THREE.PointLight('#ffd090',8,12,2);light.position.copy(lamp.position);group.add(light);
+  }
+
   // A distant communications tower complements the twin towers.
   tube(group, -104, 42, -145, 1.3, 84, '#c5c6ae');
   tube(group, -104, 70, -145, 6.2, 4, '#aaa991'); tube(group, -104, 73, -145, 4.9, 2, '#637f79');
@@ -1104,7 +1142,9 @@ export function createWorld(scene: THREE.Scene): World {
   }
   // Boundary hedges: world limits are enforced in physics.
   for (const x of [-156, 156]) box(group, x, 1.1, 0, 3, 2.2, 315, '#718361');
-  for (const z of [-156, 156]) box(group, 0, 1.1, z, 315, 2.2, 3, '#718361');
+  box(group,0,1.1,-156,315,2.2,3,'#718361');
+  box(group,-72,1.1,156,171,2.2,3,'#718361');
+  box(group,111.5,1.1,156,92,2.2,3,'#718361');
 
   // Batch the static city by material to avoid thousands of draw calls.
   group.updateMatrixWorld(true);

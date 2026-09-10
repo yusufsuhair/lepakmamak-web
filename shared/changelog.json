@@ -1,5 +1,14 @@
 [
-  {
+{
+  "version": "1.39.0",
+  "date": "2026-09-10",
+  "title": "Jom lepak di Pantai Senja",
+  "notes": [
+    "Pantai Senja dibuka di tenggara bandar dengan pasir, laut, payung, lampu dan unggun api.",
+    "Empat meja pantai menggunakan permainan mamak yang sama, termasuk meja sembilan kerusi untuk Werewolf. Cari Pantai Senja dalam peta."
+  ]
+},
+{
     "version": "1.38.6",
     "date": "2026-09-10",
     "title": "Laungan penuh di kaunter",
