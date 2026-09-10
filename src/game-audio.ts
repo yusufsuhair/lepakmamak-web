@@ -18,7 +18,9 @@ export function createGameAudio(name: string, voices: Record<string, (tools: Too
   }
 
   function sound(kind: string) {
-    const voice = voices[kind];
+    // `default` catches kinds the caller did not name. UNO drives this from server event
+    // types, so without a fallback every event nobody had listed would go silent.
+    const voice = voices[kind] || voices.default;
     if (muted || !voice || context?.state !== 'running' || !master) return;
     const audio = context, out = master;
     const swish = (at: number, length = .07) => {

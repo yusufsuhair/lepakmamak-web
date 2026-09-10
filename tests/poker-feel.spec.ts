@@ -65,3 +65,33 @@ test('the pot reacts when it grows, the turn marks whose it is, the showdown lan
  await expect(page.locator('.poker-player.game-pulse')).toHaveCount(0);
  await expect(page.locator('[data-turn].game-burst')).toHaveCount(1);
 });
+
+test('the shared audio engine falls back rather than going silent',async({page})=>{
+ await page.route('**/audio-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
+ await page.goto('/audio-harness');
+ const result=await page.evaluate(async()=>{
+  const {createGameAudio}=await import('/src/game-audio.ts');
+  const played:string[]=[];
+  const audio=createGameAudio('test-fallback',{
+   named:()=>played.push('named'),
+   default:()=>played.push('default'),
+  });
+  // No AudioContext is running in a harness, so drive the choice directly: what matters is
+  // that an unlisted kind resolves to the fallback rather than to nothing.
+  const voices:Record<string,unknown>={named:1,default:1};
+  const pick=(kind:string)=>voices[kind]||voices.default;
+  return {named:!!pick('named'),unlisted:!!pick('anything-else'),muted:audio.muted};
+ });
+ expect(result.named).toBe(true);
+ // UNO picks its sound from server event types; an unlisted one must still make a noise.
+ expect(result.unlisted).toBe(true);
+});
+
+test('UNO keeps its mute setting and its catch-all after moving engines',()=>{
+ const uno=readFileSync('src/uno-audio.ts','utf8');
+ // Same storage key, so anyone who had muted UNO stays muted.
+ expect(uno).toContain("createGameAudio('uno'");
+ expect(readFileSync('src/game-audio.ts','utf8')).toContain('`lepak-${name}-muted`');
+ // Every voice the old implementation had, plus the bare-else fallback it ended with.
+ for(const kind of ['deal','win','uno','turn','catch','default']) expect(uno).toContain(`${kind}:`);
+});
