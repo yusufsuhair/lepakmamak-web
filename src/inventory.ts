@@ -1,38 +1,187 @@
 import catalog from '../shared/shop.json';
-import {appearance,appearanceOptions,type Appearance} from './appearance';
+import {appearanceOptions, type Appearance} from './appearance';
+import {CLOTHING, drawLook, lookLabel, savedLook, saveLook} from './wardrobe';
 import './inventory.css';
-type State={items:{sku:string;equipped:boolean}[];balance:number};
-export function setupInventory(api:{inventory:()=>Promise<State>;equip:(sku:string,value:boolean)=>Promise<State>},release:()=>void,look:()=>Appearance=()=>appearance(null)){
- const dialog=document.createElement('dialog');dialog.id='inventory';dialog.setAttribute('aria-labelledby','inventory-title');
- dialog.innerHTML=`<header><div><small>LEPAKMAMAK · CHARACTER</small><h2 id="inventory-title">Inventory</h2></div><button type="button" aria-label="Close inventory">×</button></header><div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div><div class="inventory-layout"><aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Your outfit</h3><div class="outfit-slots"></div><div class="inventory-links"></div></aside><section><nav aria-label="Inventory filters"><button type="button" data-filter="all">All</button><button type="button" data-filter="accessory">Accessories</button><button type="button" data-filter="skin">Skins</button></nav><div class="inventory-grid"></div><div class="inventory-details"></div></section></div><p class="inventory-status" role="status" aria-live="polite"></p>`;
- document.body.append(dialog);let state:State={items:[],balance:0},selected='',filter='all',busy=false,epoch=0;
- const status=dialog.querySelector('.inventory-status')!;const icons:Record<string,string>={spectacles:'👓',cap:'🧢',batik:'👔',harimau:'👕'};
- function render(){
-  dialog.querySelector('.inventory-balance')!.textContent=`${state.balance.toLocaleString()} Syiling`;
-  const slots=dialog.querySelector('.equipment-slots')!;slots.replaceChildren();
-  for(const [title,ids] of [['Head',['cap']],['Face',['spectacles']],['Outfit',['batik','harimau']]] as const){const item=state.items.find(i=>ids.some(id=>id===i.sku)&&i.equipped),slot=document.createElement('button');slot.type='button';slot.disabled=!item||busy;slot.textContent=`${item?icons[item.sku]:'◇'}  ${title} · ${item?catalog.find(c=>c.id===item.sku)?.name:'Empty'}`;slot.onclick=()=>{selected=item!.sku;render();};slots.append(slot);}
-  // Base clothes sit in the same character screen as the items, so one panel shows the
-  // whole look. The studio itself stays its own dialog; these slots are the way in.
-  const outfit=dialog.querySelector('.outfit-slots')!;outfit.replaceChildren();const worn=look();
-  for(const [key,title] of [['shirt','Top'],['trousers','Bottoms']] as const){
-   const name=Object.entries(appearanceOptions[key]).find(([,colour])=>colour===worn[key])?.[0]||'Custom';
-   const slot=document.createElement('button');slot.type='button';slot.className='outfit-slot';slot.disabled=busy;
-   slot.style.setProperty('--worn',worn[key]);slot.innerHTML='<i aria-hidden="true"></i>';
-   slot.append(document.createTextNode(`${title} · ${name}`));
-   slot.onclick=()=>document.getElementById('open-wardrobe')!.click();
-   outfit.append(slot);
+
+type State = {items: {sku: string; equipped: boolean}[]; balance: number};
+type Filter = 'all' | 'accessory' | 'skin' | 'shirt' | 'trousers';
+
+const ICONS: Record<string, string> = {spectacles: '👓', cap: '🧢', batik: '👔', harimau: '👕'};
+const FILTERS: {key: Filter; label: string}[] = [
+  {key: 'all', label: 'All'}, {key: 'accessory', label: 'Accessories'}, {key: 'skin', label: 'Skins'},
+  {key: 'shirt', label: 'Tops'}, {key: 'trousers', label: 'Bottoms'},
+];
+
+// One character screen: what you own, what you are wearing and the clothes underneath, all
+// in the same panel. There is no second dialog to open — picking a top applies it there and
+// then, the way equipping an item already did.
+export function setupInventory(
+  api: {inventory: () => Promise<State>; equip: (sku: string, value: boolean) => Promise<State>},
+  release: () => void,
+  onLook: (look: Appearance) => void = () => {},
+) {
+  const dialog = document.createElement('dialog');
+  dialog.id = 'inventory'; dialog.setAttribute('aria-labelledby', 'inventory-title');
+  dialog.innerHTML = `<header><div><small>LEPAKMAMAK · CHARACTER</small><h2 id="inventory-title">Character</h2></div><button type="button" aria-label="Close inventory">×</button></header>
+    <div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div>
+    <div class="inventory-layout">
+      <aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Wearing</h3><div class="outfit-slots"></div></aside>
+      <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live character preview"></canvas><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
+      <section><nav aria-label="Inventory filters"></nav><div class="inventory-grid" role="group"></div><div class="inventory-details"></div></section>
+    </div>
+    <p class="inventory-status" role="status" aria-live="polite"></p>`;
+  document.body.append(dialog);
+
+  const status = dialog.querySelector<HTMLElement>('.inventory-status')!;
+  const canvas = dialog.querySelector('canvas')!;
+  const filterBar = dialog.querySelector<HTMLElement>('nav')!;
+  let state: State = {items: [], balance: 0};
+  let selected = '', filter: Filter = 'all', busy = false, epoch = 0;
+  let look = savedLook();
+
+  for (const {key, label} of FILTERS) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.dataset.filter = key; button.textContent = label;
+    button.onclick = () => { filter = key; selected = ''; render(); };
+    filterBar.append(button);
   }
-  dialog.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.filter===filter));});
-  const grid=dialog.querySelector('.inventory-grid')!;grid.replaceChildren();
-  const items=catalog.filter(c=>state.items.some(i=>i.sku===c.id)&&(filter==='all'||c.type===filter));
-  for(const item of items){const button=document.createElement('button');button.type='button';button.className='inventory-item';button.disabled=busy;button.setAttribute('aria-pressed',String(selected===item.id));const art=document.createElement('span');art.className='inventory-art';art.textContent=icons[item.id]||'◇';const title=document.createElement('strong');title.textContent=item.name;const badge=document.createElement('small');badge.textContent=state.items.find(i=>i.sku===item.id)?.equipped?'EQUIPPED':item.type.toUpperCase();button.append(art,title,badge);button.onclick=()=>{selected=item.id;render();};grid.append(button);}
-  if(!items.length){const empty=document.createElement('p');empty.className='inventory-empty';empty.textContent=busy?'Loading your collection…':'No items here yet. Visit Kedai to grow your collection.';grid.append(empty);}
-  const detail=dialog.querySelector('.inventory-details')!;detail.replaceChildren();const item=catalog.find(c=>c.id===selected),owned=state.items.find(i=>i.sku===selected);
-  if(item&&owned){const title=document.createElement('h3');title.textContent=item.name;const description=document.createElement('p');description.textContent=item.description;const button=document.createElement('button');button.type='button';button.className='primary';button.textContent=owned.equipped?'Unequip':'Equip';button.disabled=busy;button.onclick=async()=>{busy=true;render();status.textContent='Updating equipment…';const ticket=epoch;try{const data=await api.equip(item.id,!owned.equipped);if(ticket===epoch){state=data;status.textContent='Equipment updated.';}}catch(e){if(ticket===epoch)status.textContent=(e as Error).message;}finally{if(ticket===epoch){busy=false;render();}}};detail.append(title,description,button);}
- }
- async function load(){const ticket=++epoch;busy=true;state={items:[],balance:0};status.textContent='Loading inventory…';render();try{const data=await api.inventory();if(ticket===epoch){state=data;status.textContent=`${data.items.length} owned items`;}}catch(e){if(ticket===epoch)status.textContent=`Unable to load inventory. ${(e as Error).message}`;}finally{if(ticket===epoch){busy=false;render();}}}
- dialog.querySelector('header button')!.addEventListener('click',()=>dialog.close());dialog.addEventListener('keydown',e=>e.stopPropagation());dialog.addEventListener('close',()=>{epoch++;busy=false;});
- dialog.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter!;render();});
- for(const id of ['open-wardrobe','open-shop']){const button=document.getElementById(id)!;dialog.querySelector('.inventory-links')!.append(button);button.addEventListener('click',()=>dialog.close());}
- return {open(){release();if(!dialog.open)dialog.showModal();void load();},close(){dialog.close();},get opened(){return dialog.open;}};
+
+  // Clothes apply the moment you pick them, so there is no Save button to hunt for. The
+  // world hears about it through onLook; storage keeps it for the next time you log in.
+  async function wear(next: Appearance) {
+    look = next; onLook(look); render();
+    status.textContent = 'Saving your look…';
+    try { await saveLook(look); status.textContent = 'Outfit saved.'; }
+    catch (error) { status.textContent = error instanceof Error ? error.message : 'Could not save your outfit.'; }
+  }
+
+  function renderEquipped() {
+    const slots = dialog.querySelector<HTMLElement>('.equipment-slots')!;
+    slots.replaceChildren();
+    for (const [title, ids] of [['Head', ['cap']], ['Face', ['spectacles']], ['Outfit', ['batik', 'harimau']]] as const) {
+      const item = state.items.find(owned => ids.some(id => id === owned.sku) && owned.equipped);
+      const slot = document.createElement('button');
+      slot.type = 'button'; slot.disabled = !item || busy;
+      slot.textContent = `${item ? ICONS[item.sku] : '◇'}  ${title} · ${item ? catalog.find(entry => entry.id === item.sku)?.name : 'Empty'}`;
+      slot.onclick = () => { selected = item!.sku; filter = 'all'; render(); };
+      slots.append(slot);
+    }
+  }
+
+  function renderOutfit() {
+    const outfit = dialog.querySelector<HTMLElement>('.outfit-slots')!;
+    outfit.replaceChildren();
+    for (const {key, title} of CLOTHING) {
+      const slot = document.createElement('button');
+      slot.type = 'button'; slot.className = 'outfit-slot'; slot.disabled = busy;
+      slot.style.setProperty('--worn', look[key]);
+      slot.innerHTML = '<i aria-hidden="true"></i>';
+      slot.append(document.createTextNode(`${title} · ${lookLabel(key, look[key])}`));
+      slot.onclick = () => { filter = key; render(); };
+      outfit.append(slot);
+    }
+  }
+
+  function renderGrid() {
+    const grid = dialog.querySelector<HTMLElement>('.inventory-grid')!;
+    grid.replaceChildren();
+    const clothing = CLOTHING.find(entry => entry.key === filter);
+    if (clothing) {
+      grid.setAttribute('aria-label', `${clothing.title} you can wear`);
+      grid.setAttribute('role', 'radiogroup');
+      for (const [label, colour] of Object.entries(appearanceOptions[clothing.key])) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'inventory-item inventory-cloth';
+        button.setAttribute('role', 'radio');
+        button.setAttribute('aria-checked', String(look[clothing.key] === colour));
+        button.setAttribute('aria-label', `${label} ${clothing.key}`);
+        button.disabled = busy;
+        button.style.setProperty('--cloth', colour);
+        const swatch = document.createElement('span'); swatch.className = 'inventory-art inventory-swatch';
+        const name = document.createElement('strong'); name.textContent = label;
+        const badge = document.createElement('small'); badge.textContent = look[clothing.key] === colour ? 'WEARING' : clothing.title.toUpperCase();
+        button.append(swatch, name, badge);
+        button.onclick = () => void wear({...look, [clothing.key]: colour});
+        grid.append(button);
+      }
+      return;
+    }
+    grid.setAttribute('aria-label', 'Items you own');
+    grid.setAttribute('role', 'group');
+    const items = catalog.filter(entry => state.items.some(owned => owned.sku === entry.id) && (filter === 'all' || entry.type === filter));
+    for (const item of items) {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'inventory-item'; button.disabled = busy;
+      button.setAttribute('aria-pressed', String(selected === item.id));
+      const art = document.createElement('span'); art.className = 'inventory-art'; art.textContent = ICONS[item.id] || '◇';
+      const title = document.createElement('strong'); title.textContent = item.name;
+      const badge = document.createElement('small');
+      badge.textContent = state.items.find(owned => owned.sku === item.id)?.equipped ? 'EQUIPPED' : item.type.toUpperCase();
+      button.append(art, title, badge);
+      button.onclick = () => { selected = item.id; render(); };
+      grid.append(button);
+    }
+    if (!items.length) {
+      const empty = document.createElement('p'); empty.className = 'inventory-empty';
+      empty.textContent = busy ? 'Loading your collection…' : 'No items here yet. Visit Kedai to grow your collection.';
+      grid.append(empty);
+    }
+  }
+
+  function renderDetails() {
+    const detail = dialog.querySelector<HTMLElement>('.inventory-details')!;
+    detail.replaceChildren();
+    const item = catalog.find(entry => entry.id === selected), owned = state.items.find(entry => entry.sku === selected);
+    if (!item || !owned) return;
+    const title = document.createElement('h3'); title.textContent = item.name;
+    const description = document.createElement('p'); description.textContent = item.description;
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'primary'; button.disabled = busy;
+    button.textContent = owned.equipped ? 'Unequip' : 'Equip';
+    button.onclick = async () => {
+      busy = true; render(); status.textContent = 'Updating equipment…';
+      const ticket = epoch;
+      try { const data = await api.equip(item.id, !owned.equipped); if (ticket === epoch) { state = data; status.textContent = 'Equipment updated.'; } }
+      catch (error) { if (ticket === epoch) status.textContent = (error as Error).message; }
+      finally { if (ticket === epoch) { busy = false; render(); } }
+    };
+    detail.append(title, description, button);
+  }
+
+  function render() {
+    dialog.querySelector('.inventory-balance')!.textContent = `${state.balance.toLocaleString()} Syiling`;
+    dialog.querySelector('.inventory-look-name')!.textContent = `${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
+    drawLook(canvas, look);
+    for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-filter]')) button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
+    dialog.querySelector<HTMLButtonElement>('.inventory-random')!.disabled = busy;
+    renderEquipped(); renderOutfit(); renderGrid(); renderDetails();
+  }
+
+  dialog.querySelector<HTMLButtonElement>('.inventory-random')!.onclick = () => {
+    const pick = (key: 'shirt' | 'trousers') => { const values = Object.values(appearanceOptions[key]); return values[Math.floor(Math.random() * values.length)]; };
+    void wear({...look, shirt: pick('shirt'), trousers: pick('trousers')});
+  };
+  dialog.querySelector('header button')!.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('keydown', event => event.stopPropagation());
+  dialog.addEventListener('close', () => { epoch++; busy = false; });
+
+  async function load() {
+    const ticket = ++epoch;
+    busy = true; state = {items: [], balance: 0}; status.textContent = 'Loading inventory…'; render();
+    try { const data = await api.inventory(); if (ticket === epoch) { state = data; status.textContent = `${data.items.length} owned items`; } }
+    catch (error) { if (ticket === epoch) status.textContent = `Unable to load inventory. ${(error as Error).message}`; }
+    finally { if (ticket === epoch) { busy = false; render(); } }
+  }
+
+  return {
+    open() {
+      release();
+      // The account may have changed clothes on another device since this was last open.
+      look = savedLook();
+      if (!dialog.open) dialog.showModal();
+      void load();
+    },
+    close() { dialog.close(); },
+    get opened() { return dialog.open; },
+  };
 }

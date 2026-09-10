@@ -2,41 +2,43 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import WebSocket from 'ws';
 
-test('wardrobe saves locally, restores after reload and discards cancelled edits', async ({ page }) => {
+test('clothes are picked in the character screen and survive a reload', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await page.locator('#auth-guest').click();
   await page.locator('#guest-name').fill('Tester');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
+  // One screen: the wardrobe is a pair of tabs in the inventory, not a dialog behind it.
   const open = async () => {
-    // Wardrobe lives in the character screen now, next to Kedai, not in settings.
     await page.getByRole('button', { name: 'Open inventory' }).click();
-    await page.getByRole('button', { name: 'Wardrobe · Change clothes' }).click();
+    await expect(page.locator('#inventory')).toBeVisible();
   };
   await open();
+  await expect(page.locator('#wardrobe')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Tops', exact: true }).click();
   await page.getByRole('radio', { name: 'Blue shirt' }).click();
-  await page.getByRole('tab', { name: 'Bottoms' }).click();
+  await page.getByRole('button', { name: 'Bottoms', exact: true }).click();
   await page.getByRole('radio', { name: 'Black trousers' }).click();
-  await page.getByRole('button', { name: 'Save outfit' }).click();
-  await expect(page.locator('#wardrobe')).not.toBeVisible();
+  // Picking is applying: there is no Save button, so the status line is the confirmation.
+  await expect(page.locator('.inventory-status')).toHaveText('Outfit saved.');
+  await expect(page.locator('.outfit-slots')).toContainText('Black');
+  await page.screenshot({ path: 'test-results/character-desktop.png' });
+  await page.getByRole('button', { name: 'Close inventory' }).click();
+
   await page.reload();
   await page.getByRole('button', { name: "Jom, let's go" }).click();
   await page.locator('#auth-guest').click();
   await page.locator('#guest-name').fill('Tester');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
   await open();
+  await page.getByRole('button', { name: 'Tops', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Blue shirt' })).toHaveAttribute('aria-checked', 'true');
-  await page.getByRole('tab', { name: 'Bottoms' }).click();
+  await page.getByRole('button', { name: 'Bottoms', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Black trousers' })).toHaveAttribute('aria-checked', 'true');
-  await page.getByRole('tab', { name: 'Tops' }).click();
-  await page.getByRole('radio', { name: 'Pink shirt' }).click();
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await open();
-  await expect(page.getByRole('radio', { name: 'Blue shirt' })).toHaveAttribute('aria-checked', 'true');
-  await expect(page.locator('#wardrobe select')).toHaveCount(0);
-  await page.screenshot({ path: 'test-results/wardrobe-desktop.png' });
+  await expect(page.locator('#inventory select')).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: 'test-results/wardrobe-mobile.png' });
+  await page.screenshot({ path: 'test-results/character-mobile.png' });
 });
 
 test('outfit updates reach peers and preserve other appearance fields', async () => {

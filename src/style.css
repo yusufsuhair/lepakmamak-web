@@ -278,35 +278,6 @@ body.map-open #touch-controls { display: none; }
 #avatar-choices label { margin: 0; font-size: 11px; }
 #avatar-choices select { width: 100%; min-width: 0; padding: 8px 4px; font: inherit; font-size: 16px; border: 1px solid #a5b59b; border-radius: 5px; background: #fffbed; color: #193d33; }
 
-#wardrobe { width:min(820px,calc(100% - 28px)); max-height:calc(100dvh - 28px); overflow:auto; border:0; border-radius:16px; padding:0; background:#edf2df; color:#193d33; box-shadow:0 28px 90px #0b251f70; }
-#wardrobe::backdrop { background:#102b24d6; backdrop-filter:blur(6px); }
-#wardrobe form { min-height:580px; display:flex; flex-direction:column; }
-.wardrobe-header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:25px 28px 20px; border-bottom:1px solid #264d3d20; }
-.wardrobe-header span,.wardrobe-choice-head small { color:#547262; font-size:9px; font-weight:800; letter-spacing:.16em; }
-#wardrobe h2 { margin:2px 0 3px; font:700 42px/.92 'Oxanium'; letter-spacing:-.02em; }
-#wardrobe p { margin:0; font-size:12px; line-height:1.5; }
-.wardrobe-close { width:44px; height:44px; flex:0 0 44px; border:1px solid #789080; border-radius:50%; background:transparent; color:#193d33; font:400 25px/1 sans-serif; cursor:pointer; }
-.wardrobe-shell { flex:1; display:grid; grid-template-columns:minmax(300px,.9fr) minmax(360px,1.1fr); }
-.wardrobe-stage { min-height:430px; position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#f7f4df; background:radial-gradient(circle at 50% 40%,#5f9b79 0,#326a55 45%,#173f35 100%); }
-.wardrobe-stage::before { content:''; position:absolute; left:50%; bottom:-58px; width:310px; height:155px; transform:translateX(-50%); border-radius:50%; background:#e6dfbd; box-shadow:inset 0 8px 0 #fff8db80,0 25px 50px #09261e75; }
-.wardrobe-stage canvas { position:relative; z-index:1; width:245px; height:315px; display:block; filter:drop-shadow(0 16px 14px #102d2655); animation:wardrobe-idle 3.2s ease-in-out infinite; }
-.wardrobe-plumbob { position:absolute; z-index:2; top:23px; left:50%; width:22px; height:34px; transform:translateX(-50%) rotate(45deg) skew(-7deg,-7deg); background:linear-gradient(135deg,#ecff9f,#7bd550 48%,#259458); border:1px solid #eaffb9; box-shadow:0 0 18px #bfff7a; }
-.wardrobe-look-name { position:absolute; z-index:2; left:20px; bottom:18px; display:flex; flex-direction:column; gap:2px; }.wardrobe-look-name small { font-size:8px; letter-spacing:.15em; color:#c7d9c7; }.wardrobe-look-name strong { font:600 16px 'Oxanium'; }
-.wardrobe-random { position:absolute; z-index:2; right:18px; bottom:16px; min-height:40px; padding:8px 12px; border:1px solid #ddf69a88; border-radius:8px; background:#183f35d9; color:#f5f5df; font:700 11px 'Oxanium'; cursor:pointer; }
-.wardrobe-customise { padding:24px 26px; background:#f5f3e8; }
-.wardrobe-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; padding:4px; border-radius:10px; background:#dfe5d3; }
-.wardrobe-tabs button { min-height:44px; border:0; border-radius:7px; background:transparent; color:#506658; font:700 12px 'Oxanium'; cursor:pointer; }.wardrobe-tabs button[aria-selected="true"] { background:#fffdf3; color:#193d33; box-shadow:0 3px 10px #2645331a; }
-.wardrobe-choice-head { margin:24px 0 13px; }.wardrobe-choice-head h3 { margin:3px 0 2px; font:700 28px/1 'Oxanium'; }
-.wardrobe-options { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-.wardrobe-option { position:relative; min-width:0; min-height:112px; padding:11px 8px 9px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:7px; border:1px solid #b9c3ae; border-radius:10px; background:#fffdf3; color:#254b3b; cursor:pointer; transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease; }
-.wardrobe-option:hover { transform:translateY(-2px); border-color:#6f8c5c; }.wardrobe-option:active { transform:scale(.98); }
-.wardrobe-option[aria-checked="true"] { border:2px solid #3c765a; background:#efffc9; box-shadow:0 6px 16px #335f4421; }
-.wardrobe-option span { overflow:hidden; max-width:100%; font-size:10px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }.wardrobe-option b { display:none; position:absolute; top:7px; right:7px; width:20px; height:20px; border-radius:50%; background:#2f7555; color:white; font-size:12px; line-height:20px; }.wardrobe-option[aria-checked="true"] b { display:block; }
-.wardrobe-garment { display:block; background:var(--cloth-colour); filter:drop-shadow(0 5px 4px #23402e22); }.wardrobe-garment.shirt { width:55px; height:57px; clip-path:polygon(20% 0,36% 9%,64% 9%,80% 0,100% 19%,85% 39%,75% 29%,75% 100%,25% 100%,25% 29%,15% 39%,0 19%); }.wardrobe-garment.trousers { width:48px; height:58px; clip-path:polygon(5% 0,95% 0,90% 100%,57% 100%,50% 43%,43% 100%,10% 100%); }
-.wardrobe-actions { display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:76px; padding:14px 26px; border-top:1px solid #264d3d20; background:#edf2df; }.wardrobe-actions > p { min-height:18px; color:#8a4939; }.wardrobe-actions > div { display:flex; gap:8px; margin-left:auto; }.wardrobe-actions button { min-width:126px; justify-content:center; }
-@keyframes wardrobe-idle { 0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)} }
-@media(prefers-reduced-motion:reduce){.wardrobe-stage canvas{animation:none}.wardrobe-option{transition:none}}
-@media(max-width:650px){#wardrobe{width:calc(100% - 18px);max-height:calc(100dvh - 18px);border-radius:13px}.wardrobe-header{padding:17px 18px 14px}#wardrobe h2{font-size:34px}.wardrobe-shell{display:block}.wardrobe-stage{min-height:248px;padding:8px}.wardrobe-stage::before{width:240px;height:110px;bottom:-46px}.wardrobe-stage canvas{width:155px;height:200px}.wardrobe-plumbob{top:13px;width:16px;height:25px}.wardrobe-look-name{left:13px;bottom:10px}.wardrobe-look-name strong{font-size:13px}.wardrobe-random{right:10px;bottom:9px;min-height:38px}.wardrobe-customise{padding:15px 16px}.wardrobe-choice-head{margin:14px 0 10px}.wardrobe-choice-head h3{font-size:24px}.wardrobe-options{grid-template-columns:repeat(3,1fr);gap:6px}.wardrobe-option{min-height:92px;padding:8px 4px 7px}.wardrobe-garment.shirt{width:43px;height:45px}.wardrobe-garment.trousers{width:38px;height:47px}.wardrobe-actions{position:sticky;bottom:0;z-index:3;padding:10px 13px;background:#edf2dff5}.wardrobe-actions>p{display:none}.wardrobe-actions>div{width:100%}.wardrobe-actions button{min-width:0;flex:1}}
 
 #vehicle-seats { position: absolute; top: 88px; left: 20px; width: 190px; padding: 12px; border-radius: 9px; background: #163d35e8; color: #fff4d9; font-size: 12px; pointer-events: none; }
 #vehicle-seats strong { display: block; color: #dfff87; margin-bottom: 7px; }
@@ -644,3 +615,8 @@ html, body, #app { touch-action: manipulation; }
   #city-chat { bottom: 150px; }
   .touch-actions { bottom: max(30px, env(safe-area-inset-bottom)); }
 }
+
+/* Kedai sits in the top bar beside the character screen, same size as its neighbours. */
+#open-shop { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
+#open-shop svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+#open-shop[hidden] { display: none; }

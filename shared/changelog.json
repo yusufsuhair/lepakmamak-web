@@ -1,5 +1,15 @@
 [
  {
+  "version": "1.18.0",
+  "date": "2026-09-10",
+  "title": "Satu skrin karakter, Kedai di bar atas",
+  "notes": [
+   "Inventory and wardrobe are one screen now. Your character stands in the middle, what you have equipped is on the left, and the grid on the right holds your items and your clothes together — Tops and Bottoms are just two more tabs. There is no separate wardrobe to open any more.",
+   "Picking a top or bottoms puts it on straight away and saves it. No Save button, no Cancel.",
+   "Kedai has its own button in the top bar. The row now reads Wall, centre camera, Kedai, Character, Settings."
+  ]
+ },
+ {
   "version": "1.17.0",
   "date": "2026-09-10",
   "title": "Setiap lampu jalan ada suisnya sendiri",
