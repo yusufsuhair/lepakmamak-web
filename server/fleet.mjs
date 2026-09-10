@@ -23,7 +23,12 @@ export function createFleet(send,broadcast){
     car.npc=true;car.speed=seed.speed;car.yaw=seedYaw(seed);car.returnAt=null;
     if(seed.axis==='z')car.x=seed.x;else car.z=seed.z;
   }
-  function sync(players,ws){const message={type:'fleet',cars:cars(players).map(({id,x,z,yaw,owner,npc})=>({id,x,z,yaw,owner,npc}))};if(ws)send(ws,message);else broadcast(players,message);}
+  // Rounded on the way out only: car.x keeps full precision, so the 100ms integration in tick()
+  // never accumulates the error. A centimetre is far below what the client can show — it eases
+  // toward this position on a 71ms curve — and trimming the float noise off 24 cars, ten times a
+  // second, is 12% of the whole idle egress of an empty city.
+  const place=v=>Math.round(v*100)/100, turn=v=>Math.round(v*1000)/1000;
+  function sync(players,ws){const message={type:'fleet',cars:cars(players).map(({id,x,z,yaw,owner,npc})=>({id,x:place(x),z:place(z),yaw:turn(yaw),owner,npc}))};if(ws)send(ws,message);else broadcast(players,message);}
   function release(players,player){const car=cars(players).find(c=>c.owner===player.id);if(car)retire(car);player.fleetId=null;}
   function handle(players,player,message,now=Date.now()){
     if(message.type!=='car-claim')return false;

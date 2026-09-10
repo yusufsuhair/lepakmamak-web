@@ -50,7 +50,9 @@ test('a Cilok-ed traffic car waits for a friend, then rejoins its lane instead o
  expect(car().npc).toBe(false);expect(car().x).toBe(40);expect(car().yaw).toBe(.7);
  fleet.tick(players,.1,start+90001);
  // Back in its own lane and facing, driving again rather than parked in the road forever.
- expect(car().npc).toBe(true);expect(car().x).toBe(seed.x);expect(car().yaw).toBe(Math.PI);
+ // Wire positions are rounded on the way out, so this asks that it faces back down its lane,
+ // not that the float survived the trip intact.
+ expect(car().npc).toBe(true);expect(car().x).toBe(seed.x);expect(car().yaw).toBeCloseTo(Math.PI,2);
 });
 test('a parked car stays parked and is never turned into traffic',()=>{
  const {fleet,messages,p,players}=fixture();players.delete('b');
@@ -80,4 +82,20 @@ test('Cilok button takes control, drives, and exits in the browser',async({page}
  await page.keyboard.down('Space');await expect(page.locator('#interaction')).toHaveText('Get out');await page.keyboard.up('Space');await page.locator('#interaction').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.riding)).toBe(false);
  expect(errors).toEqual([]);
+});
+
+test('positions are trimmed on the wire without the server rounding its own arithmetic',()=>{
+ const {fleet,messages,p,players}=fixture();players.delete('b');p.x=90;p.z=90;
+ fleet.sync(players);
+ const before=messages.at(-1).cars[0];
+ // A step of 7cm per tick, well under the 1cm the wire keeps. Round car.z itself instead of
+ // the copy and every one of these ticks lands back on the same number: the car stops dead.
+ for(let i=0;i<20;i++)fleet.tick(players,.0007);
+ expect(messages.at(-1).cars[0].z).not.toBe(before.z);
+ // And what does go out is trimmed, every car, every field.
+ for(const car of messages.at(-1).cars){
+  expect(car.x).toBe(Math.round(car.x*100)/100);
+  expect(car.z).toBe(Math.round(car.z*100)/100);
+  expect(car.yaw).toBe(Math.round(car.yaw*1000)/1000);
+ }
 });
