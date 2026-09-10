@@ -87,12 +87,12 @@ type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm'; to?:
 
 export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', to?: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b><span id="chat-toggle-label"></span></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
   const heading = el<HTMLButtonElement>('chat-heading'), body = el('chat-body');
-  const toggleLabel = el('chat-toggle-label'), unreadBadge = el('chat-unread-badge');
+  const unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
   const dmBar = createDmBar({select: key => select(key), close: key => closeThread(key)});
@@ -176,7 +176,6 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
-    toggleLabel.textContent = collapsed ? '＋' : '−';
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
     for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
     const current = threads.get(active)!;
@@ -257,13 +256,13 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       render();
     },
     status(value: boolean) { online = value; status.textContent = statusText(); },
-    history(history: {name: string; text: string; sentAt?: string; gameMaster?: boolean}[]) {
+    history(history: {name: string; text: string; sentAt?: string; gameMaster?: boolean; area?: string}[]) {
       all.log.replaceChildren(); all.unread = 0;
-      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster, false);
+      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster, false, 'all', undefined, entry.area || '');
       all.unread = 0;
       render(); toBottom(all.log); renderJump();
     },
-    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' = 'all', thread?: Member) {
+    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' = 'all', thread?: Member, area = '') {
       const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : all;
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
@@ -272,9 +271,16 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
       timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
       timestamp.setAttribute('aria-label', timestamp.title);
       const follow = !collapsed && target.key === active && atBottom(target.log);
-      const row = document.createElement('p'); const author = document.createElement('strong'); author.textContent = `${name}: `;
-      if (gameMaster) { row.className = 'game-master-chat'; author.textContent = `✦ GM · ${name}: `; }
-      row.append(timestamp, document.createTextNode(' '), author, document.createTextNode(text)); target.log.append(row);
+      const row = document.createElement('p');
+      // Name on top, where they were standing underneath it. The area is stamped by the
+      // server when the message is sent, so it is where they said it, not where they are now.
+      const who = document.createElement('span'); who.className = 'chat-who';
+      const author = document.createElement('strong'); author.textContent = gameMaster ? `✦ GM · ${name}:` : `${name}:`;
+      who.append(author);
+      if (area) { const place = document.createElement('small'); place.className = 'chat-area'; place.textContent = area; who.append(place); }
+      if (gameMaster) row.className = 'game-master-chat';
+      const said = document.createElement('span'); said.className = 'chat-said'; said.textContent = text;
+      row.append(timestamp, document.createTextNode(' '), who, document.createTextNode(' '), said); target.log.append(row);
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();
       if (notify && (collapsed || target.key !== active)) target.unread++;
       render();

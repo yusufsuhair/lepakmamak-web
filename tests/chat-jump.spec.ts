@@ -43,3 +43,26 @@ test('a collapsed panel never floats an arrow over the city',async({page})=>{
  await page.getByRole('button',{name:/Collapse city chat/}).click();
  await expect(page.locator('#chat-jump')).toBeHidden();
 });
+
+test('a message carries where it was said, and the bar has no minimize button of its own',async({page})=>{
+ await mount(page,'area-harness');
+ await page.evaluate(()=>{
+  const chat=(window as any).chat;
+  chat.append('Ali','jom teh tarik',undefined,false,true,'all',undefined,'Kampung Maju');
+  chat.append('Mei','no area on this one');
+ });
+ const rows=page.locator('#chat-messages p');
+ await expect(rows.first().locator('.chat-area')).toHaveText('Kampung Maju');
+ await expect(rows.first()).toContainText('Ali:');
+ await expect(rows.first()).toContainText('jom teh tarik');
+ // Nothing to show means nothing is shown, rather than an empty line under the name.
+ await expect(rows.nth(1).locator('.chat-area')).toHaveCount(0);
+
+ // The header is the control; a separate minimize glyph beside it was redundant.
+ await expect(page.locator('#chat-toggle-label')).toHaveCount(0);
+ await expect(page.locator('#chat-body')).toBeVisible();
+ await page.getByRole('button',{name:/Collapse city chat/}).click();
+ await expect(page.locator('#chat-body')).toBeHidden();
+ await page.getByRole('button',{name:/Expand city chat/}).click();
+ await expect(page.locator('#chat-body')).toBeVisible();
+});

@@ -4,6 +4,7 @@ import {createLrt} from './lrt.mjs';
 import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import {createLamps} from './lamps.mjs';
+import {districtFor} from '../shared/districts.mjs';
 import { createUno } from './uno.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
@@ -549,12 +550,14 @@ webSocketServer.on('connection', ws => {
         broadcast(currentRoom.players, banner);
         // The crawl scrolls away, so the same line is kept in city chat.
         try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
-        broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, text: clean, sentAt: at, gameMaster: true, channel: 'all' });
+        broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z), text: clean, sentAt: at, gameMaster: true, channel: 'all' });
         return;
       }
       const filtered = filterChat(text), sentAt = new Date().toISOString();
       const channel = message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all';
-      const payload = { type: 'chat', id: player.id, name: player.name, text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
+      // Where they were standing when they said it, stamped once per message rather than
+      // streamed per frame.
+      const payload = { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z), text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
 
       if (channel === 'party') {
         const members = party.members(currentRoom.players, player);

@@ -539,6 +539,12 @@ html, body, #app { touch-action: manipulation; }
 .chat-log { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; font-size: 12px; }
 .chat-log[hidden] { display: none; }
 .chat-log p { margin: 0 0 9px; line-height: 1.5; }
+/* Name on top, the district they were standing in underneath it. inline-flex keeps the
+   pair on the same line as the message rather than pushing it to a third row. */
+.chat-who { display: inline-flex; flex-direction: column; vertical-align: top; margin-right: 6px; }
+.chat-who strong { line-height: 1.25; }
+.chat-area { font-size: 9px; letter-spacing: .06em; line-height: 1.2; color: #9fb094; text-transform: uppercase; }
+.chat-said { overflow-wrap: anywhere; }
 .chat-log strong { color: #ddf69a; }
 
 .chat-channel-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }

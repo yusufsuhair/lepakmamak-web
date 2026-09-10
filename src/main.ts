@@ -10,6 +10,7 @@ import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
 import {createRefresher} from './refresh';
+import {districtFor} from '../shared/districts.mjs';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
@@ -809,7 +810,7 @@ async function init() {
           const thread = message.channel === 'dm'
             ? (own ? {id: message.to as string, name: message.toName as string} : {id: message.id as string, name: message.name as string})
             : undefined;
-          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all', thread);
+          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' ? message.channel : 'all', thread, String((message as unknown as {area?:string}).area || ''));
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
@@ -1321,7 +1322,7 @@ async function init() {
     backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
-    const area = pos.z < -74 ? 'KLCC Park' : pos.z < 9 ? 'Jalan Lepak' : 'Kampung Maju';
+    const area = districtFor(pos.z);
     $('district').textContent = area; $('map-area').textContent = area.toUpperCase();
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
