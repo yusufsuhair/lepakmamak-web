@@ -41,8 +41,34 @@ export function trainState(id,now=Date.now()){
  }
  return{id,distance:stations[0].distance,station:0,next:1,doors:false,remaining:0,speed:0};
 }
+// How far you can move inside a coach before you are standing in a wall. Coaches sit 12
+// apart, so 4.4 along keeps you inside your own one.
+export const COACH={along:4.4,across:1.05};
+export const clampCoach=(along,across)=>({
+ along:Math.max(-COACH.along,Math.min(COACH.along,Number(along)||0)),
+ across:Math.max(-COACH.across,Math.min(COACH.across,Number(across)||0)),
+});
+
+// Where a rider is, in the world, given where they are standing inside their coach. The
+// train's own position comes from the shared clock, so everybody draws the same carriage
+// in the same place and only the small offset has to travel.
+export function coachPoint(train,coach,along,across,now=Date.now()){
+ const state=trainState(train,now),p=trackPoint(state.distance+18-coach*12);
+ return{x:p.x+Math.cos(p.yaw)*across+Math.sin(p.yaw)*along,z:p.z-Math.sin(p.yaw)*across+Math.cos(p.yaw)*along,y:railHeight+.85,yaw:p.yaw};
+}
+// Where a seat is: the spot you are put in when you board, before you get up and walk.
+export function seatOffset(seat){
+ const slot=seat%6;
+ return{along:(Math.floor(slot/2)-1)*2,across:slot%2?.9:-.9};
+}
 export function passengerPoint(train,seat,now=Date.now()){
- const state=trainState(train,now),coach=Math.floor(seat/6),slot=seat%6;
- const p=trackPoint(state.distance+18-coach*12),side=slot%2?1:-1,along=(Math.floor(slot/2)-1)*2;
- return{x:p.x+Math.cos(p.yaw)*side*.9+Math.sin(p.yaw)*along,z:p.z-Math.sin(p.yaw)*side*.9+Math.cos(p.yaw)*along,y:railHeight+.85,yaw:p.yaw};
+ const {along,across}=seatOffset(seat);
+ return coachPoint(train,Math.floor(seat/6),along,across,now);
+}
+// Where a rider actually is: their own offset once they have moved, the seat until then.
+export function riderPoint(player,now=Date.now()){
+ const seat=player.lrtSeat||0;
+ const walked=player.lrtAlong!=null||player.lrtAcross!=null;
+ const {along,across}=walked?clampCoach(player.lrtAlong,player.lrtAcross):seatOffset(seat);
+ return coachPoint(player.lrtId,Math.floor(seat/6),along,across,now);
 }

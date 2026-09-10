@@ -6,3 +6,8 @@ export const stations:{id:string;name:string;distance:number;x:number;z:number}[
 export function trackPoint(distance:number):{x:number;z:number;yaw:number};
 export function trainState(id:number,now?:number):{id:number;distance:number;station:number;next:number;doors:boolean;remaining:number;speed:number};
 export function passengerPoint(train:number,seat:number,now?:number):{x:number;z:number;y:number;yaw:number};
+export const COACH:{along:number;across:number};
+export function clampCoach(along:unknown,across:unknown):{along:number;across:number};
+export function seatOffset(seat:number):{along:number;across:number};
+export function coachPoint(train:number,coach:number,along:number,across:number,now?:number):{x:number;z:number;y:number;yaw:number};
+export function riderPoint(player:{lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null},now?:number):{x:number;z:number;y:number;yaw:number};

@@ -40,7 +40,7 @@ import { savedLook } from './wardrobe';
 import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
 import {createLrt} from './lrt';
-import {stations as lrtStations,trainState,passengerPoint,railHeight,arrivalIn} from '../shared/lrt.mjs';
+import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
@@ -158,6 +158,9 @@ async function init() {
   }
   const lrt=createLrt(scene,world.solids);
   let lrtId:number|null=null,lrtSeat=0,lrtClockOffset=0;
+  // Where you are standing inside the coach. Only this small offset travels; the carriage
+  // itself comes from the shared clock, so everyone draws it in the same place.
+  let lrtAlong=0,lrtAcross=0,lrtSentAt=0,lrtSentAlong=0,lrtSentAcross=0;
   const lrtNow=()=>Date.now()+lrtClockOffset;
   // On a phone the top-right row is five 44px targets across a 390px screen, on top of the
   // brand and the district. They fold into one ⋮ that drops the rest underneath it; on a
@@ -265,7 +268,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -671,7 +674,7 @@ async function init() {
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
-    if(self?.lrtId!=null){lrtId=self.lrtId;lrtSeat=self.lrtSeat||0;riding=true;}
+    if(self?.lrtId!=null){lrtId=self.lrtId;lrtSeat=self.lrtSeat||0;const seat=seatOffset(lrtSeat);lrtAlong=self.lrtAlong??seat.along;lrtAcross=self.lrtAcross??seat.across;riding=true;}
     if (self && (self.chairId || seatedChairId)) {
       const nowSeated = !!self.chairId;
       if (nowSeated !== seated) chairSound(nowSeated);
@@ -790,7 +793,7 @@ async function init() {
         try { message = JSON.parse(raw); } catch { return; }
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
-        if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;riding=true;vehicle='car';orbit=.65;const p=passengerPoint(lrtId,lrtSeat,lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
+        if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;{const seat=seatOffset(lrtSeat);lrtAlong=seat.along;lrtAcross=seat.across;lrtSentAlong=seat.along;lrtSentAcross=seat.across;}riding=true;vehicle='car';orbit=.65;const p=riderPoint({lrtId,lrtSeat,lrtAlong,lrtAcross},lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
         if(message.type==='lrt-exited'){lrtId=null;riding=false;speed=0;pos.set(message.x!,.12,message.z!);player.group.position.copy(pos);keys.clear();resetStick();}
         if(message.type==='fleet'&&message.cars){for(const state of message.cars){const item=world.traffic.find(c=>c.id===state.id);if(item)Object.assign(item,state);}}
         if(message.type==='car-angry')angryDriver(message.x!,message.z!,message.yaw!);
@@ -1471,11 +1474,13 @@ async function init() {
         remote.car.group.visible = onCar; remote.bike.group.visible = onBike;
         remote.person.group.visible = remote.detail && !onCar && !onBike;
         const rider=roomPlayers.find(p=>p.id===remote.id);
-        if(rider?.lrtId!=null){const point=passengerPoint(rider.lrtId,rider.lrtSeat||0,lrtNow());remote.group.position.set(point.x,point.y,point.z);remote.group.rotation.y=point.yaw;remote.car.group.visible=false;remote.bike.group.visible=false;remote.person.group.visible=true;}
+        if(rider?.lrtId!=null){const point=riderPoint(rider,lrtNow());remote.group.position.set(point.x,point.y,point.z);remote.group.rotation.y=point.yaw;remote.car.group.visible=false;remote.bike.group.visible=false;remote.person.group.visible=true;}
         if (!remote.detail) continue;
         remote.person.group.scale.setScalar(remote.passengerOf && remote.vehicle === 'car' ? .7 : 1);
         remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
-        if (rider?.lrtId!=null || remote.seated || remote.passengerOf) sitPose(remote.person);
+        // Seated until they get up: a rider who has walked is standing, like you are.
+        const strolling = rider?.lrtId!=null && (rider.lrtAlong!=null || rider.lrtAcross!=null);
+        if ((rider?.lrtId!=null && !strolling) || remote.seated || remote.passengerOf) sitPose(remote.person);
         if (!remote.riding) punchPose(remote.person, remote.punchUntil);
         pickleball.equip(remote.person,!remote.riding&&!remote.seated&&insidePickleball(remote.group.position),Math.max(0,(remote.punchUntil-simTime)/.38));
         basketball.pose(remote.person,remote.id);
@@ -1492,7 +1497,24 @@ async function init() {
       const solids = [...world.solids, ...dynamicSolids];
       if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
       if (!riding || vehicle !== 'car'||car!==personalCar) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
-      if(lrtId!=null){const point=passengerPoint(lrtId,lrtSeat,lrtNow());pos.set(point.x,point.y,point.z);yaw=point.yaw;speed=trainState(lrtId,lrtNow()).speed;player.group.position.copy(pos);player.group.rotation.y=yaw;player.group.visible=true;sitPose(player);walkSpeed=0;
+      if(lrtId!=null){
+        // Walking inside a moving carriage: the keys move you within the coach, not across
+        // the city, and the walls are where the clamp is.
+        const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
+        const sideways=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
+        const step=2.4*dt;
+        if(forward||sideways||stickX||stickY){
+          const spot=clampCoach(lrtAlong+(forward-stickY)*step,lrtAcross+(sideways+stickX)*step);
+          lrtAlong=spot.along;lrtAcross=spot.across;
+        }
+        // Told to the server only when it has actually changed, and never faster than the
+        // ordinary movement rate.
+        const now=performance.now();
+        if(now-lrtSentAt>120&&(Math.abs(lrtAlong-lrtSentAlong)>.02||Math.abs(lrtAcross-lrtSentAcross)>.02)&&networkSocket?.readyState===WebSocket.OPEN){
+          lrtSentAt=now;lrtSentAlong=lrtAlong;lrtSentAcross=lrtAcross;
+          networkSocket.send(JSON.stringify({type:'lrt-walk',along:lrtAlong,across:lrtAcross}));
+        }
+        const point=riderPoint({lrtId,lrtSeat,lrtAlong,lrtAcross},lrtNow());pos.set(point.x,point.y,point.z);yaw=point.yaw;speed=trainState(lrtId,lrtNow()).speed;player.group.position.copy(pos);player.group.rotation.y=yaw;player.group.visible=true;walkSpeed=0;
       } else if (passengerOf) {
         const driver = remotePlayers.get(passengerOf);
         if (driver) {

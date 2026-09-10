@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.31.0",
+  "date": "2026-09-10",
+  "title": "Boleh jalan dalam tren",
+  "notes": [
+   "You can walk around inside the LRT carriage now instead of being stuck in your seat for the whole ride. Other passengers see you move about, and you cannot walk out through the walls."
+  ]
+ },
+ {
   "version": "1.30.0",
   "date": "2026-09-10",
   "title": "Daftar tiga langkah",
