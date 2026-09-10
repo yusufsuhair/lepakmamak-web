@@ -182,6 +182,10 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     try { session = (await auth.auth.getSession()).data.session; } catch { session = null; }
   }
   return () => {
+    // Always apply the current step before revealing the panel. Development has no auth
+    // client, and previously skipped render(), exposing every later onboarding field at
+    // once behind the guest entry button.
+    render();
     if (!auth) {
       overlay.hidden = false; submit.disabled = true;
       message.textContent = 'Registration is being connected. Please try again shortly.';
@@ -191,6 +195,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     // and it does not get into the city until it has chosen one.
     if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
     if (session && mode !== 'recovery' && mode !== 'looks') { onEnter(); return; }
-    render(); overlay.hidden = false; (mode === 'register' ? name : email).focus();
+    overlay.hidden = false;
+    (mode === 'register' || mode === 'login' ? email : mode === 'recovery' ? password : mode === 'username' ? name : choices.querySelector('select'))?.focus();
   };
 }

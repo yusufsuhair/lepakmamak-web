@@ -55,6 +55,7 @@ import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
 import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
+import './ui-polish.css';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
