@@ -17,7 +17,9 @@ test('ice cream song fades with distance and respects sound settings', async ({ 
   await expect.poll(async () => (await sound()).gain, { timeout: 18000 }).toBeLessThan(.001);
   await page.keyboard.up('s');
   await page.getByRole('button', { name: 'Open settings' }).click();
-  await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
+  // "Return to Mamak Maju" is removed at startup (main.ts: $('reset').remove()); Resume is
+  // the way out of the pause screen.
+  await page.getByRole('button', { name: 'Resume' }).click();
   await expect.poll(async () => (await sound()).gain).toBeGreaterThan(.03);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('City sounds').uncheck();

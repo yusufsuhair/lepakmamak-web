@@ -24,8 +24,8 @@ test('the siren is loud beside you and silent across town',()=>{
 test('the siren stays a background sound, not the loudest thing in the city',()=>{
  // It was harsh enough to be reported as noise: a raw square wave, at a level well above
  // every other city sound, carrying most of the way across the map. Keep all three down.
- expect(SIREN.peak).toBeLessThanOrEqual(.2);
- expect(SIREN.reach).toBeLessThanOrEqual(46);
+ expect(SIREN.peak).toBeLessThanOrEqual(.12);
+ expect(SIREN.reach).toBeLessThanOrEqual(36);
  // Rolled off above the wail, so the piercing upper harmonics never come back.
  expect(SIREN.timbre).toBeGreaterThan(SIREN.high);
  expect(SIREN.timbre).toBeLessThanOrEqual(2600);

@@ -12,19 +12,25 @@ test('street lamps line the roads, clear the junctions and light only at night',
   const {createStreetLights}=await import('/src/world.ts');
   const scene=new THREE.Scene();
   const lights=createStreetLights(scene);
+  // Emission lives on the lit shell rather than the head, because a shared material
+  // cannot say anything about one instance and lamps switch one at a time now. lit() is
+  // what actually decides whether a given lamp is on.
   lights.setNight(true);
-  const lit=lights.headMaterial.emissiveIntensity;
+  const lit=lights.lamps.every((_:any,i:number)=>lights.lit(i));
   lights.setNight(false);
-  const dark=lights.headMaterial.emissiveIntensity;
+  const dark=lights.lamps.some((_:any,i:number)=>lights.lit(i));
   return {lamps:lights.lamps,meshes:lights.group.children.length,lit,dark,inScene:scene.children.includes(lights.group)};
  });
 
  expect(result.inScene).toBe(true);
  expect(result.lamps.length).toBeGreaterThan(40);
  // Instanced, so the whole lamp network costs a handful of draw calls, not one per post.
- expect(result.meshes).toBeLessThanOrEqual(4);
- expect(result.lit).toBeGreaterThan(0);
- expect(result.dark).toBe(0);
+ // Five: posts, matte heads, the lit shell that switches per lamp, halos and ground pools.
+ // What matters is that the count does not grow with the number of lamps.
+ expect(result.meshes).toBeLessThanOrEqual(5);
+ expect(result.meshes).toBeLessThan(result.lamps.length);
+ expect(result.lit).toBe(true);
+ expect(result.dark).toBe(false);
 
  for(const lamp of result.lamps){
   if(lamp.axis==='ns'){

@@ -3,10 +3,11 @@
 // siren does, but still dies well short of the far side of the map.
 export const SIREN = {
   low: 620, high: 940, wailMs: 700,
-  near: 14,     // Full strength inside this radius.
-  reach: 46,    // Silent at and beyond it. Two cars patrol, so a wide reach means one is
+  near: 9,      // Full strength inside this radius: about a car's length away.
+  reach: 36,    // Silent at and beyond it. Two cars patrol, so a wide reach means one is
                 // almost always within earshot; this keeps "only when they are near" true.
-  peak: .2,     // A siren should cut through, not deafen. Scaled again by shaper below.
+  peak: .12,    // Subtle by request: it should tell you a patrol is passing, not announce
+                // itself over the city. Scaled again by the shaper below.
   timbre: 2200, // A raw square wave is all odd harmonics and reads as harsh rather than
                 // loud. Rolling off above the third harmonic keeps the bite and drops the
                 // piercing top. Raise for a sharper siren, lower for a duller one.
