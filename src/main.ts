@@ -115,6 +115,13 @@ $('app').innerHTML = `
 `;
 
 $('reload').onclick = () => location.reload();
+// A separate destination gives the resort room to grow without changing city coordinates.
+for (const parent of [document.querySelector('.intro-bottom'), document.querySelector('.pause-panel')]) {
+  const link = document.createElement('a');
+  link.href = '/legoland.html'; link.className = 'secondary';
+  link.textContent = 'Jom LEGOLAND · Johor ↗';
+  parent?.append(link);
+}
 const backgroundMusic = $<HTMLAudioElement>('background-music');
 backgroundMusic.volume = .06;
 backgroundMusic.loop = true;
