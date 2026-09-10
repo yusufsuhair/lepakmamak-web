@@ -17,6 +17,11 @@ export default defineConfig({
     command: `npm run dev -- --port ${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: true,
-    env: {...process.env, VITE_MULTIPLAYER_URL: 'ws://127.0.0.1:8199/ws'} as Record<string, string>,
+    // Blanked explicitly, not merely left out: an untracked .env.development.local is loaded
+    // by vite whatever process.env says, and with it the client believes it has an account
+    // backend. Guest-only paths (sitting on a chair offline, saving looks locally) then take
+    // the account branch and quietly do nothing, which is how sitting went red on the machine
+    // that had the file and stayed green on the one that did not.
+    env: {...process.env, VITE_MULTIPLAYER_URL: 'ws://127.0.0.1:8199', VITE_SUPABASE_URL: '', VITE_SUPABASE_PUBLISHABLE_KEY: ''} as Record<string, string>,
   },
 });
