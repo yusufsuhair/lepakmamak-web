@@ -1,0 +1,33 @@
+/* The shared motion vocabulary for table games.
+   UNO already proved this works — dealing flights, a shuffle, a floating reaction — but it
+   invented every keyframe privately, so Poker and Werewolf would each have had to invent
+   them again. These are the four things a card-and-chips game needs to move, named once.
+   Every one of them is off under prefers-reduced-motion, at the bottom of this file. */
+
+/* Deal: something arriving from the middle of the table into its place. */
+@keyframes game-deal { 0% { opacity: 0; transform: translate(var(--deal-x, 0), var(--deal-y, -40px)) scale(.82) rotate(var(--deal-turn, -6deg)); } 55% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+.game-deal { animation: game-deal .42s cubic-bezier(.2,.75,.3,1) both; }
+
+/* Flip: a card turning face up. Half a turn, so the face appears at the midpoint. */
+@keyframes game-flip { from { transform: rotateY(90deg) scale(.94); opacity: .2; } to { transform: none; opacity: 1; } }
+.game-flip { animation: game-flip .3s ease-out both; backface-visibility: hidden; }
+
+/* Slide: chips to the pot, a token to a seat. Distance is the caller's business. */
+@keyframes game-slide { from { transform: translate(var(--slide-x, 0), var(--slide-y, 0)); opacity: .35; } to { transform: none; opacity: 1; } }
+.game-slide { animation: game-slide .34s cubic-bezier(.2,.7,.3,1) both; }
+
+/* Pulse: whose turn it is, a pot that grew, a seat that just acted. Draws the eye without
+   moving anything, so it is safe on an element that also has to stay readable. */
+@keyframes game-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--pulse, #efce8c00); } 50% { box-shadow: 0 0 0 6px var(--pulse, #efce8c40); } }
+.game-pulse { animation: game-pulse 1.1s ease-in-out infinite; }
+
+/* Burst: the losing moment, the winning hand, a reaction. Loud on purpose, and once. */
+@keyframes game-burst { 0% { transform: scale(.6); opacity: 0; } 35% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.game-burst { animation: game-burst .5s cubic-bezier(.2,1.3,.4,1) both; }
+
+/* Staggering a row of cards: set --step on the parent, nothing else. */
+.game-stagger > * { animation-delay: calc(var(--index, 0) * var(--step, 70ms)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-deal, .game-flip, .game-slide, .game-pulse, .game-burst { animation: none; }
+}

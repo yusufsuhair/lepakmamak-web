@@ -1,3 +1,4 @@
+import './motion.css';
 import './table-shell.css';
 
 export type LobbyMember = {id: string; name: string; ready: boolean};
