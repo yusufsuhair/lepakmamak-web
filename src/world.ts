@@ -8,6 +8,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { appearance, type Appearance } from './appearance';
 import type { Solid } from './physics';
 import { masjidSpots } from './masjid';
+import {createTaycan} from './taycan';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -255,9 +256,14 @@ function tower(parent: THREE.Object3D, x: number, z: number) {
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police';
-export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police'];
+export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police' | 'taycan';
+export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police', 'taycan'];
 export function createDriveableCar(style: CarStyle = 'myvi') {
+  if(style==='taycan'){
+    const model=createTaycan(),driver=createPerson('#e9d8c3',true);
+    driver.group.scale.setScalar(.58);driver.group.position.set(.32,.18,-.15);driver.group.visible=false;model.group.add(driver.group);
+    return{...model,driver:driver.group};
+  }
   const group = new THREE.Group(), wheels: THREE.Group[] = [];
   // An officer at the wheel, decided before any branch narrows the style.
   const driverShirt = style === 'police' ? '#1f3f78' : '#ef734c';
@@ -1051,6 +1057,7 @@ export function createWorld(scene: THREE.Scene): World {
     solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
     // Parked Malaysian cars and premium MPVs leave the central approach open.
     for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
+    box(group,-122,.04,134,3.8,.03,6.4,'#d6cbb1');
     for(const x of [-147,-94])palm(group,x,119,.8);
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
