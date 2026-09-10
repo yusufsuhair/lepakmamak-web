@@ -73,17 +73,12 @@ test('a muted or banned account cannot post or reply on the Wall, but can still 
 });
 
 
-// README.md and docs/production-release.md both promise the same property: an image moderator
-// that cannot reach a verdict blocks the photo. image-moderation.mjs is built for it - its header
-// says "an unconfigured, unreachable or unreadable moderator rejects the upload" and it returns
-// {safe:false} for all three. wall.mjs then re-opens the 'unconfigured' case and publishes.
-//
-// That matters right now rather than in theory: docs/production-release.md records that Railway
-// has no OPENAI_API_KEY, so 'unconfigured' is the live production verdict for every photo, while
-// the same document tells whoever reads it that "photo uploads remain blocked".
+// The image moderator distinguishes an explicit verdict from provider availability failures.
+// The Wall blocks the former and keeps the upload available through the latter, because a
+// temporary OpenAI outage must not prevent existing users from posting photos.
 const PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
-function fixture(verdict:{safe:boolean;reason?:string}){
+function fixture(verdict:{safe:boolean;reason?:string},throws=false){
  const uploaded:string[]=[],stored:any[]=[];
  const table=()=>{let row:any;const q:any={insert:(value:any)=>{row=value;return q;},select:()=>q,
   single:async()=>{stored.push(row);return{data:{id:'22222222-2222-4222-8222-222222222222',created_at:'2026-09-10T00:00:00Z',...row},error:null};},
@@ -94,11 +89,11 @@ function fixture(verdict:{safe:boolean;reason?:string}){
   storage:{from:()=>({upload:async(path:string)=>{uploaded.push(path);return{error:null};},
    getPublicUrl:(path:string)=>({data:{publicUrl:`https://cdn.test/${path}`}}),remove:async()=>({error:null})})},
  };
- return {db,uploaded,stored,moderateImage:async()=>verdict};
+ return {db,uploaded,stored,moderateImage:async()=>{if(throws)throw new Error('OpenAI provider unavailable');return verdict;}};
 }
 
-async function post(verdict:{safe:boolean;reason?:string}){
- const {db,uploaded,stored,moderateImage}=fixture(verdict);
+async function post(verdict:{safe:boolean;reason?:string},throws=false){
+ const {db,uploaded,stored,moderateImage}=fixture(verdict,throws);
  const {createWall}=await import('../server/wall.mjs');
  const wall=createWall({db,moderateImage});
  const server=createServer((request,response)=>void wall.handle(request,response));
@@ -112,14 +107,21 @@ async function post(verdict:{safe:boolean;reason?:string}){
  } finally { await new Promise<void>(resolve=>server.close(()=>resolve())); }
 }
 
-test('a photo is never published by a moderator that did not clear it',async()=>{
- // 'unconfigured' is the verdict in production today, so it belongs in this list, not outside it.
+test('an explicit photo is blocked but OpenAI failures fall back to posting',async()=>{
+ const explicit=await post({safe:false,reason:'explicit'});
+ expect(explicit.status).toBe(422);
+ expect(explicit.uploaded).toHaveLength(0);
+ expect(explicit.stored).toHaveLength(0);
  for(const reason of ['unconfigured','unreachable','unavailable','unreadable']){
   const {status,uploaded,stored}=await post({safe:false,reason});
-  expect(status,`reason '${reason}' must not publish`).not.toBe(201);
-  expect(uploaded,`reason '${reason}' must not reach the public bucket`).toHaveLength(0);
-  expect(stored,`reason '${reason}' must not be written to the wall`).toHaveLength(0);
+  expect(status,`reason '${reason}' should keep posting available`).toBe(201);
+  expect(uploaded,`reason '${reason}' should reach the public bucket`).toHaveLength(1);
+  expect(stored,`reason '${reason}' should be written to the wall`).toHaveLength(1);
  }
+ const thrown=await post({safe:false,reason:'provider-error'},true);
+ expect(thrown.status).toBe(201);
+ expect(thrown.uploaded).toHaveLength(1);
+ expect(thrown.stored).toHaveLength(1);
 });
 
 test('a cleared photo still publishes',async()=>{

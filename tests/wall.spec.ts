@@ -6,11 +6,12 @@ test('Wall server owns identity, filters text, stores media and protects deletio
  const likeRows:{post_id:string;user_id:string}[]=[],replyRows:any[]=[];
  const uploads:string[]=[],removed:string[]=[];
  const ownId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',friendId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',adminId='cccccccc-cccc-4ccc-8ccc-cccccccccccc',singerId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
- const users:any={
+  const users:any={
   valid:{id:ownId,is_anonymous:false,user_metadata:{display_name:'Real Name',profile:{bio:'Mamak fan'}}},
   other:{id:friendId,is_anonymous:false,user_metadata:{display_name:'Friend'}},
   admin:{id:adminId,is_anonymous:false,email_confirmed_at:'2026-09-01T00:00:00Z',email:'yusufmohdsuhair@gmail.com',user_metadata:{display_name:'Yusuf'}},
   singer:{id:singerId,is_anonymous:false,user_metadata:{display_name:'Singer'}},
+  photo:{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef',is_anonymous:false,user_metadata:{display_name:'Photo'}},
   nokey:{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',is_anonymous:false,user_metadata:{display_name:'No Key'}},
  };
  let postSeq=0,replySeq=0;
@@ -34,11 +35,11 @@ test('Wall server owns identity, filters text, stores media and protects deletio
   verdict={safe:false,reason:'explicit'};
   expect((await call('/wall/posts','POST',{text:'nudes',mimeType:'image/png',data:png},'valid')).status).toBe(422);
   verdict={safe:false,reason:'unreachable'};
-  expect((await call('/wall/posts','POST',{text:'photo',mimeType:'image/png',data:png},'valid')).status).toBe(503);
-  expect(uploads).toHaveLength(0);
+  expect((await call('/wall/posts','POST',{text:'photo',mimeType:'image/png',data:png},'photo')).status).toBe(201);
+  expect(uploads).toHaveLength(1);
   verdict={safe:true};
   const created=await (await call('/wall/posts','POST',{text:'bodoh',author:'Admin',userId:'u2',mimeType:'image/png',data:png},'valid')).json();
-  expect(created.post).toMatchObject({userId:ownId,author:'Real Name',text:'***',mediaType:'image',gameMaster:false,likeCount:0,likedByMe:false,replyCount:0});expect(uploads).toHaveLength(1);
+  expect(created.post).toMatchObject({userId:ownId,author:'Real Name',text:'***',mediaType:'image',gameMaster:false,likeCount:0,likedByMe:false,replyCount:0});expect(uploads).toHaveLength(2);
   const adminCreated=await (await call('/wall/posts','POST',{text:'GM here'},'admin')).json();
   expect(adminCreated.post).toMatchObject({userId:adminId,author:'Yusuf',text:'GM here',gameMaster:true,likeCount:0,likedByMe:false,replyCount:0});
   const adminPostId=adminCreated.post.id;
@@ -53,18 +54,15 @@ test('Wall server owns identity, filters text, stores media and protects deletio
   const feed=await (await call('/wall/posts','GET',undefined,'valid')).json();
   expect(feed.posts.find((post:any)=>post.id===adminPostId)).toMatchObject({gameMaster:true,likeCount:1,likedByMe:true,replyCount:1});
   expect((await call('/wall/posts/11111111-1111-4111-8111-111111111111','DELETE',undefined,'valid')).status).toBe(403);
-  expect((await call(`/wall/posts/${created.post.id}`,'DELETE',undefined,'valid')).status).toBe(200);expect(removed).toEqual(uploads);
+  expect((await call(`/wall/posts/${created.post.id}`,'DELETE',undefined,'valid')).status).toBe(200);expect(removed).toEqual([uploads[1]]);
   const profile=await (await call(`/wall/profile/${friendId}`)).json();expect(profile.profile).toMatchObject({name:'Friend',registered:true});
   // Reading a profile is unauthenticated but spends a Supabase admin call, so it is capped.
   expect((await call(`/wall/profile/${friendId}`)).status).toBe(429);
   verdict={safe:false,reason:'explicit'};
   expect((await call('/wall/posts','POST',{mimeType:'audio/ogg',data:Buffer.from('OggSvoicenote').toString('base64')},'singer')).status).toBe(201);
-  // No OPENAI_API_KEY must block the photo rather than publish it unchecked: README and
-  // the release notes both promise screening fails closed without a key.
+  // No OPENAI_API_KEY is an OpenAI availability failure, so the Wall remains usable.
   verdict={safe:false,reason:'unconfigured'};
-  expect((await call('/wall/posts','POST',{text:'screening off',mimeType:'image/png',data:png},'nokey')).status).toBe(503);
-  // Text-only posts stay available while photos are blocked.
-  expect((await call('/wall/posts','POST',{text:'no photo, still fine'},'nokey')).status).toBe(201);
+  expect((await call('/wall/posts','POST',{text:'screening off',mimeType:'image/png',data:png},'nokey')).status).toBe(201);
  }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
 

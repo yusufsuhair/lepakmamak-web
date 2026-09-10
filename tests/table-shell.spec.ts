@@ -31,16 +31,16 @@ test('the ring shows who is here, who is ready and how many seats are still open
 test('sedia toggles, and the countdown replaces it once everyone is in',async({page})=>{
  await mount(page,'ready-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
- await page.getByRole('button',{name:/SEDIA/}).click();
+ await page.getByRole('button',{name:/READY/}).click();
  expect(await page.evaluate(()=>(window as any).sent)).toEqual([{type:'lobby-ready',ready:true}]);
 
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby({members:[{id:'a',name:'Ali',ready:true},{id:'b',name:'Mei',ready:false}]}));
- await page.getByRole('button',{name:/SEDIA/}).click();
+ await page.getByRole('button',{name:/READY/}).click();
  expect(await page.evaluate(()=>(window as any).sent)).toContainEqual({type:'lobby-ready',ready:false});
 
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby({phase:'countdown',ends:3000,serverTime:0,members:[{id:'a',name:'Ali',ready:true},{id:'b',name:'Mei',ready:true}]}));
  await expect(page.locator('#table-countdown')).toBeVisible();
- await expect(page.getByRole('button',{name:/SEDIA/})).toBeHidden();
+ await expect(page.getByRole('button',{name:/READY/})).toBeHidden();
 });
 
 test('the lobby steps aside while a game is running and comes back to run it again',async({page})=>{
@@ -49,7 +49,7 @@ test('the lobby steps aside while a game is running and comes back to run it aga
  expect(await page.evaluate(()=>(window as any).shell.playing)).toBe(true);
  await expect(page.locator('#table-ring')).toBeHidden();
 
- await page.getByRole('button',{name:'Main lagi'}).click();
+ await page.getByRole('button',{name:'Play again'}).click();
  expect(await page.evaluate(()=>(window as any).sent)).toContainEqual({type:'lobby-rematch'});
 });
 
@@ -66,7 +66,7 @@ test('a reaction fires to the table and shows up on screen',async({page})=>{
 test('a city lobby says so, instead of pretending to be this table',async({page})=>{
  await mount(page,'city-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby({game:'werewolf',scope:'city',min:7,max:9,key:'city'}));
- await expect(page.locator('#table-scope')).toContainText('bandar');
+ await expect(page.locator('#table-scope')).toContainText('City lobby');
  // Nine seats, not the three at this table.
  await expect(page.locator('.table-seat')).toHaveCount(9);
 });
@@ -78,7 +78,7 @@ test('an empty seat pulls your geng in, and says so when you have none',async({p
  // No party yet: the seat must not pretend it can do anything.
  const idle=page.locator('.table-seat.empty button');
  await expect(idle).toBeDisabled();
- await expect(idle).toHaveAttribute('title',/geng dahulu/);
+ await expect(idle).toHaveAttribute('title',/Join a party first/);
 
  await page.evaluate(()=>(window as any).shell.party(2));
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
@@ -90,5 +90,5 @@ test('an empty seat pulls your geng in, and says so when you have none',async({p
  const sent=await page.evaluate(()=>(window as any).sent);
  expect(sent.at(-1)).toMatchObject({type:'chat',channel:'party'});
  expect(sent.at(-1).text).toContain('Lukis Lah!');
- await expect(page.locator('.table-seat.empty button')).toContainText('Dah ajak');
+ await expect(page.locator('.table-seat.empty button')).toContainText('Invited');
 });

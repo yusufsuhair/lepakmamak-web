@@ -1,4 +1,16 @@
-[{
+[
+{
+  "version": "1.39.25",
+  "date": "2026-09-11",
+  "title": "Geng, avatar dan multiplayer dikemas kini",
+  "notes": [
+    "Cipta Geng dengan 1,000 Syiling, terima permintaan ahli, dan hanya leader boleh approve atau disband.",
+    "Preview character semasa onboarding kini menggunakan avatar 3D yang sama seperti Inventory, dengan pilihan tudung yang lebih sempurna menutup leher dan bahu.",
+    "Remote player kekal kelihatan selepas teleport, dan chat fullscreen kini berada paling depan dengan kawalan minimize atau tutup yang jelas.",
+    "Wall photo masih boleh dipos apabila OpenAI tidak tersedia; foto yang mendapat keputusan explicit tetap ditolak."
+  ]
+},
+{
   "version": "1.39.24",
   "date": "2026-09-11",
   "title": "English table games and tudung wardrobe",

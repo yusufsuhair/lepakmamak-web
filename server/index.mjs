@@ -31,6 +31,7 @@ import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
 import {createAccounts} from './account.mjs';
 import {createLeaderboard} from './leaderboard.mjs';
+import {createGengs} from './geng.mjs';
 import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
@@ -90,7 +91,7 @@ const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
 // feature lands, so they are all refused at one gate before any handler sees them.
-const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'geng', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
 const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
 const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
 function penaltyNotice(status) {
@@ -116,6 +117,26 @@ setInterval(async () => {
   }
 }, 15000).unref();
 const shop = createShop((userId, accessories) => { for (const players of rooms.values()) { for (const player of players.values()) if (player.userId === userId) player.accessories = accessories; broadcast(players, { type: 'players', players: snapshot(players) }); } });
+async function refreshConnectedGengs() {
+  for (const players of rooms.values()) {
+    let changed = false;
+    for (const player of players.values()) {
+      if (!player.userId) continue;
+      const current = await safeGeng(player.userId);
+      // A transient database failure must not erase a badge that is already visible.
+      if (current === undefined) continue;
+      const next = current || null;
+      const geng = next?.name || '';
+      const gengId = next?.id || null;
+      const gengLeader = !!next?.leader;
+      if (player.geng !== geng || player.gengId !== gengId || player.gengLeader !== gengLeader) {
+        player.geng = geng; player.gengId = gengId; player.gengLeader = gengLeader; changed = true;
+      }
+    }
+    if (changed) broadcast(players, {type: 'players', players: snapshot(players)});
+  }
+}
+const gengs = createGengs({onChanged: () => refreshConnectedGengs()});
 const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4001,'Account deleted')});
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
@@ -123,15 +144,22 @@ const authUrl = process.env.SUPABASE_URL;
 const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Error('Supabase configuration is required. ALLOW_GUESTS=true is for local development only.');
 
+// A Geng is optional at join time. If its database is having a bad minute, the city still
+// lets people in and the next refresh fills the tag back in instead of blocking the door.
+async function safeGeng(userId) {
+  if (!userId) return null;
+  try { return await gengs.forPlayer(userId); } catch { return undefined; }
+}
+
 async function identify(token, guest = false, guestName) {
   if (guest === true && !token) {
     if (process.env.ALLOW_GUESTS !== 'true') throw new Error('Guest access is disabled.');
     if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
     const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
     if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');
-    return { name, guest: true, gameMaster: false, accessories: [], expiresAt: Date.now() + 86400000 };
+    return { name, guest: true, gameMaster: false, accessories: [], geng: null, expiresAt: Date.now() + 86400000 };
   }
-  if (!authUrl || !authKey) return { name: 'Local guest', expiresAt: Date.now() + 3600000 };
+  if (!authUrl || !authKey) return { name: 'Local guest', geng: null, expiresAt: Date.now() + 3600000 };
   if (typeof token !== 'string' || token.length > 3500) throw new Error('Log in to join the city.');
   const result = await fetch(`${authUrl}/auth/v1/user`, { headers: { apikey: authKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
   if (!result.ok) throw new Error('Your session expired. Please log in again.');
@@ -139,7 +167,7 @@ async function identify(token, guest = false, guestName) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', expiresAt: claims.exp * 1000 };
+  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', geng: (await safeGeng(user.id)) || null, expiresAt: claims.exp * 1000 };
 }
 
 // Standing announcements live here, keyed by room name: roomFor() returns a fresh object
@@ -177,7 +205,7 @@ function releasePassenger(passenger, reset = false) {
   Object.assign(passenger,reset?{x:-18,z:52}:clampWorldPoint(passenger.x+Math.cos(passenger.yaw)*2.4,passenger.z-Math.sin(passenger.yaw)*2.4,1));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, gengRefreshAt: _gengRefreshAt, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -232,6 +260,7 @@ const server = http.createServer(async (request, response) => {
     response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
   }
   response.setHeader('Cache-Control', 'no-store');
+  if (await gengs.handle(request, response)) return;
   if (await shop.handle(request, response)) return;
   if (await socialProfiles.handle(request,response)) return;
   if (await wall.handle(request,response)) return;
@@ -367,6 +396,7 @@ webSocketServer.on('connection', ws => {
         id,
         ws,
         name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
+        geng: identity.geng?.name || '', gengId: identity.geng?.id || null, gengLeader: !!identity.geng?.leader,
         muted: penalty.muted,
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
         color: palette[number % palette.length],
@@ -500,6 +530,21 @@ webSocketServer.on('connection', ws => {
       } catch { send(ws, { type: 'notice', message: 'Profile saved to your account. Rejoin to refresh its public card.' }); }
       return;
     }
+    if (message.type === 'geng') {
+      // Older clients could write an arbitrary badge above their own head. Keep the verb
+      // understood so they receive a useful response, but never accept its payload.
+      send(ws, {type: 'notice', message: 'Use the Geng menu to create or join a Geng.'});
+      return;
+    }
+    if (message.type === 'geng-refresh') {
+      if (!player.userId || player.guest || (player.gengRefreshAt && Date.now() - player.gengRefreshAt < 1000)) return;
+      player.gengRefreshAt = Date.now();
+      const current = await safeGeng(player.userId);
+      if (current === undefined) return;
+      player.geng = current?.name || ''; player.gengId = current?.id || null; player.gengLeader = !!current?.leader;
+      broadcast(currentRoom.players, {type: 'players', players: snapshot(currentRoom.players)});
+      return;
+    }
     if (uno.handle(currentRoom.players, player, message)) return;
     if (werewolf.handle(currentRoom.players, player, message)) return;
     if (lukis.handle(currentRoom.players, player, message)) return;
@@ -556,12 +601,6 @@ webSocketServer.on('connection', ws => {
       const stand = message.reset === true ? { x: -18, z: 52 } : player.chairStand;
       if (stand) { player.x = stand.x; player.z = stand.z; }
       player.chairId = null; player.seated = false; player.resting = null; player.restSpotId = null; delete player.chairStand;
-      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
-    }
-    if (message.type === 'geng') {
-      if (typeof message.text !== 'string') return;
-      // Filtered like any other text a stranger has to read above someone's head.
-      player.geng = filterChat(message.text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18));
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'afk-note') {

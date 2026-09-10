@@ -20,6 +20,7 @@ import {createCarFinder,drawCarPin} from './car-finder';
 import {districtFor} from '../shared/districts.mjs';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
+import {horizontalDistance,remoteIsVisible,remoteNeedsSnap} from './remote-visibility';
 import {setupWeather} from './weather';
 import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
@@ -61,6 +62,7 @@ import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
+import {setupGeng, type GengState} from './geng';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -110,7 +112,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="geng-name">Geng name</label><input id="geng-name" maxlength="18" placeholder="e.g. Budak Mamak" autocomplete="off" /><small>Shown above your name, to everyone.</small><div><button id="save-geng" type="button">Set geng</button><button id="clear-geng" type="button">Clear geng</button></div><span id="geng-status" role="status"></span><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
@@ -220,7 +222,7 @@ async function init() {
   let car = createDriveableCar(); car.group.position.set(-7, .09, 64); car.group.rotation.y = Math.PI; scene.add(car.group);
   const personalCar=car;
   let fleetId:string|null=null, claimPendingUntil=0;
-  let pressedCarId:string|null=null,interactionPressUntil=0;
+  let pressedCarId:string|null=null,interactionPressUntil=0,interactionPointerDown=false;
   const angryVoice=fetch('/audio/angry.mp3').then(r=>r.arrayBuffer()).catch(()=>null);
   const ANGRY_LINES=['Woi! Kereta aku tu!','Eh, cilok kereta aku?!','Woi! Turun sekarang!'];
   let angryBuffer:Promise<AudioBuffer|null>|null=null;
@@ -285,7 +287,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -349,17 +351,16 @@ async function init() {
   }
   let peerDots: {x: number; z: number; party: boolean}[] = [];
   let afkNote = '';
-  // Kept on the device rather than the account, so a guest keeps their geng too. It is
-  // re-sent on every welcome, which is what carries it across a reconnect.
-  let geng = '';
-  try { geng = (localStorage.getItem('lepak-geng') || '').slice(0, 18); } catch { /* private window */ }
-  function publishGeng(value: string) {
-    geng = value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18);
-    try { localStorage.setItem('lepak-geng', geng); } catch { /* private window */ }
-    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'geng', text: geng }));
-    $<HTMLInputElement>('geng-name').value = geng;
-    $('geng-status').textContent = geng ? 'Geng set' : 'Geng cleared';
-    if (localName) updateNameTagGeng(localName, geng);
+  // A Geng belongs to the account and is changed through the server-backed social module.
+  // Guests have no wallet or membership, so they simply carry no badge.
+  let geng = '', gengLeader = false;
+  let gengButton: HTMLButtonElement | null = null;
+  function applyGengState(state: GengState | null) {
+    const current = state?.current || null;
+    geng = current?.name || ''; gengLeader = !!current?.leader;
+    if (gengButton) { gengButton.hidden = !session || !!guestName; gengButton.dataset.geng = geng; gengButton.title = geng ? `${geng}${gengLeader ? ' · Leader' : ''}` : 'Create or join a Geng'; }
+    if (localName) updateNameTagGeng(localName, geng, gengLeader);
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'geng-refresh'}));
   }
   const speechBubbles = new Map<string, { element: HTMLDivElement; expiresAt: number }>();
   const speechPosition = new THREE.Vector3();
@@ -398,9 +399,6 @@ async function init() {
   }
   // Filled from storage at startup, not on welcome: solo play never receives one. The tag
   // itself is painted when the label exists, which is later.
-  $<HTMLInputElement>('geng-name').value = geng;
-  $('save-geng').onclick = () => publishGeng($<HTMLInputElement>('geng-name').value);
-  $('clear-geng').onclick = () => publishGeng('');
   $('save-afk').onclick = () => publishAfk($<HTMLInputElement>('afk-note').value);
   $('clear-afk').onclick = () => publishAfk('');
   let localName: THREE.Sprite | null = null;
@@ -487,6 +485,7 @@ async function init() {
   const tableGameTitles:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
+  const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; });
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
   function resetStick() {
@@ -841,6 +840,12 @@ async function init() {
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
+    if (self) {
+      geng = String(self.geng || '').slice(0, 24);
+      gengLeader = !!self.gengLeader;
+      if (gengButton) { gengButton.hidden = !session || !!guestName; gengButton.dataset.geng = geng; gengButton.title = geng ? `${geng}${gengLeader ? ' · Leader' : ''}` : 'Create or join a Geng'; }
+      if (localName) updateNameTagGeng(localName, geng, gengLeader);
+    }
     park.peers(players);
     park.sync(self?.parkRide||null);
     if (self?.resting && !self.chairId && !self.passengerOf && !self.riding) {
@@ -999,7 +1004,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); socket.send(JSON.stringify({ type: 'geng', text: geng })); $<HTMLInputElement>('geng-name').value = geng; if (localName) updateNameTagGeng(localName, geng); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
+        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
@@ -1158,9 +1163,11 @@ async function init() {
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers, tudung: look.tudung }));
   });
-  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';// Wall · recentre · Kedai · character · settings, reading outwards along the top bar.
+  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';// Wall · recentre · Kedai · character · Geng · settings, reading outwards along the top bar.
   const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
-  $('menu').before(shopButton,inventoryButton);inventoryButton.onclick=()=>inventory.open();
+  gengButton=document.createElement('button');gengButton.id='open-geng';gengButton.type='button';gengButton.setAttribute('aria-label','Open Geng');gengButton.title='Create or join a Geng';gengButton.setAttribute('aria-haspopup','dialog');gengButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 1.8 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/></svg>';
+  $('menu').before(shopButton,inventoryButton,gengButton);inventoryButton.onclick=()=>inventory.open();
+  gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
 
   $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
@@ -1176,7 +1183,7 @@ async function init() {
     if (!guestName) void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
-    if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng); scene.add(localName); }
+    if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng, gengLeader); scene.add(localName); }
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
   }
   const idleGuard = createIdleGuard(() => started && seated, () => {
@@ -1308,10 +1315,13 @@ async function init() {
     if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
-  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false); $('interaction').onclick = () => { const id=pressedCarId||$('interaction').dataset.carId;pressedCarId=null;interactionPressUntil=0;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
-  $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
-  $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
-  window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
+  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false);
+  const interactionButton = $<HTMLButtonElement>('interaction');
+  interactionButton.onclick = () => { const id=pressedCarId||interactionButton.dataset.carId;pressedCarId=null;interactionPressUntil=0;interactionPointerDown=false;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  interactionButton.addEventListener('pointerdown',()=>{interactionPointerDown=true;pressedCarId=interactionButton.dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
+  interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
+  interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
+  window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
@@ -1732,12 +1742,16 @@ async function init() {
         ped.person.leftArm.rotation.x = -ped.person.leftLeg.rotation.x * .65; ped.person.rightArm.rotation.x = ped.person.leftLeg.rotation.x * .65;
       }
       // Nearest first, so the detail budget goes to the players actually worth articulating.
-      const ranked = [...remotePlayers.values()].sort((a, b) =>
-        Math.hypot(a.group.position.x - pos.x, a.group.position.z - pos.z) - Math.hypot(b.group.position.x - pos.x, b.group.position.z - pos.z));
+      // Use the server target for ranking and culling. After a local teleport, the rendered
+      // group is still at the old site until this pass catches it up; measuring that stale
+      // position hides a nearby player forever.
+      const viewer = {x: pos.x, z: pos.z};
+      const remoteDistance = (remote: RemotePlayer) => horizontalDistance(remote.target, viewer);
+      const ranked = [...remotePlayers.values()].sort((a, b) => remoteDistance(a) - remoteDistance(b));
       let detailed = 0;
       for (const remote of ranked) {
-        const distance = Math.hypot(remote.group.position.x - pos.x, remote.group.position.z - pos.z);
-        const shown = distance < VISIBLE_RANGE;
+        const distance = remoteDistance(remote);
+        const shown = remoteIsVisible(remote.target, viewer, VISIBLE_RANGE);
         remote.group.visible = shown;
         // Standing next to someone must never show a capsule, so close range ignores the budget.
         remote.detail = shown && detailed < DETAIL_CEILING && (distance < CLOSE_RANGE || (distance < DETAIL_RANGE && detailed < DETAIL_LIMIT));
@@ -1749,8 +1763,9 @@ async function init() {
         remote.label.visible = remote.detail;
       }
       for (const remote of remotePlayers.values()) {
+        if (remoteNeedsSnap(remote.group.position, remote.target)) remote.group.position.copy(remote.target);
+        else remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
         if (!remote.group.visible) continue;
-        remote.group.position.lerp(remote.target, 1 - Math.exp(-14 * dt));
         remote.yaw = dampAngle(remote.yaw, remote.targetYaw, 1 - Math.exp(-12 * dt));
         remote.group.rotation.y = remote.yaw;
         const onCar = remote.riding && remote.vehicle === 'car' && !remote.passengerOf;
@@ -1962,15 +1977,15 @@ async function init() {
       if (entity) {
         updateGameMasterTag(entity.label, !!remote.gameMaster, elapsed, reducedMotion);
         // updateNameTagGeng redraws only when the value actually changes.
-        updateNameTagGeng(entity.label, String((remote as unknown as {geng?: string}).geng || ''));
+        updateNameTagGeng(entity.label, String(remote.geng || ''), !!remote.gengLeader);
       }
     }
     voiceRadius.visible=started&&voice.micActive&&!voice.partyOnly;
     if(voiceRadius.visible){voiceRadius.position.set(pos.x,deckY+.08,pos.z);voiceRadius.material.opacity=reducedMotion ? .65 : .6+Math.sin(elapsed*3)*.12;}
     camera.updateMatrixWorld();
-    const actionButton = $<HTMLButtonElement>('interaction');
+    const actionButton = document.getElementById('interaction') as HTMLButtonElement | null;
     const action = objectAction();
-    if(performance.now()>=interactionPressUntil){
+    if(actionButton && !interactionPointerDown && performance.now()>=interactionPressUntil){
     actionButton.dataset.carId=action&&'carId' in action?action.carId||'':'';
     actionButton.hidden = !started || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
     if (action && !actionButton.hidden) {
@@ -1979,12 +1994,13 @@ async function init() {
       actionButton.style.left = `${Math.max(60, Math.min(innerWidth - 60, (anchor.x + 1) * innerWidth / 2))}px`;
       actionButton.style.top = `${Math.max(50, Math.min(innerHeight - 70, (1 - anchor.y) * innerHeight / 2))}px`;
       actionButton.disabled = action.disabled;
-      $('interaction-text').textContent = action.label;
+      const interactionText = document.getElementById('interaction-text');
+      if (interactionText) interactionText.textContent = action.label;
     }
     }
-    const voicePanel = $('voice-panel');
-    voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
-    if(localName&&!voicePanel.hidden){
+    const voicePanel = document.getElementById('voice-panel') as HTMLElement | null;
+    if (voicePanel) voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
+    if(localName && voicePanel && !voicePanel.hidden){
       camera.updateMatrixWorld();
       const anchor=localName.position.clone().add(new THREE.Vector3(0,.35,0)).project(camera);
       voicePanel.hidden=anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x)>1;

@@ -1,7 +1,7 @@
-// Explicit-image gate for Wall uploads. Fails closed: an unconfigured, unreachable or
-// unreadable moderator rejects the upload rather than letting unchecked media reach the
-// public bucket. Callers distinguish 'explicit' (the user's photo) from every other
-// reason (our outage, or a key we never set) so they can word the response correctly.
+// Explicit-image classifier for Wall uploads. It distinguishes 'explicit' (the user's
+// photo) from provider failures (our outage, a missing key, or an unreadable response).
+// The Wall route keeps the explicit verdict as a hard block and handles provider failures
+// as an availability fallback so a temporary OpenAI problem does not stop photo posting.
 const ENDPOINT='https://api.openai.com/v1/moderations',MODEL='omni-moderation-latest',TIMEOUT=10000;
 // ponytail: one calibrated flag plus one score floor. Lower SEXUAL_SCORE if explicit
 // uploads slip through; per-category tuning only if a single number stops being enough.

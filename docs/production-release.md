@@ -4,7 +4,7 @@ Production is at `e9ced2c`: the original map, live weather and GM controls, rest
 
 Railway deployment: `55c2b75e-6a67-4ea6-b529-55dad8873e62` (SUCCESS). All three frontend domains serve `assets/index-CMypOp87.js`. Production build and 17 focused tests passed; all local Supabase migrations are applied remotely.
 
-Configuration outstanding: Railway has no `OPENAI_API_KEY`. The restored Wall image moderation deliberately fails closed, so photo uploads remain blocked until this server-side key is configured.
+Configuration outstanding: Railway has no `OPENAI_API_KEY`. Wall photos continue to post when OpenAI is unavailable; a successful explicit verdict still blocks the upload, while provider outages are treated as a temporary availability fallback.
 
 The complete new KLCC map, teleport and associated work is preserved on `archive/klcc-map-rebuild` (tip `30f4e4e`). The user requested returning main to the original map on 2026-09-09.
 

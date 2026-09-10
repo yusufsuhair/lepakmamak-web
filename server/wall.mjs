@@ -36,8 +36,6 @@ export function createWall(services={}){
  const notePost=(userId,now)=>{if(lastPost.size>5000)for(const [id,at] of lastPost)if(now-at>=POST_WINDOW)lastPost.delete(id);lastPost.set(userId,now);};
  const moderation=services.moderation||createModeration({db});
  const moderateImage=services.moderateImage||createImageModerator().check;
- // Local development can post photos without an OpenAI key; production cannot.
- const allowUnmoderated=services.allowUnmoderatedImages??process.env.ALLOW_UNMODERATED_IMAGES==='true';
  const publicUrl=path=>path?db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl:null;
  const format=(row,counts={})=>({id:row.id,userId:row.user_id,author:row.author_name,text:row.body,mediaType:row.media_type,mediaUrl:publicUrl(row.media_path),mimeType:row.media_mime,createdAt:row.created_at,gameMaster:!!row.game_master,likeCount:counts.likeCount||0,likedByMe:!!counts.likedByMe,replyCount:counts.replyCount||0});
  const formatReply=row=>({id:row.id,postId:row.post_id,userId:row.user_id,author:row.author_name,text:row.body,gameMaster:!!row.game_master,createdAt:row.created_at});
@@ -66,8 +64,8 @@ export function createWall(services={}){
    const account=await user(request);if(!account){reply(response,401,{error:'Sign in with an account to post.'});return true;}
    // The Wall is the one live surface that never touches the socket, so the socket's mute
    // gate cannot see it. Anything that puts a player's own words or media in front of
-   // others is checked here; liking is not content, so it is left alone. Fails closed:
-   // one refused post during an outage beats a banned account posting a photo.
+   // others is checked here; liking is not content, so it is left alone. Account moderation
+   // still fails closed because it is an authorization decision, independent of image review.
    if(request.method==='POST'&&!/\/like$/.test(url.pathname)){
     let penalty;
     try{penalty=await moderation.status(account.id);}catch{reply(response,503,{error:'Could not check your account right now. Please try again in a moment.'});return true;}
@@ -78,12 +76,16 @@ export function createWall(services={}){
     const now=Date.now();if(now-(lastPost.get(account.id)||0)<POST_WINDOW){reply(response,429,{error:'Wait a moment before posting again.'});return true;}
     const input=await readBody(request),body=cleanWallText(input.text);let mediaPath=null,mediaType=null,mediaMime=null;
     if(input.data||input.mimeType){const spec=MIME[input.mimeType];if(!spec||typeof input.data!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.data)){reply(response,400,{error:'Unsupported media.'});return true;}const bytes=Buffer.from(input.data,'base64');if(!bytes.length||bytes.length>spec.max){reply(response,413,{error:spec.type==='image'?'Image must be 4 MB or smaller.':'Voice note must be 1.5 MB or smaller.'});return true;}if(!matchesMime(bytes,input.mimeType)){reply(response,400,{error:'The file content does not match its media type.'});return true;}
-     // Every unsafe verdict blocks, including 'unconfigured'. README and the release notes
-     // both promise photo screening fails closed without a key, and this used to be the one
-     // path that did not: a missing OPENAI_API_KEY published photos unchecked while the docs
-     // said they were being rejected. Only an explicit ALLOW_UNMODERATED_IMAGES opt-out, for
-     // local development, reopens it.
-     if(spec.type==='image'){const verdict=await moderateImage(bytes,input.mimeType);if(!verdict.safe&&!(verdict.reason==='unconfigured'&&allowUnmoderated)){reply(response,verdict.reason==='explicit'?422:503,{error:verdict.reason==='explicit'?'That photo looks explicit. Keep the Wall family friendly.':'Could not check this photo right now. Please try again in a moment.'});return true;}}
+     // A successful explicit verdict is the only image moderation result that blocks a post.
+     // OpenAI outages must not make the Wall unusable: missing credentials, billing/403
+     // responses, timeouts, malformed payloads and thrown provider errors all fall through
+     // to the normal upload path. The moderator itself still reports those failures so they
+     // remain observable and can be fixed without changing this user-facing fallback.
+     if(spec.type==='image'){
+      let verdict;
+      try{verdict=await moderateImage(bytes,input.mimeType);}catch{verdict={safe:false,reason:'provider-error'};}
+      if(verdict?.reason==='explicit'){reply(response,422,{error:'That photo looks explicit. Keep the Wall family friendly.'});return true;}
+     }
      mediaType=spec.type;mediaMime=input.mimeType;mediaPath=`${account.id}/${now}-${crypto.randomUUID()}.${spec.ext}`;const uploaded=await db.storage.from(BUCKET).upload(mediaPath,bytes,{contentType:mediaMime,cacheControl:'31536000',upsert:false});if(uploaded.error)throw uploaded.error;}
     if(!body&&!mediaPath){reply(response,400,{error:'Write something or attach media.'});return true;}
     const author=String(account.user_metadata?.display_name||'Player').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18)||'Player';

@@ -4,6 +4,5 @@
   { "key": "interests", "label": "Interests", "max": 100, "placeholder": "Gaming, football, food hunting…" },
   { "key": "languages", "label": "Languages", "max": 60, "placeholder": "Bahasa Melayu, English…" },
   { "key": "socialMedia", "label": "Social media", "max": 80, "placeholder": "@yourhandle on IG/TikTok/X" },
-  { "key": "favouriteHangout", "label": "Favourite hangout", "max": 60, "placeholder": "e.g. Mamak Maju, Basket Lepak" },
-  { "key": "geng", "label": "Geng", "max": 40, "placeholder": "e.g. Geng Balik Lambat" }
+  { "key": "favouriteHangout", "label": "Favourite hangout", "max": 60, "placeholder": "e.g. Mamak Maju, Basket Lepak" }
 ]

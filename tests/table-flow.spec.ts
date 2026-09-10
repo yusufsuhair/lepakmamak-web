@@ -21,7 +21,7 @@ test('seated players open the game-only table and play poker',async({page})=>{
  await expect(page.locator('#table-ring .table-seat.filled')).toHaveCount(1);
  friend.send(JSON.stringify({type:'lobby-join',game:'poker'}));
  await expect(page.locator('#table-ring .table-seat.filled')).toHaveCount(2);
- await page.getByRole('button',{name:/SEDIA/}).click();
+ await page.getByRole('button',{name:/READY/}).click();
  await expect(page.locator('#table-ring .table-seat.ready')).toHaveCount(1);
  friend.send(JSON.stringify({type:'lobby-ready',ready:true}));
  await expect(page.locator('#table-countdown')).toBeVisible();
@@ -29,7 +29,7 @@ test('seated players open the game-only table and play poker',async({page})=>{
  expect(lobby.phase).toBe('playing');
  expect(pokerGame.players.find((p:any)=>p.id!==friendId).cards).toEqual([]);
  if(pokerGame.turnId===friendId)friend.send(JSON.stringify({type:'poker-action',hand:pokerGame.hand,revision:pokerGame.revision,action:'fold'}));else await page.locator('.poker [data-action="fold"]').click();
- await expect(page.locator('.poker [data-phase]')).toHaveText('Pusingan tamat');await expect(page.locator('.poker [data-turn]')).toContainText('menang');
+ await expect(page.locator('.poker [data-phase]')).toHaveText('Hand over');await expect(page.locator('.poker [data-turn]')).toContainText(/win|won/i);
  await page.locator('#close-table-social').click();await page.screenshot({path:'test-results/table-flow-world.png'});expect(errors).toEqual([]);
  }finally{friend?.close();vite.kill();server.kill();}
 });

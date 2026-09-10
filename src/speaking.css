@@ -2,7 +2,7 @@
    so it reads with the other driving HUD, instead of competing with the map. */
 #speaking { position: fixed; top: auto; right: 24px; bottom: 140px; left: auto; display: grid; justify-items: end; gap: 5px; max-width: min(250px, calc(100vw - 24px)); pointer-events: none; z-index: 11; }
 #speaking:empty { display: none; }
-.speaker { --voice-level: 0; --voice-alpha: .08; --voice-border-alpha: .18; --voice-glow: 0px; --voice-face-glow: 0px; display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border-radius: 20px; background: #0d211be8; border: 1px solid #3b5549; box-shadow: 0 0 var(--voice-glow) rgb(221 246 154 / var(--voice-alpha)); opacity: .64; transition: background .12s, border-color .12s, box-shadow .12s, opacity .16s; animation: speaker-in .16s ease-out; }
+.speaker { --voice-level: 0; --voice-alpha: .08; --voice-border-alpha: .18; --voice-glow: 0px; --voice-face-glow: 0px; display: flex; align-items: center; gap: 7px; padding: 3px 9px 3px 3px; border-radius: 20px; background: #0d211be8; border: 1px solid #3b5549; box-shadow: 0 0 var(--voice-glow) rgb(221 246 154 / var(--voice-alpha)); opacity: .58; transition: background .12s, border-color .12s, box-shadow .12s, opacity .1s; animation: speaker-in .16s ease-out; }
 .speaker-face { width: 27px; height: 30px; border-radius: 10px; border-color:#708078; background:#485950; transition: background .12s, color .12s, box-shadow .12s; }
 .speaker-face .player-face-head{left:4px;top:3px;transform:scale(.72);transform-origin:top left}.speaker-face .player-face-body{left:3px;width:21px;height:15px}.speaker-face .player-face-tail{transform:scale(.75);transform-origin:top right}
 .speaker b { font-size: 11px; color: #a9b8ab; font-weight: 600; transition: color .12s; }

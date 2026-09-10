@@ -1,6 +1,7 @@
 import { createClient, type Session } from '@supabase/supabase-js';
 
-import { appearance, appearanceOptions, defaultAppearance, TUDUNG_COMING_SOON, tudungColour } from './appearance';
+import { appearance, appearanceOptions, defaultAppearance, TUDUNG_COMING_SOON } from './appearance';
+import { createAvatarPreview } from './avatar-preview';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -18,7 +19,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
-  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p><p class="auth-legal">By joining you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="secondary" id="auth-google"><span aria-hidden="true">G</span> Continue with Google</button>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Character colour preview"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
+  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p><p class="auth-legal">By joining you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="secondary" id="auth-google"><span aria-hidden="true">G</span> Continue with Google</button>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
   document.getElementById('app')!.append(overlay);
   const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const password = el<HTMLInputElement>('auth-password');
@@ -38,7 +39,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       const input = el<HTMLInputElement>('guest-name');
       const value = input.value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim();
       if (value.length < 2) { input.setCustomValidity('Enter at least two characters.'); input.reportValidity(); return; }
-      input.setCustomValidity(''); guestName = value.slice(0,18); guestDialog.close(); onEnter();
+      input.setCustomValidity(''); guestName = value.slice(0,18); guestDialog.close(); enter();
     };
     el('guest-name').oninput = () => el<HTMLInputElement>('guest-name').setCustomValidity('');
   }
@@ -56,23 +57,10 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     select.value = defaultAppearance[key as keyof typeof defaultAppearance]; label.append(select); choices.append(label);
   }
   const selectedAppearance = () => appearance(Object.fromEntries(Object.keys(appearanceOptions).map(key => [key, el<HTMLSelectElement>(`avatar-${key}`).value])));
-  function preview() {
-    const look = selectedAppearance(), ctx = el<HTMLCanvasElement>('avatar-preview').getContext('2d')!;
-    ctx.clearRect(0, 0, 180, 200); ctx.fillStyle = '#d9e2cc'; ctx.fillRect(0, 0, 180, 200);
-    ctx.fillStyle = look.trousers; ctx.fillRect(66, 125, 21, 57); ctx.fillRect(93, 125, 21, 57);
-    ctx.fillStyle = look.shirt; ctx.fillRect(look.gender === 'female' ? 67 : 62, 72, look.gender === 'female' ? 46 : 56, 57); ctx.fillRect(46, 76, 17, 34); ctx.fillRect(117, 76, 17, 34);
-    ctx.fillStyle = look.skin; ctx.fillRect(46, 110, 17, 22); ctx.fillRect(117, 110, 17, 22); ctx.fillRect(82, 62, 16, 14); ctx.beginPath(); ctx.ellipse(90, 43, 25, 30, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = look.hair; ctx.beginPath(); ctx.ellipse(90, 23, 26, 13, 0, Math.PI, Math.PI * 2); ctx.fill(); ctx.fillRect(65, 21, 50, 12);
-    if (look.hairstyle === 'bob') { ctx.fillRect(63, 26, 8, 46); ctx.fillRect(109, 26, 8, 46); }
-    if (look.hairstyle === 'ponytail') ctx.fillRect(112, 26, 12, 44);
-    if (look.tudung !== 'none') {
-      ctx.fillStyle = tudungColour(look.tudung); ctx.beginPath(); ctx.ellipse(90, 28, 29, 23, 0, Math.PI, Math.PI * 2); ctx.fill();
-      ctx.fillRect(72, 31, 9, look.tudung === 'long' ? 62 : 32); ctx.fillRect(99, 31, 9, look.tudung === 'long' ? 62 : 32);
-      if (look.tudung === 'turban') { ctx.fillStyle = '#ffffff35'; ctx.fillRect(67, 24, 46, 5); ctx.fillRect(72, 18, 36, 5); }
-      if (look.tudung === 'ruffle') { ctx.fillStyle = '#ffffff45'; for (const x of [75, 83, 90, 97, 105]) ctx.fillRect(x - 3, 60, 6, 8); }
-    }
-    ctx.fillStyle = '#253a40'; ctx.fillRect(78, 40, 4, 4); ctx.fillRect(98, 40, 4, 4); ctx.fillRect(66, 182, 21, 8); ctx.fillRect(93, 182, 21, 8);
-  }
+  // The onboarding character is the same rig as Inventory and the live city. Keeping one
+  // renderer here prevents a new player from choosing a look that changes shape after entry.
+  const authAvatarPreview = createAvatarPreview(el<HTMLCanvasElement>('avatar-preview'));
+  function preview() { authAvatarPreview.setLook(selectedAppearance()); }
   choices.addEventListener('change', preview); preview();
   // 'username' is the step a Google account lands on: signed in, but with no name of its
   // own yet. Google's own name is never read — you pick what the city calls you.
@@ -81,6 +69,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   let mode: 'register' | 'login' | 'recovery' | 'username' | 'looks' = 'register';
   const named = (value: Session | null) => String(value?.user.user_metadata?.display_name || '').trim().length >= 2;
   let busy = false;
+  const enter = () => { authAvatarPreview.stop(); onEnter(); };
   const submitLabel = () => mode === 'register' ? 'Create account' : mode === 'login' ? 'Log in & enter'
     : mode === 'username' ? 'Next' : mode === 'looks' ? 'Enter the city' : 'Save password';
   function render() {
@@ -169,7 +158,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
         if (!session) { message.textContent = 'Check your inbox to confirm your email, then log in here.'; return; }
         if (!named(session)) { password.value = ''; mode = 'username'; render(); name.focus(); return; }
       }
-      password.value = ''; overlay.hidden = true; onEnter();
+      password.value = ''; overlay.hidden = true; enter();
     } catch (error) { message.textContent = error instanceof Error ? error.message : 'Could not sign in. Please try again.'; }
     finally { busy = false; submit.disabled = false; delete submit.dataset.loading; submit.setAttribute('aria-busy','false'); submit.textContent = submitLabel(); }
   };
@@ -192,6 +181,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     try { session = (await auth.auth.getSession()).data.session; } catch { session = null; }
   }
   return () => {
+    authAvatarPreview.start();
     // Always apply the current step before revealing the panel. Development has no auth
     // client, and previously skipped render(), exposing every later onboarding field at
     // once behind the guest entry button.
@@ -204,7 +194,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     // A Google account arrives named by Google. It does not get to keep that name here,
     // and it does not get into the city until it has chosen one.
     if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
-    if (session && mode !== 'recovery' && mode !== 'looks') { onEnter(); return; }
+    if (session && mode !== 'recovery' && mode !== 'looks') { enter(); return; }
     overlay.hidden = false;
     (mode === 'register' || mode === 'login' ? email : mode === 'recovery' ? password : mode === 'username' ? name : choices.querySelector('select'))?.focus();
   };

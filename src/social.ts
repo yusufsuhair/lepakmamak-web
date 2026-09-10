@@ -44,9 +44,13 @@ export function nameTag(name: string, interactiveVoice = false) {
     if (geng) {
       ctx.font = '700 19px "Oxanium", sans-serif';
       const tagWidth = Math.min(420, Math.ceil(ctx.measureText(geng).width + 26));
-      ctx.fillStyle = '#12312bb3';
+      // Only the Geng leader gets the gold badge. Members keep the quieter shared tag.
+      const leader = !!label.userData.gengLeader;
+      ctx.fillStyle = leader ? '#b98235e8' : '#12312bb3';
+      if (leader) { ctx.strokeStyle = '#ffe39a'; ctx.lineWidth = 2; }
       ctx.beginPath(); ctx.roundRect((512 - tagWidth) / 2, 34, tagWidth, 32, 10); ctx.fill();
-      ctx.fillStyle = '#f0cf8e';
+      if (leader) ctx.stroke();
+      ctx.fillStyle = leader ? '#fff3c4' : '#f0cf8e';
       ctx.fillText(geng, 256, 51, 400);
     }
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
@@ -73,10 +77,10 @@ export function nameTag(name: string, interactiveVoice = false) {
 }
 
 export function updateNameTagName(label:THREE.Sprite,name:string){label.userData.name=name.slice(0,18);label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);}
-export function updateNameTagGeng(label:THREE.Sprite,geng:string){
+export function updateNameTagGeng(label:THREE.Sprite,geng:string,leader=false){
  const next=String(geng||'').slice(0,18);
- if(label.userData.geng===next)return;            // redrawing a canvas every frame is not free
- label.userData.geng=next;label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);
+ if(label.userData.geng===next&&!!label.userData.gengLeader===leader)return; // redrawing every frame is not free
+ label.userData.geng=next;label.userData.gengLeader=leader;label.userData.drawVoice(!!label.userData.mic,!!label.userData.speaker);
 }
 
 export function updateNameTagVoice(label: THREE.Sprite, mic: boolean, speaker: boolean) {
@@ -194,10 +198,15 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
     expand.textContent = expanded ? '⤡' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
-    minimise.disabled = expanded;
     heading.disabled = expanded;
-    minimise.textContent = collapsed ? '▢' : '–';
-    minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
+    minimise.disabled = false;
+    if (expanded) {
+      minimise.textContent = '×';
+      minimise.setAttribute('aria-label', 'Close fullscreen chat');
+    } else {
+      minimise.textContent = collapsed ? '▢' : '–';
+      minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
+    }
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', expanded ? 'City chat' : `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
@@ -230,7 +239,10 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   // body still hidden, so it un-minimises on the way up.
   expand.onclick = () => { expanded = !expanded; if (expanded) setCollapsed(false); else render(); };
   expand.onkeydown = event => event.stopPropagation();
-  minimise.onclick = () => setCollapsed(!collapsed);
+  minimise.onclick = () => {
+    if (expanded) { expanded = false; setCollapsed(false); return; }
+    setCollapsed(!collapsed);
+  };
   minimise.onkeydown = event => event.stopPropagation();
 
   function expandPanel() { collapsed = false; render(); }

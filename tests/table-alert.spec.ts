@@ -3,7 +3,7 @@ import {createTableAlert,unoAlert,pokerAlert,lukisAlert,werewolfAlert,NO_ALERT} 
 
 test('each table game only nudges the player it actually needs',()=>{
  const uno={id:'g',round:1,self:'me',ends:9,unoTarget:null};
- expect(unoAlert({...uno,phase:'playing',turn:'me'}).body).toBe('Giliran anda.');
+ expect(unoAlert({...uno,phase:'playing',turn:'me'}).body).toBe('It is your turn.');
  expect(unoAlert({...uno,phase:'playing',turn:'you'})).toBe(NO_ALERT);
  expect(unoAlert({...uno,phase:'playing',turn:'you',unoTarget:'me'}).key).toBe('uno:g:1');
  expect(unoAlert({...uno,phase:'dealing',turn:'you'}).key).toBe('deal:g:1');
@@ -38,7 +38,7 @@ test('a nudge fires once per turn, stays quiet on screen, and rearms afterwards'
 
  alerts.fire('uno',turn(1),false);
  alerts.fire('uno',turn(1),false);
- expect(sent).toEqual(['UNO Lepak|Giliran anda.']);
+ expect(sent).toEqual(['UNO Lepak|It is your turn.']);
 
  alerts.fire('uno',NO_ALERT,false);
  alerts.fire('uno',turn(2),true);
@@ -71,5 +71,5 @@ test('a turn nudge reaches the world toast when the table dialog is closed',asyn
   ui.uno({...turn,revision:3,ends:turn.ends+25000});
   return seen;
  });
- expect(shown).toEqual(['UNO Lepak|Giliran anda.']);
+ expect(shown).toEqual(['UNO Lepak|It is your turn.']);
 });

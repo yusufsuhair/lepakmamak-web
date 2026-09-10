@@ -72,10 +72,9 @@ test('offline DM removes its private thread and composer target', async ({ page 
   await expect(page.locator('#chat-form')).toBeHidden();
 });
 
-// The two window controls were split apart and one of them was gone: expand floated over
-// the middle of the title bar, and minimise had been removed in favour of the header
-// click. They belong together in the corner, the way any other window says it.
-test('the window controls sit in the far-left corner and both still work', async ({ page }) => {
+// The two window controls belong together in the far-right corner, the way any other
+// window says it. Fullscreen uses the second control as a close button.
+test('the window controls sit in the far-right corner and both still work', async ({ page }) => {
   await page.route('**/chat-controls-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
   await page.goto('/chat-controls-harness');
   await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); (window as any).chat = setupChat(() => true, () => {}); });
@@ -99,7 +98,7 @@ test('the window controls sit in the far-left corner and both still work', async
 
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
-  await expect(page.getByRole('button', { name: 'Minimise city chat' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Close fullscreen chat' })).toBeEnabled();
   await expect(page.locator('#chat-heading')).toBeDisabled();
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
@@ -108,4 +107,6 @@ test('the window controls sit in the far-left corner and both still work', async
   await minimise.click();
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#chat-body')).toBeVisible();
+  await page.getByRole('button', { name: 'Close fullscreen chat' }).click();
+  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 });
