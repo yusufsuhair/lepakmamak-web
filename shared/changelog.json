@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.12",
+    "date": "2026-09-10",
+    "title": "Wardrobe karakter sebenar dan live",
+    "notes": [
+      "Preview wardrobe kini menggunakan model 3D karakter yang sama seperti watak sebenar dalam bandar.",
+      "Bila baju atau seluar dipilih, karakter dalam dunia dan preview wardrobe berubah terus tanpa simulasi 2D berasingan."
+    ]
+  },
+  {
     "version": "1.39.11",
     "date": "2026-09-10",
     "title": "City map dibuka dalam 3D",
