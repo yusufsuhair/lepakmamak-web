@@ -1,4 +1,4 @@
-import {createBeach} from './beach';
+import {beachRestPose,createBeach,type BeachRestKind,type BeachRestSpot} from './beach';
 import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
 import {setupVehicleRadio} from './vehicle-radio';
@@ -259,10 +259,12 @@ async function init() {
   cityMap.addEventListener('click', event => { if (event.target === cityMap) { const rect = cityMap.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setMap(false); } });
   let seated = false;
   let seatedChairId: string | null = null;
+  let beachResting: BeachRestKind | null = null;
+  let beachRestSpot: BeachRestSpot | null = null;
   const standPosition = new THREE.Vector3();
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
-    if (!started || paused || seated || riding || jumpHeight > 0 || jumpVelocity > 0) return;
+    if (!started || paused || seated || beachResting || riding || jumpHeight > 0 || jumpVelocity > 0) return;
     jumpVelocity = 6.5; movementSound('jump');
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
@@ -272,8 +274,8 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type NetworkPlayer = { y?: number; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   let localSupermanUntil=0;
@@ -395,7 +397,7 @@ async function init() {
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || isDancing() || tableSocial.opened || cityMap.open || seated || riding || punchUntil > simTime) return;
+    if (!started || paused || isDancing() || tableSocial.opened || cityMap.open || seated || beachResting || riding || punchUntil > simTime) return;
     if(insidePickleball(pos)){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){punchUntil=simTime+.38;networkSocket.send(JSON.stringify({type:'pickleball-hit'}));}return;}
     if(insideBasketball(pos)){basketball.action();return;}
     punchUntil = simTime + .38; punchCount++; punchSound();
@@ -694,7 +696,7 @@ async function init() {
     const stand = new THREE.Mesh(STAND_GEOMETRY, new THREE.MeshLambertMaterial({ color: player.color || '#72c8ba' }));
     stand.position.y = .74; stand.visible = false; stand.castShadow = false; group.add(stand);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, recallUntil: 0, person, punchUntil: 0 };
+    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!)}));
@@ -705,6 +707,13 @@ async function init() {
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
+    if (self?.resting && !self.chairId && !self.passengerOf && !self.riding) {
+      const spot = beach.nearbyRest(self);
+      if (spot && spot.kind === self.resting) { beachResting = self.resting; beachRestSpot = spot; }
+      else { beachResting = null; beachRestSpot = null; beachRestPose(player, null); }
+    } else if (self && !self.resting) {
+      beachResting = null; beachRestSpot = null; beachRestPose(player, null);
+    }
     if(self?.lrtId!=null){lrtId=self.lrtId;lrtSeat=self.lrtSeat||0;const seat=seatOffset(lrtSeat);lrtAlong=self.lrtAlong??seat.along;lrtAcross=self.lrtAcross??seat.across;riding=true;}
     if (self && (self.chairId || seatedChairId)) {
       const nowSeated = !!self.chairId;
@@ -740,7 +749,9 @@ async function init() {
       }
       for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
       updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
-      entity.target.set(remote.x, (remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12) + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
+      entity.resting = remote.resting || null;
+      const remoteBaseY = entity.resting ? .12 : remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12;
+      entity.target.set(remote.x, remoteBaseY + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       // Visibility is settled once per frame in the detail pass below, which runs more often
       // than this snapshot and would otherwise flicker against it.
     }
@@ -761,6 +772,7 @@ async function init() {
     if(lrtId!=null){lrtId=null;riding=false;speed=0;pos.y=.12;}
     saveLocation();
     seatedChairId = null; if (seated) chat.seated(false); seated = false;
+    beachResting = null; beachRestSpot = null; beachRestPose(player, null);
     tableSocial.close(); tableSocial.offline(); roomTables = [];
     wall.close();
     voice.connected(false);
@@ -840,7 +852,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); socket.send(JSON.stringify({ type: 'geng', text: geng })); $<HTMLInputElement>('geng-name').value = geng; if (localName) updateNameTagGeng(localName, geng); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
+        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); socket.send(JSON.stringify({ type: 'geng', text: geng })); $<HTMLInputElement>('geng-name').value = geng; if (localName) updateNameTagGeng(localName, geng); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
@@ -914,7 +926,7 @@ async function init() {
         const data = event.data;
         frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite
         // it with RECONNECTING…, so a full city and an expired login both looked like a
         // reconnect that never finished. Keep the reason the server gave.
@@ -934,7 +946,7 @@ async function init() {
     if (networkSendTimer < .05) return;
     networkSendTimer = 0;
     if (networkSocket.bufferedAmount >= 16384) return;
-    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, y: deckY, yaw, riding, speed, jumpHeight, seated, vehicle, fleetId });
+    const state = JSON.stringify({ type: 'state', x: pos.x, z: pos.z, y: deckY, yaw, riding, speed, jumpHeight, seated, resting: beachResting, restSpotId: beachRestSpot?.id || null, vehicle, fleetId });
     if (state === lastNetworkState && networkIdleTimer < .5) return;
     lastNetworkState = state; networkIdleTimer = 0; networkSocket.send(state);
   }
@@ -958,7 +970,7 @@ async function init() {
       if (remote && remote.target.distanceTo(pos) < 25) recallSound();
       return;
     }
-    if (!started || paused || riding || passengerOf) return;
+    if (!started || paused || riding || passengerOf || beachResting) return;
     if(isDancing())return;
     recallUntil = simTime + .82; recallSound();
     for (const id of ['desktop-recall', 'touch-recall']) {
@@ -1055,7 +1067,7 @@ async function init() {
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   const unciloked=(id:string)=>world.traffic.find(c=>c.id===id)?.group.userData.model==='lamborghini';
   function claimCar(id:string){
-    if(!started||paused||riding||seated||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened)return;
+    if(!started||paused||riding||seated||beachResting||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened)return;
     // The button is greyed out, but the keyboard does not read that, so the refusal is said
     // out loud here as well. The server refuses it a third time, for anything that gets past.
     if(unciloked(id)){toast('Tak bole','Kereta ni bukan untuk cilok.',2);return;}
@@ -1065,7 +1077,10 @@ async function init() {
   function objectAction() {
     if(lrtId!=null)return null;
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
+    if (beachResting && beachRestSpot) return { point: beachRestSpot, height: beachRestSpot.height + 1.15, label: 'Bangun', disabled: false };
     if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
+    const rest = beach.nearbyRest(pos);
+    if (rest) return { point: rest, height: rest.height + 1.15, label: rest.kind === 'hammock' ? 'Masuk hammock' : 'Baring', disabled: false };
     const driver = nearbyDriver();
     if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
     const chair = nearbyChair();
@@ -1096,8 +1111,22 @@ async function init() {
     if(lrtId!=null)return;
     if (!started || paused || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
+    if (beachResting && beachRestSpot) {
+      const exit = beach.exitSpot(beachRestSpot);
+      beachResting = null; beachRestSpot = null; beachRestPose(player, null);
+      pos.set(exit.x, .12, exit.z); yaw = Math.PI; deckY = 0; onBridge = false;
+      player.group.position.copy(pos); player.group.rotation.y = yaw;
+      walkSpeed = 0; speed = 0; punchUntil = 0; keys.clear(); resetStick(); sendNetworkState(1);
+      return;
+    }
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
+    const rest = !riding && !seated ? beach.nearbyRest(pos) : null;
+    if (rest) {
+      beachResting = rest.kind; beachRestSpot = rest; pos.set(rest.x, .12, rest.z); yaw = rest.yaw; deckY = 0; onBridge = false;
+      jumpHeight = 0; jumpVelocity = 0; walkSpeed = 0; speed = 0; punchUntil = 0; keys.clear(); resetStick();
+      beachRestPose(player, rest.kind, rest.yaw); player.group.position.set(rest.x, rest.height, rest.z); sendNetworkState(1); return;
+    }
     const driver = !riding && nearbyDriver();
     const station=!riding&&!seated&&lrtStations.find(s=>distanceTo(s)<5);
     if(station){const train=[0,1].find(id=>{const t=trainState(id,lrtNow());return t.doors&&lrtStations[t.station]?.id===station.id;});if(train!=null&&networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-board',station:station.id,train}));return;}
@@ -1253,7 +1282,7 @@ async function init() {
     options.style.top = `${Math.max(8, Math.min(y, innerHeight - options.offsetHeight - 8))}px`;
     $('view-profile').focus();
   }
-  $('dance-action').onclick=()=>{closeOptions();if(isDancing()){if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance-cancel'}));return;}if(riding||seated||jumpHeight>0)return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
+  $('dance-action').onclick=()=>{closeOptions();if(isDancing()){if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance-cancel'}));return;}if(riding||seated||beachResting||jumpHeight>0)return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
   function openSelectedProfile() { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; profile.showModal(); $('close-profile').focus(); }
   $('view-profile').onclick = openSelectedProfile;
@@ -1342,7 +1371,7 @@ async function init() {
   function finishTeleport(id:string){
     const destination=teleports.find(p=>p.id===id);if(!destination)return;
     teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
-    seated=false;seatedChairId=null;jumpHeight=0;jumpVelocity=0;speed=0;walkSpeed=0;localSupermanUntil=0;
+    seated=false;seatedChairId=null;beachResting=null;beachRestSpot=null;beachRestPose(player,null);jumpHeight=0;jumpVelocity=0;speed=0;walkSpeed=0;localSupermanUntil=0;
     pos.set(destination.x,.12,destination.z);player.group.position.copy(pos);keys.clear();resetStick();
     camera.position.set(pos.x+2,pos.y+5,pos.z+9);setMap(false);sendNetworkState(1);
     toast('Teleported',mapPlaces.find(p=>p.id===id)?.name||'You have arrived.');
@@ -1526,12 +1555,15 @@ async function init() {
         if(rider?.lrtId!=null){const point=riderPoint(rider,lrtNow());remote.group.position.set(point.x,point.y,point.z);remote.group.rotation.y=point.yaw;remote.car.group.visible=false;remote.bike.group.visible=false;remote.person.group.visible=true;}
         if (!remote.detail) continue;
         remote.person.group.scale.setScalar(remote.passengerOf && remote.vehicle === 'car' ? .7 : 1);
-        remote.person.leftLeg.rotation.x = remote.person.rightLeg.rotation.x = remote.person.leftArm.rotation.x = remote.person.rightArm.rotation.x = 0;
-        // Seated until they get up: a rider who has walked is standing, like you are.
-        const strolling = rider?.lrtId!=null && (rider.lrtAlong!=null || rider.lrtAcross!=null);
-        if ((rider?.lrtId!=null && !strolling) || remote.seated || remote.passengerOf) sitPose(remote.person);
-        if (!remote.riding) punchPose(remote.person, remote.punchUntil);
-        pickleball.equip(remote.person,!remote.riding&&!remote.seated&&insidePickleball(remote.group.position),Math.max(0,(remote.punchUntil-simTime)/.38));
+        if (remote.resting) beachRestPose(remote.person, remote.resting, remote.targetYaw);
+        else {
+          beachRestPose(remote.person, null);
+          // Seated until they get up: a rider who has walked is standing, like you are.
+          const strolling = rider?.lrtId!=null && (rider.lrtAlong!=null || rider.lrtAcross!=null);
+          if ((rider?.lrtId!=null && !strolling) || remote.seated || remote.passengerOf) sitPose(remote.person);
+          if (!remote.riding) punchPose(remote.person, remote.punchUntil);
+        }
+        pickleball.equip(remote.person,!remote.riding&&!remote.seated&&!remote.resting&&insidePickleball(remote.group.position),Math.max(0,(remote.punchUntil-simTime)/.38));
         basketball.pose(remote.person,remote.id);
         if (remote.riding) remote.recallUntil = 0;
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
@@ -1589,6 +1621,11 @@ async function init() {
         bike.wheels.forEach(wheel => wheel.rotation.x += speed * dt / .4);
         }
         walkSpeed = 0;
+      } else if (beachResting && beachRestSpot) {
+        beachRestPose(player, beachResting, beachRestSpot.yaw);
+        player.group.position.set(beachRestSpot.x, beachRestSpot.height, beachRestSpot.z);
+        pos.set(beachRestSpot.x, .12, beachRestSpot.z); yaw = beachRestSpot.yaw; deckY = 0; onBridge = false;
+        walkSpeed = 0; speed = 0; jumpHeight = 0; jumpVelocity = 0;
       } else if (seated) {
         player.group.position.set(pos.x, -.22, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
       } else {
@@ -1623,9 +1660,9 @@ async function init() {
         player.group.position.y = deckY + .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008)
           + (isGm ? gmHover(simTime) : 0);
       }
-      if (!riding) punchPose(player, punchUntil);
+      if (!riding && !beachResting) punchPose(player, punchUntil);
       if (isGm) gmAura.update(simTime);
-      pickleball.equip(player,!riding&&!seated&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
+      pickleball.equip(player,!riding&&!seated&&!beachResting&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
       basketball.pose(player,networkPlayerId);
       if (riding) recallUntil = 0;
       const localRecallProgress = recallUntil > simTime ? 1 - (recallUntil - simTime) / .82 : 0;
@@ -1689,7 +1726,7 @@ async function init() {
     if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
     if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?stallVoiceVolume(nearestStallDistance(pos)):0,audioContext.currentTime,.2);
     if (iceCreamGain && audioContext) {
-      const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z));
+      const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z),Math.hypot(pos.x-beach.iceCream.position.x,pos.z-beach.iceCream.position.z));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
     iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }

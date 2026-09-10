@@ -46,6 +46,16 @@ import { clientKey, createConnectionCap } from './limits.mjs';
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = city.maxPlayers;
 const rooms = new Map();
+// Resting is a real multiplayer state, so the server keeps the same small whitelist as the
+// beach scene. Clients may request a pose, but they cannot invent a place to lie down or
+// occupy the same lounger/hammock as someone else.
+const BEACH_REST_SPOTS = [
+  {id: 'sunbed-1', kind: 'sunbed', x: 119, z: 148},
+  {id: 'sunbed-2', kind: 'sunbed', x: 130, z: 148},
+  {id: 'sunbed-3', kind: 'sunbed', x: 142, z: 148},
+  {id: 'hammock-1', kind: 'hammock', x: 101, z: 148},
+  {id: 'hammock-2', kind: 'hammock', x: 148, z: 147},
+];
 const metrics = createMetrics();
 const dirtyRooms = new Set();
 // Coalesce movement from all players into at most one snapshot per room per tick.
@@ -342,7 +352,7 @@ webSocketServer.on('connection', ws => {
         yaw: Math.PI,
         riding: false, vehicle: 'bike', passengerOf: null, seatIndex: null,
         speed: 0,
-        jumpHeight: 0, seated: false, chairId: null,
+        jumpHeight: 0, seated: false, chairId: null, resting: null, restSpotId: null,
         mic: false, speaker: false,
         deflate: message.deflate === true,
         opus: message.opus === true,
@@ -401,7 +411,7 @@ webSocketServer.on('connection', ws => {
       tableLobby.remove(currentRoom.players, player);
       const stand=player.chairStand;
       if(stand){player.x=stand.x;player.z=stand.z;}
-      player.chairId=null;player.seated=false;delete player.chairStand;
+      player.chairId=null;player.seated=false;player.resting=null;player.restSpotId=null;delete player.chairStand;
       broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});
       return;
     }
@@ -471,6 +481,7 @@ webSocketServer.on('connection', ws => {
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
       if(!destination){send(ws,{type:'teleport-denied',message:'Leave your vehicle first, or wait a moment before teleporting again.'});return;}
+      player.resting=null;player.restSpotId=null;
       send(ws,{type:'teleported',id:destination.id});
       broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});return;
     }
@@ -480,10 +491,10 @@ webSocketServer.on('connection', ws => {
       if(driver?.lrtId!=null)return;
       const occupied = [...currentRoom.players.values()].filter(p => p.passengerOf === message.driverId);
       const seatIndex = driver ? vehicleSeats[driver.vehicle].findIndex((_, i) => !occupied.some(p => p.seatIndex === i)) : -1;
-      if (player.riding || player.seated || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || Number(driver.supermanUntil) > Date.now() || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
+      if (player.riding || player.seated || player.resting || player.jumpHeight > 0 || !driver || driver === player || driver.passengerOf || Number(driver.supermanUntil) > Date.now() || !driver.riding || Math.abs(driver.speed) >= 1.5 || Math.hypot(driver.x - player.x, driver.z - player.z) > 3.8 || seatIndex < 0) {
         send(ws, { type: 'notice', message: 'The vehicle must be nearby, stopped, and have a free passenger seat.' }); return;
       }
-      player.passengerOf = driver.id; player.seatIndex = seatIndex; followDriver(player, driver);
+      player.passengerOf = driver.id; player.seatIndex = seatIndex; player.resting = null; player.restSpotId = null; followDriver(player, driver);
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'passenger-leave') {
@@ -496,11 +507,11 @@ webSocketServer.on('connection', ws => {
       if((player.danceUntil||0)>Date.now())return;
       const chair = chairs.find(c => c.id === message.chairId);
       const occupied = [...currentRoom.players.values()].some(p => p.chairId === message.chairId);
-      if (!chair || occupied || player.riding || player.seated || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
+      if (!chair || occupied || player.riding || player.seated || player.resting || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
         send(ws, { type: 'notice', message: occupied ? 'This chair is occupied.' : 'Move closer to an available chair.' }); return;
       }
       player.chairStand = { x: player.x, z: player.z };
-      player.chairId = chair.id; player.seated = true;
+      player.chairId = chair.id; player.seated = true; player.resting = null; player.restSpotId = null;
       player.x = chair.x; player.z = chair.z; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
       socialProfiles.event(player,'tables_sat');
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
@@ -509,7 +520,7 @@ webSocketServer.on('connection', ws => {
       if (!player.chairId) return;
       const stand = message.reset === true ? { x: -18, z: 52 } : player.chairStand;
       if (stand) { player.x = stand.x; player.z = stand.z; }
-      player.chairId = null; player.seated = false; delete player.chairStand;
+      player.chairId = null; player.seated = false; player.resting = null; player.restSpotId = null; delete player.chairStand;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'geng') {
@@ -655,6 +666,13 @@ webSocketServer.on('connection', ws => {
       player.speed = finiteNumber(message.speed, 0, -5, 24);
       player.riding = Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
+      const requestedRest = BEACH_REST_SPOTS.find(spot => spot.id === message.restSpotId && spot.kind === message.resting);
+      const occupiedRest = requestedRest && [...currentRoom.players.values()].some(other => other !== player && other.restSpotId === requestedRest.id && other.resting === requestedRest.kind);
+      if (!player.riding && requestedRest && !occupiedRest && Math.hypot(player.x - requestedRest.x, player.z - requestedRest.z) <= 1.1) {
+        player.resting = requestedRest.kind; player.restSpotId = requestedRest.id;
+      } else {
+        player.resting = null; player.restSpotId = null;
+      }
       fleet.updatePlayer(currentRoom.players,player);
       if(!player.fleetId)player.carStyle='myvi';
       if (!player.riding || player.vehicle !== 'bike') player.supermanUntil = 0;
@@ -681,20 +699,20 @@ webSocketServer.on('connection', ws => {
     }
     if (message.type === 'superman') {
       const now = Date.now();
-      if (!player.riding || player.passengerOf || player.vehicle !== 'bike' || player.seated || Number(player.supermanUntil) > now) return;
+      if (!player.riding || player.passengerOf || player.vehicle !== 'bike' || player.seated || player.resting || Number(player.supermanUntil) > now) return;
       player.supermanUntil = now + 6000; dirtyRooms.add(currentRoom.players); return;
     }
     if(message.type==='dance-cancel'){
       if(player.danceUntil){player.danceUntil=0;dirtyRooms.add(currentRoom.players);}return;
     }
     if(message.type==='dance'){
-      const now=Date.now();if(player.riding||player.seated||player.passengerOf||player.jumpHeight>0||(player.danceUntil||0)>now)return;
+      const now=Date.now();if(player.riding||player.seated||player.resting||player.passengerOf||player.jumpHeight>0||(player.danceUntil||0)>now)return;
       player.danceUntil=now+10000;player.speed=0;socialProfiles.event(player,'dances');dirtyRooms.add(currentRoom.players);return;
     }
     if (message.type === 'punch') {
       if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
-      if (player.riding || player.seated || now - lastPunchAt < 350) return;
+      if (player.riding || player.seated || player.resting || now - lastPunchAt < 350) return;
       lastPunchAt = now;
       socialProfiles.event(player,'punches');
       broadcast(currentRoom.players, { type: 'punch', id: player.id }); return;
@@ -702,7 +720,7 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'recall') {
       if((player.danceUntil||0)>Date.now())return;
       const now = Date.now();
-      if (player.riding || player.passengerOf || now - lastRecallAt < 90) return;
+      if (player.riding || player.passengerOf || player.resting || now - lastRecallAt < 90) return;
       lastRecallAt = now;
       socialProfiles.event(player,'recalls');
       broadcast(currentRoom.players, { type: 'recall', id: player.id });

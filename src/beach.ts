@@ -1,9 +1,31 @@
 import * as THREE from 'three';
-import {box,createPerson,material,palm,type World} from './world';
+import {box,createIceCreamBike,createPerson,material,palm,type Person,type World} from './world';
 import tables from '../shared/tables.json';
 import chairs from '../shared/chairs.json';
 
 export const BEACH={minX:95,maxX:153,minZ:131,shoreZ:152};
+export type BeachRestKind = 'sunbed' | 'hammock';
+export type BeachRestSpot = {id:string;kind:BeachRestKind;x:number;z:number;yaw:number;height:number;exitX:number;exitZ:number};
+export const BEACH_REST_SPOTS: readonly BeachRestSpot[] = [
+ {id:'sunbed-1',kind:'sunbed',x:119,z:148,yaw:0,height:.62,exitX:119,exitZ:150.7},
+ {id:'sunbed-2',kind:'sunbed',x:130,z:148,yaw:0,height:.62,exitX:130,exitZ:150.7},
+ {id:'sunbed-3',kind:'sunbed',x:142,z:148,yaw:0,height:.62,exitX:142,exitZ:150.7},
+ {id:'hammock-1',kind:'hammock',x:101,z:148,yaw:Math.PI/2,height:1.1,exitX:101,exitZ:150.7},
+ {id:'hammock-2',kind:'hammock',x:148,z:147,yaw:Math.PI/2,height:1.1,exitX:148,exitZ:149.7},
+];
+
+export function beachRestPose(person:Person,kind:BeachRestKind|null,yaw=0){
+ if(!kind){
+  person.group.position.set(0,0,0);person.group.rotation.set(0,0,0);
+  person.leftLeg.rotation.set(0,0,0);person.rightLeg.rotation.set(0,0,0);
+  person.leftArm.rotation.set(0,0,0);person.rightArm.rotation.set(0,0,0);return;
+ }
+ person.group.position.y=kind==='hammock'?1.1:.62;
+ person.group.rotation.set(kind==='sunbed'?-Math.PI/2:0,yaw,kind==='hammock'?Math.PI/2:0);
+ person.leftLeg.rotation.set(0,0,0);person.rightLeg.rotation.set(0,0,0);
+ person.leftArm.rotation.set(0,0,0);person.rightArm.rotation.set(0,0,0);
+}
+
 export function createBeach(scene:THREE.Scene,world:World){
  const g=new THREE.Group();g.name='Pantai Senja';scene.add(g);
  const mesh=(geometry:THREE.BufferGeometry,color:string,x:number,y:number,z:number)=>{const m=new THREE.Mesh(geometry,material(color));m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
@@ -16,12 +38,26 @@ export function createBeach(scene:THREE.Scene,world:World){
  for(let x=81;x<99;x+=.65)box(g,x,.06,132,.5,.04,3,'#c3a67c');
  sign('PANTAI SENJA',98,3.6,132,9);pole(94,1.65,132,.1,3.3,'#796245');pole(102,1.65,132,.1,3.3,'#796245');
  world.mapBuildings.push({x:124,z:142,w:58,d:22,color:'#edd3a0'});
+ const beachMatkool=createIceCreamBike();beachMatkool.position.set(89,.09,142);beachMatkool.rotation.y=Math.PI/2;g.add(beachMatkool);
+ world.solids.push({x:89,z:142,hx:1.35,hz:1.8});
  // Broad sea with actual travelling wave geometry and translucent breaking crests.
  const seaGeometry=new THREE.PlaneGeometry(100,180,64,96);seaGeometry.rotateX(-Math.PI/2);
  const sea=new THREE.Mesh(seaGeometry,new THREE.MeshStandardMaterial({color:'#329ca4',roughness:.32,metalness:.2,side:THREE.DoubleSide}));sea.position.set(124,.18,242);g.add(sea);
  const foam=Array.from({length:8},()=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(57,.5,28,1),new THREE.MeshBasicMaterial({color:'#e5fff6',transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;g.add(m);return m;});
- for(const [x,z] of [[98,145],[149,133],[148,148],[102,137]]){
-  palm(g,x,z,.85);
+ for(const [x,z] of [[98,145],[149,133],[102,137]]) palm(g,x,z,.85);
+ // Two rope hammocks hang between sturdy coconut posts, with a visible dip in the cloth.
+ for(const spot of BEACH_REST_SPOTS.filter(spot=>spot.kind==='hammock')){
+  const left=spot.x-3.2,right=spot.x+3.2;
+  for(const x of [left,right])pole(x,1.65,spot.z,.13,3.3,'#795a3b');
+  const positions:number[]=[];
+  for(let i=0;i<=16;i++){
+   const t=i/16,x=left+(right-left)*t,y=1.45-.42*Math.sin(Math.PI*t);
+   positions.push(x,y,spot.z-.43,x,y,spot.z+.43);
+  }
+  const indices:number[]=[];for(let i=0;i<16;i++){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,b,c,b,d,c);}
+  const hammockGeometry=new THREE.BufferGeometry();hammockGeometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));hammockGeometry.setIndex(indices);hammockGeometry.computeVertexNormals();
+  const hammockMaterial=material('#d77991');hammockMaterial.side=THREE.DoubleSide;const hammock=new THREE.Mesh(hammockGeometry,hammockMaterial);hammock.castShadow=true;g.add(hammock);
+  const ropeGeometry=new THREE.BufferGeometry();ropeGeometry.setAttribute('position',new THREE.Float32BufferAttribute([left,2.4,spot.z,left,1.45,spot.z,right,2.4,spot.z,right,1.45,spot.z],3));g.add(new THREE.LineSegments(ropeGeometry,new THREE.LineBasicMaterial({color:'#d5bd8e'})));
  }
  for(const t of tables.filter(t=>t.id.startsWith('pantai-'))){
   const seats=chairs.filter(c=>c.tableId===t.id),big=seats.length===9;
@@ -42,7 +78,8 @@ export function createBeach(scene:THREE.Scene,world:World){
  const glow=new THREE.PointLight('#ffb566',10,13,2);glow.position.set(125,1.5,148);g.add(glow);
  for(const x of [104,146]){pole(x,1.8,144,.08,3.6,'#795b40');sphere(x,3.6,144,.23,'#ffdf99');const l=new THREE.PointLight('#ffe0ae',7,12,2);l.position.set(x,3.5,144);g.add(l);}
  const position=seaGeometry.attributes.position;
- return {update(time:number){
+ const nearbyRest=(position:{x:number;z:number})=>BEACH_REST_SPOTS.filter(spot=>Math.hypot(position.x-spot.x,position.z-spot.z)<=2.6).sort((a,b)=>Math.hypot(position.x-a.x,position.z-a.z)-Math.hypot(position.x-b.x,position.z-b.z))[0]||null;
+ return {iceCream:beachMatkool,nearbyRest,exitSpot:(spot:BeachRestSpot)=>({x:spot.exitX,z:spot.exitZ}),pose:beachRestPose,update(time:number){
   for(let i=0;i<position.count;i++){const x=position.getX(i),z=position.getZ(i);position.setY(i,Math.sin(z*.55+time*1.6)*.13+Math.sin(x*.3+z*.25+time)*.05);}position.needsUpdate=true;seaGeometry.computeVertexNormals();
   foam.forEach((m,i)=>{const phase=(time*.13+i/8)%1;m.position.set(124,.38,152+(1-phase)*36);(m.material as THREE.MeshBasicMaterial).opacity=Math.sin(phase*Math.PI)*.65;m.scale.y=.6+phase*1.7;});
   walkers.forEach((p,i)=>{const t=time*.22+i*2.1;p.group.position.set(117+i*10+Math.sin(t)*3,0,145+Math.cos(t)*.6);p.group.rotation.y=Math.cos(t)>0?Math.PI/2:-Math.PI/2;p.leftLeg.rotation.x=Math.sin(time*3+i)*.25;p.rightLeg.rotation.x=-p.leftLeg.rotation.x;});
