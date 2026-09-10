@@ -31,3 +31,12 @@
 .ww-roles span{padding:5px 10px;border-radius:999px;background:#ffffff14;font-size:11px}
 .ww-roles span[data-wolf=true]{background:#ff9d8e26;color:#ffd4cc}
 @media(prefers-reduced-motion:reduce){.werewolf,.werewolf .ww-moon{transition:none}.ww-sweep{display:none}}
+/* A vote you can watch land. The count only — who voted for whom is a pile-on, and the
+   table is already saying it out loud over voice. */
+.ww-tally{font:700 11px 'Oxanium';font-style:normal;display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#edca7d;color:#20293e}
+#table-social .ww-player[aria-pressed=true] .ww-tally{background:#fff2d7}
+/* The Seer's notebook keeps every night, so it reads as a list rather than one line. */
+.ww-inspection p{margin:4px 0;display:flex;gap:7px;align-items:baseline}
+.ww-inspection p::before{font:14px Georgia;width:14px}
+.ww-inspection p[data-team=evil]::before{content:'☾';color:#e8926a}
+.ww-inspection p[data-team=good]::before{content:'⌂';color:#8ec49a}
