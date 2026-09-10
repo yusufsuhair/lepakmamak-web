@@ -365,6 +365,11 @@ async function init() {
   pickleball.onHit(punch);
   basketball.connect(message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   const multiplayerEndpoint = (import.meta.env.VITE_MULTIPLAYER_URL as string | undefined)?.trim().replace(/\/$/, '') || '';
+  // Derived once, and empty when there is no endpoint. It used to fall back to the
+  // production URL, which meant a build without VITE_MULTIPLAYER_URL — a dev build, say —
+  // would send account deletion and weather to the live server. Better to have no API than
+  // somebody else's.
+  const apiBase = multiplayerEndpoint ? multiplayerEndpoint.replace(/^ws/, 'http').replace(/\/ws$/, '') : '';
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
   let invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
   const tableSocial = setupTableSocial(message => {
@@ -914,7 +919,7 @@ async function init() {
   $('open-edit-profile').textContent = 'Edit profile & display name';
   $('open-edit-profile').onclick = () => profileEditor.open();
   // Password and deletion belong to the account, so guests never see the panel at all.
-  const security = setupSecurity((multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/, 'http').replace(/\/ws$/, ''));
+  const security = setupSecurity(apiBase);
   $('open-security').onclick = () => security();
   const itemShop = setupShop(setAccessories);
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
@@ -1030,7 +1035,7 @@ async function init() {
   $('interaction').addEventListener('pointerdown',()=>{pressedCarId=$('interaction').dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   $('interaction').addEventListener('pointercancel',()=>{pressedCarId=null;interactionPressUntil=0;});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,(multiplayerEndpoint || 'https://lepak-city-realtime-production.up.railway.app').replace(/^ws/,'http').replace(/\/ws$/,''),value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
