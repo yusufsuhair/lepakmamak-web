@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.19.1",
+  "date": "2026-09-10",
+  "title": "Kemas kini dalaman",
+  "notes": [
+   "Housekeeping: the city server is now always published from the released code, so a change someone is still working on can no longer reach the live city by accident."
+  ]
+ },
+ {
   "version": "1.19.0",
   "date": "2026-09-10",
   "title": "Pelayan bandar pandai lapor sendiri",
