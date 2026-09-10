@@ -307,4 +307,12 @@
   "z": 0,
   "kind": "zoo"
  }
+,
+{
+  "id": "wet-deck",
+  "name": "Wet Deck · Sky Dining",
+  "x": -106,
+  "z": 37,
+  "kind": "lepak"
+}
 ]

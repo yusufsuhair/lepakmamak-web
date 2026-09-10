@@ -3,6 +3,7 @@ import {createPark} from './legoland.mjs';
 import {insideWorld,clampWorldPoint} from '../shared/world-bounds.mjs';
 import {createFleet} from './fleet.mjs';
 import {createLrt} from './lrt.mjs';
+import {SKY,onSky,skyHeight,skyTravel} from '../shared/sky-dining.mjs';
 import {teleportPlayer} from './teleport.mjs';
 import {createWeatherControls} from './weather-controls.mjs';
 import {createLamps} from './lamps.mjs';
@@ -613,6 +614,12 @@ webSocketServer.on('connection', ws => {
       broadcast(currentRoom.players, {type: 'players', players: snapshot(currentRoom.players)}); return;
     }
     if(park.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
+    if(message.type==='sky-lift'){
+      if(!skyTravel(player)){send(ws,{type:'notice',message:'Walk to the Wet Deck lift on foot first.'});return;}
+      send(ws,{type:'sky-arrived',upstairs:player.skyDining});
+      broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});return;
+    }
+    if(player.skyDining&&['passenger-join','lrt-board','car-claim','bike-stunt'].includes(message.type))return;
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
       if(!destination){send(ws,{type:'teleport-denied',message:'Leave your vehicle first, or wait a moment before teleporting again.'});return;}
@@ -642,12 +649,12 @@ webSocketServer.on('connection', ws => {
       if((player.danceUntil||0)>Date.now())return;
       const chair = chairs.find(c => c.id === message.chairId);
       const occupied = [...currentRoom.players.values()].some(p => p.chairId === message.chairId);
-      if (!chair || occupied || player.riding || player.seated || player.resting || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
+      if (!chair || Math.abs((player.y||0)-(chair.y||0))>2 || occupied || player.riding || player.seated || player.resting || player.jumpHeight > 0 || Math.hypot(player.x - chair.x, player.z - chair.z) > 2.2) {
         send(ws, { type: 'notice', message: occupied ? 'This chair is occupied.' : 'Move closer to an available chair.' }); return;
       }
       player.chairStand = { x: player.x, z: player.z };
       player.chairId = chair.id; player.seated = true; player.resting = null; player.restSpotId = null;
-      player.x = chair.x; player.z = chair.z; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
+      player.x = chair.x; player.z = chair.z; player.y=chair.y||0; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
       socialProfiles.event(player,'tables_sat');
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
@@ -807,12 +814,13 @@ webSocketServer.on('connection', ws => {
       if (park.locked(player) || player.passengerOf || player.chairId || (player.danceUntil||0)>Date.now()) return;
       if(player.fleetId&&message.fleetId!==player.fleetId)return;
       Object.assign(player,clampWorldPoint(finiteNumber(message.x,player.x,-525,153),finiteNumber(message.z,player.z,-290,180),.5));
+      if(player.skyDining){player.x=Math.max(SKY.x-SKY.hx+.6,Math.min(SKY.x+SKY.hx-.6,player.x));player.z=Math.max(SKY.z-SKY.hz+.6,Math.min(SKY.z+SKY.hz-.6,player.z));}
       const lift = klccLiftFor(player, typeof message.liftId === 'string' ? message.liftId : '');
       player.liftId = lift?.id || null;
-      player.y = lift ? finiteNumber(message.y, 0, 0, KLCC_LIFT_TOP) : finiteNumber(message.y, 0, 0, 6);
+      player.y = player.skyDining&&onSky(player)?skyHeight(player):lift ? finiteNumber(message.y, 0, 0, KLCC_LIFT_TOP) : finiteNumber(message.y, 0, 0, 6);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
-      player.riding = !player.parkRide && Boolean(message.riding);
+      player.riding = !player.skyDining && !player.parkRide && Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
       const requestedRest = BEACH_REST_SPOTS.find(spot => spot.id === message.restSpotId && spot.kind === message.resting);
       const occupiedRest = requestedRest && [...currentRoom.players.values()].some(other => other !== player && other.restSpotId === requestedRest.id && other.resting === requestedRest.kind);
@@ -825,7 +833,7 @@ webSocketServer.on('connection', ws => {
       if(!player.fleetId)player.carStyle='myvi';
       if (!player.riding || player.vehicle !== 'bike') player.supermanUntil = 0;
       player.seated = false; // Only chair-sit can claim a seat.
-      player.jumpHeight = player.riding || player.seated ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
+      player.jumpHeight = player.riding || player.seated || (player.skyDining&&skyHeight(player)<SKY.y) ? 0 : finiteNumber(message.jumpHeight, 0, 0, 1.3);
       player.updatedAt = now;
       for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) {
         if (player.riding && player.vehicle === passenger.vehicle) followDriver(passenger, player); else releasePassenger(passenger);

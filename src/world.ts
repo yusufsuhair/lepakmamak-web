@@ -593,7 +593,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[] }
+export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[] }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;

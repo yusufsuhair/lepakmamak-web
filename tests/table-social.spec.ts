@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {createTableSocial} from '../server/tables.mjs';
+import tables from '../shared/tables.json' with {type:'json'};
 test('table names are static and legacy actions do nothing',()=>{
  const messages:any[]=[];const social=createTableSocial((_ws:any,m:any)=>messages.push(m));const a={id:'a',ws:{},name:'Alice',chairId:'chair-0'};const players=new Map([['a',a]]);social.sync(players,true);
  for(const type of ['table-name','table-round','receipt','table-order','table-consume'])expect(social.handle(players,a,{type,name:'Changed'})).toBe(true);
- expect(messages).toHaveLength(1);expect(messages[0].tables.map((t:any)=>t.name)).toEqual(['Meja 1','Meja 2','Meja 3','Meja 4','Meja 5','Meja 6','Meja Besar','Pantai Senja · Meja 1','Pantai Senja · Meja 2','Pantai Senja · Meja 3','Pantai Senja · Meja 4']);expect(messages[0].tables[0]).not.toHaveProperty('cheersUntil');expect(messages[0].tables[0]).not.toHaveProperty('hostId');
+ expect(messages).toHaveLength(1);expect(messages[0].tables.map((t:any)=>t.name)).toEqual(tables.map(table=>table.name));expect(messages[0].tables[0]).not.toHaveProperty('cheersUntil');expect(messages[0].tables[0]).not.toHaveProperty('hostId');
  a.chairId='chair-3';social.sync(players);expect(messages.at(-1).tables[1].occupants[0].id).toBe('a');expect(messages.at(-1).tables[0].occupants).toEqual([]);
 });
 

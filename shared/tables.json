@@ -50,14 +50,14 @@
   {
     "id": "meja-9",
     "name": "Meja Besar",
-    "x": -34.0,
-    "z": 60.0,
+    "x": -34,
+    "z": 60,
     "arrivalX": -29.8,
-    "arrivalZ": 60.0
+    "arrivalZ": 60
   },
   {
     "id": "pantai-1",
-    "name": "Pantai Senja \u00b7 Meja 1",
+    "name": "Pantai Senja · Meja 1",
     "x": 109,
     "z": 137,
     "arrivalX": 113,
@@ -65,7 +65,7 @@
   },
   {
     "id": "pantai-2",
-    "name": "Pantai Senja \u00b7 Meja 2",
+    "name": "Pantai Senja · Meja 2",
     "x": 122,
     "z": 137,
     "arrivalX": 126,
@@ -73,7 +73,7 @@
   },
   {
     "id": "pantai-3",
-    "name": "Pantai Senja \u00b7 Meja 3",
+    "name": "Pantai Senja · Meja 3",
     "x": 137,
     "z": 137,
     "arrivalX": 141,
@@ -81,10 +81,82 @@
   },
   {
     "id": "pantai-4",
-    "name": "Pantai Senja \u00b7 Meja 4",
+    "name": "Pantai Senja · Meja 4",
     "x": 110,
     "z": 147,
     "arrivalX": 114,
     "arrivalZ": 147
+  },
+  {
+    "id": "sky-1",
+    "name": "Wet Deck 1",
+    "x": -120,
+    "z": 27,
+    "y": 44,
+    "arrivalX": -120,
+    "arrivalZ": 24.4
+  },
+  {
+    "id": "sky-2",
+    "name": "Wet Deck 2",
+    "x": -92,
+    "z": 27,
+    "y": 44,
+    "arrivalX": -92,
+    "arrivalZ": 24.4
+  },
+  {
+    "id": "sky-3",
+    "name": "Wet Deck 3",
+    "x": -120,
+    "z": 35,
+    "y": 44,
+    "arrivalX": -120,
+    "arrivalZ": 32.4
+  },
+  {
+    "id": "sky-4",
+    "name": "Wet Deck 4",
+    "x": -92,
+    "z": 35,
+    "y": 44,
+    "arrivalX": -92,
+    "arrivalZ": 32.4
+  },
+  {
+    "id": "sky-5",
+    "name": "Wet Deck 5",
+    "x": -120,
+    "z": 46,
+    "y": 44,
+    "arrivalX": -120,
+    "arrivalZ": 43.4
+  },
+  {
+    "id": "sky-6",
+    "name": "Wet Deck 6",
+    "x": -92,
+    "z": 46,
+    "y": 44,
+    "arrivalX": -92,
+    "arrivalZ": 43.4
+  },
+  {
+    "id": "sky-7",
+    "name": "Wet Deck · Werewolf (9 seats)",
+    "x": -111,
+    "z": 46,
+    "y": 44,
+    "arrivalX": -111,
+    "arrivalZ": 43.4
+  },
+  {
+    "id": "sky-8",
+    "name": "Wet Deck 8",
+    "x": -101,
+    "z": 46,
+    "y": 44,
+    "arrivalX": -101,
+    "arrivalZ": 43.4
   }
 ]

@@ -1,3 +1,6 @@
+import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
+import {createSkyDining,swimPose} from './sky-dining';
+import {createSkyMusic} from './sky-music';
 import {beachRestPose,createBeach,type BeachRestKind,type BeachRestSpot} from './beach';
 import {createLegoland} from './legoland';
 import type {ParkRide} from '../shared/legoland.mjs';
@@ -209,6 +212,7 @@ async function init() {
   const pickleball=createPickleball(scene,world);
   const basketball=createBasketball(scene,world);
   const beach=createBeach(scene,world);
+  const sky=createSkyDining(scene);
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
   createStallWorld(scene,world.solids);
   const buskers=createBuskers(scene,world.solids);
@@ -271,6 +275,7 @@ async function init() {
   $('close-map').onclick = () => setMap(false);
   cityMap.addEventListener('cancel', event => { event.preventDefault(); setMap(false); });
   cityMap.addEventListener('click', event => { if (event.target === cityMap) { const rect = cityMap.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setMap(false); } });
+  let skyDining=false;
   let seated = false;
   let seatedChairId: string | null = null;
   let beachResting: BeachRestKind | null = null;
@@ -288,7 +293,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -656,6 +661,7 @@ async function init() {
   // Table games have their own foley; songs would fight it. Duck them while one is open.
   let musicDuck = 1;
   let musicContext: AudioContext | null = null;
+  let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
   function startBackgroundMusic() {
     if(audioEnabled&&started&&buskingGain)void buskingSong.play().catch(()=>{});
     if(audioEnabled&&started&&watsonsGain)void watsonsSong.play().catch(()=>{});
@@ -668,6 +674,7 @@ async function init() {
     try {
       if (!musicContext) {
         musicContext = new AudioContext();
+        skyMusic = createSkyMusic(musicContext);
         const musicGain = musicContext.createGain(); musicGain.gain.value = .06;
         musicContext.createMediaElementSource(backgroundMusic).connect(musicGain); musicGain.connect(musicContext.destination);
         backgroundMusic.volume = 1;
@@ -896,6 +903,7 @@ async function init() {
       beachResting = null; beachRestSpot = null; beachRestPose(player, null);
     }
     if(self?.lrtId!=null){lrtId=self.lrtId;lrtSeat=self.lrtSeat||0;const seat=seatOffset(lrtSeat);lrtAlong=self.lrtAlong??seat.along;lrtAcross=self.lrtAcross??seat.across;riding=true;}
+    if(self){if(skyDining&&!self.skyDining)deckY=0;skyDining=!!self.skyDining;if(skyDining)deckY=self.y??skyHeight(self);}
     if (self && (self.chairId || seatedChairId)) {
       const nowSeated = !!self.chairId;
       // The table tab follows the chair: it appears when you sit and retires when you get up.
@@ -1001,7 +1009,7 @@ async function init() {
     const table=chair?tableLocations.find(t=>t.id===chair.tableId):null;
     const x=table?table.arrivalX:pos.x+(riding?Math.cos(yaw)*2.4:0);
     const z=table?table.arrivalZ:pos.z-(riding?Math.sin(yaw)*2.4:0);
-    writeLocation(activeLocationKey,{x,z,yaw});
+    writeLocation(activeLocationKey,skyDining?{...SKY.entry,yaw}:{x,z,yaw});
   }
   // Old browsers without DecompressionStream keep getting plain JSON.
   const canInflate = typeof DecompressionStream === 'function';
@@ -1032,6 +1040,7 @@ async function init() {
         if(message.type==='park-complete'&&message.id)park.complete(Number(message.id));
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
+        if(message.type==='sky-arrived'){arriveSky(!!(message as unknown as {upstairs:boolean}).upstairs);}
         if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;{const seat=seatOffset(lrtSeat);lrtAlong=seat.along;lrtAcross=seat.across;lrtSentAlong=seat.along;lrtSentAcross=seat.across;}riding=true;vehicle='car';orbit=.65;const p=riderPoint({lrtId,lrtSeat,lrtAlong,lrtAcross},lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
         if(message.type==='lrt-exited'){lrtId=null;riding=false;speed=0;pos.set(message.x!,.12,message.z!);player.group.position.copy(pos);keys.clear();resetStick();}
         if(message.type==='fleet'&&message.cars){carFinder.receive(message.cars);for(const state of message.cars){const item=world.traffic.find(c=>c.id===state.id);if(item)Object.assign(item,state);}}
@@ -1280,11 +1289,11 @@ async function init() {
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => roomPlayers.find(q=>q.id===p.id)?.lrtId==null && p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
-  function nearbyChair() { return world.chairs.filter(c => distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
+  function nearbyChair() { return world.chairs.filter(c => Math.abs((c.y||0)-deckY)<2 && distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   const unciloked=(id:string)=>world.traffic.find(c=>c.id===id)?.group.userData.model==='lamborghini';
   function claimCar(id:string){
-    if(park.active)return;
+    if(park.active||skyDining)return;
     if(!started||paused||riding||seated||beachResting||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened)return;
     // The button is greyed out, but the keyboard does not read that, so the refusal is said
     // out loud here as well. The server refuses it a third time, for anything that gets past.
@@ -1295,9 +1304,11 @@ async function init() {
   function objectAction() {
     if(lrtId!=null || park.active || klccLiftRide?.phase === 'moving')return null;
     if (klccLiftRide?.phase === 'top') return { point: klccLiftRide.lift, height: deckY + 2.6, label: 'Turun lif KLCC', disabled: false };
+    if(skyDining&&!seated){if(distanceTo(SKY.landing)<1)return {point:SKY.landing,height:SKY.y+2,label:'Turun Wet Deck',disabled:false};const chair=nearbyChair();if(chair)return {point:chair,height:SKY.y+1.3,label:chairOccupied(chair.id)?'Occupied':'Sit',disabled:chairOccupied(chair.id)};return null;}
+    if(!riding&&!seated&&distanceTo(SKY.entry)<3)return {point:SKY.entry,height:3,label:'Naik Wet Deck',disabled:false};
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
     if (beachResting && beachRestSpot) return { point: beachRestSpot, height: beachRestSpot.height + 1.15, label: 'Bangun', disabled: false };
-    if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
+    if (seated) return { point: pos, height: deckY+1.3, label: 'Stand', disabled: false };
     const rest = beach.nearbyRest(pos);
     if (rest) return { point: rest, height: rest.height + 1.15, label: rest.kind === 'hammock' ? 'Masuk hammock' : 'Baring', disabled: false };
     const driver = nearbyDriver();
@@ -1328,10 +1339,12 @@ async function init() {
     if (lamp >= 0) return lampAction();
     return null;
   }
+  function arriveSky(upstairs:boolean){skyDining=upstairs;const p=upstairs?SKY.landing:SKY.entry;pos.set(p.x,.12,p.z);deckY=upstairs?SKY.y:0;onBridge=false;walkSpeed=0;speed=0;if(upstairs){cameraHeading=Math.atan2(-SKY.x,-122-SKY.z);orbit=0;zoom=12;}keys.clear();resetStick();player.group.position.set(pos.x,deckY+.12,pos.z);toast(upstairs?'Wet Deck · Sky Dining':'Hotel lobby',upstairs?'Pool steps ahead · table games in the lounge':'Welcome back to the city');}
   function interact() {
     if(lrtId!=null)return;
     if (!started || paused || park.active || klccLiftRide?.phase === 'moving' || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
+    if(!riding&&!seated&&distanceTo(skyDining?SKY.landing:SKY.entry)<(skyDining?1:3)){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'sky-lift'}));else arriveSky(!skyDining);return;}
     if (klccLiftRide?.phase === 'top') { startKlccLift(klccLiftRide.lift, 'down'); return; }
     if (beachResting && beachRestSpot) {
       const exit = beach.exitSpot(beachRestSpot);
@@ -1343,18 +1356,19 @@ async function init() {
     }
     if (passengerOf) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-leave' })); return; }
     if (seated) { if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { networkSocket.send(JSON.stringify({ type: 'chair-stand' })); return; } seatedChairId = null; seated = false; chairSound(false); pos.copy(standPosition); keys.clear(); resetStick(); return; }
-    const rest = !riding && !seated ? beach.nearbyRest(pos) : null;
+    const rest = !skyDining && !riding && !seated ? beach.nearbyRest(pos) : null;
     if (rest) {
       beachResting = rest.kind; beachRestSpot = rest; pos.set(rest.x, .12, rest.z); yaw = rest.yaw; deckY = 0; onBridge = false;
       jumpHeight = 0; jumpVelocity = 0; walkSpeed = 0; speed = 0; punchUntil = 0; keys.clear(); resetStick();
       beachRestPose(player, rest.kind, rest.yaw); player.group.position.set(rest.x, rest.height, rest.z); sendNetworkState(1); return;
     }
-    const driver = !riding && nearbyDriver();
-    const station=!riding&&!seated&&lrtStations.find(s=>distanceTo(s)<5);
+    const driver = !skyDining && !riding && nearbyDriver();
+    const station=!skyDining&&!riding&&!seated&&lrtStations.find(s=>distanceTo(s)<5);
     if(station){const train=[0,1].find(id=>{const t=trainState(id,lrtNow());return t.doors&&lrtStations[t.station]?.id===station.id;});if(train!=null&&networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-board',station:station.id,train}));return;}
     if (driver) { if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'passenger-join', driverId: driver.id })); return; }
     const chair = !riding && nearbyChair();
     if (chair) { if (chairOccupied(chair.id)) return; if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) { keys.clear(); resetStick(); networkSocket.send(JSON.stringify({ type: 'chair-sit', chairId: chair.id })); return; } if (auth) return; standPosition.copy(pos); pos.set(chair.x, .12, chair.z); yaw = chair.yaw; seated = true; chairSound(true); walkSpeed = 0; keys.clear(); resetStick(); return; }
+    if(skyDining)return;
     const lift = !riding && !seated && nearbyKlccLift();
     if (lift) { startKlccLift(lift, klccLiftRide?.phase === 'top' ? 'down' : 'up'); return; }
     if (riding) {
@@ -1619,6 +1633,7 @@ async function init() {
     const destination=teleports.find(p=>p.id===id);if(!destination)return;
     teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
     seated=false;seatedChairId=null;beachResting=null;beachRestSpot=null;beachRestPose(player,null);jumpHeight=0;jumpVelocity=0;speed=0;walkSpeed=0;localSupermanUntil=0;
+    skyDining=false;deckY=0;onBridge=false;
     pos.set(destination.x,.12,destination.z);player.group.position.copy(pos);keys.clear();resetStick();
     camera.position.set(pos.x+2,pos.y+5,pos.z+9);setMap(false);sendNetworkState(1);
     toast('Teleported',mapPlaces.find(p=>p.id===id)?.name||'You have arrived.');
@@ -1718,7 +1733,8 @@ async function init() {
     document.body.classList.toggle('on-lrt',lrtId!=null);
     locationArrival.update(pos.x,pos.z,started&&lrtId==null,audioEnabled);
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    musicDuck += ((tableSocial.playing ? 0 : 1) - musicDuck) * .08;
+    musicDuck += ((tableSocial.playing || skyDining ? 0 : 1) - musicDuck) * .08;
+    skyMusic?.update(started && !paused && skyDining && musicEnabled, tableSocial.playing);
     backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
@@ -1864,6 +1880,7 @@ async function init() {
         }
         pickleball.equip(remote.person,!remote.riding&&!remote.seated&&!remote.resting&&insidePickleball(remote.group.position),Math.max(0,(remote.punchUntil-simTime)/.38));
         basketball.pose(remote.person,remote.id);
+        if(rider?.skyDining&&inSkyPool(remote.target)&&!remote.seated)swimPose(remote.person,simTime);
         if (remote.riding) remote.recallUntil = 0;
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
@@ -1876,8 +1893,9 @@ async function init() {
       const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => ({ x: c.x, z: c.z, hx: 1.2+Math.abs(Math.sin(c.yaw))*1.1, hz: 1.2+Math.abs(Math.cos(c.yaw))*1.1 }));
       const solids = [...world.solids, ...dynamicSolids];
-      if (!riding || vehicle !== 'bike') solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
-      if (!riding || vehicle !== 'car'||car!==personalCar) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
+      if(skyDining){solids.length=0;solids.push(...sky.solids);}
+      if (!skyDining && (!riding || vehicle !== 'bike')) solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
+      if (!skyDining && (!riding || vehicle !== 'car'||car!==personalCar)) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
       if(klccLiftRide?.phase === 'moving'){
         walkSpeed=0;
       } else {
@@ -1932,14 +1950,14 @@ async function init() {
         pos.set(beachRestSpot.x, .12, beachRestSpot.z); yaw = beachRestSpot.yaw; deckY = 0; onBridge = false;
         walkSpeed = 0; speed = 0; jumpHeight = 0; jumpVelocity = 0;
       } else if (seated) {
-        player.group.position.set(pos.x, -.22, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
+        player.group.position.set(pos.x, deckY-.22, pos.z); player.group.rotation.y = yaw; sitPose(player); walkSpeed = 0;
       } else {
         if (jumpVelocity !== 0 || jumpHeight > 0) {
           jumpVelocity -= 18 * dt; jumpHeight = Math.max(0, jumpHeight + jumpVelocity * dt);
           if (jumpHeight === 0) { jumpVelocity = 0; movementSound('land'); footstepDistance = 0; }
         }
         const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
-        const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = park.driving ? 15 : running ? 7 : 3.7;
+        const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = skyDining&&inSkyPool(pos)?2.5:park.driving ? 15 : running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
         const previousX = pos.x, previousZ = pos.z;
         if (input.length()) {
@@ -1949,7 +1967,8 @@ async function init() {
           const dz = Math.cos(reference) * input.y + Math.sin(reference) * input.x;
           yaw = dampAngle(yaw, Math.atan2(dx, dz), 1 - Math.exp(-14 * dt));
           moveWithCollisions(pos, dx * walkSpeed * dt, dz * walkSpeed * dt, .46, solids);
-          if (klccLiftRide?.phase === 'top') {
+          if(skyDining){pos.x=THREE.MathUtils.clamp(pos.x,SKY.x-SKY.hx+.6,SKY.x+SKY.hx-.6);pos.z=THREE.MathUtils.clamp(pos.z,SKY.z-SKY.hz+.6,SKY.z+SKY.hz-.6);deckY=skyHeight(pos);onBridge=false;}
+          else if (klccLiftRide?.phase === 'top') {
             const edge = 3.15;
             pos.x = Math.max(klccLiftRide.lift.x - edge, Math.min(klccLiftRide.lift.x + edge, pos.x));
             pos.z = Math.max(klccLiftRide.lift.z - edge, Math.min(klccLiftRide.lift.z + edge, pos.z));
@@ -1962,7 +1981,7 @@ async function init() {
           }
         }
         const travelled = Math.hypot(pos.x - previousX, pos.z - previousZ);
-        if (jumpHeight === 0 && travelled > .001) {
+        if (!(skyDining&&inSkyPool(pos)) && jumpHeight === 0 && travelled > .001) {
           footstepDistance += travelled;
           if (footstepDistance >= (running ? 1.65 : 1.15)) { movementSound('step', running); footstepDistance = 0; }
         } else footstepDistance = 0;
@@ -1973,7 +1992,8 @@ async function init() {
           + (isGm ? gmHover(simTime) : 0);
       }
       }
-      if (!riding && !beachResting) punchPose(player, punchUntil);
+      if(skyDining&&inSkyPool(pos)&&!seated){swimPose(player,simTime);jumpHeight=0;jumpVelocity=0;}
+      else if (!riding && !beachResting) punchPose(player, punchUntil);
       if (isGm) gmAura.update(simTime);
       pickleball.equip(player,!riding&&!seated&&!beachResting&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
       basketball.pose(player,networkPlayerId);
@@ -1991,7 +2011,7 @@ async function init() {
       const distance = (lrtId!=null?Math.max(22,zoom):zoom) + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
       // Shorten the camera arm when a building would obscure the player.
-      for (let step = 1.5; lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
+      for (let step = 1.5; !skyDining && lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
         if (world.solids.some(s => overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
       }
@@ -2027,6 +2047,7 @@ async function init() {
     supermanPose(bike.riderRig,isSuperman(),elapsed,reducedMotion);
     for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
+    sky.update(elapsed,reducedMotion,skyDining);
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
@@ -2093,7 +2114,7 @@ async function init() {
     // Keep the nearest table action attached to its world position.
     const promptBlocked=!started||paused||cityMap.open||wall.opened||tableSocial.opened;
     let nearestLabel:typeof tableLabels[number]|null=null,nearestLabelDistance=8;
-    if(!promptBlocked)for(const entry of tableLabels){const away=distanceTo(entry.table);if(away<=nearestLabelDistance){nearestLabelDistance=away;nearestLabel=entry;}}
+    if(!promptBlocked)for(const entry of tableLabels){const away=Math.abs((entry.table.y||0)-deckY)>2?Infinity:distanceTo(entry.table);if(away<=nearestLabelDistance){nearestLabelDistance=away;nearestLabel=entry;}}
     const ownTableId=chairLocations.find(chair=>chair.id===seatedChairId)?.tableId;
     if(!promptBlocked && (pressedTableId||ownTableId))nearestLabel=tableLabels.find(entry=>entry.table.id===(pressedTableId||ownTableId))||nearestLabel;
     for(const {table,button} of tableLabels){
@@ -2101,7 +2122,7 @@ async function init() {
       button.hidden=!active;
       if(!active)continue;
       if(pressedTableId===table.id)continue; // Keep the target still until the tap finishes.
-      const tableAnchor=new THREE.Vector3(table.x,2.8,table.z).project(camera);
+      const tableAnchor=new THREE.Vector3(table.x,(table.y||0)+2.8,table.z).project(camera);
       button.hidden=tableAnchor.z < -1 || tableAnchor.z > 1 || Math.abs(tableAnchor.x)>1 || Math.abs(tableAnchor.y)>1;
       if(button.hidden)continue;
       button.style.left=`${THREE.MathUtils.clamp((tableAnchor.x+1)*innerWidth/2,Math.min(160,innerWidth*.36)+8,innerWidth-Math.min(160,innerWidth*.36)-8)}px`;
@@ -2160,7 +2181,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
