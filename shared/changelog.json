@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.38.3",
+  "date": "2026-09-10",
+  "title": "Public health page",
+  "notes": [
+   "A public LepakMamak health page shows realtime availability, server uptime, latency, current version and live player totals without exposing memory, bandwidth or room names."
+  ]
+ },
+ {
   "version": "1.38.2",
   "date": "2026-09-10",
   "title": "Bandar lebih hidup, voice lebih jelas",

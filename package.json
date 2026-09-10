@@ -1,6 +1,6 @@
 {
   "name": "lepakmamak",
-  "version": "1.38.2",
+  "version": "1.38.3",
   "description": "A stylised Kuala Lumpur browser game",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -18,7 +18,8 @@
     "app:ios": "npm run build && cap sync ios && cap run ios",
     "app:android": "npm run build && cap sync android && cap run android",
     "deploy:realtime:dev": "node scripts/deploy-realtime.mjs --dev",
-    "deploy:dev": "node scripts/deploy-dev.mjs"
+    "deploy:dev": "node scripts/deploy-dev.mjs",
+    "deploy:health": "wrangler pages deploy health --project-name lepakmamak-health --branch main"
   },
   "keywords": [],
   "author": "",

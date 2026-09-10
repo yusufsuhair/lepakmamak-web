@@ -211,6 +211,19 @@ const server = http.createServer(async (request, response) => {
   if (await wall.handle(request,response)) return;
   if (await accounts.handle(request,response)) return;
   if (await leaderboard.handle(request,response)) return;
+  if (request.url === '/health/public' && request.method === 'GET') {
+    const report=metrics.report({rooms,sockets:webSocketServer.clients.size,version});
+    response.writeHead(200,{
+      'content-type':'application/json; charset=utf-8','cache-control':'no-store',
+      'access-control-allow-origin':'*','access-control-allow-methods':'GET',
+    });
+    response.end(JSON.stringify({
+      ok:report.ok,status:report.saturated?'degraded':'operational',version:report.version,
+      service:report.service,uptimeSeconds:report.uptimeSeconds,players:report.players,
+      rooms:report.rooms.length,updatedAt:new Date().toISOString(),
+    }));
+    return;
+  }
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     response.end(JSON.stringify(metrics.report({ rooms, sockets: webSocketServer.clients.size, version })));
