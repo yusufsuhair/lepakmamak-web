@@ -123,7 +123,7 @@ test('a reaction reaches the table and nobody else',()=>{
  expect(sent.filter(m=>m.type==='lobby-react')).toHaveLength(2);
 });
 
-test('Lukis Main lagi starts a fresh round without leaving the table',()=>{
+test('Lukis Main lagi is ignored while the current round is still active',()=>{
  const [a,b]=seatsAt('meja-1');
  const {lobby,players,seat,state,started,tick}=rig();
  const ali=seat('ali',a), mei=seat('mei',b);
@@ -132,12 +132,11 @@ test('Lukis Main lagi starts a fresh round without leaving the table',()=>{
   expect(state('ali').phase).toBe('playing');
 
   lobby.handle(players,ali,{type:'lobby-rematch'});
- // The game-specific bridge handles Lukis rematches. The table stays in play and the
- // current roster is not thrown back into SEDIA for everyone else.
+ // The table stays in play and the current roster is not thrown back into SEDIA. The real
+ // engine lifecycle test covers the accepted rematch after its private phase is finished.
  expect(state('ali').phase).toBe('playing');
  expect(state('ali').members.every((m:any)=>m.ready)).toBe(true);
  expect(started).toEqual([
-  {game:'lukis',by:'ali',type:'lukis-start'},
   {game:'lukis',by:'ali',type:'lukis-start'},
  ]);
 });

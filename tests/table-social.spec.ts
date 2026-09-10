@@ -43,7 +43,7 @@ test('songs duck while a table game is open and return when it closes',async({pa
  expect(await playing()).toBe(false);                       // closed -> songs return
 });
 
-test('unjoined lobby stays first and each game has its own live-character list',async({page})=>{
+test('one list combines the unjoined lobby, game art and joined users',async({page})=>{
  await page.route('**/table-roster',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><div id="speaking"></div></div>'}));
  await page.goto('/table-roster');
  await page.evaluate(async()=>{
@@ -58,12 +58,13 @@ test('unjoined lobby stays first and each game has its own live-character list',
  await expect(page.locator('.table-roster').first()).toHaveClass(/neutral/);
  await expect(page.locator('.table-roster').first()).toContainText('LOBI MEJA · BELUM JOIN');
  await expect(page.locator('.table-roster').first()).toContainText('Joe');
- await expect(page.locator('.table-roster.playing .table-roster-person')).toHaveCount(1);
- await expect(page.locator('.table-roster.lobby .table-roster-person')).toHaveCount(1);
  await expect(page.locator('.table-roster.seated .table-roster-person')).toHaveCount(1);
- await expect(page.locator('.table-roster.playing')).toContainText('DALAM GAME');
- await expect(page.locator('.table-roster.lobby')).toContainText('MENUNGGU GAME · UNO Lepak');
- expect(await page.locator('.table-roster.playing .player-face').first().evaluate(el=>getComputedStyle(el).getPropertyValue('--face-shirt').trim())).toBe('#62876b');
+ await expect(page.locator('[data-select="lukis"] .game-members')).toContainText('DALAM GAME');
+ await expect(page.locator('[data-select="lukis"] .game-member')).toContainText('Ali');
+ await expect(page.locator('[data-select="uno"] .game-members')).toContainText('MENUNGGU');
+ await expect(page.locator('[data-select="uno"] .game-member')).toContainText('Mei');
+ await expect(page.locator('[data-select="poker"] .game-members')).toContainText('BELUM ADA PEMAIN');
+ expect(await page.locator('[data-select="lukis"] .player-face').first().evaluate(el=>getComputedStyle(el).getPropertyValue('--face-shirt').trim())).toBe('#62876b');
  await expect(page.locator('#table-social > #speaking')).toHaveCount(1);
  await page.evaluate(()=>(window as any).ui.close());
  await expect(page.locator('#hud > #speaking')).toHaveCount(1);

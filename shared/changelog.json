@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.20",
+  "date": "2026-09-10",
+  "title": "Lifecycle game dan lobby lebih kemas",
+  "notes": [
+    "Countdown kini dibatalkan jika pemain berdiri pada saat akhir dan jumlah peserta jatuh bawah minimum.",
+    "Main Lagi tidak lagi boleh mengganggu UNO, Poker atau Werewolf yang masih berlangsung; Lukis Lah juga mengekalkan roster yang sudah memberi consent.",
+    "Paparan meja kini satu senarai sahaja: Lobby di atas, kemudian setiap game bersama artwork dan avatar pemain yang join dalam row yang sama."
+  ]
+},
+{
   "version": "1.39.19",
   "date": "2026-09-10",
   "title": "Lobby berasingan dan alat ujian dev",

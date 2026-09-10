@@ -138,17 +138,22 @@ export function createTableLobby(send, games, now = Date.now) {
     },
     tick(players) {
       for (const lobby of [...lobbies(players).values()]) {
-        // A table game belongs to the chairs: stand up and you are out of the ring.
-        if (LOBBY_RULES[lobby.game].scope === 'table') {
-          for (const member of [...lobby.members]) {
-            const player = players.get(member.id);
-            if (!player || tableForChair.get(player.chairId) !== lobby.key) {
-              lobby.members = lobby.members.filter(entry => entry.id !== member.id);
-              if (player) send(player.ws, {type: 'lobby-state', lobby: null});
-            }
+        // Every game starts from a physical seat. Table games require the same table;
+        // city-wide Werewolf accepts any table, but standing still withdraws consent.
+        for (const member of [...lobby.members]) {
+          const player = players.get(member.id);
+          const tableId = tableForChair.get(player?.chairId);
+          const valid = LOBBY_RULES[lobby.game].scope === 'table' ? tableId === lobby.key : !!tableId;
+          if (!player || !valid) {
+            lobby.members = lobby.members.filter(entry => entry.id !== member.id);
+            if (player) send(player.ws, {type: 'lobby-state', lobby: null});
           }
-          if (!lobby.members.length) { forget(players, lobby); continue; }
         }
+        if (!lobby.members.length) { forget(players, lobby); continue; }
+        // Re-evaluate the minimum before reading the expired deadline. Without this,
+        // somebody standing on the exact final tick starts an undersized engine while the
+        // shell already claims it is playing.
+        settle(players, lobby);
         if (lobby.phase === 'countdown' && now() >= lobby.ends) {
           lobby.phase = 'playing'; lobby.ends = 0;
           start(players, lobby);
@@ -191,20 +196,26 @@ export function createTableLobby(send, games, now = Date.now) {
       }
       if (message.type === 'lobby-leave') { drop(players, player, lobby); return true; }
       if (message.type === 'lobby-rematch') {
+        const game=games[lobby.game];
+        // The shell remains in `playing` for the lifetime of the match. Main Lagi is only
+        // valid after the private engine reaches its finished phase; otherwise one peer
+        // could throw everybody back to SEDIA while the authoritative game kept running.
+        if (lobby.phase !== 'playing' || typeof game?.canRematch !== 'function' || !game.canRematch(players, player)) return true;
         // Lukis already owns a safe, player-driven `lukis-start` action. Sending it
         // through the generic lobby reset made every seated client receive `lobby: null`
         // for the game view, so one person's Main lagi looked like the whole table had
         // been kicked out. Keep the table lobby playing and let Lukis replace only its
         // finished round. Its own handler ignores the request while a round is active.
-        if (lobby.game === 'lukis' && lobby.phase === 'playing' && typeof games.lukis?.handle === 'function') {
-          games.lukis.handle(players, player, {type: 'lukis-start', version: 2});
+        if (lobby.game === 'lukis' && typeof games.lukis?.start === 'function') {
+          const roster=lobby.members.map(member=>players.get(member.id)).filter(Boolean);
+          games.lukis.start(players, player, roster);
           return true;
         }
         // Werewolf keeps its roster after the village reaches `finished`. Resetting only
         // this lobby would send the next countdown back into that same role deal, because
         // werewolf-start quite correctly refuses to start a finished village. Replace the
         // private game before opening the next lobby.
-        if (lobby.game === 'werewolf' && typeof games.werewolf?.rematch === 'function' && lobby.phase === 'playing' && !games.werewolf.rematch(players, player)) return true;
+        if (lobby.game === 'werewolf' && typeof games.werewolf?.rematch === 'function' && !games.werewolf.rematch(players, player)) return true;
         lobby.phase = 'lobby'; lobby.ends = 0;
         for (const member of lobby.members) member.ready = false;
         settle(players, lobby);

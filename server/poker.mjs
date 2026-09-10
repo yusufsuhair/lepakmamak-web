@@ -72,7 +72,7 @@ export function createPoker(send,now=Date.now){
   }
   for(const p of ps.values()){const old=subscriptions.get(p);if(old&&old!==tableOf(p)){subscriptions.delete(p);send(p.ws,{type:'poker-state',game:null});}}
  }
- return {tick,start(ps,p,roster){return startGame(ps,p,roster)},handle(ps,p,m){
+ return {tick,canRematch(ps,p){return rooms.get(ps)?.get(tableOf(p))?.phase==='finished';},start(ps,p,roster){return startGame(ps,p,roster)},handle(ps,p,m){
   if(!['poker-open','poker-start','poker-action'].includes(m.type))return false;tick(ps);
   const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Duduk di meja bersama member untuk Poker Kampung.'});return true;}
   if(m.type==='poker-start')return startGame(ps,p);

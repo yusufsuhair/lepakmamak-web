@@ -86,7 +86,7 @@ export function createWerewolf(send,now=Date.now,pick=randomInt){
  // fan-out and a resubmitting client is an amplifier. A vote that did not change says
  // nothing worth sending, and nobody changes their mind three times a second. Chat has
  // held the same shape of guard since it was written.
- return {tick,live,silenced,rematch,handle(ps,p,m){if(typeof m.type!=='string'||!m.type.startsWith('werewolf-'))return false;if(!seated(p)){send(p.ws,{type:'notice',message:'Duduk di mana-mana meja untuk Werewolf.'});return true;}tick(ps);let g=room(ps);const id=key(p),me=entry(g,id);const reply=()=>send(p.ws,{type:'werewolf-state',game:view(g,id)});
+ return {tick,live,silenced,canRematch(ps){return rooms.get(ps)?.phase==='finished';},rematch,handle(ps,p,m){if(typeof m.type!=='string'||!m.type.startsWith('werewolf-'))return false;if(!seated(p)){send(p.ws,{type:'notice',message:'Duduk di mana-mana meja untuk Werewolf.'});return true;}tick(ps);let g=room(ps);const id=key(p),me=entry(g,id);const reply=()=>send(p.ws,{type:'werewolf-state',game:view(g,id)});
   if(m.type==='werewolf-open'){reply();return true;}
   if(m.type==='werewolf-join'&&g.phase==='lobby'){if(!me&&g.players.length<g.size){g.players.push({id,name:p.name,alive:true,role:null,used:false,missingAt:0});g.host??=id;publish(ps,g);}else reply();return true;}
   if(m.type==='werewolf-leave'&&me){if(g.phase==='lobby'){g.players=g.players.filter(q=>q!==me);if(g.host===id)g.host=g.players[0]?.id||null;}else if(g.phase!=='finished'&&me.alive){eliminate(g,me,'keluar');finish(g);}publish(ps,g);return true;}

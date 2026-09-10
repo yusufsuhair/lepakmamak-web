@@ -49,7 +49,14 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
   // The neutral table lobby always owns the top row. These users are seated, but have not
   // joined any game yet, so they must never look like members of the game rows below.
   const lobby=rosterRow('LOBI MEJA · BELUM JOIN',unjoined,'seated neutral',true);if(lobby)root.append(lobby);
-  for(const game of activeGames){const playing=game.phase==='playing';const row=rosterRow(playing?`DALAM GAME · ${GAME_TITLES[game.game]||game.game}`:`MENUNGGU GAME · ${GAME_TITLES[game.game]||game.game}`,game.members,playing?'playing':'lobby');if(row)root.append(row);}
+  for(const button of dialog.querySelectorAll<HTMLButtonElement>('[data-select]')){
+   button.querySelector('.game-members')?.remove();const game=activeGames.find(entry=>entry.game===button.dataset.select);
+   const members=document.createElement('span');members.className=`game-members ${game?.phase==='playing'?'playing':'waiting'}`;
+   const status=document.createElement('em');status.textContent=game?.phase==='playing'?'DALAM GAME':game?'MENUNGGU':'BELUM ADA PEMAIN';members.append(status);
+   const faces=document.createElement('span');faces.className='game-member-faces';
+   for(const person of game?.members||[]){const item=document.createElement('span');item.className='game-member';item.title=person.name;item.append(createPlayerFace(person));const label=document.createElement('small');label.textContent=person.name;item.append(label);faces.append(item);}
+   members.append(faces);button.append(members);
+  }
  }
  function render(){const seated=own(),id=seated?.id||selected,name=locations.find(t=>t.id===id)?.name||'Meja',snapshot=tables.find(t=>t.id===id),occupants=snapshot?.occupants||[],activeGames=snapshot?.activeGames||(snapshot?.activeGame?[snapshot.activeGame]:[]),activeGame=activeGames.find(game=>game.phase==='playing')||activeGames[0]||null;
   dialog.querySelector('#table-name')!.textContent=name;
