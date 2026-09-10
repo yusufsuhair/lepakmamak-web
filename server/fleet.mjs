@@ -33,6 +33,9 @@ export function createFleet(send,broadcast){
   function handle(players,player,message,now=Date.now()){
     if(message.type!=='car-claim')return false;
     const car=cars(players).find(c=>c.id===message.id);
+    // The client greys the button out; this is what makes it true. Style, not id, so a
+    // Lamborghini added to the fleet later is covered without anyone remembering to.
+    if(car&&car.style==='lamborghini'){send(player.ws,{type:'notice',code:'CAR_CLAIM_DENIED',message:'Tak bole. Kereta ni bukan untuk cilok.'});return true;}
     // The visible car trails its server position. Leave room for interpolation,
     // a moving target and the click's network round trip (UI range is 4.8m).
     if(!car||car.owner||player.riding||player.passengerOf||player.chairId||player.jumpHeight>0||(player.danceUntil||0)>now||Math.hypot(player.x-car.x,player.z-car.z)>7){send(player.ws,{type:'notice',code:'CAR_CLAIM_DENIED',message:car?.owner?'Kereta ini sudah dipandu pemain lain.':'Dekat lagi dengan kereta, kemudian cuba Cilok semula.'});return true;}
