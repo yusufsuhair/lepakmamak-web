@@ -4,8 +4,8 @@ import {box,createPerson,material,type World} from './world';
 // All authored coordinates are relative to this origin: relocate the whole neighbourhood here.
 export const villageOrigin={x:122,z:-132};
 export const villageResidents=[
- {name:'Upin',x:-3,z:7,color:'#f3ce32',child:true,line:'Betul, betul, betul! Jom jumpa kawan-kawan di halaman!',hair:false},
- {name:'Ipin',x:0,z:8,color:'#56a9dd',child:true,line:'Jom lepak! Abang Upin tunggu di halaman.',hair:false},
+ {name:'Upin',x:0,z:4,color:'#f3ce32',child:true,line:'Jom tengok kami main badminton! Aku hantar, Ipin sambut!',hair:false},
+ {name:'Ipin',x:0,z:14,color:'#56a9dd',child:true,line:'Betul, betul, betul! Jangan masuk gelanggang masa bulu tangkis terbang!',hair:false},
  {name:'Opah',x:-17,z:-5,color:'#b797cc',child:false,line:'Selamat datang, cucu. Jaga diri dan berbaik dengan semua orang.',hair:true},
  {name:'Kak Ros',x:-13,z:-4,color:'#dc6885',child:false,line:'Lepas main, ingat kemas halaman ya!',hair:true},
  {name:'Tok Dalang',x:16,z:-5,color:'#d5c8a0',child:false,line:'Mari tengok kebun Tok. Jangan pijak anak pokok!',hair:true},
@@ -13,10 +13,18 @@ export const villageResidents=[
  {name:'Fizi',x:9,z:10,color:'#dcb153',child:true,line:'Ramainya orang hari ini. Jom cari Mail!',hair:true},
  {name:'Mail',x:18,z:12,color:'#76a870',child:true,line:'Singgah warung dulu! Lepas itu kita main bersama.',hair:true},
  {name:'Mei Mei',x:-8,z:11,color:'#e89ca8',child:true,line:'Mari belajar dan bermain sama-sama!',hair:true},
- {name:'Jarjit',x:3,z:13,color:'#5986c5',child:true,line:'Dua tiga bunga di taman, selamat datang wahai kawan!',hair:true},
+ {name:'Jarjit',x:6,z:14,color:'#5986c5',child:true,line:'Dua tiga bulu tangkis, pukul tinggi jangan terkikis!',hair:true},
  {name:'Susanti',x:-11,z:13,color:'#c787bc',child:true,line:'Cantik kampung ini. Mari jalan-jalan!',hair:true},
  {name:'Cikgu Melati',x:-18,z:10,color:'#b683b1',child:false,line:'Selamat datang ke tadika. Semua orang boleh belajar sesuatu yang baru.',hair:true},
  {name:'Uncle Muthu',x:20,z:6,color:'#d2a078',child:false,line:'Selamat datang! Duduklah, berehat sekejap di warung.',hair:true},
+ {name:'Abang Salleh',x:10,z:-3,color:'#d778a8',child:false,line:'Meriahnya kampung! Abang nak jalan tengok kawan-kawan.',hair:true},
+ {name:'Abang Iz',x:-7,z:-3,color:'#6398a8',child:false,line:'Jom bersukan petang ini. Panaskan badan dulu!',hair:true},
+ {name:'Dzul',x:-7,z:7,color:'#e79943',child:true,line:'Fizi, lepas Upin dan Ipin giliran kita pula!',hair:true},
+ {name:'Ijat',x:-10,z:7,color:'#7b9cc9',child:true,line:'Jom! Aku sokong kamu semua!',hair:true},
+ {name:'Devi',x:-14,z:10,color:'#b865aa',child:true,line:'Mei Mei, mari tengok perlawanan!',hair:true},
+ {name:'Rajoo',x:23,z:9,color:'#cc7850',child:true,line:'Ayah di warung. Aku tengok badminton dulu!',hair:true},
+ {name:'Ah Tong',x:24,z:-4,color:'#ded3ac',child:false,line:'Selamat petang! Seronok tengok kampung ramai orang.',hair:true},
+ {name:'Cikgu Jasmin',x:-23,z:6,color:'#78b8af',child:false,line:'Main dengan baik dan beri semangat pada kawan ya.',hair:true},
 ] as const;
 
 function sign(parent:THREE.Object3D,text:string,x:number,y:number,z:number,w:number,h:number){
@@ -49,6 +57,17 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  for(const x of [-20.5,-18.5]){box(g,x,1.3,15,.035,1.4,.035,'#4c5040');box(g,x,.65,15,.9,.12,.6,'#d9b45e');}
  for(const x of [14,21]){box(g,x,.9,12,2.2,.18,1.4,'#d5b376');box(g,x,.45,12,.2,.9,.2,'#7b6046');solid(x,12,2.2,1.4);}
  for(const x of [-25,25])for(const z of [-17,16]){box(g,x,1.8,z,.5,3.6,.5,'#846340');const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(2.3,1),material('#5c853e'));crown.position.set(x,4,z);g.add(crown);solid(x,z,.5,.5);}
+ // A compact neighbourhood court, clear of house entrances and the arrival arch.
+ box(g,0,.19,9,8,.08,14,'#527f71');
+ for(const x of [-3.5,3.5])box(g,x,.24,9,.06,.015,13,'#f6ebc8');
+ for(const z of [2.5,7,11,15.5])box(g,0,.24,z,7,.015,.06,'#f6ebc8');
+ for(const z of [4.75,13.25])box(g,0,.24,z,.06,.015,4.5,'#f6ebc8');
+ for(const x of [-3.8,3.8]){box(g,x,1,9,.08,1.65,.08,'#eee0b9');solid(x,9,.12,.12);}
+ for(let y=.9;y<=1.7;y+=.16)box(g,0,y,9,7.6,.018,.025,'#e8e2cf');
+ for(let x=-3.8;x<=3.8;x+=.25)box(g,x,1.3,9,.015,.8,.025,'#e8e2cf');
+ box(g,0,1.73,9,7.6,.065,.045,'#fff5d5');
+ sign(g,'BADMINTON PETANG • UPIN vs IPIN',0,2.8,1.7,7,.65);
+ for(const x of [-6,6]){box(g,x,.55,17,3,.15,.7,'#b98b53');for(const dx of [-1,1])box(g,x+dx,.3,17,.15,.5,.5,'#71553a');solid(x,17,3,.7);}
 }
 
 // Resident meshes load separately; no moving people are merged into the static scenery.
@@ -62,7 +81,49 @@ export function createVillageResidents(scene:THREE.Scene){
   if(resident.name==='Opah'||resident.name==='Cikgu Melati'){box(rig.group,0,1.79,-.11,.55,.48,.28,resident.color);}
   if(resident.name==='Tok Dalang')box(rig.group,0,2.1,-.02,.48,.18,.42,'#e8e3ce');
   if(resident.name==='Jarjit'){const turban=new THREE.Mesh(new THREE.SphereGeometry(.29,8,6),material('#775084'));turban.position.set(0,2.06,0);rig.group.add(turban);}
+  if(['Mei Mei','Susanti','Devi','Kak Ros'].includes(resident.name))for(const side of [-1,1])box(rig.group,side*.23,1.82,-.12,.16,.4,.18,'#202c2b');
+  if(resident.name==='Uncle Muthu'||resident.name==='Ah Tong')box(rig.group,0,1.76,.25,.22,.06,.03,'#38332e');
+  if(resident.name==='Mail')box(rig.group,0,1.15,.19,.44,.48,.035,'#eee0b9');
+  if(resident.name==='Upin'||resident.name==='Ipin'){
+   sign(rig.group,resident.name==='Upin'?'U':'I',0,1.25,.185,.32,.3);
+   box(rig.rightArm,0,-.8,0,.05,.55,.05,'#ded9c8');
+   const racket=new THREE.Mesh(new THREE.TorusGeometry(.23,.025,6,18),material('#efb14d'));
+   racket.position.set(0,-1.2,0);racket.scale.y=1.3;rig.rightArm.add(racket);
+   for(const offset of [-.12,0,.12]){box(rig.rightArm,offset,-1.2,0,.009,.44,.012,'#f4f1dc');box(rig.rightArm,0,-1.2+offset,0,.4,.009,.012,'#f4f1dc');}
+  }
   sign(rig.group,resident.name,0,2.6,0,1.7,.36);group.add(rig.group);return{rig,resident,phase:i*1.3};
  });
- return{group,update(time:number){for(const {rig,resident,phase} of people){const sway=Math.sin(time*1.5+phase);rig.rightArm.rotation.x=sway*.18;rig.group.position.y=.1+Math.sin(time*2+phase)*.025;rig.group.rotation.y=Math.sin(time*.2+phase)*.3;if(resident.child){rig.leftArm.rotation.x=-sway*.18;}}}};
+ const shuttle=new THREE.Group();group.add(shuttle);
+ const cork=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),material('#ebcfa0'));shuttle.add(cork);
+ const feathers=new THREE.Mesh(new THREE.ConeGeometry(.16,.3,8,1,true),material('#fff9e8'));feathers.rotation.x=Math.PI;feathers.position.y=.15;shuttle.add(feathers);
+ return{group,people,shuttle,
+  nearby(x:number,z:number){return people.filter(p=>Math.hypot(x-villageOrigin.x-p.rig.group.position.x,z-villageOrigin.z-p.rig.group.position.z)<2.6).sort((a,b)=>Math.hypot(x-villageOrigin.x-a.rig.group.position.x,z-villageOrigin.z-a.rig.group.position.z)-Math.hypot(x-villageOrigin.x-b.rig.group.position.x,z-villageOrigin.z-b.rig.group.position.z))[0]?.resident;},
+  update(time:number){
+   const rally=time/1.65,leg=Math.floor(rally),progress=rally-leg;
+   const forward=leg%2===0;
+   shuttle.position.set((forward?1:-1)*(.285-.57*progress),1.8+Math.sin(progress*Math.PI)*3,forward?4+10*progress:14-10*progress);
+   shuttle.rotation.x=(forward?1:-1)*Math.atan2(10,3*Math.PI*Math.cos(progress*Math.PI));
+   for(const {rig,resident,phase} of people){
+    const badminton=resident.name==='Upin'||resident.name==='Ipin';
+    if(badminton){
+     const north=resident.name==='Upin';
+     rig.group.rotation.y=north?0:Math.PI;
+     rig.group.position.set(resident.x,.24,resident.z);
+     const hitting=north===forward;
+     const swing=hitting?Math.max(0,1-progress*5):Math.max(0,(progress-.8)*5);
+     rig.rightArm.rotation.x=-.65-swing*2.1;
+     rig.leftArm.rotation.x=-.4;rig.leftLeg.rotation.x=.12;rig.rightLeg.rotation.x=-.12;
+     rig.group.position.y+=Math.sin(swing*Math.PI)*.12;
+    }else{
+     // Small open-ground loops remain outside house, table and playground colliders.
+     const angle=time*.4+phase,walking=resident.child||['Abang Salleh','Abang Iz','Ah Tong'].includes(resident.name);
+     const radius=walking?.65:0;
+     rig.group.position.set(resident.x+Math.sin(angle)*radius,.18,resident.z+Math.cos(angle)*radius*.5);
+     rig.group.rotation.y=walking?Math.atan2(Math.cos(angle),-.5*Math.sin(angle)):Math.sin(time*.3+phase)*.4;
+     const stride=walking?Math.sin(time*5+phase)*.38:0;
+     rig.leftLeg.rotation.x=stride;rig.rightLeg.rotation.x=-stride;
+     rig.leftArm.rotation.x=-stride;rig.rightArm.rotation.x=walking?stride:Math.sin(time*1.5+phase)*.25;
+    }
+   }
+  }};
 }

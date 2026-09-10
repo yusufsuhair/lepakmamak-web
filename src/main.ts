@@ -1717,7 +1717,7 @@ async function init() {
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
-    villageNearby=started&&!paused&&!riding&&!cityMap.open&&!villageDialog.open?villageResidents.find(p=>Math.hypot(pos.x-villageOrigin.x-p.x,pos.z-villageOrigin.z-p.z)<2.6):undefined;
+    villageNearby=started&&!paused&&!riding&&!cityMap.open&&!villageDialog.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
     if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
