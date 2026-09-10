@@ -6,7 +6,7 @@ import type {Solid} from './physics';
 export const stallVoiceSpots = stalls.map(({id,name,x,z}) => ({id,name,x,z}));
 export const STALL_VOICE_REACH = 5;
 export const STALL_VOICE_FULL = 1.5;
-export const STALL_VOICE_PEAK = .22;
+export const STALL_VOICE_PEAK = .44;
 
 export function nearestStallDistance(position:{x:number;z:number}) {
  return Math.min(...stallVoiceSpots.map(stall => Math.hypot(position.x-stall.x,position.z-stall.z)));

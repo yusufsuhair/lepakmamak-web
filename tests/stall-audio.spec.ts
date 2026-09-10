@@ -7,7 +7,7 @@ test('booth voice fades smoothly away from the nearest stall',async({page})=>{
     return {full:STALL_VOICE_FULL,reach:STALL_VOICE_REACH,near:nearestStallDistance(stallVoiceSpots[0]),spots:stallVoiceSpots,volumes:Array.from({length:25},(_,distance)=>stallVoiceVolume(distance))};
   });
   expect(result.spots.map(spot=>spot.name)).toEqual(['Air Balang Pak Din','Pisang Goreng Mak Cik']);
-  expect(result.near).toBe(0);expect(result.full).toBe(1.5);expect(result.reach).toBe(5);expect(result.volumes[0]).toBe(.22);expect(result.volumes[result.reach]).toBe(0);
+  expect(result.near).toBe(0);expect(result.full).toBe(1.5);expect(result.reach).toBe(5);expect(result.volumes[0]).toBe(.44);expect(result.volumes[result.reach]).toBe(0);
   for(let distance=2;distance<=result.reach;distance++)expect(result.volumes[distance]).toBeLessThan(result.volumes[distance-1]);
 });
 
