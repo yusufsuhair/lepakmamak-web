@@ -104,6 +104,10 @@ export function createTableLobby(send, games, now = Date.now) {
   return {
     summary(players) {
       const result = {};
+      const add = (tableId, summary) => {
+        if (!result[tableId]) result[tableId] = [];
+        result[tableId].push(summary);
+      };
       for (const lobby of lobbies(players).values()) {
         const members = lobby.members.map(member => {
           const player = players.get(member.id);
@@ -115,7 +119,7 @@ export function createTableLobby(send, games, now = Date.now) {
           members,
         };
         if (LOBBY_RULES[lobby.game].scope === 'table') {
-          result[lobby.key] = summary;
+          add(lobby.key, summary);
           continue;
         }
         // Werewolf gathers players city-wide, but an observer opens the game from a
@@ -123,7 +127,7 @@ export function createTableLobby(send, games, now = Date.now) {
         // members so seated players are drawn in the correct in-game roster there.
         for (const member of lobby.members) {
           const tableId = tableForChair.get(players.get(member.id)?.chairId);
-          if (tableId) result[tableId] = summary;
+          if (tableId && !result[tableId]?.some(entry => entry === summary)) add(tableId, summary);
         }
       }
       return result;

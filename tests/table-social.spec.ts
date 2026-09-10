@@ -43,7 +43,7 @@ test('songs duck while a table game is open and return when it closes',async({pa
  expect(await playing()).toBe(false);                       // closed -> songs return
 });
 
-test('seated and in-game users have separate live-character rosters',async({page})=>{
+test('unjoined lobby stays first and each game has its own live-character list',async({page})=>{
  await page.route('**/table-roster',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><div id="speaking"></div></div>'}));
  await page.goto('/table-roster');
  await page.evaluate(async()=>{
@@ -52,12 +52,17 @@ test('seated and in-game users have separate live-character rosters',async({page
   const ali={id:'ali',name:'Ali',chairId:'chair-0',appearance:{skin:'#8b583d',hair:'#202c2b',shirt:'#62876b',gender:'male',hairstyle:'short'}};
   const mei={id:'mei',name:'Mei',chairId:'chair-1',appearance:{skin:'#cf986c',hair:'#654331',shirt:'#628fbb',gender:'female',hairstyle:'ponytail'}};
   const joe={id:'joe',name:'Joe',chairId:'chair-2',appearance:{skin:'#b98157',hair:'#202c2b',shirt:'#ef734c',gender:'male',hairstyle:'short'}};
-  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[ali,mei,joe],activeGame:{game:'lukis',phase:'playing',members:[ali,mei]}}],'ali',true);ui.open('meja-1');
+  ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[ali,mei,joe],activeGames:[{game:'lukis',phase:'playing',members:[ali]},{game:'uno',phase:'lobby',members:[mei]}]}],'ali',true);ui.open('meja-1');
  });
  await expect(page.locator('#table-seats')).not.toContainText('Dalam:');
- await expect(page.locator('.table-roster.playing .table-roster-person')).toHaveCount(2);
+ await expect(page.locator('.table-roster').first()).toHaveClass(/neutral/);
+ await expect(page.locator('.table-roster').first()).toContainText('LOBI MEJA · BELUM JOIN');
+ await expect(page.locator('.table-roster').first()).toContainText('Joe');
+ await expect(page.locator('.table-roster.playing .table-roster-person')).toHaveCount(1);
+ await expect(page.locator('.table-roster.lobby .table-roster-person')).toHaveCount(1);
  await expect(page.locator('.table-roster.seated .table-roster-person')).toHaveCount(1);
  await expect(page.locator('.table-roster.playing')).toContainText('DALAM GAME');
+ await expect(page.locator('.table-roster.lobby')).toContainText('MENUNGGU GAME · UNO Lepak');
  expect(await page.locator('.table-roster.playing .player-face').first().evaluate(el=>getComputedStyle(el).getPropertyValue('--face-shirt').trim())).toBe('#62876b');
  await expect(page.locator('#table-social > #speaking')).toHaveCount(1);
  await page.evaluate(()=>(window as any).ui.close());

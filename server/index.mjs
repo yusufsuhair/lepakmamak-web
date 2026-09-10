@@ -44,6 +44,7 @@ import zlib from 'node:zlib';
 import { WebSocketServer } from 'ws';
 import { createMetrics } from './metrics.mjs';
 import { clientKey, createConnectionCap } from './limits.mjs';
+import {createDevBots} from './dev-bots.mjs';
 
 const port = Number(process.env.PORT || 8080);
 const maxPlayers = city.maxPlayers;
@@ -69,6 +70,7 @@ const accountConnections = new Map();
 let tableLobby;
 const tableSocial = createTableSocial(send, players => tableLobby?.summary(players));
 const party = createParty(send);
+const devBots = createDevBots(maxPlayers);
 const leaderboard=createLeaderboard();
 const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
 const uno = createUno(send);
@@ -308,6 +310,7 @@ webSocketServer.on('connection', ws => {
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
     tableLobby.remove(currentRoom.players, player);
     party.remove(currentRoom.players, player);
+    devBots.remove(currentRoom.players, player.id);
     currentRoom.players.delete(player.id);
     ws.roomName = null;
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
@@ -415,6 +418,15 @@ webSocketServer.on('connection', ws => {
     }
 
     if (!player || !currentRoom) { send(ws, { type: 'error', message: 'Join a room first.' }); return; }
+    if (message.type.startsWith('dev-')) {
+      const result=devBots.handle(currentRoom.players,player,message);
+      if(result&&typeof result==='object'){
+        broadcast(currentRoom.players,{type:'players',players:snapshot(currentRoom.players)});
+        tableSocial.sync(currentRoom.players,true);
+        send(ws,{type:'notice',message:result.message});
+      }
+      return;
+    }
     if (message.type === 'leave-city') {
       uno.handle(currentRoom.players, player, {type:'uno-leave'});
       werewolf.handle(currentRoom.players, player, {type:'werewolf-leave'});

@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 const env = {...process.env,
   VITE_MULTIPLAYER_URL: 'wss://lepak-city-realtime-dev-development.up.railway.app',
   VITE_ALLOW_GUESTS: 'true',
+  VITE_DEV_TOOLS: 'true',
   VITE_SUPABASE_URL: '',
   VITE_SUPABASE_PUBLISHABLE_KEY: '',
 };

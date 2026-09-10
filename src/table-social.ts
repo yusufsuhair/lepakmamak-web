@@ -9,7 +9,7 @@ import locations from '../shared/tables.json';
 import {createPlayerFace} from './player-face';
 type TablePerson={id:string;name:string;chairId?:string;appearance?:Record<string,string>};
 export type TableGameState={game:string;phase:string;members:TablePerson[]};
-export type TableState={id:string;name:string;capacity:number;occupants:TablePerson[];activeGame?:TableGameState|null};
+export type TableState={id:string;name:string;capacity:number;occupants:TablePerson[];activeGames?:TableGameState[];activeGame?:TableGameState|null};
 const GAME_TITLES:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
 const GAME_PHASES:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
 export function setupTableSocial(send:(message:object)=>boolean,_room:string,releaseInput:()=>void,toast:(title:string,body:string)=>void){
@@ -37,22 +37,25 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  selectGame('');
  dialog.querySelectorAll<HTMLButtonElement>('[data-select]').forEach(button=>button.onclick=()=>selectGame(button.dataset.select!));
  dialog.querySelector<HTMLButtonElement>('.table-back')!.onclick=()=>selectGame('');
- function rosterRow(label:string,people:TablePerson[],kind:string){
-  if(!people.length)return null;const row=document.createElement('section');row.className=`table-roster ${kind}`;
+ function rosterRow(label:string,people:TablePerson[],kind:string,showEmpty=false){
+  if(!people.length&&!showEmpty)return null;const row=document.createElement('section');row.className=`table-roster ${kind}`;
   const title=document.createElement('strong');title.textContent=label;const faces=document.createElement('div');faces.className='table-roster-faces';
   for(const person of people){const item=document.createElement('span');item.className='table-roster-person';item.title=person.name;item.append(createPlayerFace(person));const name=document.createElement('small');name.textContent=person.name;item.append(name);faces.append(item);}
+  if(!people.length){const empty=document.createElement('small');empty.className='table-roster-empty';empty.textContent='Tiada pemain';faces.append(empty);}
   row.append(title,faces);return row;
  }
- function renderRosters(occupants:TablePerson[],activeGame:TableGameState|null){const root=dialog.querySelector('#table-rosters')!;root.replaceChildren();
-  const joined=new Set(activeGame?.members.map(person=>person.id)||[]),waiting=occupants.filter(person=>!joined.has(person.id));
-  if(activeGame){const playing=activeGame.phase==='playing';const row=rosterRow(playing?`DALAM GAME · ${GAME_TITLES[activeGame.game]||activeGame.game}`:`LOBI · ${GAME_TITLES[activeGame.game]||activeGame.game}`,activeGame.members,playing?'playing':'lobby');if(row)root.append(row);}
-  const seated=rosterRow(activeGame?'DUDUK · BELUM SERTAI':'LOBI MEJA',activeGame?waiting:occupants,'seated');if(seated)root.append(seated);
+ function renderRosters(occupants:TablePerson[],activeGames:TableGameState[]){const root=dialog.querySelector('#table-rosters')!;root.replaceChildren();
+  const joined=new Set(activeGames.flatMap(game=>game.members.map(person=>person.id))),unjoined=occupants.filter(person=>!joined.has(person.id));
+  // The neutral table lobby always owns the top row. These users are seated, but have not
+  // joined any game yet, so they must never look like members of the game rows below.
+  const lobby=rosterRow('LOBI MEJA · BELUM JOIN',unjoined,'seated neutral',true);if(lobby)root.append(lobby);
+  for(const game of activeGames){const playing=game.phase==='playing';const row=rosterRow(playing?`DALAM GAME · ${GAME_TITLES[game.game]||game.game}`:`MENUNGGU GAME · ${GAME_TITLES[game.game]||game.game}`,game.members,playing?'playing':'lobby');if(row)root.append(row);}
  }
- function render(){const seated=own(),id=seated?.id||selected,name=locations.find(t=>t.id===id)?.name||'Meja',snapshot=tables.find(t=>t.id===id),occupants=snapshot?.occupants||[],activeGame=snapshot?.activeGame||null;
+ function render(){const seated=own(),id=seated?.id||selected,name=locations.find(t=>t.id===id)?.name||'Meja',snapshot=tables.find(t=>t.id===id),occupants=snapshot?.occupants||[],activeGames=snapshot?.activeGames||(snapshot?.activeGame?[snapshot.activeGame]:[]),activeGame=activeGames.find(game=>game.phase==='playing')||activeGames[0]||null;
   dialog.querySelector('#table-name')!.textContent=name;
   const game=activeGame?`${GAME_TITLES[activeGame.game]||activeGame.game} · ${GAME_PHASES[activeGame.phase]||activeGame.phase}`:online?'Belum ada game':'Sambung ke city online';
   const seats=snapshot?`${occupants.length}/${snapshot.capacity} pemain`:'Status pemain belum tersedia';
-  dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seats} · ${game}`:`${seats} · ${game}`;renderRosters(occupants,activeGame);
+  dialog.querySelector('#table-seats')!.textContent=seated?`Anda duduk di ${name} · ${seats} · ${game}`:`${seats} · ${game}`;renderRosters(occupants,activeGames);
   (dialog.querySelector('#table-detail') as HTMLElement).hidden=!seated;
   const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);}
   poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);

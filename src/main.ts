@@ -58,6 +58,7 @@ import { setupWall, type WallPost } from './wall';
 import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
+import {setupDeveloperOptions} from './developer-options';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -418,6 +419,7 @@ async function init() {
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
   }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
+  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
   let networkPlayerId = '';
   let networkConnected = false;
   let networkSendTimer = 0, networkIdleTimer = 0;

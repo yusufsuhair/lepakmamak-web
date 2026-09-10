@@ -81,8 +81,8 @@ test('each table runs its own lobby, and werewolf runs one for the whole city',(
  expect(state('ali').members).toHaveLength(2);
  expect(state('ali').min).toBe(LOBBY_RULES.werewolf.min);
  const summary=lobby.summary(players);
- expect(summary['meja-1'].game).toBe('werewolf');
- expect(summary['meja-2'].members.map((member:any)=>member.id)).toEqual(['ali','mei']);
+ expect(summary['meja-1'][0].game).toBe('werewolf');
+ expect(summary['meja-2'][0].members.map((member:any)=>member.id)).toEqual(['ali','mei']);
 });
 
 test('standing up, leaving or disconnecting takes you out of the lobby',()=>{

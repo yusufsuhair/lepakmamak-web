@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.19",
+  "date": "2026-09-10",
+  "title": "Lobby berasingan dan alat ujian dev",
+  "notes": [
+    "Lobby Meja kini sentiasa berada paling atas dan hanya menyenaraikan pemain yang duduk tetapi belum join sebarang game.",
+    "Setiap game mempunyai senarai pemain sendiri untuk membezakan mereka yang menunggu dengan mereka yang sudah bermain.",
+    "Build dev mempunyai Developer Option untuk spawn test users berhampiran, memilih status mic dan speaker, serta membuang semua test users milik anda."
+  ]
+},
+{
   "version": "1.39.18",
   "date": "2026-09-10",
   "title": "Lukis Lah lebih adil dan tahan reconnect",

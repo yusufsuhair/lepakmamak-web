@@ -1,6 +1,6 @@
 {
   "name": "lepakmamak",
-  "version": "1.39.18",
+  "version": "1.39.19",
   "description": "A stylised Kuala Lumpur browser game",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
