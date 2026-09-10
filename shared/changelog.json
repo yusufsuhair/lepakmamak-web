@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.24.0",
+  "date": "2026-09-10",
+  "title": "Tak tersangkut pada versi lama",
+  "notes": [
+   "If you leave the game open while a new version goes out, it now tells you and refreshes itself: FULL REFRESH BY SYSTEM IN 3, 2, 1. No more playing an old build without knowing.",
+   "If the refresh does not pick the new version up, it stops trying and offers you a button instead of reloading over and over."
+  ]
+ },
+ {
   "version": "1.23.0",
   "date": "2026-09-10",
   "title": "Masuk dengan Google",

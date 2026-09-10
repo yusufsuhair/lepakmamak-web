@@ -654,3 +654,15 @@ html, body, #app { touch-action: manipulation; }
 #auth-google { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; }
 #auth-google span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #fff; color: #4285f4; font: 800 13px 'Oxanium', sans-serif; }
 #auth-google[hidden] { display: none; }
+
+/* The forced-refresh overlay. Kept here rather than in its own file so refresh.ts stays
+   importable from Node, which is where the version comparison is tested. */
+/* pointer-events: the HUD it lives in switches them off, and this overlay has a button. */
+#force-refresh{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:#071917e6;backdrop-filter:blur(6px);pointer-events:auto}
+#force-refresh[hidden]{display:none}
+.refresh-card{max-width:min(420px,88vw);padding:26px 28px;border:1px solid #ffe09a4d;border-radius:14px;background:#12302a;color:#fff8e7;text-align:center;box-shadow:0 24px 80px #0009}
+.refresh-card small{display:block;font-size:9px;letter-spacing:.22em;color:#c9b580}
+.refresh-card strong{display:block;margin:10px 0 8px;font:800 26px/1.15 'Oxanium',sans-serif;letter-spacing:.02em}
+.refresh-card p{margin:0;font-size:12px;line-height:1.6;color:#cfe0cd}
+.refresh-card button{margin-top:16px;min-height:46px;padding:0 20px;border:0;border-radius:9px;background:#ddf69a;color:#173c32;font:700 13px 'Oxanium',sans-serif;letter-spacing:.05em;cursor:pointer}
+@media(max-width:600px){.refresh-card{padding:20px}.refresh-card strong{font-size:21px}}

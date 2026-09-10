@@ -9,6 +9,7 @@ import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
+import {createRefresher} from './refresh';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {setupWeather} from './weather';
@@ -157,6 +158,7 @@ async function init() {
   const lrt=createLrt(scene,world.solids);
   let lrtId:number|null=null,lrtSeat=0,lrtClockOffset=0;
   const lrtNow=()=>Date.now()+lrtClockOffset;
+  const refresher = createRefresher($('hud'));
   const lrtPanel=document.createElement('section');lrtPanel.className='lrt-panel';lrtPanel.hidden=true;lrtPanel.innerHTML='<strong></strong><small></small><button type="button">Turun di stesen</button>';$('hud').append(lrtPanel);
   lrtPanel.querySelector('button')!.onclick=()=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-exit'}));};
   const village=createVillageResidents(scene);
@@ -765,7 +767,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
+        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;speed=0;jumpHeight=0;} } voice.connected(true); socket.send(JSON.stringify({ type: 'afk-note', text: afkNote })); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);

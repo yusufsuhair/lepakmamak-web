@@ -358,7 +358,9 @@ webSocketServer.on('connection', ws => {
       room.players.set(id, player);
       socialProfiles.event(player,'sessions',1,true);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
-      send(ws, { type: 'welcome', id, room: room.name, players: snapshot(room.players) });
+      // The version travels with the welcome so a page left open across a deploy finds out
+      // it is stale without polling anything.
+      send(ws, { type: 'welcome', id, room: room.name, version, players: snapshot(room.players) });
       weatherControls.sync(room.players,ws);
       lamps.sync(room.players,ws);
       fleet.sync(room.players,ws);
