@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.38.5",
+    "date": "2026-09-10",
+    "title": "Suara gerai lebih dekat dan tenang",
+    "notes": [
+      "Laungan dua singgit kini hanya kedengaran apabila anda betul-betul menghampiri kaunter gerai, dengan kelantangan maksimum yang lebih rendah."
+    ]
+  },
+  {
     "version": "1.38.4",
     "date": "2026-09-10",
     "title": "Suara penjaja kembali ke gerai",

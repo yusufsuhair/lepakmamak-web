@@ -4,15 +4,15 @@ import {createPerson} from './world';
 import type {Solid} from './physics';
 
 export const stallVoiceSpots = stalls.map(({id,name,x,z}) => ({id,name,x,z}));
-export const STALL_VOICE_REACH = 18;
-export const STALL_VOICE_FULL = 4;
-export const STALL_VOICE_PEAK = .44;
+export const STALL_VOICE_REACH = 5;
+export const STALL_VOICE_FULL = 1.5;
+export const STALL_VOICE_PEAK = .22;
 
 export function nearestStallDistance(position:{x:number;z:number}) {
  return Math.min(...stallVoiceSpots.map(stall => Math.hypot(position.x-stall.x,position.z-stall.z)));
 }
 
-// Full volume beside the counter, with a short hawker call carrying across the pavement.
+// Keep the hawker call at the counter so it does not wash over the surrounding street.
 export function stallVoiceVolume(distance:number) {
  const t=Math.max(0,Math.min(1,(STALL_VOICE_REACH-distance)/(STALL_VOICE_REACH-STALL_VOICE_FULL)));
  return STALL_VOICE_PEAK*t*t*(3-2*t);
