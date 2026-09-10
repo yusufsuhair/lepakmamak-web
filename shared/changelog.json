@@ -1,5 +1,15 @@
 [
  {
+  "version": "1.27.0",
+  "date": "2026-09-10",
+  "title": "Tetapan lebih kemas",
+  "notes": [
+   "Settings is called Settings now, with a × in the corner to close it. The two lines of filler above it are gone; the version stays.",
+   "The settings button is a gear instead of two bars.",
+   "The keyboard hints along the bottom now really do stay off on phones and tablets. They were being hidden by an instruction the stylesheet quietly overruled, so they kept showing up on iPads."
+  ]
+ },
+ {
   "version": "1.26.0",
   "date": "2026-09-10",
   "title": "Butang atas kanan jadi satu pada telefon",

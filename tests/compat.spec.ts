@@ -7,16 +7,25 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join')ws.send(JSON.stringify({type:'welcome',id:'hud-test',players:[]}));}));
   await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const auth=null;export const session=null;export let guestName='';export function clearGuest(){}export const displayName=()=> 'HUD test';export async function setupAuth(onEnter){setTimeout(onEnter,500);return onEnter;}`}));
   await page.goto('/');
-  await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
+  // The auth stub above enters on its own after half a second and renders no panel. Do not
+  // press start: the intro hides mid-click and the click retries against a hidden button
+  // until the test times out, which is why this file passed or hung at random.
   await expect(page.locator('#hud')).toBeVisible();
+  // On a phone every top-right control lives behind the ⋮ until it is opened, so open it
+  // before reaching for any of them.
+  const narrow = viewport.width <= 600;
+  const openTray = async () => { if (narrow && await page.locator('#menu').isHidden()) await page.locator('#hud-more').click(); };
+  await openTray();
   await expect(page.locator('.game-brand')).toHaveCount(0);
   await expect(page.locator('#camera-in,#camera-out')).toHaveCount(0);
   expect(await page.locator('#multiplayer-status-text').evaluate(el=>getComputedStyle(el).clipPath)).toBe('inset(50%)');
   const minimap=await page.locator('#minimap').boundingBox();expect(minimap!.x).toBeLessThan(viewport.width/2);
   await page.evaluate(()=>{ document.querySelector('canvas')!.dispatchEvent(new WheelEvent('wheel',{deltaY:200,bubbles:true,cancelable:true})); });
   expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBeGreaterThan(9);
+  await openTray();
   await page.getByRole('button',{name:'Centre camera',exact:true}).click();
   expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(9);
+  await openTray();
   for (const selector of ['#menu','#camera-reset','#chat-heading']) {
    const box=await page.locator(selector).boundingBox();
    expect(box).not.toBeNull(); expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -26,7 +35,9 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   if (viewport.width!==1280) {
    await page.locator('#world').evaluate(el=>{el.setPointerCapture=()=>{};for(const [id,x] of [[81,100],[82,200]])el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',clientX:x,clientY:200,bubbles:true}));el.dispatchEvent(new PointerEvent('pointermove',{pointerId:82,pointerType:'touch',clientX:250,clientY:200,bubbles:true}));for(const id of [81,82])el.dispatchEvent(new PointerEvent('pointerup',{pointerId:id,pointerType:'touch',bubbles:true}));});
    expect(await page.evaluate(()=>(window as any).__lepak.cameraZoom)).toBeLessThan(9);
-   await page.locator('#chat-heading').click();
+   // The composer pill opens the input; the heading collapses the whole panel, which used
+   // to be the same gesture and no longer is.
+   await page.locator('#chat-compose').click();
    await page.locator('#chat-input').focus();
    await expect(page.locator('body')).toHaveClass(/chat-typing/);
    await expect(page.locator('#touch-controls')).toBeHidden();
@@ -35,6 +46,7 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
    await page.locator('#chat-heading').click();
   }
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.width}.png`});
+  await openTray();
   await page.locator('#menu').click(); await expect(page.locator('#pause')).toBeVisible();
   await expect(page.locator('#reset')).toHaveCount(0);
   await page.locator('#resume').click(); await expect(page.locator('#pause')).toBeHidden();
