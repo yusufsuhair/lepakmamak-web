@@ -1514,6 +1514,8 @@ async function init() {
     else toast('City offline','Reconnect before teleporting.');
   };
   let mapMode:'2d'|'3d'='3d';
+  const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
+  let mapZoom=defaultMapZoom;
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
   expandedCanvas.dataset.mode=mapMode;
   const selectMapPlace=(id:string)=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
@@ -1524,13 +1526,33 @@ async function init() {
   const mapViewport=document.querySelector<HTMLElement>('.city-map-viewport')!;
   const mapFrame=document.createElement('div');mapFrame.className='map-frame';mapViewport.before(mapFrame);mapFrame.append(mapViewport);
   const mapToolbar=document.createElement('div');mapToolbar.className='map-toolbar';mapToolbar.append(viewControls,teleportBar);mapFrame.append(mapToolbar);
+  const mapZoomControls=document.createElement('div');mapZoomControls.className='map-zoom-controls';mapZoomControls.setAttribute('role','group');mapZoomControls.setAttribute('aria-label','Map zoom');
+  const zoomIn=document.createElement('button'),zoomLevel=document.createElement('button'),zoomOut=document.createElement('button');
+  zoomIn.type=zoomLevel.type=zoomOut.type='button';zoomIn.textContent='+';zoomOut.textContent='−';zoomIn.setAttribute('aria-label','Zoom in');zoomOut.setAttribute('aria-label','Zoom out');zoomLevel.setAttribute('aria-label','Reset map zoom');zoomLevel.title='Reset to default zoom';mapZoomControls.append(zoomIn,zoomLevel,zoomOut);mapFrame.append(mapZoomControls);
+  function setMapZoom(next:number){
+    mapZoom=Math.max(minMapZoom,Math.min(maxMapZoom,Math.round(next*100)/100));expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=maxMapZoom;zoomOut.disabled=mapZoom<=minMapZoom;drawMap(true);
+  }
+  zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=()=>setMapZoom(defaultMapZoom);setMapZoom(defaultMapZoom);
+  mapViewport.addEventListener('wheel',event=>{event.preventDefault();setMapZoom(mapZoom+(event.deltaY<0?mapZoomStep:-mapZoomStep));},{passive:false});
+  const mapTouches=new Map<number,{x:number;y:number}>();let mapPinchSpan=0;
+  const mapTouchSpan=()=>{const [a,b]=[...mapTouches.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
+  expandedCanvas.addEventListener('pointerdown',event=>{if(event.pointerType!=='touch')return;mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(mapTouches.size===2){mapPinchSpan=mapTouchSpan();expandedCanvas.dataset.gesture='true';}});
+  expandedCanvas.addEventListener('pointermove',event=>{if(!mapTouches.has(event.pointerId))return;mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(mapTouches.size!==2||!mapPinchSpan)return;event.preventDefault();const span=mapTouchSpan();if(span>0){setMapZoom(mapZoom*span/mapPinchSpan);mapPinchSpan=span;}});
+  const endMapTouch=(event:PointerEvent)=>{mapTouches.delete(event.pointerId);if(mapTouches.size<2){mapPinchSpan=0;setTimeout(()=>delete expandedCanvas.dataset.gesture,100);}};
+  for(const type of ['pointerup','pointercancel','lostpointercapture'])expandedCanvas.addEventListener(type,event=>endMapTouch(event as PointerEvent));
   expandedCanvas.addEventListener('click',event=>{if(mapMode==='3d')overview.click(event);});
 
   function drawMap(expanded = false) {
-    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
+    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace,mapZoom);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
-    const w = map.width, h = map.height, scale = expanded ? Math.min(w / 730,h / 520) : 1.13;
-    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale); ctx.translate(expanded?180:pos.x< -145?-pos.x:0,expanded?50:pos.x< -145?-pos.z:0);
+    const w=map.width,h=map.height;let scale=1.13,centerX=0,centerZ=0;
+    if(expanded){
+      let minX=-170,maxX=170,minZ=-170,maxZ=170;
+      for(const b of world.mapBuildings){minX=Math.min(minX,b.x-b.w/2);maxX=Math.max(maxX,b.x+b.w/2);minZ=Math.min(minZ,b.z-b.d/2);maxZ=Math.max(maxZ,b.z+b.d/2);}
+      centerX=(minX+maxX)/2;centerZ=(minZ+maxZ)/2;scale=Math.min(w/(maxX-minX+44),h/(maxZ-minZ+44))*mapZoom;
+      map.dataset.worldScale=String(scale);map.dataset.centerX=String(centerX);map.dataset.centerZ=String(centerZ);
+    }
+    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);ctx.translate(-centerX,-centerZ);
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
     ctx.fillStyle = '#82907a';
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);

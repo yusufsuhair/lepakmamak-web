@@ -7,12 +7,13 @@ export function createMapOverview(scene:THREE.Scene, canvas:HTMLCanvasElement, s
  const camera=new THREE.OrthographicCamera(-440,440,440,-440,1,1500);
  camera.position.set(50,600,250);camera.lookAt(-180,0,-50);camera.updateMatrixWorld();
  const point=new THREE.Vector3();
- let lastRender=0,lastSelection='';
+ let lastRender=0,lastSelection='',lastZoom=0;
  let hits:{id:string;x:number;y:number}[]=[];
  function project(x:number,y:number,z:number){point.set(x,y,z).project(camera);return{x:(point.x+1)*canvas.width/2,y:(1-point.y)*canvas.height/2};}
- function draw(x:number,z:number,selected:string){
-  const now=performance.now();if(now-lastRender<250&&selected===lastSelection)return;lastRender=now;lastSelection=selected;
+ function draw(x:number,z:number,selected:string,zoom=1){
+  const now=performance.now();if(now-lastRender<250&&selected===lastSelection&&zoom===lastZoom)return;lastRender=now;lastSelection=selected;lastZoom=zoom;
   if(!renderer){renderer=new THREE.WebGLRenderer({antialias:false,alpha:false});renderer.setPixelRatio(1);renderer.setSize(640,640);renderer.outputColorSpace=THREE.SRGBColorSpace;}
+  camera.zoom=zoom;camera.updateProjectionMatrix();camera.updateMatrixWorld();
   const fog=scene.fog;scene.fog=null;
   try{renderer.render(scene,camera);}finally{scene.fog=fog;}
   const ctx=canvas.getContext('2d')!;ctx.drawImage(renderer.domElement,0,0,canvas.width,canvas.height);
@@ -23,5 +24,5 @@ export function createMapOverview(scene:THREE.Scene, canvas:HTMLCanvasElement, s
   }
   const you=project(x,5,z);ctx.fillStyle='#49cfff';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(you.x,you.y,9,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.fillText('YOU',you.x,you.y+25);
  }
- return{draw,click(event:MouseEvent){const r=canvas.getBoundingClientRect(),x=(event.clientX-r.left)/r.width*canvas.width,y=(event.clientY-r.top)/r.height*canvas.height;const hit=hits.filter(p=>Math.hypot(x-p.x,y-p.y)<25).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(hit)select(hit.id);}};
+ return{draw,click(event:MouseEvent){if(canvas.dataset.gesture)return;const r=canvas.getBoundingClientRect(),x=(event.clientX-r.left)/r.width*canvas.width,y=(event.clientY-r.top)/r.height*canvas.height;const hit=hits.filter(p=>Math.hypot(x-p.x,y-p.y)<25).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(hit)select(hit.id);}};
 }
