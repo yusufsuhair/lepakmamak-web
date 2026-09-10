@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.9",
+    "date": "2026-09-10",
+    "title": "Nama Taycan dan plat VRG9405 lebih jelas",
+    "notes": [
+      "Porsche Taycan kini memaparkan nama Yusuf Suhair di atas kereta.",
+      "Plat VRG9405 menggunakan latar hitam dan teks putih supaya mudah dibaca seperti plat GT3 RS.",
+      "Label Daddy Fizal pada GT3 RS direndahkan supaya tidak bertembung dengan nama pemain ketika berada di dalam kereta."
+    ]
+  },
+  {
     "version": "1.39.8",
     "date": "2026-09-10",
     "title": "Plat VRG9405 untuk Taycan",

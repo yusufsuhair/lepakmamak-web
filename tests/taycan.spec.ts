@@ -14,9 +14,11 @@ test('Frozen Berry Taycan renders with four wheels and a hidden driver',async({p
   document.body.append(renderer.domElement);renderer.render(scene,camera);
   const bounds=new THREE.Box3().setFromObject(car.group).getSize(new THREE.Vector3());
   const plates:string[]=[];car.group.traverse(o=>{if(o.userData.text)plates.push(o.userData.text);});
-  return{wheels:car.wheels.length,driver:car.driver.visible,model:car.group.userData.model,plate:car.group.userData.plate,plates,supported:carStyles.includes('taycan'),bounds:bounds.toArray()};
+  const owner=car.group.getObjectByName('owner-label');
+  const plateMeshes:any[]=[];car.group.traverse(o=>{if(o.userData.text==='VRG9405')plateMeshes.push(o.userData);});
+  return{wheels:car.wheels.length,driver:car.driver.visible,model:car.group.userData.model,owner:car.group.userData.ownerLabel,ownerText:owner?.userData.text,ownerPosition:owner?.position.toArray(),plate:car.group.userData.plate,plates,plateMeshes,supported:carStyles.includes('taycan'),bounds:bounds.toArray()};
  });
- expect(result.wheels).toBe(4);expect(result.driver).toBe(false);expect(result.model).toBe('taycan');expect(result.plate).toBe('VRG9405');expect(result.plates.filter(text=>text==='VRG9405')).toHaveLength(2);expect(result.supported).toBe(true);
+ expect(result.wheels).toBe(4);expect(result.driver).toBe(false);expect(result.model).toBe('taycan');expect(result.owner).toBe('Yusuf Suhair');expect(result.ownerText).toBe('Yusuf Suhair');expect(result.ownerPosition).toEqual([0,2.08,0]);expect(result.plate).toBe('VRG9405');expect(result.plates.filter(text=>text==='VRG9405')).toHaveLength(2);expect(result.plateMeshes).toEqual([{text:'VRG9405',plateBackground:'#090b0e',plateForeground:'#ffffff'},{text:'VRG9405',plateBackground:'#090b0e',plateForeground:'#ffffff'}]);expect(result.supported).toBe(true);
  expect(result.bounds[2]).toBeGreaterThan(4);expect(result.bounds[0]).toBeLessThan(2.4);
  await page.screenshot({path:testInfo.outputPath('taycan-frozen-berry.png')});
 });

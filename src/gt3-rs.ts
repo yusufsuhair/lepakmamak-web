@@ -211,7 +211,7 @@ export function createGt3Rs() {
     decal('RS',.32,.12,side*1.125,1.675-wingDrop,-2.00,side*Math.PI/2,'#eb2936',undefined,true);
   }
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({map:textTexture('Daddy Fizal','#ffffff','#202730'),depthTest:true,depthWrite:false,toneMapped:false}));
-  tag.name='owner-label';tag.userData.text='Daddy Fizal';tag.position.set(0,2.42,0);tag.scale.set(1.85,.347,1);group.add(tag);
+  tag.name='owner-label';tag.userData.text='Daddy Fizal';tag.position.set(0,2.08,0);tag.scale.set(1.85,.347,1);group.add(tag);
   // Batch by material, separately for the chassis and each rotating wheel.
   // Keep text meshes addressable and the drilled-disc instances intact.
   group.updateMatrixWorld(true);
