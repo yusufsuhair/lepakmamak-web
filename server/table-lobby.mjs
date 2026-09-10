@@ -74,10 +74,15 @@ export function createTableLobby(send, games, now = Date.now) {
     const seated = lobby.members.map(member => players.get(member.id)).filter(Boolean);
     if (!seated.length) return;
     if (ROSTER_GAMES[lobby.game]) {
-      for (const player of seated) game.handle(players, player, {type: `${lobby.game}-join`});
-      // Werewolf deals to an exact headcount. This has to follow the joins, because the
-      // game has no host to accept the size from until the first player is in.
-      if (lobby.game === 'werewolf') game.handle(players, seated[0], {type: 'werewolf-size', size: seated.length});
+      // Werewolf deals to an exact headcount, and its join gate caps at the current size,
+      // which starts at 7. Setting the size after everyone had joined therefore turned away
+      // members 8 and 9 and left start() waiting for a headcount that could never arrive —
+      // silently, because the lobby had already flipped to 'playing'. The size only needs a
+      // host, and the first join is what makes one, so it goes between.
+      const [first, ...rest] = seated;
+      game.handle(players, first, {type: `${lobby.game}-join`});
+      if (lobby.game === 'werewolf') game.handle(players, first, {type: 'werewolf-size', size: seated.length});
+      for (const player of rest) game.handle(players, player, {type: `${lobby.game}-join`});
     }
     game.handle(players, seated[0], {type: `${lobby.game}-start`});
   }

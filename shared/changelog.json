@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.37.1",
+  "date": "2026-09-10",
+  "title": "Werewolf lapan dan sembilan orang boleh main",
+  "notes": [
+   "A Werewolf game with 8 or 9 players never actually started — the countdown finished and nothing happened. Every size from 5 to 9 works now, which also means Alpha, Knight, Princess, Hunter and Mayor are reachable for the first time."
+  ]
+ },
+ {
   "version": "1.37.0",
   "date": "2026-09-10",
   "title": "Satu chat, dari bandar sampai ke meja",
