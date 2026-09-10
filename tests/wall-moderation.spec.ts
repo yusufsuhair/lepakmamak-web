@@ -71,3 +71,59 @@ test('a muted or banned account cannot post or reply on the Wall, but can still 
   await new Promise(resolve=>server.close(resolve));
  }
 });
+
+
+// README.md and docs/production-release.md both promise the same property: an image moderator
+// that cannot reach a verdict blocks the photo. image-moderation.mjs is built for it - its header
+// says "an unconfigured, unreachable or unreadable moderator rejects the upload" and it returns
+// {safe:false} for all three. wall.mjs then re-opens the 'unconfigured' case and publishes.
+//
+// That matters right now rather than in theory: docs/production-release.md records that Railway
+// has no OPENAI_API_KEY, so 'unconfigured' is the live production verdict for every photo, while
+// the same document tells whoever reads it that "photo uploads remain blocked".
+const PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+function fixture(verdict:{safe:boolean;reason?:string}){
+ const uploaded:string[]=[],stored:any[]=[];
+ const table=()=>{let row:any;const q:any={insert:(value:any)=>{row=value;return q;},select:()=>q,
+  single:async()=>{stored.push(row);return{data:{id:'22222222-2222-4222-8222-222222222222',created_at:'2026-09-10T00:00:00Z',...row},error:null};},
+  order:()=>q,limit:async()=>({data:[],error:null}),eq:()=>q,in:async()=>({data:[],error:null})};return q;};
+ const db:any={
+  auth:{getUser:async()=>({data:{user:{id:'44444444-4444-4444-8444-444444444444',is_anonymous:false,user_metadata:{display_name:'Poster'}}},error:null})},
+  from:table,
+  storage:{from:()=>({upload:async(path:string)=>{uploaded.push(path);return{error:null};},
+   getPublicUrl:(path:string)=>({data:{publicUrl:`https://cdn.test/${path}`}}),remove:async()=>({error:null})})},
+ };
+ return {db,uploaded,stored,moderateImage:async()=>verdict};
+}
+
+async function post(verdict:{safe:boolean;reason?:string}){
+ const {db,uploaded,stored,moderateImage}=fixture(verdict);
+ const {createWall}=await import('../server/wall.mjs');
+ const wall=createWall({db,moderateImage});
+ const server=createServer((request,response)=>void wall.handle(request,response));
+ await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const port=(server.address() as any).port;
+ try{
+  const response=await fetch(`http://127.0.0.1:${port}/wall/posts`,{method:'POST',
+   headers:{'Content-Type':'application/json',Authorization:'Bearer token'},
+   body:JSON.stringify({text:'holiday snap',mimeType:'image/png',data:PNG})});
+  return {status:response.status,uploaded,stored};
+ } finally { await new Promise<void>(resolve=>server.close(()=>resolve())); }
+}
+
+test('a photo is never published by a moderator that did not clear it',async()=>{
+ // 'unconfigured' is the verdict in production today, so it belongs in this list, not outside it.
+ for(const reason of ['unconfigured','unreachable','unavailable','unreadable']){
+  const {status,uploaded,stored}=await post({safe:false,reason});
+  expect(status,`reason '${reason}' must not publish`).not.toBe(201);
+  expect(uploaded,`reason '${reason}' must not reach the public bucket`).toHaveLength(0);
+  expect(stored,`reason '${reason}' must not be written to the wall`).toHaveLength(0);
+ }
+});
+
+test('a cleared photo still publishes',async()=>{
+ const {status,uploaded}=await post({safe:true});
+ expect(status).toBe(201);
+ expect(uploaded).toHaveLength(1);
+});
