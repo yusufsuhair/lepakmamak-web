@@ -27,8 +27,10 @@ for(const width of [390,1280])test(`one screen holds items, equipment and clothe
  // The wardrobe is a tab here, not a second dialog to open.
  await page.getByRole('button',{name:'Tops',exact:true}).click();
  await expect(page.getByRole('radio',{name:'Blue shirt'})).toBeVisible();
+ await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-preview','live-3d');
  await page.getByRole('radio',{name:'Blue shirt'}).click();
  await expect(page.getByRole('radio',{name:'Blue shirt'})).toHaveAttribute('aria-checked','true');
+ await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-shirt','#628fbb');
  await expect(page.locator('.outfit-slots')).toContainText('Blue');
  await expect(page.locator('.inventory-look-name')).toContainText('Blue top');
  // The world is told at once; there is no Save button to press.

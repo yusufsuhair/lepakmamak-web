@@ -1,6 +1,7 @@
 import catalog from '../shared/shop.json';
 import {appearanceOptions, type Appearance} from './appearance';
-import {CLOTHING, drawLook, lookLabel, savedLook, saveLook} from './wardrobe';
+import {createAvatarPreview} from './avatar-preview';
+import {CLOTHING, lookLabel, savedLook, saveLook} from './wardrobe';
 import {bar, skeleton, settled} from './skeleton';
 import './inventory.css';
 
@@ -27,7 +28,7 @@ export function setupInventory(
     <div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div>
     <div class="inventory-layout">
       <aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Wearing</h3><div class="outfit-slots"></div></aside>
-      <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live character preview"></canvas><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
+      <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live 3D character preview"></canvas><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
       <section><nav aria-label="Inventory filters"></nav><div class="inventory-grid" role="group"></div><div class="inventory-details"></div></section>
     </div>
     <p class="inventory-status" role="status" aria-live="polite"></p>`;
@@ -35,6 +36,7 @@ export function setupInventory(
 
   const status = dialog.querySelector<HTMLElement>('.inventory-status')!;
   const canvas = dialog.querySelector('canvas')!;
+  const avatarPreview = createAvatarPreview(canvas);
   const filterBar = dialog.querySelector<HTMLElement>('nav')!;
   let state: State = {items: [], balance: 0};
   let selected = '', filter: Filter = 'all', busy = false, epoch = 0;
@@ -174,7 +176,7 @@ export function setupInventory(
     if (loading()) skeleton(balanceLabel, 'Loading balance', '82px', '14px');
     else settled(balanceLabel, ready ? `${state.balance.toLocaleString()} Syiling` : '— Syiling');
     dialog.querySelector('.inventory-look-name')!.textContent = `${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
-    drawLook(canvas, look);
+    avatarPreview.setLook(look);
     for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-filter]')) button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
     dialog.querySelector<HTMLButtonElement>('.inventory-random')!.disabled = busy;
     renderEquipped(); renderOutfit(); renderGrid(); renderDetails();
@@ -186,7 +188,7 @@ export function setupInventory(
   };
   dialog.querySelector('header button')!.addEventListener('click', () => dialog.close());
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  dialog.addEventListener('close', () => { epoch++; busy = false; });
+  dialog.addEventListener('close', () => { epoch++; busy = false; avatarPreview.stop(); });
 
   async function load() {
     const ticket = ++epoch;
@@ -202,6 +204,7 @@ export function setupInventory(
       // The account may have changed clothes on another device since this was last open.
       look = savedLook();
       if (!dialog.open) dialog.showModal();
+      avatarPreview.start();
       void load();
     },
     close() { dialog.close(); },
