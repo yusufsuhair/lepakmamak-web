@@ -78,7 +78,7 @@ test('party and DM are shut while a hidden-information match is live',async()=>{
   // With no match running, private channels behave normally: party says "no party yet".
   wolf.ws.send(JSON.stringify({type:'chat',channel:'party',text:'hello'}));
   await settle();
-  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/not in a party/i);
+  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/not in a Geng/i);
 
   // Start a Lukis round at the table — a live hidden-information match.
   wolf.ws.send(JSON.stringify({type:'lukis-start'}));
@@ -89,7 +89,7 @@ test('party and DM are shut while a hidden-information match is live',async()=>{
   wolf.notices.length=0;
   wolf.ws.send(JSON.stringify({type:'chat',channel:'dm',to:pal.id,text:'the word is kucing'}));
   await settle();
-  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/Party dan DM ditutup/);
+  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/Geng dan DM ditutup/);
   expect(pal.chat.filter(m=>m.channel==='dm')).toHaveLength(0);
 
   // Exploit: the same pair coordinate in party chat.
@@ -97,7 +97,7 @@ test('party and DM are shut while a hidden-information match is live',async()=>{
   wolf.notices.length=0;
   wolf.ws.send(JSON.stringify({type:'chat',channel:'party',text:'kucing lah'}));
   await settle();
-  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/Party dan DM ditutup/);
+  expect(wolf.notices.map(n=>n.message).join(' | ')).toMatch(/Geng dan DM ditutup/);
 
   // The table channel is exactly what they are told to use, and it still works.
   await throttle();

@@ -37,4 +37,14 @@
 #game-geng .geng-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 #game-geng .geng-actions .danger{background:#f1d5cd;border-color:#c18a7b;color:#7b2d20}
 #game-geng .geng-empty{justify-content:center;color:#718372;font-size:11px;text-align:center}
+#game-geng .geng-live{margin-top:2px;padding:14px 0 18px;border:1px solid #b8ce8e;border-radius:10px;background:#edf5df;padding-left:12px;padding-right:12px}
+#game-geng .geng-live h3{font-size:17px}
+#game-geng .geng-live-meta{margin:8px 0 0}
+#game-geng .geng-live ul{margin-top:9px}
+#game-geng .geng-live li{min-height:34px;padding:6px 8px;background:#ffffff88}
+#game-geng .geng-live li span{font:800 9px 'Oxanium';letter-spacing:.06em;color:#3d7554;text-align:right}
+#game-geng .geng-live li.geng-live-reconnecting{border-color:#d5a34c;background:#fff5d8}
+#game-geng .geng-live li.geng-live-reconnecting span{color:#98621e}
+#game-geng .geng-live-help{margin:10px 0 12px;font-size:10px}
+#game-geng #geng-live-leave{min-height:38px;padding:0 12px;border:1px solid #9caf95;border-radius:7px;background:#f1d5cd;color:#7b2d20;font:700 11px 'Oxanium';cursor:pointer}
 @media(max-width:600px){#game-geng{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:13px}#game-geng header{padding:18px 16px 12px}#game-geng>section,#game-geng>.geng-balance,#game-geng>.geng-message{margin-left:16px;margin-right:16px}#game-geng header h2{font-size:26px}#game-geng li{padding:8px 7px}}

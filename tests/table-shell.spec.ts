@@ -71,14 +71,14 @@ test('a city lobby says so, instead of pretending to be this table',async({page}
  await expect(page.locator('.table-seat')).toHaveCount(9);
 });
 
-test('an empty seat pulls your geng in, and says so when you have none',async({page})=>{
+test('an empty seat offers a Geng invite, while game entry stays open without one',async({page})=>{
  await mount(page,'invite-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
 
  // No party yet: the seat must not pretend it can do anything.
  const idle=page.locator('.table-seat.empty button');
  await expect(idle).toBeDisabled();
- await expect(idle).toHaveAttribute('title',/Join a party first/);
+ await expect(idle).toHaveAttribute('title',/Geng is optional/);
 
  await page.evaluate(()=>(window as any).shell.party(2));
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
@@ -90,5 +90,19 @@ test('an empty seat pulls your geng in, and says so when you have none',async({p
  const sent=await page.evaluate(()=>(window as any).sent);
  expect(sent.at(-1)).toMatchObject({type:'chat',channel:'party'});
  expect(sent.at(-1).text).toContain('Lukis Lah!');
- await expect(page.locator('.table-seat.empty button')).toContainText('Invited');
+ await expect(page.locator('.table-seat.empty button')).toContainText('Invite sent');
+});
+
+test('a live Geng table invite is clickable and does not auto-enrol anyone',async({page})=>{
+ await page.route('**/invite-shell',(route:any)=>route.fulfill({contentType:'text/html',body:'<div id="root"></div>'}));
+ await page.goto('/invite-shell');
+ await page.evaluate(async l=>{
+   const {createTableShell}=await import('/src/table-shell.ts');
+   (window as any).sent=[];(window as any).requests=[];
+   const shell=createTableShell((message:any)=>{(window as any).sent.push(message);return true},(request:any)=>{(window as any).requests.push(request);return true});
+   document.getElementById('root')!.append(shell.root);shell.geng(2,true);shell.state(l,'a');
+ },lobby());
+ await page.locator('.seat-invite').click();
+ expect(await page.evaluate(()=>(window as any).requests)).toEqual([{game:'lukis',key:'meja-1',scope:'table',max:3,available:1}]);
+ expect(await page.evaluate(()=>(window as any).sent)).toEqual([]);
 });

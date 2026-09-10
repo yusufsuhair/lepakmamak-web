@@ -37,7 +37,7 @@ import {createStallWorld,nearestStallDistance,setupStalls,stallVoiceVolume} from
 import {locationKey, readLocation, writeLocation} from './location-save';
 import { setupSecurity } from './security';
 import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
-import { setupTableSocial, type TableState } from './table-social';
+import { setupTableSocial, type TableState, type TableInvite } from './table-social';
 import tableLocations from '../shared/tables.json';
 import chairLocations from '../shared/chairs.json';
 import './style.css';
@@ -115,7 +115,7 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Geng</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
@@ -339,6 +339,8 @@ async function init() {
   gmAura.group.visible = false;
   const partyInvite = document.createElement('aside'); partyInvite.id = 'party-invite'; partyInvite.hidden = true;
   partyInvite.innerHTML = '<p id="party-invite-text"></p><div><button type="button" id="party-accept">Jom</button><button type="button" id="party-decline">Tak nak</button></div>';
+  const tableInvite = document.createElement('aside'); tableInvite.id = 'table-invite'; tableInvite.hidden = true;
+  tableInvite.innerHTML = '<p id="table-invite-text"></p><small id="table-invite-meta"></small><div><button type="button" id="table-invite-open">Open table</button><button type="button" id="table-invite-dismiss">Later</button></div>';
   let inviteTimer = 0;
   function answerInvite(type: 'party-accept' | 'party-decline') {
     window.clearTimeout(inviteTimer); partyInvite.hidden = true;
@@ -350,7 +352,27 @@ async function init() {
     // The server drops the invite after a minute; the banner should not outlive it.
     window.clearTimeout(inviteTimer); inviteTimer = window.setTimeout(() => { partyInvite.hidden = true; }, 60000);
   }
+  let tableInviteId = '', tableInviteTimer = 0;
+  function hideTableInvite() {
+    tableInvite.hidden = true; tableInviteId = ''; tableInvite.querySelector<HTMLButtonElement>('#table-invite-open')!.disabled = false;
+    window.clearTimeout(tableInviteTimer);
+  }
+  function showTableInvite(invite: TableInvite) {
+    tableInviteId = invite.id;
+    tableInvite.querySelector('#table-invite-text')!.textContent = `${invite.inviter.name} invited you to ${invite.game === 'lukis' ? 'Lukis Lah!' : invite.game === 'poker' ? 'Poker Kampung' : invite.game === 'uno' ? 'UNO Lepak' : 'Werewolf'} at ${invite.tableName}.`;
+    tableInvite.querySelector('#table-invite-meta')!.textContent = `${invite.available} space${invite.available === 1 ? '' : 's'} available · Open the table first, then choose JOIN and READY yourself.`;
+    tableInvite.querySelector<HTMLButtonElement>('#table-invite-open')!.disabled = false;
+    tableInvite.hidden = false;
+    window.clearTimeout(tableInviteTimer); tableInviteTimer = window.setTimeout(hideTableInvite, 60000);
+  }
+  function showTableInviteError(message: string) {
+    tableInvite.querySelector('#table-invite-text')!.textContent = message;
+    tableInvite.querySelector('#table-invite-meta')!.textContent = 'This invitation was not opened, so you were not seated or enrolled.';
+    tableInvite.querySelector<HTMLButtonElement>('#table-invite-open')!.disabled = true;
+    tableInvite.hidden = false;
+  }
   let peerDots: {x: number; z: number; party: boolean}[] = [];
+  let partyLeaderId = '';
   let afkNote = '';
   // A Geng belongs to the account and is changed through the server-backed social module.
   // Guests have no wallet or membership, so they simply carry no badge.
@@ -469,7 +491,10 @@ async function init() {
   const tableSocial = setupTableSocial(message => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify(message)); return true;
-  }, roomName, () => { keys.clear(); resetStick(); dragging = false; }, (title, body) => toast(title, body, 6));
+  }, roomName, () => { keys.clear(); resetStick(); dragging = false; }, (title, body) => toast(title, body, 6), tableId => {
+    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
+    networkSocket.send(JSON.stringify({type: 'table-go', tableId})); return true;
+  });
   const streetStalls=setupStalls($('hud'));
   const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
   $('open-wall').onclick=()=>wall.open();
@@ -487,7 +512,9 @@ async function init() {
   const tableGameTitles:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
-  const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; });
+  const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; }, action => {
+    if (action === 'leave' && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'geng-leave'}));
+  });
   const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
@@ -937,6 +964,7 @@ async function init() {
     seatedChairId = null; if (seated) chat.seated(false); seated = false;
     beachResting = null; beachRestSpot = null; beachRestPose(player, null);
     tableSocial.close(); tableSocial.offline(); roomTables = [];
+    partyMembers = new Set(); partyLeaderId = ''; gengUI.live(null); chat.party(null);
     wall.close();
     voice.connected(false);
     if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
@@ -999,7 +1027,7 @@ async function init() {
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
-        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'|'table'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
+        let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'|'table'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string;connected?:boolean;reconnecting?:boolean;reconnectUntil?:number;leader?:boolean}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string}; invite?: TableInvite; ok?: boolean; sent?: number };
         try { message = JSON.parse(raw); } catch { return; }
         if(message.type==='park-complete'&&message.id)park.complete(Number(message.id));
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
@@ -1040,12 +1068,19 @@ async function init() {
         if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
         if (message.type === 'lobby-react') tableSocial.react(message);
         if (message.type === 'party-state') {
-          partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id));
+          // Reconnecting members have no live player id. They remain visible in the Geng
+          // panel, but must not become a minimap marker or count as an online voice peer.
+          partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id).filter(Boolean));
+          partyLeaderId = String(message.party?.leader || '');
+          gengUI.live(message.party || null);
           chat.party(message.party?.members || null);
           voice.party(partyMembers.size > 0);
-          tableSocial.party(partyMembers.size);
+          tableSocial.geng(partyMembers.size, partyLeaderId === networkPlayerId);
         }
         if (message.type === 'party-invited' && message.inviter) showPartyInvite(message.inviter.name);
+        if (message.type === 'table-invited' && message.invite) showTableInvite(message.invite as TableInvite);
+        if (message.type === 'table-invite-opened' && message.invite) { hideTableInvite(); tableSocial.openInvite(message.invite as TableInvite); }
+        if (message.type === 'table-invite-result' && message.ok === false) showTableInviteError(String(message.message || 'This table invitation is no longer available.'));
         if (message.type === 'friends-updated') void friendsUI.refresh();
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if (message.type === 'dm-closed' && message.id) chat.closeDm(message.id);
@@ -1427,10 +1462,18 @@ async function init() {
   window.addEventListener('blur', () => { keys.clear(); resetStick(); dragging = false; });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { saveLocation(); keys.clear(); resetStick(); dragging = false; } });
   const options = $('player-options');
-  $('hud').append(partyInvite);
+  $('hud').append(partyInvite, tableInvite);
   $('party-accept').onclick = () => answerInvite('party-accept');
   $('party-decline').onclick = () => answerInvite('party-decline');
+  $('table-invite-open').onclick = () => {
+    if (!tableInviteId || networkSocket?.readyState !== WebSocket.OPEN) return;
+    $<HTMLButtonElement>('table-invite-open').disabled = true;
+    $('table-invite-text').textContent = 'Checking the table…';
+    networkSocket.send(JSON.stringify({type: 'table-invite-open', inviteId: tableInviteId}));
+  };
+  $('table-invite-dismiss').onclick = hideTableInvite;
   partyInvite.addEventListener('keydown', event => event.stopPropagation());
+  tableInvite.addEventListener('keydown', event => event.stopPropagation());
   const profile = $<HTMLDialogElement>('player-profile');
   profile.prepend($('close-profile'));
   let selectedName = '', selectedProfileId = '';
@@ -1467,7 +1510,7 @@ async function init() {
     addFriend.hidden = mine || !targetId || !networkConnected || relation === 'friend';
     addFriend.disabled = relation === 'outgoing';
     addFriend.textContent = relation === 'incoming' ? 'Accept friend request' : relation === 'outgoing' ? 'Request sent' : 'Add friend';
-    $('invite-party').hidden=mine||!targetId||!networkConnected||partyMembers.has(targetId)||partyMembers.size>=6;
+    $('invite-party').hidden=mine||!targetId||!networkConnected||partyMembers.has(targetId)||partyMembers.size>=6||!!partyMembers.size&&partyLeaderId!==networkPlayerId;
     $('message-player').hidden=mine||!targetId||!networkConnected;
     $('report-player').hidden=mine||!targetId||!networkConnected;
     $('leave-party').hidden=!mine||!partyMembers.size;
@@ -1490,7 +1533,7 @@ async function init() {
     if (relation === 'incoming' && relationId) void friendsUI.respond(relationId, true);
     else if (relation === 'none') void friendsUI.add(selectedProfileId, selectedName);
   };
-  $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-invite',id:selectedProfileId})); };
+  $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'geng-invite',id:selectedProfileId})); };
   $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
   $('leave-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-leave'})); };
   const reportDialog = $<HTMLDialogElement>('report-player-dialog');

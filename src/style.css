@@ -626,6 +626,18 @@ html, body, #app { touch-action: manipulation; }
 #party-accept { background: #ddf69a; color: #193d33; }
 #party-decline { background: #ffffff1f; color: #cdd8c0; }
 
+/* Table invites are a location pointer, not a join action. The receiver must press Open
+   table, then Go to table, then choose a game and READY from the normal lobby. */
+#table-invite { position: absolute; top: 166px; left: 50%; transform: translateX(-50%); width: min(330px, calc(100vw - 32px)); box-sizing: border-box; background: #173c32f5; border: 1px solid #ddf69a; border-radius: 10px; padding: 13px 15px; pointer-events: auto; text-align: center; z-index: 5; }
+#table-invite p { margin: 0 0 6px; font-size: 12px; line-height: 1.4; color: #fff5dc; }
+#table-invite small { display: block; margin-bottom: 10px; font-size: 10px; line-height: 1.45; color: #cdd8c0; }
+#table-invite div { display: flex; gap: 8px; justify-content: center; }
+#table-invite button { border: 0; border-radius: 5px; padding: 7px 13px; font-size: 11px; cursor: pointer; }
+#table-invite-open { background: #ddf69a; color: #193d33; }
+#table-invite-dismiss { background: #ffffff1f; color: #cdd8c0; }
+#table-invite button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 600px) { #party-invite { top: calc(84px + env(safe-area-inset-top)); } #table-invite { top: calc(154px + env(safe-area-inset-top)); } }
+
 /* Touch devices, at any width. An iPad is 820px wide and has no keyboard, so the question
    was never "how wide is the screen" but "is there a keyboard to press".
    any-pointer, not pointer: `pointer` asks about the primary input, and an iPad with a

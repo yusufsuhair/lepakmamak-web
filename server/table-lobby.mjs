@@ -1,4 +1,5 @@
 import chairs from '../shared/chairs.json' with {type:'json'};
+import {randomUUID} from 'node:crypto';
 
 const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
@@ -33,7 +34,7 @@ export function createTableLobby(send, games, now = Date.now) {
     return {id: member.id, name: player?.name || member.name, ready: member.ready, appearance: player?.appearance};
   };
   const view = (players, lobby) => ({
-    key: lobby.key, game: lobby.game, scope: LOBBY_RULES[lobby.game].scope,
+    lobbyId: lobby.id, key: lobby.key, game: lobby.game, scope: LOBBY_RULES[lobby.game].scope,
     phase: lobby.phase, ends: lobby.ends, serverTime: now(),
     min: LOBBY_RULES[lobby.game].min, max: LOBBY_RULES[lobby.game].max,
     members: lobby.members.map(member => memberView(players, member)),
@@ -103,6 +104,17 @@ export function createTableLobby(send, games, now = Date.now) {
     [...lobbies(players).values()].find(lobby => lobby.members.some(member => member.id === player.id));
 
   return {
+    // A table invitation is allowed to inspect the lobby, but it must never mutate it.
+    // Keeping this read behind the lobby module means the invitation handler cannot trust
+    // a client supplied game, phase or roster when it validates a stale link.
+    current(players, player, game, tableId) {
+      const lobby = lobbyOf(players, player);
+      const rule = LOBBY_RULES[game];
+      if (!lobby || !rule || lobby.game !== game) return null;
+      if (rule.scope === 'table' && lobby.key !== tableId) return null;
+      if (rule.scope === 'city' && tableForChair.get(player.chairId) !== tableId) return null;
+      return view(players, lobby);
+    },
     summary(players) {
       const result = {};
       const add = (tableId, summary) => {
@@ -178,7 +190,7 @@ export function createTableLobby(send, games, now = Date.now) {
         const previous = lobbyOf(players, player);
         if (previous) drop(players, player, previous);
         const id = `${game}:${key}`;
-        const lobby = map.get(id) || {key, game, phase: 'lobby', ends: 0, members: []};
+        const lobby = map.get(id) || {id: randomUUID(), key, game, phase: 'lobby', ends: 0, members: []};
         map.set(id, lobby);
         if (lobby.members.length >= LOBBY_RULES[game].max) { send(player.ws, {type: 'notice', message: 'Meja ini dah penuh.'}); return true; }
         if (!lobby.members.some(member => member.id === player.id)) lobby.members.push({id: player.id, name: player.name, ready: false});

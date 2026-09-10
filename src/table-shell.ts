@@ -4,18 +4,19 @@ import {createPlayerFace} from './player-face';
 
 export type LobbyMember = {id: string; name: string; ready: boolean; appearance?: Record<string,string>};
 export type LobbyState = {
-  key: string; game: string; scope: 'table' | 'city';
+  lobbyId?: string; key: string; game: string; scope: 'table' | 'city';
   phase: 'lobby' | 'countdown' | 'playing'; ends: number; serverTime: number;
   min: number; max: number; members: LobbyMember[];
 };
 export type Reaction = {emoji: string; name: string; id: string};
+export type TableInviteRequest = {game: string; key: string; scope: 'table' | 'city'; max: number; available: number};
 
 const REACTIONS = ['😂', '👏', '🔥', '😱'];
 const TITLES: Record<string, string> = {lukis: 'Lukis Lah!', poker: 'Poker Kampung', uno: 'UNO Lepak', werewolf: 'Werewolf'};
 
 // One frame every table game sits inside: who is here, who is ready, the count-in,
 // and the way back round again. The games render their own play inside `stage`.
-export function createTableShell(send: (message: object) => boolean) {
+export function createTableShell(send: (message: object) => boolean, inviteTable?: (request: TableInviteRequest) => boolean) {
   const root = document.createElement('section');
   root.className = 'table-shell'; root.hidden = true;
   root.innerHTML = `<header class="table-shell-head"><h3 id="table-game-name"></h3><p id="table-scope"></p></header>
@@ -44,7 +45,7 @@ export function createTableShell(send: (message: object) => boolean) {
     reactionBar.append(button);
   }
 
-  let lobby: LobbyState | null = null, self = '', anchored = 0, partySize = 0;
+  let lobby: LobbyState | null = null, self = '', anchored = 0, gengSize = 0, gengLeader = false;
 
   const mine = () => lobby?.members.find(member => member.id === self);
 
@@ -84,19 +85,28 @@ export function createTableShell(send: (message: object) => boolean) {
         tick.dataset.ready = String(!!member.ready);
         seat.append(face, name, tick);
       } else {
-        // An empty seat is the natural place to pull your geng in. Party chat already
-        // exists, so this needs nothing new from the server.
+        // An empty seat can send a clickable invitation to the social Geng. Being outside
+        // a Geng only disables this convenience; it never disables READY or game entry.
         const invite = document.createElement('button');
         invite.type = 'button'; invite.className = 'seat-invite';
-        invite.textContent = '+ Invite';
-        invite.disabled = partySize < 1;
-        invite.title = partySize < 1 ? 'Join a party first to invite members.' : 'Invite your party to this table.';
+        invite.textContent = '+ Invite Geng';
+        const canInvite = gengSize > 1 && gengLeader;
+        invite.disabled = !canInvite;
+        invite.title = gengSize < 2
+          ? 'Geng is optional. Join the game yourself, or join a Geng to invite members.'
+          : !gengLeader
+            ? 'Only the Geng leader can invite members.'
+            : 'Send a clickable invitation for this game and table.';
         invite.onclick = () => {
-          if (!lobby || partySize < 1) return;
-          const where = lobby.scope === 'city' ? 'city' : 'table';
-          send({type: 'chat', channel: 'party', text: `Join ${TITLES[lobby.game] || lobby.game} at this ${where}!`});
-          invite.textContent = 'Invited ✓';
-          window.setTimeout(() => { invite.textContent = '+ Invite'; }, 2500);
+          if (!lobby || !canInvite) return;
+          // The fallback preserves the shell's standalone harness API. The live table
+          // social module supplies inviteTable, which sends the authoritative invite verb.
+          const sent = inviteTable
+            ? inviteTable({game: lobby.game, key: lobby.key, scope: lobby.scope, max: lobby.max, available: Math.max(0, lobby.max - lobby.members.length)})
+            : send({type: 'chat', channel: 'party', text: `Join ${TITLES[lobby.game] || lobby.game} at this table!`});
+          if (!sent) return;
+          invite.textContent = 'Invite sent ✓';
+          window.setTimeout(() => { invite.textContent = '+ Invite Geng'; }, 2500);
         };
         seat.append(invite);
       }
@@ -122,7 +132,10 @@ export function createTableShell(send: (message: object) => boolean) {
     root, stage,
     get playing() { return lobby?.phase === 'playing'; },
     get game() { return lobby?.game || ''; },
-    party(size: number) { partySize = size; render(); },
+    geng(size: number, leader: boolean) { gengSize = Math.max(0, size); gengLeader = leader; render(); },
+    // Compatibility alias for older callers while the visible product language changes to
+    // Geng. A non-empty legacy group is treated as leader-owned in old harnesses.
+    party(size: number) { gengSize = Math.max(0, size); gengLeader = size > 0; render(); },
     state(value: LobbyState | null, selfId: string) {
       // Anchor the count-in to arrival, so it ticks down without a server round trip.
       if (value?.phase === 'countdown' && lobby?.phase !== 'countdown') anchored = performance.now();

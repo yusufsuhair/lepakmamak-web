@@ -1,5 +1,16 @@
 [
 {
+  "version": "1.39.28",
+  "date": "2026-09-11",
+  "title": "Geng optional dan jemputan meja selamat",
+  "notes": [
+    "Geng kini pilihan sosial sahaja: group chat, voice antara ahli dan marker kawan pada minimap kekal berfungsi tanpa mewajibkan Geng untuk masuk game meja.",
+    "Jemputan meja kini menunjukkan game, meja dan ruang tersedia; penerima boleh pergi ke lokasi dan memilih join serta READY sendiri.",
+    "Reconnect diberi grace 30 saat, panel Geng menunjukkan ketua, ahli dan status reconnect, dan hanya ketua boleh menghantar jemputan.",
+    "Jemputan yang penuh, tamat, game sudah bermula atau sesi sudah berubah akan ditolak dengan penjelasan yang jelas tanpa auto-seat atau auto-enrol."
+  ]
+},
+{
   "version": "1.39.27",
   "date": "2026-09-11",
   "title": "Add Friend dan Friend List",

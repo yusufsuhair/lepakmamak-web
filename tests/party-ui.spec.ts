@@ -32,7 +32,7 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
   // No party yet, so no party channel to pick and no voice audience to choose.
   await page.locator('#chat-compose').click();
   await page.locator('#chat-channel').click();
-  await expect(page.getByRole('option',{name:/PARTY/})).toHaveCount(0);
+  await expect(page.getByRole('option',{name:/GENG/})).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#mic-scope')).toBeHidden();
 
@@ -44,7 +44,7 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
   await expect(page.locator('#party-invite')).toBeHidden();
   await page.locator('#chat-compose').click();
   await page.locator('#chat-channel').click();
-  await expect(page.getByRole('option',{name:/PARTY/})).toBeVisible();
+  await expect(page.getByRole('option',{name:/GENG/})).toBeVisible();
   await page.keyboard.press('Escape');
   // A party gives voice a second audience, so the scope buttons appear.
   await expect(page.locator('#mic-scope')).toBeVisible();

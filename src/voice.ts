@@ -31,8 +31,8 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
     micScopeButton.hidden = !inParty; speakerScopeButton.hidden = !inParty;
     micScopeButton.textContent = micScope === 'party' ? 'Cakap: GENG' : 'Cakap: SEMUA';
     speakerScopeButton.textContent = speakerScope === 'party' ? 'Dengar: GENG' : 'Dengar: SEMUA';
-    micScopeButton.setAttribute('aria-label', micScope === 'party' ? 'Speaking to your party only' : 'Speaking to everyone nearby');
-    speakerScopeButton.setAttribute('aria-label', speakerScope === 'party' ? 'Hearing your party only' : 'Hearing everyone nearby');
+    micScopeButton.setAttribute('aria-label', micScope === 'party' ? 'Speaking to your Geng only' : 'Speaking to everyone nearby');
+    speakerScopeButton.setAttribute('aria-label', speakerScope === 'party' ? 'Hearing your Geng only' : 'Hearing everyone nearby');
     micScopeButton.dataset.scope = micScope; speakerScopeButton.dataset.scope = speakerScope;
   }
   micScopeButton.onclick = () => { micScope = micScope === 'party' ? 'all' : 'party'; renderScopes(); announce(); };

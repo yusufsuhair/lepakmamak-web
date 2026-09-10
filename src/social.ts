@@ -284,7 +284,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   let online = false;
   const statusText = () => !online ? 'Connecting to the city…'
     : active === 'all' ? 'Visible to everyone in this city'
-    : active === 'party' ? 'Only your party sees this' : `Private to ${threads.get(active)?.name}`;
+    : active === 'party' ? 'Only your Geng sees this' : `Private to ${threads.get(active)?.name}`;
 
   function openDm(id: string, name: string) {
     const key = `dm:${id}`;
@@ -314,7 +314,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     },
     party(members: Member[] | null) {
       // The server deletes a party the moment it drops below two, so any list means a party.
-      if (members?.length) party ??= build('party', 'PARTY', 'party');
+      if (members?.length) party ??= build('party', 'GENG', 'party');
       else if (party) { const key = party.key; party.log.remove(); threads.delete(key); party = null; if (active === key) active = 'all'; }
       render();
     },
@@ -326,7 +326,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
       render(); toBottom(all.log); renderJump();
     },
     append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '') {
-      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
+      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'GENG', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
       const parsed = sentAt ? new Date(sentAt) : new Date();
       const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
       const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();

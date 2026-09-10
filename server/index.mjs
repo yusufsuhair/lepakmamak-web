@@ -21,6 +21,7 @@ import { createTableSocial } from './tables.mjs';
 import { createParty } from './party.mjs';
 import { gmAnnouncement } from './announce.mjs';
 import { createTableLobby } from './table-lobby.mjs';
+import { createTableInvites } from './table-invites.mjs';
 import tableLocations from '../shared/tables.json' with { type: 'json' };
 import chairs from '../shared/chairs.json' with { type: 'json' };
 import http from 'node:http';
@@ -81,6 +82,16 @@ const lukis = createLukis(send);
 const poker = createPoker(send);
 // The lobby starts the games; the games keep their own rules once running.
 tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
+const tableInvites = createTableInvites(send, {party, tableLobby});
+// Geng reconnect records and table invitation links expire on the server. Keep empty room
+// maps alive only while a logged-in Geng member still has a reconnect grace window.
+setInterval(() => {
+  for (const [name, players] of rooms) {
+    party.tick(players);
+    tableInvites.tick(players);
+    if (!players.size && !party.hasPending(players)) { rooms.delete(name); announcements.delete(name); }
+  }
+}, 1000).unref();
 const pickleball = createPickleball(send);
 const basketball = createBasketball(send,Date.now,(player,points)=>socialProfiles.event(player,'basketball_points',points));
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
@@ -359,7 +370,7 @@ webSocketServer.on('connection', ws => {
   let voiceTokens = 30, voiceAt = Date.now(), lastAudienceAt = 0;
   const joinTimeout = setTimeout(() => { if (!player) ws.close(1008, 'Join timeout'); }, 15000);
 
-  function removePlayer() {
+  function removePlayer(intentional = false) {
     clearTimeout(joinTimeout);
     if (!player || !currentRoom) return;
     // A DM only exists while both people are online. Tell every remaining client to
@@ -372,13 +383,14 @@ webSocketServer.on('connection', ws => {
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
     tableLobby.remove(currentRoom.players, player);
-    party.remove(currentRoom.players, player);
+    tableInvites.remove(currentRoom.players, player);
+    if (intentional) party.remove(currentRoom.players, player); else party.disconnect(currentRoom.players, player);
     devBots.remove(currentRoom.players, player.id);
     currentRoom.players.delete(player.id);
     ws.roomName = null;
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
     syncVoiceCodec(currentRoom.players);
-    if (!currentRoom.players.size) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
+    if (!currentRoom.players.size && !party.hasPending(currentRoom.players)) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
     player = null; currentRoom = null;
   }
 
@@ -463,11 +475,13 @@ webSocketServer.on('connection', ws => {
       currentRoom = room;
       ws.roomName = room.name;
       room.players.set(id, player);
+      const reconnectedGeng = party.reconnect(room.players, player);
       socialProfiles.event(player,'sessions',1,true);
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       // The version travels with the welcome so a page left open across a deploy finds out
       // it is stale without polling anything.
       send(ws, { type: 'welcome', id, room: room.name, version, players: snapshot(room.players) });
+      if (reconnectedGeng) { const gengState = party.state(room.players, player); if (gengState) send(ws, {type: 'party-state', party: gengState, geng: gengState}); }
       weatherControls.sync(room.players,ws);
       lamps.sync(room.players,ws);
       fleet.sync(room.players,ws);
@@ -494,7 +508,7 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'leave-city') {
       uno.handle(currentRoom.players, player, {type:'uno-leave'});
       werewolf.handle(currentRoom.players, player, {type:'werewolf-leave'});
-      removePlayer(); ws.close(1000, 'Left city'); return;
+      removePlayer(true); ws.close(1000, 'Left city'); return;
     }
     if (message.type === 'leave-game-seat') {
       uno.handle(currentRoom.players, player, {type:'uno-leave'});
@@ -580,11 +594,24 @@ webSocketServer.on('connection', ws => {
     if (pickleball.handle(currentRoom.players, player, message)) return;
     if (basketball.handle(currentRoom.players, player, message)) return;
     if (tableLobby.handle(currentRoom.players, player, message)) return;
+    if (tableInvites.handle(currentRoom.players, player, message)) return;
     const partied = party.handle(currentRoom.players, player, message);
     // Only a real membership change is worth a room-wide snapshot; an unknown party-* verb
     // must not be a cheap way to make the server fan out to everyone.
     if (partied) { if (partied === 'changed') broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
+    if (message.type === 'table-go') {
+      const destination = typeof message.tableId === 'string' ? tableLocations.find(table => table.id === message.tableId) : null;
+      if (!destination || park.locked(player) || player.riding || player.passengerOf || player.chairId || player.resting || player.jumpHeight > 0 || (player.danceUntil || 0) > Date.now() || player.lrtId != null) {
+        send(ws, {type: 'notice', message: 'You cannot move to that table right now. Finish your current action first.'}); return;
+      }
+      const now = Date.now();
+      if (now - (player.lastTeleport || 0) < 1000) return;
+      player.lastTeleport = now; player.x = destination.arrivalX; player.z = destination.arrivalZ; player.speed = 0; player.y = 0;
+      player.resting = null; player.restSpotId = null; player.seated = false; player.chairId = null; delete player.chairStand;
+      send(ws, {type: 'table-arrived', tableId: destination.id});
+      broadcast(currentRoom.players, {type: 'players', players: snapshot(currentRoom.players)}); return;
+    }
     if(park.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
@@ -669,7 +696,7 @@ webSocketServer.on('connection', ws => {
       if (player.micScope === 'party' && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
         if (!player.voiceGameNoticeAt || Date.now() - player.voiceGameNoticeAt > 15000) {
           player.voiceGameNoticeAt = Date.now();
-          send(ws, {type: 'notice', message: 'Party voice ditutup masa main. Tukar mic kepada All untuk bercakap terbuka.'});
+          send(ws, {type: 'notice', message: 'Geng voice ditutup masa main. Tukar mic kepada All untuk bercakap terbuka.'});
         }
         return;
       }
@@ -734,7 +761,7 @@ webSocketServer.on('connection', ws => {
       // three in the games, and server-side only — the client may grey the tabs out as a
       // courtesy, but the client is not the one being trusted.
       if ((channel === 'party' || channel === 'dm') && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
-        send(ws, {type: 'notice', message: 'Party dan DM ditutup masa main. Guna chat meja.'});
+        send(ws, {type: 'notice', message: 'Geng dan DM ditutup masa main. Guna chat meja.'});
         return;
       }
       // Where they were standing when they said it, stamped once per message rather than
@@ -743,7 +770,7 @@ webSocketServer.on('connection', ws => {
 
       if (channel === 'party') {
         const members = party.members(currentRoom.players, player);
-        if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a party yet.' }); return; }
+        if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a Geng yet.' }); return; }
         for (const member of members) send(member.ws, payload);
         return;
       }
