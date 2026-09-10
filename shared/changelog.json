@@ -1,5 +1,16 @@
 [
 {
+  "version": "1.39.21",
+  "date": "2026-09-10",
+  "title": "Suasana game, DM dan busking lebih tepat",
+  "notes": [
+    "Werewolf kini ada cue malam, tidur, auman, growl, suara pemain mati, next turn dan countdown menggunakan audio percuma yang disimpan dalam game.",
+    "DM terus ditutup dan hilang apabila salah seorang pemain offline; server juga menolak mesej kepada pemain yang sudah tiada.",
+    "Busker utama kini berada di frontage PETRONAS, dengan crowd, collision dan jarak audio berkongsi koordinat yang sama.",
+    "Map bandar kekal boleh zoom in dan zoom out dengan paparan awal yang lebih luas untuk kawasan besar seperti Legoland."
+  ]
+},
+{
   "version": "1.39.20",
   "date": "2026-09-10",
   "title": "Lifecycle game dan lobby lebih kemas",
