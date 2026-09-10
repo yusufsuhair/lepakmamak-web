@@ -6,7 +6,7 @@ export const frozenBerry='#c6a1b2';
 export function createTaycan(){
  const group=new THREE.Group(),wheels:THREE.Group[]=[];
  const plateNumber='VRG9405';
- group.userData.model='taycan';group.userData.displayName='Porsche Taycan · Frozen Berry';group.userData.plate=plateNumber;
+ group.userData.model='taycan';group.userData.displayName='Porsche Taycan · Frozen Berry';group.userData.ownerLabel='Yusuf Suhair';group.userData.plate=plateNumber;
  const paint=new THREE.MeshPhysicalMaterial({color:frozenBerry,metalness:.48,roughness:.28,clearcoat:1,clearcoatRoughness:.17});
  const glass=new THREE.MeshPhysicalMaterial({color:'#24343e',metalness:.28,roughness:.16,clearcoat:1});
  const black=new THREE.MeshStandardMaterial({color:'#172124',roughness:.48});
@@ -61,11 +61,15 @@ export function createTaycan(){
  block(0,.43,-2.13,1.55,.16,.1,black);
  const badge=new THREE.Mesh(new THREE.CircleGeometry(.045,5),new THREE.MeshStandardMaterial({color:'#bfaa5a',metalness:.55,roughness:.35}));badge.rotation.x=-Math.PI/2;badge.position.set(0,.873,1.8);group.add(badge);
  function plate(text:string,z:number,y:number,flip=false){
-  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d')!;
-  ctx.fillStyle='#eeedf0';ctx.fillRect(0,0,512,128);ctx.fillStyle='#24303b';ctx.font='italic 70px serif';ctx.textAlign='center';ctx.fillText(text,256,87);
+  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const ctx=canvas.getContext('2d')!;
+  ctx.fillStyle='#090b0e';ctx.fillRect(0,0,768,192);ctx.fillStyle='#ffffff';ctx.font='700 92px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,96);
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.66,.165),new THREE.MeshBasicMaterial({map:texture}));mesh.userData.text=text;mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.82,.205),new THREE.MeshBasicMaterial({map:texture}));mesh.userData.text=text;mesh.userData.plateBackground='#090b0e';mesh.userData.plateForeground='#ffffff';mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
  }
  plate(plateNumber,2.22,.67);plate(plateNumber,-2.21,.67,true);
+ const ownerCanvas=document.createElement('canvas');ownerCanvas.width=1024;ownerCanvas.height=192;const ownerCtx=ownerCanvas.getContext('2d')!;
+ ownerCtx.fillStyle='#202730';ownerCtx.fillRect(0,0,ownerCanvas.width,ownerCanvas.height);ownerCtx.fillStyle='#ffffff';ownerCtx.textAlign='center';ownerCtx.textBaseline='middle';ownerCtx.font='600 112px Arial';ownerCtx.fillText('Yusuf Suhair',ownerCanvas.width/2,ownerCanvas.height/2);
+ const ownerTag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(ownerCanvas),depthTest:true,depthWrite:false,toneMapped:false}));
+ ownerTag.name='owner-label';ownerTag.userData.text='Yusuf Suhair';ownerTag.position.set(0,2.08,0);ownerTag.scale.set(1.95,.365,1);group.add(ownerTag);
  return{group,wheels};
 }

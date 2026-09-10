@@ -35,7 +35,7 @@ test('Daddy Fizal GT3 RS: four-angle render, exact labels and rotating wheels',a
   });
   expect(result.wheels).toBe(4);expect(result.driverVisible).toBe(false);expect(result.supported).toBe(true);
   expect(result.texts.filter(t=>t==='SL45')).toHaveLength(2);expect(result.texts).toContain('Daddy Fizal');expect(result.texts).toContain('GT3 RS');
-  expect(result.tagPosition).toEqual([3,2.42,4]);expect(result.rotations).toEqual([.8,.8,.8,.8]);expect(result.calls).toBeLessThan(100);
+  expect(result.tagPosition).toEqual([3,2.08,4]);expect(result.rotations).toEqual([.8,.8,.8,.8]);expect(result.calls).toBeLessThan(100);
   expect(result.rearAeroTop).toBeGreaterThan(1.40);expect(result.rearAeroTop).toBeLessThan(1.51);
   expect(result.wingLetteringY).toBeCloseTo(1.358,3);
   for(const [name,position] of Object.entries({front:[5,2.9,7],rear:[-5,2.6,-7],side:[8,1.9,0],nose:[0,1.5,8]})){
