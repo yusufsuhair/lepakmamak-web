@@ -4,17 +4,17 @@ import chairs from '../shared/chairs.json' with {type:'json'};
 
 const seatsAt=(tableId:string)=>chairs.filter(c=>c.tableId===tableId).map(c=>c.id);
 
-const rig=()=>{
+const rig=(rosterStart=false)=>{
  let clock=1_000_000;
- const sent:any[]=[], started:any[]=[];
- const make=(game:string)=>({handle:(_p:any,player:any,m:any)=>{started.push({game,by:player.id,type:m.type});return true;}});
+ const sent:any[]=[], started:any[]=[], lukisRosters:any[][]=[];
+ const make=(game:string)=>({handle:(_p:any,player:any,m:any)=>{started.push({game,by:player.id,type:m.type});return true;},...(game==='lukis'&&rosterStart?{start:(players:Map<string,any>,_first:any,roster:any[])=>lukisRosters.push(roster.filter(Boolean).map((player:any)=>player.id))}: {})});
  const games={lukis:make('lukis'),poker:make('poker'),uno:make('uno'),werewolf:make('werewolf')};
  const lobby=createTableLobby((ws:any,m:any)=>sent.push({ws,...m}),games,()=>clock);
  const players=new Map<string,any>();
  const seat=(id:string,chairId:string)=>{const p={id,name:id.toUpperCase(),ws:id,chairId};players.set(id,p);return p;};
  const state=(ws:string)=>[...sent].reverse().find(m=>m.ws===ws&&m.type==='lobby-state')?.lobby;
  const tick=(ms:number)=>{clock+=ms;lobby.tick(players);};
- return {lobby,players,seat,sent,started,state,tick};
+ return {lobby,players,seat,sent,started,lukisRosters,state,tick};
 };
 
 test('a game starts only when everyone who joined has tapped sedia',()=>{
@@ -38,6 +38,16 @@ test('a game starts only when everyone who joined has tapped sedia',()=>{
  tick(COUNTDOWN+50);
  expect(started).toEqual([{game:'lukis',by:'ali',type:'lukis-start'}]);
  expect(state('ali').phase).toBe('playing');
+});
+
+test('Lukis starts with only the players who joined its lobby',()=>{
+ const [a,b,c]=seatsAt('meja-1');
+ const {lobby,players,seat,lukisRosters,tick}=rig(true);
+ const ali=seat('ali',a), mei=seat('mei',b); seat('sara',c);
+ for(const p of [ali,mei]) lobby.handle(players,p,{type:'lobby-join',game:'lukis'});
+ for(const p of [ali,mei]) lobby.handle(players,p,{type:'lobby-ready',ready:true});
+ tick(COUNTDOWN+50);
+ expect(lukisRosters).toEqual([['ali','mei']]);
 });
 
 test('one person alone can never start, however ready they are',()=>{

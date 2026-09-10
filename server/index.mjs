@@ -305,6 +305,12 @@ webSocketServer.on('connection', ws => {
   function removePlayer() {
     clearTimeout(joinTimeout);
     if (!player || !currentRoom) return;
+    // A DM only exists while both people are online. Tell every remaining client to
+    // remove a thread with this player before the room snapshot arrives, so the UI cannot
+    // leave a dead private conversation visible after a disconnect.
+    for (const peer of currentRoom.players.values()) {
+      if (peer.id !== player.id) send(peer.ws, {type: 'dm-closed', id: player.id});
+    }
     fleet.release(currentRoom.players,player);
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
@@ -679,7 +685,10 @@ webSocketServer.on('connection', ws => {
       }
       if (channel === 'dm') {
         const target = typeof message.to === 'string' ? currentRoom.players.get(message.to) : undefined;
-        if (!target || target.id === player.id) { send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return; }
+        if (!target || target.id === player.id || target.ws.readyState !== 1) {
+          if (typeof message.to === 'string' && message.to !== player.id) send(ws, {type: 'dm-closed', id: message.to});
+          send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return;
+        }
         const thread = { ...payload, to: target.id, toName: target.name };
         send(target.ws, thread); send(ws, thread);
         return;

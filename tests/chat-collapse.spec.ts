@@ -52,6 +52,26 @@ test('collapsed chat shows an unread badge for new messages and clears it on ope
   await expect(page.locator('#chat-heading')).toHaveAttribute('aria-label', 'Collapse city chat');
 });
 
+test('offline DM removes its private thread and composer target', async ({ page }) => {
+  await page.route('**/dm-close-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
+  await page.goto('/dm-close-harness');
+  await page.evaluate(async () => {
+    const { setupChat } = await import('/src/social.ts');
+    const chat = setupChat(() => true, () => {});
+    (window as any).chat = chat;
+    chat.openDm('offline-player', 'Aina');
+    chat.append('Aina', 'Jumpa nanti', undefined, false, false, 'dm', {id: 'offline-player', name: 'Aina'});
+    chat.open();
+  });
+  await expect(page.locator('#chat-dms')).toBeVisible();
+  await expect(page.locator('#chat-channel')).toContainText('@Aina');
+  await expect(page.locator('#chat-form')).toBeVisible();
+  await page.evaluate(() => (window as any).chat.closeDm('offline-player'));
+  await expect(page.locator('#chat-dms')).toBeHidden();
+  await expect(page.locator('#chat-channel')).toHaveText('ALL');
+  await expect(page.locator('#chat-form')).toBeHidden();
+});
+
 // The two window controls were split apart and one of them was gone: expand floated over
 // the middle of the title bar, and minimise had been removed in favour of the header
 // click. They belong together in the corner, the way any other window says it.

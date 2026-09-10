@@ -8,8 +8,8 @@ export const buskingSpot={x:-31,z:86};
 // Full volume within 3m; smooth falloff and silence at 22m.
 export function buskingVolume(distance:number){const t=Math.max(0,Math.min(1,(22-distance)/19));return .55*t*t*(3-2*t);}
 export const rembayungBuskingSpot={x:-116,z:119};
-export function createBuskers(scene:THREE.Scene,solids:Solid[],buskingSpot={x:-40,z:64}){
- const group=new THREE.Group();group.position.set(buskingSpot.x,0,buskingSpot.z);scene.add(group);
+export function createBuskers(scene:THREE.Scene,solids:Solid[],spot=buskingSpot){
+ const group=new THREE.Group();group.position.set(spot.x,0,spot.z);scene.add(group);
  box(group,0,.04,0,5,.08,3.6,'#92704e');
  const guitarist=createPerson('#376c65');guitarist.group.position.set(-.7,.12,0);group.add(guitarist.group);
  const guitar=new THREE.Group();guitar.position.set(-.03,1.15,.35);guitar.rotation.z=-.55;guitarist.group.add(guitar);
@@ -32,7 +32,7 @@ export function createBuskers(scene:THREE.Scene,solids:Solid[],buskingSpot={x:-4
   const [x,z]=seatedPositions[i],person=createPerson(shirts[i%shirts.length],true);
   person.group.position.set(x,-.28,z);person.group.rotation.y=Math.atan2(-x,-z);seatedGroup.add(person.group);
   box(seatedGroup,x,.025,z,1.15,.05,.82,i%2?'#d4a65b':'#557b6e');
-  solids.push({x:buskingSpot.x+x,z:buskingSpot.z+z,hx:.42,hz:.42});
+  solids.push({x:spot.x+x,z:spot.z+z,hx:.42,hz:.42});
  }
  seatedGroup.updateMatrixWorld(true);
  const inverse=new THREE.Matrix4().copy(seatedGroup.matrixWorld).invert(),batches=new Map<THREE.Material,THREE.BufferGeometry[]>();
@@ -51,13 +51,13 @@ export function createBuskers(scene:THREE.Scene,solids:Solid[],buskingSpot={x:-4
  const handCamera=new THREE.Group();handCamera.position.set(0,1.72,.43);cameraFan.group.add(handCamera);
  box(handCamera,0,0,0,.48,.3,.22,'#263331');box(handCamera,-.14,.2,-.02,.18,.1,.14,'#3b4945');
  const lens=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,.18,12),material('#111b1a'));lens.rotation.x=Math.PI/2;lens.position.z=.18;handCamera.add(lens);
- box(handCamera,.15,.02,.125,.07,.07,.03,'#d94f3e');solids.push({x:buskingSpot.x-6,z:buskingSpot.z+1.8,hx:.38,hz:.38});
+ box(handCamera,.15,.02,.125,.07,.07,.03,'#d94f3e');solids.push({x:spot.x-6,z:spot.z+1.8,hx:.38,hz:.38});
 
  // Three standing fans wave above the seated crowd.
  const wavers=[[-5.7,4.35],[5.7,4.2],[5.8,1.6]].map(([x,z],i)=>{
   const person=createPerson(['#d4a75c','#6d8f72','#c87983'][i]);person.group.position.set(x,0,z);person.group.rotation.y=Math.atan2(-x,-z);group.add(person.group);
-  person.rightArm.rotation.x=-2.55;person.rightArm.rotation.z=-.2;solids.push({x:buskingSpot.x+x,z:buskingSpot.z+z,hx:.38,hz:.38});return person;
+  person.rightArm.rotation.x=-2.55;person.rightArm.rotation.z=-.2;solids.push({x:spot.x+x,z:spot.z+z,hx:.38,hz:.38});return person;
  });
- solids.push({x:buskingSpot.x-.7,z:buskingSpot.z,hx:.5,hz:.5},{x:buskingSpot.x+1.05,z:buskingSpot.z,hx:.5,hz:.5});for(const x of [-2,2])solids.push({x:buskingSpot.x+x,z:buskingSpot.z+.1,hx:.35,hz:.3});
+ solids.push({x:spot.x-.7,z:spot.z,hx:.5,hz:.5},{x:spot.x+1.05,z:spot.z,hx:.5,hz:.5});for(const x of [-2,2])solids.push({x:spot.x+x,z:spot.z+.1,hx:.35,hz:.3});
  return {audienceCount:seatedPositions.length+1+wavers.length,cameraFan,wavers,update(time:number,reduced:boolean){guitarist.rightArm.rotation.x=-.65+(reduced?0:Math.sin(time*12)*.18);guitarist.leftArm.rotation.x=-1.1;guitarist.leftArm.rotation.z=-.4;guitarist.group.rotation.z=reduced?0:Math.sin(time*2)*.025;drummer.leftArm.rotation.x=-.7+(reduced?0:Math.sin(time*8)*.15);drummer.rightArm.rotation.x=-.7+(reduced?0:Math.cos(time*8)*.15);handCamera.rotation.z=reduced?0:Math.sin(time*1.8)*.035;wavers.forEach((person,i)=>{person.rightArm.rotation.x=-2.55+(reduced?0:Math.sin(time*3.4+i*1.7)*.18);person.rightArm.rotation.z=-.2+(reduced?0:Math.sin(time*5+i)*.32);person.group.rotation.z=reduced?0:Math.sin(time*2+i)*.018;});}};
 }

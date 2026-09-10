@@ -161,8 +161,12 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     const thread = threads.get(key);
     if (!thread?.closable) return;
     thread.log.remove(); threads.delete(key);
-    if (active === key) select('all'); else render();
+    if (active === key) {
+      composing = false; input.value = ''; closeMenu(); input.blur(); select('all');
+    } else render();
   }
+
+  function closeDm(id: string) { closeThread(`dm:${id}`); }
 
   const totalUnread = () => [...threads.values()].reduce((sum, thread) => sum + thread.unread, 0);
   function closeMenu() { menuOpen = false; menu.hidden = true; selector.setAttribute('aria-expanded', 'false'); }
@@ -279,6 +283,13 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   return {
     open() { openComposer(); },
     openDm(id: string, name: string) { openDm(id, name); select(`dm:${id}`); },
+    closeDm,
+    online(ids: string[]) {
+      const present = new Set(ids);
+      for (const thread of [...threads.values()]) {
+        if (thread.channel === 'dm' && thread.to && !present.has(thread.to)) closeThread(thread.key);
+      }
+    },
     // The table tab exists only while you are on a chair. Sitting down points the composer
     // at it, because that is who you are talking to; standing up hands you back to the city
     // rather than leaving you typing into a table you have left.

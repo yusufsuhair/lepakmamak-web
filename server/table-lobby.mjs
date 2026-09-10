@@ -3,8 +3,9 @@ import chairs from '../shared/chairs.json' with {type:'json'};
 const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
 // Minimums come from the games themselves; the lobby only decides when to let them start.
-// Games that keep their own roster need every member joined before the deal, or the start
-// lands on an empty village. Games with a start hook receive the lobby roster directly.
+// Games receive the explicit lobby roster at the moment they start. Werewolf and UNO keep
+// their own join protocol; Lukis gets the selected table roster directly so a seated spectator
+// is not silently added to the match.
 export const ROSTER_GAMES = {werewolf: true, uno: true};
 
 export const LOBBY_RULES = {

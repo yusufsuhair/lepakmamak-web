@@ -5,12 +5,12 @@ import WebSocket from 'ws';
 const PORT='8125';
 const AUDIO=Buffer.alloc(1280).toString('base64');
 
-type Client={ws:WebSocket;id:string;chat:any[];voice:any[];party:any[];invited:any[]};
+type Client={ws:WebSocket;id:string;chat:any[];voice:any[];party:any[];invited:any[];dmClosed:string[];notices:any[]};
 
 function connect(room:string,name:string):Promise<Client>{
  return new Promise((resolve,reject)=>{
   const ws=new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
-  const client:Client={ws,id:'',chat:[],voice:[],party:[],invited:[]};
+  const client:Client={ws,id:'',chat:[],voice:[],party:[],invited:[],dmClosed:[],notices:[]};
   ws.on('error',reject);
   ws.on('open',()=>ws.send(JSON.stringify({type:'join',room,guest:true,name})));
   ws.on('message',raw=>{
@@ -20,9 +20,34 @@ function connect(room:string,name:string):Promise<Client>{
    if(m.type==='voice-audio')client.voice.push(m);
    if(m.type==='party-state')client.party.push(m);
    if(m.type==='party-invited')client.invited.push(m);
+   if(m.type==='dm-closed')client.dmClosed.push(m.id);
+   if(m.type==='notice')client.notices.push(m);
   });
  });
 }
+
+test('private DM threads close when either participant goes offline',async()=>{
+ const server=spawnServer();
+ const clients:Client[]=[];
+ try{
+  await healthy();
+  const ali=await connect('dm-lifecycle','Ali'), mei=await connect('dm-lifecycle','Mei'), sara=await connect('dm-lifecycle','Sara');
+  clients.push(ali,mei,sara);
+  ali.ws.send(JSON.stringify({type:'chat',text:'satu dua tiga',channel:'dm',to:mei.id}));
+  await expect.poll(()=>mei.chat.filter(m=>m.text==='satu dua tiga').length).toBe(1);
+  mei.ws.close();
+  await expect.poll(()=>ali.dmClosed).toContain(mei.id);
+  await throttle();
+  ali.ws.send(JSON.stringify({type:'chat',text:'tak patut sampai',channel:'dm',to:mei.id}));
+  await expect.poll(()=>ali.dmClosed.filter(id=>id===mei.id).length).toBeGreaterThan(1);
+
+  await throttle();
+  ali.ws.send(JSON.stringify({type:'chat',text:'round two',channel:'dm',to:sara.id}));
+  await expect.poll(()=>sara.chat.filter(m=>m.text==='round two').length).toBe(1);
+  ali.ws.close();
+  await expect.poll(()=>sara.dmClosed).toContain(ali.id);
+ } finally { clients.forEach(c=>c.ws.close()); server.kill(); }
+});
 const settle=()=>new Promise(r=>setTimeout(r,250));
 // The server throttles chat to one message per 700ms, and that applies to every channel.
 const throttle=()=>new Promise(r=>setTimeout(r,800));

@@ -809,6 +809,7 @@ async function init() {
     const me = players.find(p => p.id === networkPlayerId);
     if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
     roomPlayers = players;
+    chat.online(players.map(p => p.id).filter((id): id is string => !!id));
     weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
@@ -998,6 +999,7 @@ async function init() {
         }
         if (message.type === 'party-invited' && message.inviter) showPartyInvite(message.inviter.name);
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
+        if (message.type === 'dm-closed' && message.id) chat.closeDm(message.id);
         if(message.type==='wall-new'&&message.post)wall.receive(message.post);
         if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {

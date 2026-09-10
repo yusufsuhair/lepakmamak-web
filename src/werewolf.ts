@@ -27,7 +27,17 @@ export function setupWerewolf(send:(message:object)=>boolean){
   good:({note,now})=>[392,523,659,784].forEach((f,i)=>note(f,now+i*.11,.3)),
   // The wolves take it.
   evil:({note,now})=>[330,262,196,147].forEach((f,i)=>note(f,now+i*.13,.42)),
+ },{
+  night:{src:'/audio/werewolf/night-forest-loop.mp3',volume:.28,loop:true},
+  sleep:{src:'/audio/werewolf/sleep-breathing-loop.mp3',volume:.2,loop:true},
+  howl:{src:'/audio/werewolf/werewolf-howling.mp3',volume:.65},
+  growl:{src:'/audio/werewolf/werewolf-growl.mp3',volume:.55},
+  death:{src:'/audio/werewolf/player-death-scream.mp3',volume:.45},
+  nextTurn:{src:'/audio/werewolf/next-turn.wav',volume:.55},
+  countdownTick:{src:'/audio/werewolf/countdown-tick.wav',volume:.5},
+  countdownFinal:{src:'/audio/werewolf/countdown-final.wav',volume:.72},
  });
+ let lastCountdownGame='',lastCountdownPhase='',lastCountdown=-1;
  root.addEventListener('pointerdown',()=>audio.unlock());
 
  // Night and day are the two beats worth a sweep across the whole panel.
@@ -37,7 +47,7 @@ export function setupWerewolf(send:(message:object)=>boolean){
  }
  function button(text:string,fn:()=>void,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=text;b.disabled=disabled;b.onclick=fn;return b;}
  function action(target:string){send({type:'werewolf-action',target,gameId:game.id,revision:game.revision});}
- function clock(){if(!game)return;el('time').textContent=game.ends?`${Math.max(0,Math.ceil((game.ends-Date.now()-offset)/1000))}s`: `${game.players.length}/${game.size} pemain`;}
+ function clock(){if(!game)return;const seconds=game.ends?Math.max(0,Math.ceil((game.ends-Date.now()-offset)/1000)):null;el('time').textContent=seconds!==null?`${seconds}s`:`${game.players.length}/${game.size} pemain`;const phaseKey=`${game.id}:${game.phase}`;if(phaseKey!==`${lastCountdownGame}:${lastCountdownPhase}`){lastCountdownGame=game.id;lastCountdownPhase=game.phase;lastCountdown=-1;}if(seconds!==null&&game.phase!=='finished'&&seconds<=5){if(seconds===0&&lastCountdown!==0){audio.sample('countdownFinal');lastCountdown=0;}else if(seconds>0&&seconds!==lastCountdown){audio.sample('countdownTick');lastCountdown=seconds;}}}
  function render(){if(!game)return;const me=game.players.find((p:any)=>p.id===game.self),host=game.host===game.self,waiting=game.phase==='lobby',finished=game.phase==='finished',wolf=['werewolf','alpha'].includes(game.role);root.dataset.phase=game.phase;el('.ww-phase strong').textContent=`${phases[game.phase]}${game.day?' · Hari '+game.day:''}`;clock();
   el('.ww-hint').textContent=waiting?'Sertai dari mana-mana meja. Peranan kekal rahsia.':finished?game.winner==='good'?'Penduduk menang!':'Serigala menang!':!me?'Permainan sedang berlangsung. Anda menonton.':!me.alive?'Anda tersingkir. Sembang anda hanya untuk pemain tersingkir.':game.phase==='night'?wolf?'Sepakat dengan serigala lain. Pilih mangsa.':game.role==='doctor'?'Pilih seorang untuk dilindungi.':game.role==='seer'?'Pilih seorang untuk diperiksa.':'Tunggu sehingga matahari terbit.':game.phase==='defense'?`${game.players.find((p:any)=>p.id===game.accused)?.name} sedang membela diri.`:game.phase==='judgment'?'Penuduh: tentukan nasib tertuduh. Tidak mengundi dikira bebas.':game.phase==='vote'?'Pilih seorang suspek atau langkau.':'Bincang dengan geng. Siapa yang mencurigakan?';
   const lobby=el('.ww-lobby');lobby.replaceChildren();if(waiting){lobby.append(button(me?'Tinggalkan lobi':'Sertai permainan',()=>send({type:me?'werewolf-leave':'werewolf-join'}),!me&&game.players.length>=game.size));if(host){for(const size of (game.sizes||[7,9]) as number[]){const b=button(`${size} pemain`,()=>send({type:'werewolf-size',size}),game.players.length>size);b.setAttribute('aria-pressed',String(size===game.size));lobby.append(b);}lobby.append(button('Mula permainan',()=>send({type:'werewolf-start'}),game.players.length!==game.size));}}else if(finished){lobby.append(button('Lobi baharu',()=>send({type:'werewolf-rematch'}),!host&&game.players.some((p:any)=>p.id===game.host&&p.online)));}
@@ -60,10 +70,12 @@ export function setupWerewolf(send:(message:object)=>boolean){
   }
   // One sound and one sweep per change of phase, however many renders it takes.
   if(game.phase!==shownPhase){
-   if(game.phase==='night'){sweep('night');audio.sound('night');}
+   if(shownPhase==='night'&&game.phase!=='night'){audio.stopSample('night');audio.stopSample('sleep');}
+   if(shownPhase&&game.phase!=='finished')audio.sample('nextTurn');
+   if(game.phase==='night'){sweep('night');audio.sound('night');audio.sample('night');audio.sample('sleep');audio.sample('howl');}
    else if(game.phase==='discussion'&&shownPhase==='night'){sweep('day');audio.sound('day');}
    else if(game.phase==='judgment')audio.sound('judgment');
-   else if(finished){verdict.classList.add('game-burst');audio.sound(game.winner==='good'?'good':'evil');}
+   else if(finished){audio.stopSamples();verdict.classList.add('game-burst');audio.sound(game.winner==='good'?'good':'evil');}
    shownPhase=game.phase;
   }
   const history=el('.ww-history ol');history.replaceChildren();for(const message of game.log.slice(-6)){const item=document.createElement('li');item.textContent=message;history.append(item);}
@@ -71,5 +83,5 @@ export function setupWerewolf(send:(message:object)=>boolean){
   const canChat=me&&(waiting||finished||!me.alive||game.phase==='night'&&wolf||['discussion','vote','judgment'].includes(game.phase)||game.phase==='defense'&&game.accused===me.id);el<HTMLInputElement>('.ww-chat input').disabled=!canChat;el<HTMLButtonElement>('.ww-chat form button').disabled=!canChat;el('.ww-chat-status').textContent=canChat?game.phase==='night'&&me.alive?'Sembang rahsia serigala':!me.alive&&!finished?'Hanya pemain tersingkir':'Sembang pemain': 'Sembang tidak tersedia dalam fasa ini.';
  }
  el('.ww-reveal').onclick=()=>{reveal=!reveal;render();};el('form').onsubmit=e=>{e.preventDefault();const input=el<HTMLInputElement>('input');if(input.value.trim()&&send({type:'werewolf-chat',text:input.value.trim()}))input.value='';};setInterval(()=>{if(root.isConnected&&!root.hidden)clock();},250);
- return {root,state(value:any){if(!value){game=null;root.querySelectorAll<HTMLElement>('.ww-secret,.ww-role').forEach(e=>e.hidden=true);return;}if(value.id!==lastGame){lastGame=value.id;reveal=false;shownPhase='';}game=value;offset=game.serverTime-Date.now();render();}};
+ return {root,state(value:any){if(!value){game=null;audio.stopSamples();root.querySelectorAll<HTMLElement>('.ww-secret,.ww-role').forEach(e=>e.hidden=true);return;}const previous=game;const playerDied=value.id===lastGame&&previous?.players?.some((old:any)=>old.alive&&value.players?.some((next:any)=>next.id===old.id&&!next.alive));if(value.id!==lastGame){lastGame=value.id;reveal=false;shownPhase='';}game=value;offset=game.serverTime-Date.now();render();if(playerDied){audio.sample('death');if(value.phase==='night')audio.sample('growl');}}};
 }
