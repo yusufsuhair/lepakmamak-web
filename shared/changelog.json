@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.21.1",
+  "date": "2026-09-10",
+  "title": "Bandar tak lebih muatan lagi",
+  "notes": [
+   "When a lot of people arrived at the same moment, a room could go past its limit — up to 120 people in a city built for 100, which is what makes everyone lag. Arrivals are now counted at the moment someone actually walks in.",
+   "Logging in twice at the same instant could also leave two of you standing in the city. The older session now steps aside properly."
+  ]
+ },
+ {
   "version": "1.21.0",
   "date": "2026-09-10",
   "title": "ZUS Coffee buka di Kampung Maju",

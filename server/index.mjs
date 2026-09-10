@@ -340,6 +340,19 @@ webSocketServer.on('connection', ws => {
       }
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
+      // The capacity check above runs before `await chatHistory.recent`, so a crowd that
+      // arrives together all clear it against the same count and the room overshoots. This
+      // is the check that decides: from here to players.set nothing awaits, so nothing can
+      // be admitted in between. The same window let one account join twice, so the seat it
+      // already holds is given up here rather than left running beside the new one.
+      const settled = identity.userId ? accountConnections.get(identity.userId) : null;
+      if (settled) {
+        send(settled.ws, { type: 'error', code: 'SESSION_REPLACED', message: 'Your account joined from another tab or device. This session has ended.' });
+        settled.ws.close(4002, 'Session replaced');
+        settled.remove();
+        room = roomFor(message.room);
+      }
+      if (room.players.size >= maxPlayers) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
       currentRoom = room;
       ws.roomName = room.name;
       room.players.set(id, player);
