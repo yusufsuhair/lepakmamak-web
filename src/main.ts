@@ -472,8 +472,12 @@ async function init() {
   // `id==='meja-2' ? 2 : 3`, which told Meja Besar — nine chairs — that it had three.
   const seatsPerTable = new Map<string, number>();
   for (const chair of chairLocations) if (chair.tableId) seatsPerTable.set(chair.tableId, (seatsPerTable.get(chair.tableId) || 0) + 1);
+  let pressedTableId: string | null = null;
   const tableLabels = tableLocations.map(table=>{
-    const button=document.createElement('button');button.className='table-label';button.hidden=true;button.onclick=()=>tableSocial.open(table.id);$('hud').append(button);return {table,button};
+    const button=document.createElement('button');button.className='table-label';button.hidden=true;button.onclick=()=>tableSocial.open(table.id);button.type='button';
+    button.addEventListener('pointerdown',event=>{pressedTableId=table.id;button.setPointerCapture(event.pointerId);});
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>{setTimeout(()=>{pressedTableId=null;},0);});
+    $('hud').append(button);return {table,button};
   });
   const tableGameTitles:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
@@ -1921,14 +1925,17 @@ async function init() {
     const promptBlocked=!started||paused||cityMap.open||wall.opened||tableSocial.opened;
     let nearestLabel:typeof tableLabels[number]|null=null,nearestLabelDistance=8;
     if(!promptBlocked)for(const entry of tableLabels){const away=distanceTo(entry.table);if(away<=nearestLabelDistance){nearestLabelDistance=away;nearestLabel=entry;}}
+    const ownTableId=chairLocations.find(chair=>chair.id===seatedChairId)?.tableId;
+    if(!promptBlocked && (pressedTableId||ownTableId))nearestLabel=tableLabels.find(entry=>entry.table.id===(pressedTableId||ownTableId))||nearestLabel;
     for(const {table,button} of tableLabels){
       const active=nearestLabel?.table.id===table.id;
       button.hidden=!active;
       if(!active)continue;
+      if(pressedTableId===table.id)continue; // Keep the target still until the tap finishes.
       const tableAnchor=new THREE.Vector3(table.x,2.8,table.z).project(camera);
       button.hidden=tableAnchor.z < -1 || tableAnchor.z > 1 || Math.abs(tableAnchor.x)>1 || Math.abs(tableAnchor.y)>1;
       if(button.hidden)continue;
-      button.style.left=`${(tableAnchor.x+1)*innerWidth/2}px`;
+      button.style.left=`${THREE.MathUtils.clamp((tableAnchor.x+1)*innerWidth/2,Math.min(160,innerWidth*.36)+8,innerWidth-Math.min(160,innerWidth*.36)-8)}px`;
       button.style.top=`${(1-tableAnchor.y)*innerHeight/2}px`;
       const state=roomTables.find(t=>t.id===table.id);
       const name=state?.name||table.name;

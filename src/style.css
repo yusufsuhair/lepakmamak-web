@@ -762,3 +762,6 @@ html, body, #app { touch-action: manipulation; }
 @media (max-width: 600px) {
   #speaking { top: auto; right: 12px; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 165px); left: auto; }
 }
+
+/* Table actions need a full touch target even when the table is empty. */
+.table-label { min-width: 120px; min-height: 48px; touch-action: manipulation; }
