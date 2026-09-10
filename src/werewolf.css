@@ -1,1 +1,33 @@
 .werewolf{padding:20px;border-radius:16px;background:#20293e;color:#f7eddb;margin-top:12px}.werewolf header{display:flex;align-items:center;justify-content:space-between}.werewolf header small{font-size:9px;color:#d9be7d;letter-spacing:.1em}.werewolf h3{font:700 38px 'Oxanium';margin:3px 0 16px}.ww-moon{font:64px Georgia;color:#edca7d}.ww-phase{display:flex;justify-content:space-between;padding:12px;background:#ffffff10;border-radius:8px}.ww-phase time{color:#edca7d;font-variant-numeric:tabular-nums}.ww-hint{font-size:13px;line-height:1.6;min-height:42px}.ww-lobby,.ww-judgment{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}#table-social .werewolf button{background:#3d4b66;color:#fff2d7;border-color:#69758a}#table-social .werewolf button[aria-pressed=true]{border-color:#ffcf79;background:#725525;box-shadow:0 0 0 1px #ffcf79}#table-social .werewolf button:disabled{opacity:.65;cursor:default}.ww-role{background:#141c2b;border:1px solid #9c8658;border-radius:10px;padding:12px;margin:16px 0}.ww-role h4{font-size:22px;margin:10px 0}.ww-role p,.ww-inspection{font-size:13px;line-height:1.6}.ww-players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.ww-player{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}.ww-player>span{display:grid;place-items:center;width:32px;height:32px;background:#ffffff18;border-radius:50%;font-size:18px}.ww-player small{font-size:9px}.ww-dead{opacity:.45!important}.ww-empty{display:grid;place-items:center;min-height:95px;border:1px dashed #647087;border-radius:8px;text-align:center;font-size:10px;color:#a8b3c6}.ww-history h4,.ww-chat h4{margin:20px 0 8px;font-size:14px}.ww-history ol{padding-left:20px;color:#c1ccdd;font-size:11px;line-height:1.7}.ww-messages{height:145px;overflow:auto;background:#121b2c;padding:10px;border-radius:8px;overscroll-behavior:contain}.ww-messages p{font-size:12px;overflow-wrap:anywhere;margin:5px 0}.ww-chat form{display:flex;gap:6px;margin-top:8px}.ww-chat-status{display:block;font-size:10px;color:#c3d0df;margin:6px 0}.werewolf details{font-size:12px;line-height:1.65;margin-top:18px}.werewolf summary{cursor:pointer;min-height:36px}.wolf-art{background:#20293e;color:#efd197}#table-social .ww-player:disabled{opacity:1}.ww-player strong{font-size:11px}@media(max-width:480px){.werewolf{padding:12px}.ww-players{gap:5px}#table-social .ww-player{padding:8px 4px}.ww-chat form{flex-wrap:wrap}.ww-chat input{flex:1 1 160px}}
+/* The village has a time of day. root.dataset.phase was already being set and no rule in
+   this file had ever read it, so night, discussion and judgment all looked the same — in a
+   game whose whole theatre is night falling. */
+.werewolf{transition:background .8s ease,color .8s ease}
+.werewolf .ww-moon{display:inline-block;transition:transform .8s cubic-bezier(.2,.8,.3,1),color .8s ease}
+.werewolf[data-phase=night]{background:#0d1426;color:#c8d4f2}
+.werewolf[data-phase=night] .ww-moon{color:#cfe0ff;transform:rotate(-12deg) scale(1.06)}
+.werewolf[data-phase=discussion]{background:#2c3149;color:#fdf3dd}
+.werewolf[data-phase=discussion] .ww-moon{color:#f5c86a;transform:rotate(180deg)}
+.werewolf[data-phase=vote]{background:#332b40;color:#fbeede}
+.werewolf[data-phase=defense]{background:#3a2b36;color:#ffeadf}
+.werewolf[data-phase=judgment]{background:#43222b;color:#ffe2dc}
+.werewolf[data-phase=judgment] .ww-moon{color:#ef8b7f}
+.werewolf[data-phase=finished]{background:#26311f;color:#f6f2d8}
+
+/* Night falling and day breaking are the two beats worth a sweep of their own. */
+@keyframes ww-sweep{from{opacity:.85}to{opacity:0}}
+.ww-sweep{position:absolute;inset:0;border-radius:16px;pointer-events:none;animation:ww-sweep .9s ease-out forwards}
+.werewolf{position:relative;overflow:hidden}
+.ww-sweep[data-to=night]{background:radial-gradient(circle at 70% 20%,#12224a,#05070f)}
+.ww-sweep[data-to=day]{background:radial-gradient(circle at 30% 15%,#ffd98a,#b4762f)}
+
+/* The reveal. In a deduction game the ending is the game, and it was one line of text. */
+.ww-verdict{display:grid;gap:10px;margin:14px 0;padding:18px;border-radius:14px;text-align:center;background:#0000002e;border:1px solid #ffffff26}
+.ww-verdict strong{font:800 30px/1 'Oxanium',sans-serif;letter-spacing:.02em}
+.ww-verdict[data-side=evil] strong{color:#ff9d8e}
+.ww-verdict[data-side=good] strong{color:#cfe89a}
+.ww-verdict small{font-size:10px;letter-spacing:.16em;opacity:.75}
+.ww-roles{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.ww-roles span{padding:5px 10px;border-radius:999px;background:#ffffff14;font-size:11px}
+.ww-roles span[data-wolf=true]{background:#ff9d8e26;color:#ffd4cc}
+@media(prefers-reduced-motion:reduce){.werewolf,.werewolf .ww-moon{transition:none}.ww-sweep{display:none}}

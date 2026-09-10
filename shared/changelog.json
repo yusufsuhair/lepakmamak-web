@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.34.0",
+  "date": "2026-09-10",
+  "title": "Werewolf ada malam dan siang",
+  "notes": [
+   "Werewolf looks like the time of day now. Night is dark and blue, the discussion warms up, judgment turns red, and night falling or day breaking sweeps across the whole panel with a sound to match.",
+   "The ending is a proper reveal instead of one line of text: who won, and what everybody actually was. It shows roles, never who voted for whom."
+  ]
+ },
+ {
   "version": "1.33.0",
   "date": "2026-09-10",
   "title": "Poker Kampung ada rasa",

@@ -1,4 +1,6 @@
+import './motion.css';
 import './werewolf.css';
+import {createGameAudio} from './game-audio';
 const roles:Record<string,[string,string,string]>={
  werewolf:['Werewolf','☾','Pilih mangsa bersama serigala lain pada waktu malam. Menang apabila jumlah serigala menyamai penduduk.'],
  alpha:['Alpha Wolf','☾','Ketua serigala. Anda kelihatan baik kepada Seer. Pilih mangsa pada waktu malam.'],
@@ -11,9 +13,28 @@ const roles:Record<string,[string,string,string]>={
  mayor:['Mayor','⚑','Undi tuduhan anda dikira dua kali.']};
 const phases:Record<string,string>={lobby:'Kumpul geng',night:'Malam',discussion:'Perbincangan',vote:'Tuduh',defense:'Pembelaan',judgment:'Keputusan',finished:'Tamat'};
 export function setupWerewolf(send:(message:object)=>boolean){
- const root=document.createElement('section');root.className='werewolf';root.innerHTML=`<header><div><small>RAHSIA DI SEBALIK SENYUMAN</small><h3>Werewolf</h3></div><span class="ww-moon" aria-hidden="true">☾</span></header><div class="ww-phase"><strong></strong><time></time></div><p class="ww-hint" role="status"></p><div class="ww-lobby"></div><section class="ww-role" hidden><button type="button" class="ww-reveal">Lihat peranan saya</button><div class="ww-secret" hidden></div></section><div class="ww-inspection"></div><div class="ww-players"></div><div class="ww-judgment"></div><section class="ww-history"><h4>Berita kampung</h4><ol></ol></section><section class="ww-chat"><h4>Sembang permainan</h4><div class="ww-messages" role="log" aria-live="polite"></div><form><input aria-label="Werewolf message" maxlength="240" placeholder="Cakap dengan geng…" autocomplete="off"><button type="submit">Hantar</button></form><small class="ww-chat-status" role="status"></small></section><details><summary>Cara main & peranan</summary><p>Semua meja di bandar ini berkongsi satu lobi Werewolf. Sertai dahulu; hos mula apabila cukup 7 atau 9 pemain. Kekal duduk semasa bermain.</p><p>7 pemain: 2 Werewolf, 1 Doctor, 1 Seer, 3 Villager. 9 pemain: tambah Alpha Wolf dan dua peranan rawak daripada Knight, Princess, Hunter, Mayor; 2 Villager kekal.</p><p>Malam 35s → bincang 60s → tuduh 25s → pembelaan 20s → keputusan 20s. Tuduhan terbanyak memilih tertuduh; seri bermakna tiada hukuman. Hanya penuduh membuat keputusan akhir; lebih separuh mesti memilih Singkir.</p><p>Penduduk menang jika tiada serigala. Serigala menang jika bilangan mereka menyamai penduduk. Serigala perlu sepakat tentang mangsa; jika berbeza, satu pilihan dipilih rawak. Tiada tindakan malam bermakna tiada serangan.</p><p>Sembang malam hanya untuk serigala. Pemain tersingkir mempunyai sembang berasingan. Gunakan sembang permainan untuk menyimpan rahsia; suara dan sembang bandar tetap boleh didengar seperti biasa. Jika terputus sambungan atau berdiri selama 60s, anda tersingkir.</p></details>`;
+ const root=document.createElement('section');root.className='werewolf';root.innerHTML=`<header><div><small>RAHSIA DI SEBALIK SENYUMAN</small><h3>Werewolf</h3></div><span class="ww-moon" aria-hidden="true">☾</span></header><div class="ww-phase"><strong></strong><time></time></div><p class="ww-hint" role="status"></p><div class="ww-lobby"></div><section class="ww-role" hidden><button type="button" class="ww-reveal">Lihat peranan saya</button><div class="ww-secret" hidden></div></section><div class="ww-inspection"></div><div class="ww-players"></div><div class="ww-judgment"></div><section class="ww-verdict" hidden><small>KAMPUNG MAJU</small><strong></strong><div class="ww-roles"></div></section><section class="ww-history"><h4>Berita kampung</h4><ol></ol></section><section class="ww-chat"><h4>Sembang permainan</h4><div class="ww-messages" role="log" aria-live="polite"></div><form><input aria-label="Werewolf message" maxlength="240" placeholder="Cakap dengan geng…" autocomplete="off"><button type="submit">Hantar</button></form><small class="ww-chat-status" role="status"></small></section><details><summary>Cara main & peranan</summary><p>Semua meja di bandar ini berkongsi satu lobi Werewolf. Sertai dahulu; hos mula apabila cukup 7 atau 9 pemain. Kekal duduk semasa bermain.</p><p>7 pemain: 2 Werewolf, 1 Doctor, 1 Seer, 3 Villager. 9 pemain: tambah Alpha Wolf dan dua peranan rawak daripada Knight, Princess, Hunter, Mayor; 2 Villager kekal.</p><p>Malam 35s → bincang 60s → tuduh 25s → pembelaan 20s → keputusan 20s. Tuduhan terbanyak memilih tertuduh; seri bermakna tiada hukuman. Hanya penuduh membuat keputusan akhir; lebih separuh mesti memilih Singkir.</p><p>Penduduk menang jika tiada serigala. Serigala menang jika bilangan mereka menyamai penduduk. Serigala perlu sepakat tentang mangsa; jika berbeza, satu pilihan dipilih rawak. Tiada tindakan malam bermakna tiada serangan.</p><p>Sembang malam hanya untuk serigala. Pemain tersingkir mempunyai sembang berasingan. Gunakan sembang permainan untuk menyimpan rahsia; suara dan sembang bandar tetap boleh didengar seperti biasa. Jika terputus sambungan atau berdiri selama 60s, anda tersingkir.</p></details>`;
  const el=<T extends HTMLElement>(selector:string)=>root.querySelector<T>(selector)!;
- let game:any=null,reveal=false,lastGame='',offset=0;
+ let game:any=null,reveal=false,lastGame='',offset=0,shownPhase='';
+ const audio=createGameAudio('werewolf',{
+  // Night falls: two low notes, the second lower.
+  night:({note,now})=>{note(196,now,.5);note(147,now+.18,.7);},
+  // Day breaks: the same shape, climbing.
+  day:({note,now})=>[262,330,392].forEach((f,i)=>note(f,now+i*.09,.3)),
+  // A verdict being read out.
+  judgment:({note,now})=>{note(233,now,.3);note(233,now+.22,.45);},
+  // The village survives.
+  good:({note,now})=>[392,523,659,784].forEach((f,i)=>note(f,now+i*.11,.3)),
+  // The wolves take it.
+  evil:({note,now})=>[330,262,196,147].forEach((f,i)=>note(f,now+i*.13,.42)),
+ });
+ root.addEventListener('pointerdown',()=>audio.unlock());
+
+ // Night and day are the two beats worth a sweep across the whole panel.
+ function sweep(to:'night'|'day'){
+  const wash=document.createElement('div');wash.className='ww-sweep';wash.dataset.to=to;
+  root.append(wash);setTimeout(()=>wash.remove(),1000);
+ }
  function button(text:string,fn:()=>void,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=text;b.disabled=disabled;b.onclick=fn;return b;}
  function action(target:string){send({type:'werewolf-action',target,gameId:game.id,revision:game.revision});}
  function clock(){if(!game)return;el('time').textContent=game.ends?`${Math.max(0,Math.ceil((game.ends-Date.now()-offset)/1000))}s`: `${game.players.length}/${game.size} pemain`;}
@@ -23,10 +44,32 @@ export function setupWerewolf(send:(message:object)=>boolean){
   el('.ww-role').hidden=!game.role||waiting;el('.ww-secret').hidden=!reveal;el('.ww-reveal').textContent=reveal?'Sembunyikan peranan':'Lihat peranan saya';const secret=el('.ww-secret');secret.replaceChildren();if(game.role){const [name,icon,description]=roles[game.role]||[game.role,'?',''];const title=document.createElement('h4'),body=document.createElement('p');title.textContent=`${icon} ${name}`;body.textContent=description;secret.append(title,body);}el('.ww-inspection').textContent=reveal&&game.inspection?`Hasil malam ${game.inspection.day}: ${game.inspection.name} — ${game.inspection.team==='evil'?'Jahat':'Baik'}`:'';
   const players=el('.ww-players');players.replaceChildren();for(const p of game.players){const legal=me?.alive&&p.alive&&(game.phase==='vote'&&p.id!==me.id||game.phase==='night'&&(wolf&&!['werewolf','alpha'].includes(p.role)||game.role==='doctor'||game.role==='seer'&&p.id!==me.id));const card=button('',()=>action(p.id),!legal),initial=document.createElement('span'),name=document.createElement('strong'),meta=document.createElement('small');card.className='ww-player';card.classList.toggle('ww-dead',!p.alive);card.setAttribute('aria-pressed',String(game.selected===p.id));initial.textContent=p.alive?p.name.slice(0,1).toUpperCase():'×';name.textContent=p.name;meta.textContent=waiting?'Sedia':p.role&&(p.id!==game.self||reveal||finished)?roles[p.role]?.[0]||p.role:!p.online?'Menyambung semula…':'Peranan rahsia';card.append(initial,name,meta);players.append(card);}if(waiting)for(let i=game.players.length;i<game.size;i++){const slot=document.createElement('div');slot.className='ww-empty';slot.textContent='Menunggu member';players.append(slot);}
   const judge=el('.ww-judgment');judge.replaceChildren();if(me?.alive&&game.phase==='vote')judge.append(button(game.selected==='skip'?'✓ Langkau':'Langkau undian',()=>action('skip')));if(game.phase==='judgment'&&game.canJudge){for(const [label,target] of [['Singkir','kill'],['Bebaskan','spare']]){const b=button(label,()=>action(target));b.setAttribute('aria-pressed',String(game.selected===target));judge.append(b);}}
+  // The ending is the game in a deduction round, so it gets a moment rather than a line.
+  // Roles, not accusations: who was a wolf, never who was wrong about whom.
+  const verdict=el('.ww-verdict');verdict.hidden=!finished;
+  if(finished){
+   verdict.dataset.side=game.winner==='good'?'good':'evil';
+   el('.ww-verdict strong').textContent=game.winner==='good'?'Penduduk menang!':'Serigala menang!';
+   const roleList=el('.ww-roles');roleList.replaceChildren();
+   for(const p of game.players){
+    const tag=document.createElement('span');
+    const role=roles[p.role]?.[0]||p.role||'?';
+    tag.dataset.wolf=String(['werewolf','alpha'].includes(p.role));
+    tag.textContent=`${p.name} · ${role}`;roleList.append(tag);
+   }
+  }
+  // One sound and one sweep per change of phase, however many renders it takes.
+  if(game.phase!==shownPhase){
+   if(game.phase==='night'){sweep('night');audio.sound('night');}
+   else if(game.phase==='discussion'&&shownPhase==='night'){sweep('day');audio.sound('day');}
+   else if(game.phase==='judgment')audio.sound('judgment');
+   else if(finished){verdict.classList.add('game-burst');audio.sound(game.winner==='good'?'good':'evil');}
+   shownPhase=game.phase;
+  }
   const history=el('.ww-history ol');history.replaceChildren();for(const message of game.log.slice(-6)){const item=document.createElement('li');item.textContent=message;history.append(item);}
   const messages=el('.ww-messages'),bottom=messages.scrollHeight-messages.scrollTop-messages.clientHeight<30;messages.replaceChildren();for(const m of game.chat){const row=document.createElement('p'),name=document.createElement('b');name.textContent=`${m.channel==='wolves'?'☾ ':m.channel==='ghosts'?'† ':''}${m.name}: `;row.append(name,document.createTextNode(m.text));messages.append(row);}if(bottom)messages.scrollTop=messages.scrollHeight;
   const canChat=me&&(waiting||finished||!me.alive||game.phase==='night'&&wolf||['discussion','vote','judgment'].includes(game.phase)||game.phase==='defense'&&game.accused===me.id);el<HTMLInputElement>('.ww-chat input').disabled=!canChat;el<HTMLButtonElement>('.ww-chat form button').disabled=!canChat;el('.ww-chat-status').textContent=canChat?game.phase==='night'&&me.alive?'Sembang rahsia serigala':!me.alive&&!finished?'Hanya pemain tersingkir':'Sembang pemain': 'Sembang tidak tersedia dalam fasa ini.';
  }
  el('.ww-reveal').onclick=()=>{reveal=!reveal;render();};el('form').onsubmit=e=>{e.preventDefault();const input=el<HTMLInputElement>('input');if(input.value.trim()&&send({type:'werewolf-chat',text:input.value.trim()}))input.value='';};setInterval(()=>{if(root.isConnected&&!root.hidden)clock();},250);
- return {root,state(value:any){if(!value){game=null;root.querySelectorAll<HTMLElement>('.ww-secret,.ww-role').forEach(e=>e.hidden=true);return;}if(value.id!==lastGame){lastGame=value.id;reveal=false;}game=value;offset=game.serverTime-Date.now();render();}};
+ return {root,state(value:any){if(!value){game=null;root.querySelectorAll<HTMLElement>('.ww-secret,.ww-role').forEach(e=>e.hidden=true);return;}if(value.id!==lastGame){lastGame=value.id;reveal=false;shownPhase='';}game=value;offset=game.serverTime-Date.now();render();}};
 }
