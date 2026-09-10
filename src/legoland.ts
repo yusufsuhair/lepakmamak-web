@@ -1,30 +1,12 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {lands,attractions,instructions,type Attraction} from './legoland-data';
+import {automated,toParkWorld,toParkLocal,parkPose,parkExit,rideDuration,type ParkRide} from '../shared/legoland.mjs';
+import type {World} from './world';
 import './legoland.css';
 
-const root=document.querySelector<HTMLDivElement>('#park')!;
-root.innerHTML=`<canvas id="park-world" aria-label="Taman rekreasi 3D LEGOLAND" tabindex="0"></canvas>
-<header><div class="park-brand"><small>LEPAKMAMAK · JOHOR</small><strong>LEGOLAND</strong></div><nav class="park-nav"><span id="park-pass">0 / ${attractions.length}</span><button id="park-overview">Panorama</button><button id="park-map-toggle">Peta</button><button id="park-guide">Panduan</button><a href="/">Balik KL ↗</a></nav></header>
-<section class="park-card"><small id="park-land">The Beginning</small><h1 id="park-title">Sehari penuh pengembaraan.</h1><p id="park-description">Jalan ke tarikan atau pilih destinasi pada peta. Setiap tarikan mempunyai aktiviti dan cop pasport.</p><p id="park-status" role="status"></p><button id="park-action">Mula jelajah</button><div id="park-tools" hidden><button id="park-build">Letak blok</button><button id="park-undo">Undo</button><button id="park-collect">Kutip</button></div><button id="park-exit" hidden>Keluar tarikan</button><label id="park-reduced"><input type="checkbox" id="park-calm"> Kamera tenang</label></section>
-<aside id="park-map"><canvas width="440" height="340" aria-label="Peta resort dan kedudukan anda"></canvas><label for="park-destination">Pergi ke tarikan</label><select id="park-destination"><option value="">Pilih destinasi…</option></select><p>WASD / anak panah: jalan · Shift: lari<br>E: main / kutip · Space: blok · Esc: keluar<br>Interpretasi permainan peminat · Solo</p></aside>
-<div id="park-controls" aria-label="Kawalan pergerakan"><button data-key="KeyW" aria-label="Maju">↑</button><button data-key="KeyA" aria-label="Kiri">←</button><button data-key="KeyS" aria-label="Undur">↓</button><button data-key="KeyD" aria-label="Kanan">→</button></div><div id="park-toast" role="status" hidden></div>
-<dialog id="park-help"><h2>Selamat datang ke taman</h2><p>10 kawasan, ${attractions.length} aktiviti. Jalan bebas, naik wahana, bina blok dan lengkapkan pasport. Cop disimpan pada peranti ini.</p><p>Ini interpretasi bergaya blok dalam LepakMamak, bukan produk rasmi atau replika berskala tepat. Mekanik tarikan dipermudahkan untuk permainan ini.</p><ul>${lands.map(l=>`<li>${l.name}</li>`).join('')}</ul><p><a href="https://www.legoland.com.my/explore/theme-park/park-map/" target="_blank" rel="noopener">Rujukan peta resort rasmi</a></p><button id="park-help-close">Jom main</button></dialog>`;
-const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
-const canvas=el<HTMLCanvasElement>('park-world');
-const status=el('park-status'), action=el<HTMLButtonElement>('park-action');
-const calm=el<HTMLInputElement>('park-calm');calm.checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const keys=new Set<string>(), stamps=new Set<number>();
-try{const saved=JSON.parse(localStorage.getItem('lepak-legoland-pass-v1')||'[]');if(Array.isArray(saved))for(const id of saved)if(Number.isInteger(id)&&attractions[id])stamps.add(id);}catch{/* storage optional */}
-function passport(){el('park-pass').textContent=`${stamps.size} / ${attractions.length}`;}passport();
-let toastUntil=0;
-function toast(message:string){el('park-toast').textContent=message;el('park-toast').hidden=false;toastUntil=performance.now()+4000;}
-
-function start(){
- const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
- const scene=new THREE.Scene();scene.background=new THREE.Color('#b9e0ed');scene.fog=new THREE.Fog('#b9e0ed',180,510);
- scene.add(new THREE.HemisphereLight('#fff8d9','#66866a',1.7));const sun=new THREE.DirectionalLight('#fff1c2',2);sun.position.set(-90,150,60);scene.add(sun);
- const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,2000);
+export function createLegoland(worldScene:THREE.Scene,world:World,options:{send:(message:object)=>void;online:()=>boolean;canEnter:()=>boolean;clearInput:()=>void;notice:(title:string,body:string)=>void}){
+ const scene=new THREE.Group();scene.name='LEGOLAND — city west';
  const scenery=new THREE.Group();scene.add(scenery);
  const mats=new Map<string,THREE.MeshStandardMaterial>();const cube=new THREE.BoxGeometry(1,1,1),stud=new THREE.CylinderGeometry(.3,.3,.18,8);
  const mat=(color:string)=>{if(!mats.has(color))mats.set(color,new THREE.MeshStandardMaterial({color,roughness:.65}));return mats.get(color)!;};
@@ -38,8 +20,8 @@ function start(){
  for(let i=0;i<95;i++){const angle=i*2.399, radius=145+(i%4)*7,x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;box(scenery,x,2,z,1,4,1,'#8d6541');brick(scenery,x,5,z,4,3,4,i%2?'#398455':'#4b9557');}
  const curves=new Map<number,THREE.CatmullRomCurve3>(),cars=new Map<number,THREE.Group>();
  const palettes=['#e74438','#f0c533','#357ec5','#4c9b68'];
- function rideCurve(a:Attraction){if(a.name==='LEGOLAND Express')return new THREE.CatmullRomCurve3([[25,1,122],[-55,1,125],[-145,1,45],[-120,1,-85],[0,1,-150],[145,1,-90],[155,1,40],[90,1,105]].map(p=>new THREE.Vector3(...p as [number,number,number])),true,'catmullrom',.2);const points:THREE.Vector3[]=[];for(let i=0;i<17;i++){const t=i/16*Math.PI*2;let y=1.2;if(a.kind==='coaster')y=3+Math.pow((1-Math.cos(t))/2,2)*15+Math.sin(t*3)*1.4;if(a.kind==='slide')y=1+(1-i/16)*18;points.push(new THREE.Vector3(a.x+Math.sin(t)*9,y,a.z+Math.cos(t)*7));}return new THREE.CatmullRomCurve3(points,a.kind!=='slide','catmullrom',.2);}
- for(const a of attractions){const color=lands[a.land].color;box(scenery,a.x,.24,a.z,20,.3,19,'#fff0c8');label(a.name,a.x,3.2,a.z+10,color,12);
+ function rideCurve(a:Attraction){return new THREE.CatmullRomCurve3(Array.from({length:97},(_,i)=>{const p=parkPose(a,i/96),local=toParkLocal(p.x,p.z);return new THREE.Vector3(local.x,p.y-1,local.z);}),a.kind!=='slide','catmullrom',.2);}
+ for(const a of attractions){const color=lands[a.land].color;box(scenery,a.x,.24,a.z,20,.3,19,'#fff0c8');const entrance=parkExit(a),entry=toParkLocal(entrance.x,entrance.z);label(a.name,entry.x,3.2,entry.z-3,color,12);
   if(['coaster','boat','slide','drive'].includes(a.kind)){
    const curve=rideCurve(a);curves.set(a.id,curve);scenery.add(new THREE.Mesh(new THREE.TubeGeometry(curve,a.id===0?192:64,a.kind==='boat'?1.1:.35,5,false),mat(a.id===0?'#777d80':a.kind==='boat'?'#46c8d7':color)));
    if(a.kind==='coaster'||a.kind==='slide')for(let i=0;i<12;i++){const p=curve.getPoint(i/12);box(scenery,p.x,p.y/2,p.z,.35,p.y,.35,'#d7d6c4');}
@@ -65,60 +47,51 @@ function start(){
  scenery.updateMatrixWorld(true);const buckets=new Map<THREE.Material,THREE.BufferGeometry[]>(),originals:THREE.Mesh[]=[];
  scenery.traverse(o=>{if(o instanceof THREE.Mesh&&o.material instanceof THREE.MeshStandardMaterial){const g=o.geometry.clone().applyMatrix4(o.matrixWorld);const list=buckets.get(o.material)||[];list.push(g);buckets.set(o.material,list);originals.push(o);}});
  for(const [material,geometries] of buckets){const merged=mergeGeometries(geometries);if(merged)scene.add(new THREE.Mesh(merged,material));for(const g of geometries)g.dispose();}for(const o of originals)o.removeFromParent();
- const player=new THREE.Group();brick(player,0,1.2,0,.9,1,.6,'#ed4535');box(player,-.24,.4,0,.35,.8,.4,'#23629d');box(player,.24,.4,0,.35,.8,.4,'#23629d');box(player,0,2,0,.7,.65,.65,'#f5cd3c');scene.add(player);player.position.set(0,0,163);
- let nearby:Attraction|undefined,selected:Attraction|undefined,elapsed=0,score=0,won=false,frame=0,last=0,overview=false,zoom=1;
- el('park-overview').onclick=()=>{overview=!overview;el('park-overview').textContent=overview?'Dekat':'Panorama';keys.clear();};
- canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=THREE.MathUtils.clamp(zoom+e.deltaY*.001,.55,2.5);},{passive:false});
- const duration=(a:Attraction)=>a.id===0?60:a.kind==='slide'?18:26;
- const tokens:THREE.Mesh[]=[],blocks:THREE.Mesh[]=[],mini=new THREE.Group();scene.add(mini);
- const targetMaterial=new THREE.MeshStandardMaterial({color:'#ffe353',emissive:'#ae6000',emissiveIntensity:.6});
- function clearMini(){for(const child of [...mini.children]){mini.remove(child);if(child instanceof THREE.Mesh&&child.geometry!==cube)child.geometry.dispose();}tokens.length=0;blocks.length=0;}
- function award(){if(!selected||won)return;won=true;stamps.add(selected.id);passport();try{localStorage.setItem('lepak-legoland-pass-v1',JSON.stringify([...stamps]));}catch{/* optional */}status.textContent='Selesai! Cop pasport dikumpul.';toast(`${selected.name} · Cop dikumpul!`);}
- function leave(){if(!selected)return;player.position.set(selected.x,0,selected.z+13);selected=undefined;clearMini();keys.clear();el('park-exit').hidden=true;el('park-tools').hidden=true;action.hidden=false;el<HTMLSelectElement>('park-destination').disabled=false;status.textContent='Pilih tarikan seterusnya.';}
- function begin(a:Attraction){leave();overview=false;el('park-overview').textContent='Panorama';selected=a;elapsed=0;score=0;won=false;keys.clear();clearMini();el('park-title').textContent=a.name;el('park-land').textContent=lands[a.land].name;el('park-description').textContent=instructions[a.kind];action.hidden=true;el('park-exit').hidden=false;el<HTMLSelectElement>('park-destination').disabled=true;
-  const manual=['drive','shoot','build','explore'].includes(a.kind);player.position.set(a.x,a.kind==='drive'?.9:0,a.z+12);status.textContent='Jom!';
-  el('park-tools').hidden=!['build','explore'].includes(a.kind);el('park-build').hidden=a.kind!=='build';el('park-undo').hidden=a.kind!=='build';el('park-collect').hidden=a.kind!=='explore';
-  if(['shoot','explore','drive'].includes(a.kind)){const count=a.kind==='shoot'?8:5;for(let i=0;i<count;i++){const angle=i/count*Math.PI*2;const geometry=a.kind==='drive'?new THREE.TorusGeometry(1.7,.18,6,16):new THREE.IcosahedronGeometry(.8,0);const m=new THREE.Mesh(geometry,targetMaterial);m.position.set(a.x+Math.sin(angle)*13,a.kind==='shoot'?3+(i%3):1.5,a.z+Math.cos(angle)*12);mini.add(m);tokens.push(m);}}
-  if(!manual)toast('Launched! Keluar tarikan bila-bila masa.');
- }
- let blockColor=0;
- const colors=document.createElement('div');colors.id='park-colors';colors.setAttribute('aria-label','Warna blok');colors.hidden=true;el('park-tools').append(colors);
- for(let i=0;i<palettes.length;i++){const button=document.createElement('button');button.textContent=['Merah','Kuning','Biru','Hijau'][i];button.setAttribute('aria-pressed',String(i===0));button.onclick=()=>{blockColor=i;for(const [index,b] of [...colors.children].entries())b.setAttribute('aria-pressed',String(index===i));};colors.append(button);}
- function build(point?:THREE.Vector3){if(selected?.kind!=='build'||won)return;const i=blocks.length;
-  const x=point?selected.x+THREE.MathUtils.clamp(Math.round((point.x-selected.x)/2)*2,-4,4):selected.x-3+(i%4)*2;
-  const z=point?selected.z+THREE.MathUtils.clamp(Math.round((point.z-selected.z)/2)*2,-4,4):selected.z+2;
-  const height=blocks.filter(b=>Math.abs(b.position.x-x)<.2&&Math.abs(b.position.z-z)<.2).length;
-  const m=box(mini,x,3+height*1.2,z,1.8,1,1.8,palettes[blockColor]);blocks.push(m);status.textContent=`Binaan ${blocks.length} / 8 blok`;if(blocks.length===8)award();}
- function collect(){if(selected?.kind!=='explore'||won)return;const token=tokens.find(t=>t.visible&&Math.hypot(t.position.x-player.position.x,t.position.z-player.position.z)<3);if(token){token.visible=false;score++;status.textContent=`Penemuan ${score} / 5`;if(score===5)award();}else toast('Dekati objek berkilau dahulu.');}
- action.onclick=()=>{if(nearby)begin(nearby);else{player.position.set(attractions[0].x,0,attractions[0].z+13);}};
- el('park-exit').onclick=leave;el('park-build').onclick=()=>build();el('park-collect').onclick=collect;el('park-undo').onclick=()=>{if(won)return;const b=blocks.pop();if(b)mini.remove(b);status.textContent=`Binaan ${blocks.length} / 8 blok`;};
- const destination=el<HTMLSelectElement>('park-destination');for(let i=0;i<lands.length;i++){const opt=document.createElement('optgroup');opt.label=lands[i].name;for(const a of attractions.filter(a=>a.land===i)){const o=document.createElement('option');o.value=String(a.id);o.textContent=a.name;opt.append(o);}destination.append(opt);}destination.onchange=()=>{if(destination.value==='')return;leave();const a=attractions[Number(destination.value)];player.position.set(a.x,0,a.z+13);destination.value='';keys.clear();toast(`Sampai ${a.name}`);};
- const help=el<HTMLDialogElement>('park-help');el('park-guide').onclick=()=>{keys.clear();help.showModal();};el('park-help-close').onclick=()=>help.close();el('park-map-toggle').onclick=()=>el('park-map').classList.toggle('visible');
- window.addEventListener('keydown',e=>{if(help.open||e.target instanceof HTMLSelectElement||e.target instanceof HTMLInputElement)return;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.repeat)return;if(e.code==='Escape')leave();if(e.code==='Space')build();if(e.code==='KeyE'){if(selected)collect();else action.click();}});window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());document.addEventListener('visibilitychange',()=>{keys.clear();last=0;});
- for(const button of document.querySelectorAll<HTMLButtonElement>('[data-key]')){button.onpointerdown=e=>{e.preventDefault();button.setPointerCapture(e.pointerId);keys.add(button.dataset.key!);};button.onpointerup=button.onpointercancel=button.onlostpointercapture=()=>keys.delete(button.dataset.key!);}
- const ray=new THREE.Raycaster();canvas.addEventListener('pointerdown',e=>{if(!selected||won||overview)return;const rect=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);
-  if(selected.kind==='build'){const p=new THREE.Vector3();if(ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-2.5),p)&&Math.abs(p.x-selected.x)<6&&Math.abs(p.z-selected.z)<5)build(p);return;}
-  if(selected.kind!=='shoot'||elapsed>30)return;const hit=ray.intersectObjects(tokens.filter(t=>t.visible))[0];if(hit){hit.object.visible=false;score++;status.textContent=`Kena ${score} / 8`;if(score===8)award();}});
- const map=el('park-map').querySelector('canvas')!,ctx=map.getContext('2d')!;const mapPoint=(x:number,z:number)=>({x:(x+165)/465*440,y:(z+170)/340*340});
- function drawMap(){ctx.fillStyle='#e9eed8';ctx.fillRect(0,0,440,340);ctx.strokeStyle='#c9bda2';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(150,300);ctx.lineTo(150,70);ctx.moveTo(30,170);ctx.lineTo(420,170);ctx.stroke();lands.forEach((l,i)=>{const p=mapPoint(l.x,l.z);ctx.fillStyle=l.color;ctx.beginPath();ctx.arc(p.x,p.y,22,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillText(String(i+1),p.x,p.y+5);});for(const a of attractions){const p=mapPoint(a.x,a.z);ctx.fillStyle=stamps.has(a.id)?'#246544':'#ffffff';ctx.fillRect(p.x-2,p.y-2,4,4);}const p=mapPoint(player.position.x,player.position.z);ctx.strokeStyle='white';ctx.lineWidth=3;ctx.fillStyle='#e33c30';ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.stroke();}
- const focus=new THREE.Vector3(),camTarget=new THREE.Vector3();camera.position.set(0,34,184);
- function loop(time:number){frame=requestAnimationFrame(loop);const dt=last?Math.min((time-last)/1000,.05):0;last=time;if(document.hidden||help.open)return;
-  if(performance.now()>toastUntil)el('park-toast').hidden=true;colors.hidden=selected?.kind!=='build';
-  const manual=!selected||['drive','shoot','explore'].includes(selected.kind);
-  if(manual&&!overview){const dx=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft')),dz=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));const length=Math.hypot(dx,dz)||1,speed=selected?.kind==='drive'?15:keys.has('ShiftLeft')?20:11;
-   const blocked=(x:number,z:number)=>obstacles.some(o=>Math.abs(x-o.x)<o.w/2+.6&&Math.abs(z-o.z)<o.d/2+.6);
-   const x=THREE.MathUtils.clamp(player.position.x+dx/length*speed*dt,-160,280);if(!blocked(x,player.position.z))player.position.x=x;
-   const z=THREE.MathUtils.clamp(player.position.z+dz/length*speed*dt,-155,165);if(!blocked(player.position.x,z))player.position.z=z;
-   if(dx||dz)player.rotation.y=Math.atan2(dx,dz);}
-  for(const a of attractions){const car=cars.get(a.id);if(!car)continue;const active=selected?.id===a.id;if(active&&a.kind==='drive'){car.position.set(player.position.x,.25,player.position.z);car.rotation.y=player.rotation.y;continue;}const p=active?Math.min(elapsed/duration(a),1):(time/45000+a.id*.13)%1;const curve=curves.get(a.id);if(curve){car.position.copy(curve.getPoint(p));const tangent=curve.getTangent(p);car.rotation.y=Math.atan2(tangent.x,tangent.z);}else if(a.kind==='tower'){car.position.set(a.x,1+Math.sin(p*Math.PI)*23,a.z);}else{car.position.set(a.x,3,a.z);car.rotation.y=p*Math.PI*2;}}
-  if(selected){elapsed+=dt;const a=selected;if(!['drive','shoot','build','explore'].includes(a.kind)){const car=cars.get(a.id)!;player.position.copy(car.position);if(a.kind==='spin'){player.position.x+=Math.sin(car.rotation.y)*7;player.position.z+=Math.cos(car.rotation.y)*7;}player.position.y+=1;player.rotation.y=car.rotation.y;if(elapsed>=duration(a)){award();player.position.set(a.x,0,a.z+13);}}
-   if(a.kind==='drive'&&!won){tokens.forEach((t,i)=>{t.visible=i>=score;t.scale.setScalar(i===score?1.3:1);});const t=tokens[score];if(t&&Math.hypot(t.position.x-player.position.x,t.position.z-player.position.z)<2.5){score++;if(score===5)award();}if(!won)status.textContent=`Checkpoint ${score} / 5 · ${Math.floor(elapsed)}s`;}
-   if(a.kind==='shoot'&&!won)status.textContent=elapsed>=30?'Masa tamat. Keluar dan cuba lagi.':`Sasaran ${score} / 8 · ${Math.ceil(30-elapsed)}s`;
-   if(!won&&['coaster','slide','boat','tower','spin'].includes(a.kind))status.textContent=`Perjalanan · ${Math.floor(elapsed)}s`;
-  }else{nearby=attractions.reduce<Attraction|undefined>((best,a)=>Math.hypot(a.x-player.position.x,a.z+12-player.position.z)<(best?Math.hypot(best.x-player.position.x,best.z+12-player.position.z):19)?a:best,undefined);if(nearby){el('park-title').textContent=nearby.name;el('park-land').textContent=lands[nearby.land].name;el('park-description').textContent=instructions[nearby.kind];action.textContent=stamps.has(nearby.id)?'Main lagi · E':'Main tarikan · E';}else{el('park-title').textContent='Jalan-jalan dalam taman';el('park-description').textContent='Cari papan tanda tarikan. Pilih destinasi pada peta untuk perjalanan pantas.';action.textContent='Pergi ke pintu masuk';}}
-  focus.copy(player.position);focus.y+=1.5;if(calm.checked&&selected&&!manual){focus.set(selected.x,5,selected.z);}if(overview){const fit=Math.max(1,1.6/camera.aspect);focus.set(50,0,0);camTarget.set(50,340*fit,280*fit);}else camTarget.copy(focus).add(new THREE.Vector3(0,27*zoom,34*zoom));const fog=scene.fog as THREE.Fog;fog.near=overview?1100:180;fog.far=overview?1900:510;camera.position.lerp(camTarget,calm.checked?1:1-Math.exp(-5*dt));camera.lookAt(focus);renderer.render(scene,camera);drawMap();
- }
- if(import.meta.env.DEV)Object.defineProperty(window,'__legoland',{get:()=>({selected:selected?.id,won,score,elapsed,position:{x:player.position.x,y:player.position.y,z:player.position.z},drawCalls:renderer.info.render.calls,targets:tokens.map(t=>{const p=t.position.clone().project(camera);return{x:t.position.x,z:t.position.z,screenX:(p.x+1)*innerWidth/2,screenY:(1-p.y)*innerHeight/2,visible:t.visible};})})});
- frame=requestAnimationFrame(loop);window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);renderer.dispose();},{once:true});
+
+ scene.rotation.y=Math.PI/2;scene.position.x=-350;worldScene.add(scene);
+ for(const o of obstacles){const p=toParkWorld(o.x,o.z);world.solids.push({...p,hx:o.d/2,hz:o.w/2});}
+ for(const land of lands){const p=toParkWorld(land.x,land.z);world.mapBuildings.push({...p,w:74,d:land.name==='Water Park'?112:77,color:land.color});}
+ box(worldScene,-173,-.15,0,55,.3,19,'#d8cca8');
+ for(const z of [-9,9])box(worldScene,-173,.6,z,55,1.2,.3,'#7c8e76');
+ const panel=document.createElement('section');panel.id='legoland-panel';panel.hidden=true;panel.setAttribute('aria-label','LEGOLAND tarikan');
+ panel.innerHTML='<small>LEGOLAND · Dalam bandar</small><h2></h2><p class="park-description"></p><p class="park-status" role="status"></p><button class="park-enter">Main tarikan</button><div class="park-tools" hidden><button class="park-build">Letak blok</button><button class="park-undo">Undo</button><button class="park-collect">Kutip</button></div><button class="park-leave" hidden>Keluar tarikan</button><small class="park-pass"></small>';
+ document.getElementById('hud')!.append(panel);
+ const title=panel.querySelector('h2')!,description=panel.querySelector('.park-description')!,status=panel.querySelector('.park-status')!;
+ const enter=panel.querySelector<HTMLButtonElement>('.park-enter')!,leaveButton=panel.querySelector<HTMLButtonElement>('.park-leave')!,tools=panel.querySelector<HTMLElement>('.park-tools')!;
+ const mini=new THREE.Group();scene.add(mini);const tokens:THREE.Mesh[]=[],blocks:THREE.Mesh[]=[];
+ const targetMaterial=new THREE.MeshStandardMaterial({color:'#ffde46',emissive:'#aa5500',emissiveIntensity:.5});
+ let ride:ParkRide|null=null,nearby:Attraction|undefined,won=false,score=0,lastKey='',position={x:0,z:0},camera:THREE.Camera,clock=Date.now(),peers:{id:string;x:number;z:number;parkRide?:ParkRide|null}[]=[];
+ const completed=new Set<number>();try{const saved=JSON.parse(localStorage.getItem('lepak-legoland-pass-v1')||'[]');if(Array.isArray(saved))for(const id of saved)if(attractions[id])completed.add(id);}catch{}
+ function passport(){panel.querySelector('.park-pass')!.textContent=`Pasport ${completed.size} / ${attractions.length} · sesi bandar yang sama`;}passport();
+ function clear(){for(const child of [...mini.children]){mini.remove(child);if(child instanceof THREE.Mesh&&child.geometry!==cube)child.geometry.dispose();}tokens.length=0;blocks.length=0;}
+ function sync(next:ParkRide|null){const key=next?`${next.id}:${next.startedAt}`:'';if(lastKey===key)return;lastKey=key;if(ride&&!next)pendingExit=parkExit(attractions[ride.id]);ride=next;won=false;score=0;clear();options.clearInput();if(!next){status.textContent='Dekati pintu dan pilih Main tarikan.';return;}const a=attractions[next.id];if(!a){ride=null;return;}status.textContent='Jom!';const count=a.kind==='shoot'?8:5;if(['shoot','explore','drive'].includes(a.kind))for(let i=0;i<count;i++){const angle=i/count*Math.PI*2;const m=new THREE.Mesh(a.kind==='drive'?new THREE.TorusGeometry(1.7,.18,6,16):new THREE.IcosahedronGeometry(.8,0),targetMaterial);m.position.set(a.x+Math.sin(angle)*13,a.kind==='shoot'?3+(i%3):1.5,a.z+Math.cos(angle)*12);mini.add(m);tokens.push(m);}}
+ function award(){if(!ride||won)return;won=true;completed.add(ride.id);passport();try{localStorage.setItem('lepak-legoland-pass-v1',JSON.stringify([...completed]));}catch{}status.textContent='Selesai · cop dikumpul!';options.notice('LEGOLAND',`${attractions[ride.id].name} selesai!`);}
+ function finish(){if(!ride)return;if(options.online()){options.send({type:'park-leave'});return;}const exit=parkExit(attractions[ride.id]);pendingExit=exit;sync(null);}
+ let pendingExit:{x:number;y:number;z:number}|null=null;
+ enter.onclick=()=>{if(!nearby||!options.canEnter())return;options.clearInput();if(options.online())options.send({type:'park-enter',id:nearby.id});else sync({id:nearby.id,startedAt:clock});};
+ leaveButton.onclick=finish;
+ function build(){if(!ride||attractions[ride.id].kind!=='build'||won)return;const a=attractions[ride.id],i=blocks.length;blocks.push(box(mini,a.x-3+i%4*2,3+Math.floor(i/4)*1.2,a.z+2,1.8,1,1.8,palettes[i%4]));status.textContent=`Binaan ${blocks.length} / 8`;if(blocks.length===8)award();}
+ panel.querySelector<HTMLButtonElement>('.park-build')!.onclick=build;
+ panel.querySelector<HTMLButtonElement>('.park-undo')!.onclick=()=>{if(won)return;const b=blocks.pop();if(b)mini.remove(b);status.textContent=`Binaan ${blocks.length} / 8`;};
+ panel.querySelector<HTMLButtonElement>('.park-collect')!.onclick=()=>{if(!ride||won)return;const local=toParkLocal(position.x,position.z),t=tokens.find(t=>t.visible&&Math.hypot(t.position.x-local.x,t.position.z-local.z)<3);if(t){t.visible=false;score++;status.textContent=`Penemuan ${score} / 5`;if(score===5)award();}else options.notice('Dekati objek','Berjalan dekat objek berkilau, kemudian tekan Kutip.');};
+ const ray=new THREE.Raycaster();const canvas=document.getElementById('world')!;
+ canvas.addEventListener('pointerdown',e=>{if(!ride||panel.hidden||attractions[ride.id].kind!=='shoot'||won)return;e.stopImmediatePropagation();if(clock-ride.startedAt>30000)return;const rect=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),camera);scene.updateMatrixWorld(true);const hit=ray.intersectObjects(tokens.filter(t=>t.visible))[0];if(hit){hit.object.visible=false;score++;if(score===8)award();}},true);
+ return{
+  get active(){return !!ride;},get driving(){return ride!=null&&attractions[ride.id].kind==='drive';},
+  get state(){return ride;},
+  complete(id:number){if(ride?.id===id)award();},
+  sync(next:ParkRide|null){sync(next);},
+  peers(value:typeof peers){peers=value;},
+  disconnect(){if(ride)pendingExit=parkExit(attractions[ride.id]);sync(null);},
+  pose(now:number){if(pendingExit){const p=pendingExit;pendingExit=null;return{...p,yaw:Math.PI/2};}if(!ride)return null;const a=attractions[ride.id];return automated(a)?parkPose(a,Math.min(1,(now-ride.startedAt)/1000/rideDuration(a))):null;},
+  update(pos:{x:number;z:number},view:THREE.Camera,now:number,visible:boolean){
+   position=pos;camera=view;clock=now;scene.visible=true;const local=toParkLocal(pos.x,pos.z);
+   const distance=(a:Attraction)=>{const entry=parkExit(a);return Math.hypot(pos.x-entry.x,pos.z-entry.z);};nearby=attractions.reduce<Attraction|undefined>((best,a)=>distance(a)<(best?distance(best):17)?a:best,undefined);
+   const a=ride?attractions[ride.id]:nearby;panel.hidden=!visible||!a||(!ride&&!options.canEnter());if(a){title.textContent=a.name;description.textContent=instructions[a.kind];}
+   enter.hidden=!!ride;leaveButton.hidden=!ride;tools.hidden=!ride||!['build','explore'].includes(a?.kind||'');
+   panel.querySelector<HTMLElement>('.park-build')!.hidden=a?.kind!=='build';panel.querySelector<HTMLElement>('.park-undo')!.hidden=a?.kind!=='build';panel.querySelector<HTMLElement>('.park-collect')!.hidden=a?.kind!=='explore';
+   if(ride&&a){const elapsed=(now-ride.startedAt)/1000;if(automated(a)){if(elapsed>=rideDuration(a)){award();if(!options.online())finish();}else status.textContent=`Perjalanan · ${Math.floor(elapsed)}s`;}if(a.kind==='shoot'&&!won)status.textContent=elapsed>=30?'Masa tamat · keluar dan cuba lagi':`Sasaran ${score} / 8 · ${Math.ceil(30-elapsed)}s`;if(a.kind==='drive'&&!won){const t=tokens[score];tokens.forEach((t,i)=>{t.visible=i>=score;});if(t&&Math.hypot(t.position.x-local.x,t.position.z-local.z)<2.5){score++;if(score===5)award();}if(!won)status.textContent=`Checkpoint ${score} / 5`;}}
+   for(const a of attractions){const car=cars.get(a.id);if(!car)continue;const guest=peers.find(p=>p.parkRide?.id===a.id),active=ride?.id===a.id?ride:guest?.parkRide;const progress=active?Math.min(1,(now-active.startedAt)/1000/rideDuration(a)):(now/45000+a.id*.13)%1;const p=parkPose(a,progress),q=toParkLocal(p.x,p.z);if(a.kind==='drive'&&active){const at=ride?.id===a.id?local:toParkLocal(guest!.x,guest!.z);car.position.set(at.x,.3,at.z);}else if(a.kind==='spin'){car.position.set(a.x,3,a.z);car.rotation.y=progress*Math.PI*2;}else{car.position.set(q.x,p.y-1,q.z);car.rotation.y=p.yaw-Math.PI/2;}}
+  }
+ };
 }
-try{start();}catch(error){console.error(error);const message=document.createElement('section');message.id='park-error';message.innerHTML='<h2>Taman belum dapat dibuka</h2><p>WebGL diperlukan. Cuba muat semula atau gunakan browser lain.</p><a href="/">Balik ke KL</a>';root.append(message);}

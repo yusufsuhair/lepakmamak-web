@@ -1,4 +1,6 @@
 import {beachRestPose,createBeach,type BeachRestKind,type BeachRestSpot} from './beach';
+import {createLegoland} from './legoland';
+import type {ParkRide} from '../shared/legoland.mjs';
 import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
 import {setupVehicleRadio} from './vehicle-radio';
@@ -115,13 +117,6 @@ $('app').innerHTML = `
 `;
 
 $('reload').onclick = () => location.reload();
-// A separate destination gives the resort room to grow without changing city coordinates.
-for (const parent of [document.querySelector('.intro-bottom'), document.querySelector('.pause-panel')]) {
-  const link = document.createElement('a');
-  link.href = '/legoland.html'; link.className = 'secondary';
-  link.textContent = 'Jom LEGOLAND · Johor ↗';
-  parent?.append(link);
-}
 const backgroundMusic = $<HTMLAudioElement>('background-music');
 backgroundMusic.volume = .06;
 backgroundMusic.loop = true;
@@ -157,6 +152,13 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  const park = createLegoland(scene,world,{
+    send:message=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify(message));},
+    online:()=>networkConnected,
+    canEnter:()=>started&&!paused&&!riding&&!seated&&!beachResting&&lrtId==null&&jumpHeight===0,
+    clearInput:()=>{keys.clear();resetStick();},
+    notice:(title,body)=>toast(title,body,4),
+  });
   const streetLights = createStreetLights(scene, world.solids);
   // Night only decides the default: each lamp carries its own answer once somebody walks
   // up and flips it, and that answer is shared with everyone in the room.
@@ -269,7 +271,7 @@ async function init() {
   const standPosition = new THREE.Vector3();
   let jumpHeight = 0, jumpVelocity = 0;
   function jump() {
-    if (!started || paused || seated || beachResting || riding || klccLiftRide || jumpHeight > 0 || jumpVelocity > 0) return;
+    if (!started || paused || park.active || seated || beachResting || riding || klccLiftRide || jumpHeight > 0 || jumpVelocity > 0) return;
     jumpVelocity = 6.5; movementSound('jump');
   }
   let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
@@ -279,7 +281,7 @@ async function init() {
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  type NetworkPlayer = { y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type NetworkPlayer = { parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
@@ -408,7 +410,7 @@ async function init() {
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
-    if (!started || paused || isDancing() || tableSocial.opened || cityMap.open || seated || beachResting || riding || punchUntil > simTime) return;
+    if (!started || paused || park.active || isDancing() || tableSocial.opened || cityMap.open || seated || beachResting || riding || punchUntil > simTime) return;
     if(insidePickleball(pos)){if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){punchUntil=simTime+.38;networkSocket.send(JSON.stringify({type:'pickleball-hit'}));}return;}
     if(insideBasketball(pos)){basketball.action();return;}
     punchUntil = simTime + .38; punchCount++; punchSound();
@@ -768,6 +770,8 @@ async function init() {
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
+    park.peers(players);
+    park.sync(self?.parkRide||null);
     if (self?.resting && !self.chairId && !self.passengerOf && !self.riding) {
       const spot = beach.nearbyRest(self);
       if (spot && spot.kind === self.resting) { beachResting = self.resting; beachRestSpot = spot; }
@@ -896,6 +900,7 @@ async function init() {
         if (socket !== networkSocket) return;
         let message: { serverTime?:number;train?:number;seat?:number; cars?:{id:string;x:number;z:number;yaw:number;owner:string|null;npc:boolean}[];car?:{id:string;x:number;z:number;yaw:number;style:CarStyle};x?:number;z?:number;yaw?:number; names?:string[]; post?:WallPost; profile?: PlayerProfile | null; tables?: TableState[]; tableId?: string; from?: string; count?: number; sentAt?: string; type?: string; id?: string; players?: NetworkPlayer[]; messages?: {id?:string;name:string;text:string;sentAt?:string;gameMaster?:boolean}[]; message?: string; name?: string; text?: string; gameMaster?: boolean; code?: string; volume?: number; audio?: string; codec?: 'pcm'|'opus'; channel?: 'all'|'party'|'dm'|'table'; to?: string; toName?: string; party?: {id:string;leader:string;members:{id:string;name:string}[]}|null; lobby?: any; t?: number; inviter?: {id:string;name:string} };
         try { message = JSON.parse(raw); } catch { return; }
+        if(message.type==='park-complete'&&message.id)park.complete(Number(message.id));
         if(message.type==='notice'&&message.message){if(message.code==='CAR_CLAIM_DENIED')claimPendingUntil=0;toast('City',message.message,4);}
         if(message.type==='lrt-clock'&&message.serverTime)lrtClockOffset=message.serverTime-Date.now();
         if(message.type==='lrt-boarded'){lrtClockOffset=message.serverTime!-Date.now();lrtId=message.train!;lrtSeat=message.seat!;{const seat=seatOffset(lrtSeat);lrtAlong=seat.along;lrtAcross=seat.across;lrtSentAlong=seat.along;lrtSentAcross=seat.across;}riding=true;vehicle='car';orbit=.65;const p=riderPoint({lrtId,lrtSeat,lrtAlong,lrtAcross},lrtNow());cameraHeading=p.yaw;camera.position.set(p.x-Math.sin(p.yaw+orbit)*22,railHeight+15,p.z-Math.cos(p.yaw+orbit)*22);player.group.visible=true;car.driver.visible=false;bike.rider.visible=false;jumpHeight=0;speed=0;keys.clear();resetStick();}
@@ -987,7 +992,7 @@ async function init() {
         const data = event.data;
         frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return; finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite
         // it with RECONNECTING…, so a full city and an expired login both looked like a
         // reconnect that never finished. Keep the reason the server gave.
@@ -1106,6 +1111,7 @@ async function init() {
     saveLocation();danceAudio.stop();localSupermanUntil=0;
     if (klccLiftRide) setKlccLiftHeight(klccLiftRide.lift, 0);
     klccLiftRide = null; deckY = 0; onBridge = false; player.group.position.set(pos.x, .12, pos.z);
+    park.disconnect();
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
@@ -1131,6 +1137,7 @@ async function init() {
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   const unciloked=(id:string)=>world.traffic.find(c=>c.id===id)?.group.userData.model==='lamborghini';
   function claimCar(id:string){
+    if(park.active)return;
     if(!started||paused||riding||seated||beachResting||jumpHeight>0||jumpVelocity>0||isDancing()||tableSocial.opened)return;
     // The button is greyed out, but the keyboard does not read that, so the refusal is said
     // out loud here as well. The server refuses it a third time, for anything that gets past.
@@ -1139,7 +1146,7 @@ async function init() {
   }
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
-    if(lrtId!=null || klccLiftRide?.phase === 'moving')return null;
+    if(lrtId!=null || park.active || klccLiftRide?.phase === 'moving')return null;
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
     if (beachResting && beachRestSpot) return { point: beachRestSpot, height: beachRestSpot.height + 1.15, label: 'Bangun', disabled: false };
     if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
@@ -1174,8 +1181,8 @@ async function init() {
     return null;
   }
   function interact() {
-    if(lrtId!=null || klccLiftRide?.phase === 'moving')return;
-    if (!started || paused || isDancing() || tableSocial.opened) return;
+    if(lrtId!=null)return;
+    if (!started || paused || park.active || klccLiftRide?.phase === 'moving' || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
     if (beachResting && beachRestSpot) {
       const exit = beach.exitSpot(beachRestSpot);
@@ -1445,6 +1452,7 @@ async function init() {
     toast('Teleported',mapPlaces.find(p=>p.id===id)?.name||'You have arrived.');
   }
   teleportButton.onclick=()=>{
+    if(park.active){toast('Keluar tarikan dahulu','Tekan Keluar tarikan sebelum teleport.');return;}
     if(!started||teleportPending||!selectedMapPlace)return;
     if(riding||passengerOf){toast('Leave your vehicle first','Get out, then choose your teleport destination.');return;}
     if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){teleportPending=true;teleportButton.disabled=true;teleportButton.textContent='Teleporting…';networkSocket.send(JSON.stringify({type:'teleport',id:selectedMapPlace}));setTimeout(()=>{if(teleportPending){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';}},5000);}
@@ -1466,8 +1474,8 @@ async function init() {
   function drawMap(expanded = false) {
     if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace);$('map-place-info').textContent='3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
-    const w = map.width, h = map.height, scale = expanded ? w / 340 : 1.13;
-    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);
+    const w = map.width, h = map.height, scale = expanded ? Math.min(w / 730,h / 520) : 1.13;
+    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale); ctx.translate(expanded?180:pos.x< -145?-pos.x:0,expanded?50:pos.x< -145?-pos.z:0);
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
     ctx.fillStyle = '#82907a';
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
@@ -1508,7 +1516,7 @@ async function init() {
     backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
-    const area = districtFor(pos.z);
+    const area = districtFor(pos.z,pos.x);
     $('district').textContent = area; $('map-area').textContent = area.toUpperCase();
     $('move-label').textContent = riding ? 'Drive' : 'Move'; $('action-key').textContent = riding ? 'Space' : 'Shift'; $('action-label').textContent = riding ? 'Brake' : 'Run';
     const kmh = Math.round(Math.abs(riding ? speed : walkSpeed) * 3.6);
@@ -1547,6 +1555,7 @@ async function init() {
     }
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
+    park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
     lrt.update(lrtNow(),pos,lrtId);
     lrtPanel.hidden=!started||lrtId==null||cityMap.open||paused;
     if(lrtId!=null){const state=trainState(lrtId,lrtNow());lrtPanel.querySelector('strong')!.textContent=state.station>=0?`LRT · ${lrtStations[state.station].name}`:`Seterusnya · ${lrtStations[state.next].name}`;lrtPanel.querySelector('small')!.textContent=state.doors?'Pintu dibuka · Boleh turun':`${state.station>=0?'Berlepas':'Tiba'} dalam ${Math.ceil(state.remaining)}s`;lrtPanel.querySelector('button')!.disabled=!state.doors;}
@@ -1649,7 +1658,10 @@ async function init() {
       if (!riding || vehicle !== 'car'||car!==personalCar) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
       if(klccLiftRide?.phase === 'moving'){
         walkSpeed=0;
-      } else if(lrtId!=null){
+      } else {
+        const parkPosition=park.pose(lrtNow());
+        if(parkPosition){pos.set(parkPosition.x,.12,parkPosition.z);deckY=parkPosition.y;onBridge=false;yaw=parkPosition.yaw;player.group.position.set(pos.x,deckY+.12,pos.z);player.group.rotation.y=yaw;walkSpeed=0;speed=0;}
+        else if(lrtId!=null){
         // Walking inside a moving carriage: the keys move you within the coach, not across
         // the city, and the walls are where the clamp is.
         const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
@@ -1705,7 +1717,7 @@ async function init() {
           if (jumpHeight === 0) { jumpVelocity = 0; movementSound('land'); footstepDistance = 0; }
         }
         const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
-        const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = running ? 7 : 3.7;
+        const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = park.driving ? 15 : running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
         const previousX = pos.x, previousZ = pos.z;
         if (input.length()) {
@@ -1738,6 +1750,7 @@ async function init() {
         player.group.position.y = deckY + .12 + jumpHeight + Math.abs(Math.sin(simTime * 9)) * Math.min(.05, walkSpeed * .008)
           + (isGm ? gmHover(simTime) : 0);
       }
+      }
       if (!riding && !beachResting) punchPose(player, punchUntil);
       if (isGm) gmAura.update(simTime);
       pickleball.equip(player,!riding&&!seated&&!beachResting&&insidePickleball(pos),Math.max(0,(punchUntil-simTime)/.38));
@@ -1756,7 +1769,7 @@ async function init() {
       const distance = (lrtId!=null?Math.max(22,zoom):zoom) + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
       // Shorten the camera arm when a building would obscure the player.
-      for (let step = 1.5; lrtId==null && !klccLiftRide && step < distance; step += .65) {
+      for (let step = 1.5; lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
         if (world.solids.some(s => overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
       }

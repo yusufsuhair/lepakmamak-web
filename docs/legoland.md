@@ -1,36 +1,35 @@
-# LEGOLAND destination
+# LEGOLAND in the LepakMamak city world
 
-Open `/legoland.html`, or choose **Jom LEGOLAND · Johor** on the city title screen or in Settings. The resort is its own large scene (490 × 370 world units) rather than another neighbourhood squeezed inside the city's existing multiplayer coordinate bounds.
+LEGOLAND is a large neighbourhood west of the existing city, not a separate page. Walk west through the connector at z=0, or open the existing city map and select **LEGOLAND · Pintu Masuk** to teleport to (-198,0). The old /legoland and /legoland.html URLs redirect to the city root.
 
-## Implemented
+The same avatar, scene, renderer, camera, input controls, chat and WebSocket room continue throughout the visit. There is no park-only renderer, account, page or multiplayer session.
 
-- Ten areas: The Beginning, Technic, Kingdoms, Imagination, Land of Adventure, City, NINJAGO, MINILAND, Water Park, and SEA LIFE.
-- 47 named activities, with shared gameplay systems for coaster, boat/train, tower, spinning ride, driving checkpoints, shooting targets, building blocks, sliding, and exploration collections.
-- Walking/running, touch direction buttons, wheel zoom, panorama, a location map and destination selector.
-- A train circuit through the main park, distinct zone landmarks, block-style scenery, coaster tracks, water slides and aquarium displays.
-- Choose block colours, place blocks on the workshop table by clicking, or use the accessible placement button. Undo before completing the eight-block challenge.
-- Exit any attraction using its button or Escape. Help and background tabs pause the experience. Calm camera mode keeps the view fixed during automatic rides and defaults on for reduced-motion users.
-- Device-local passport stamps in `lepak-legoland-pass-v1`. A completed attraction earns one stamp, including on replay.
-- Static meshes are batched by material. The park loads as a separate Vite entry and only uses its own renderer while visiting.
+## Activities
 
-## Scope and fidelity
+Ten themed areas and 47 adapted activities reuse nine gameplay types: coaster, boat/train, tower, spinning ride, driving checkpoints, shooting, building, sliding and collecting. Walk near a sign and press Main tarikan; press Keluar tarikan to return to the ground. Existing city movement and camera controls remain active for manual activities.
 
-This is a playable fan interpretation, not an official or survey-accurate replica. Zones, attractions and their positions are adapted; the nine shared gameplay systems are not full simulations of each real attraction. Several real-world activities (shops, aquarium exhibits and playgrounds) become building or collection challenges. It does not reproduce every real-world show, exhibit, restaurant, hotel room or attraction. It does not reuse the official map image or logo artwork.
+Automated rides and occupancy are authoritative on the city server. Other players receive the rider position and height through normal room snapshots. One player uses an attraction at a time. Shared rides continue while a participant has Settings open. Building objects, targets, checkpoints and passport stamps remain device-local; these are not shared rewards or Supabase records.
 
-The resort currently runs solo. It does not connect to the city WebSocket, change city currency or write to Supabase. Returning to KL loads the normal city page. Shared multiplayer rides, more accurate park layout and unique mechanics per attraction remain future work; no production or development deployment is included in this implementation.
+## Implementation
 
-## Reference
+- shared/legoland.json: one catalog for client and server.
+- shared/legoland.mjs: coordinate transform, duration, ride paths and exits.
+- server/legoland.mjs: validated boarding, occupancy, timed motion and exit.
+- src/legoland.ts: batched scenery attached to the existing world and contextual HUD.
+- shared/world-bounds.mjs: existing city plus west park and connecting corridor.
+- Map, location save, districts and server movement support the extended world.
 
-Official resort map and attraction pages inspected on 2026-09-10:
+## Scope
 
+This is a playable fan interpretation, not an official or survey-accurate replica. Activities and positions are adapted; the shared gameplay types are not full simulations of each real ride. No official map image or logo artwork is reused.
+
+Official reference pages inspected on 2026-09-10:
 - https://www.legoland.com.my/explore/theme-park/park-map/
 - https://www.legoland.com.my/explore/theme-park/rides-attractions/
 - https://www.legoland.com.my/explore/water-park/rides-attractions/
 
-The attraction catalog and coordinates are in `src/legoland-data.ts`; scenery and interaction code are in `src/legoland.ts`.
+## Verification
 
-## Checks
+Run npm run build and PLAYWRIGHT_PORT=5198 npx playwright test tests/legoland-world.spec.ts tests/teleport.spec.ts --output=test-results-legoland.
 
-Run `npm run build` and `PLAYWRIGHT_PORT=5196 npx playwright test tests/legoland.spec.ts --output=test-results-legoland`.
-
-Tests cover all zone destinations, building/undo/stamp persistence, completing and leaving a coaster, mobile controls, actual canvas target hits, ordered driving checkpoints and proximity-based exploration collection. Browser screenshots verify desktop panorama and the mobile layout. These checks do not claim multiplayer or one-to-one real-park fidelity.
+Tests cover connected movement bounds, park entrances, boarding validation, occupancy, automatic completion, two real city WebSocket clients observing rides and chat, desktop/mobile ride/exit without navigation or reconnection, and existing map teleport/3D selection. Deploy frontend and realtime together to development only; production remains outside this assignment.

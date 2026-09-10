@@ -1,3 +1,4 @@
+import {clampWorldPoint,insideWorld} from '../shared/world-bounds.mjs';
 export interface Solid { x: number; z: number; hx: number; hz: number }
 export interface Point { x: number; z: number }
 export const WORLD_LIMIT = 153;
@@ -13,10 +14,10 @@ export function moveWithCollisions(position: Point, dx: number, dz: number, radi
   const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / (radius * 0.55)));
   let hit = false;
   for (let i = 0; i < steps; i++) {
-    const nextX = Math.max(-WORLD_LIMIT + radius, Math.min(WORLD_LIMIT - radius, position.x + dx / steps));
+    const nextX = clampWorldPoint(position.x + dx / steps,position.z,radius).x;
     if (!solids.some(s => overlaps({ x: nextX, z: position.z }, radius, s))) position.x = nextX;
     else hit = true;
-    const nextZ = Math.max(-WORLD_LIMIT + radius, Math.min(WORLD_LIMIT - radius, position.z + dz / steps));
+    const nextZ = clampWorldPoint(position.x,position.z + dz / steps,radius).z;
     if (!solids.some(s => overlaps({ x: position.x, z: nextZ }, radius, s))) position.z = nextZ;
     else hit = true;
   }
@@ -26,7 +27,7 @@ export function moveWithCollisions(position: Point, dx: number, dz: number, radi
 export function safeDismount(position: Point, yaw: number, solids: Solid[], distance = 2.2): Point | null {
   for (const offset of [Math.PI / 2, -Math.PI / 2, Math.PI, 0]) {
     const point = { x: position.x + Math.sin(yaw + offset) * distance, z: position.z + Math.cos(yaw + offset) * distance };
-    if (Math.abs(point.x) < WORLD_LIMIT - 1 && Math.abs(point.z) < WORLD_LIMIT - 1 && !solids.some(s => overlaps(point, 0.48, s))) return point;
+    if (insideWorld(point.x,point.z,1) && !solids.some(s => overlaps(point, 0.48, s))) return point;
   }
   return null;
 }

@@ -1,4 +1,6 @@
 import {createWeather} from './weather.mjs';
+import {createPark} from './legoland.mjs';
+import {insideWorld,clampWorldPoint} from '../shared/world-bounds.mjs';
 import {createFleet} from './fleet.mjs';
 import {createLrt} from './lrt.mjs';
 import {teleportPlayer} from './teleport.mjs';
@@ -170,8 +172,7 @@ function followDriver(passenger, driver) {
 }
 function releasePassenger(passenger, reset = false) {
   passenger.passengerOf = null; passenger.seatIndex = null; passenger.riding = false; passenger.speed = 0;
-  passenger.x = reset ? -18 : Math.max(-151, Math.min(151, passenger.x + Math.cos(passenger.yaw) * 2.4));
-  passenger.z = reset ? 52 : Math.max(-151, Math.min(151, passenger.z - Math.sin(passenger.yaw) * 2.4));
+  Object.assign(passenger,reset?{x:-18,z:52}:clampWorldPoint(passenger.x+Math.cos(passenger.yaw)*2.4,passenger.z-Math.sin(passenger.yaw)*2.4,1));
 }
 function snapshot(players) {
   return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, ...player }) => player);
@@ -215,6 +216,8 @@ function broadcast(players, message) {
 const weather=createWeather();
 const fleet=createFleet(send,broadcast);
 const lrt=createLrt(send);
+const park=createPark(send);
+setInterval(()=>{for(const players of rooms.values())if(park.tick(players))dirtyRooms.add(players);},50).unref();
 setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);tableSocial.sync(players);lrt.sync(players);if([...players.values()].some(p=>p.lrtId!=null))dirtyRooms.add(players);}},50).unref();
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
@@ -372,7 +375,7 @@ webSocketServer.on('connection', ws => {
         updatedAt: Date.now(),
       };
       const resume=message.resume;
-      if(resume && [resume.x,resume.z,resume.yaw].every(Number.isFinite) && Math.abs(resume.x)<=151 && Math.abs(resume.z)<=151){
+      if(resume && [resume.x,resume.z,resume.yaw].every(Number.isFinite) && insideWorld(resume.x,resume.z,1)){
         player.x=resume.x;player.z=resume.z;player.yaw=finiteNumber(resume.yaw,Math.PI,-Math.PI*4,Math.PI*4);
       }
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
@@ -457,6 +460,7 @@ webSocketServer.on('connection', ws => {
       send(ws, { type: 'notice', message: 'Report sent. A moderator will look at it.' });
       return;
     }
+    if(player.parkRide&&['teleport','chair-sit','passenger-join','lrt-board','dance','car-claim','punch','jump','bike-stunt'].includes(message.type)){send(ws,{type:'notice',message:'Keluar tarikan dahulu.'});return;}
     if(lrt.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(fleet.handle(currentRoom.players,player,message))return;
     if(lamps.handle(currentRoom.players,player,message))return;
@@ -490,6 +494,7 @@ webSocketServer.on('connection', ws => {
     // must not be a cheap way to make the server fan out to everyone.
     if (partied) { if (partied === 'changed') broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return; }
     if (tableSocial.handle(currentRoom.players, player, message)) return;
+    if(park.handle(currentRoom.players,player,message)){dirtyRooms.add(currentRoom.players);return;}
     if(message.type==='teleport'){
       const destination=teleportPlayer(player,message);
       if(!destination){send(ws,{type:'teleport-denied',message:'Leave your vehicle first, or wait a moment before teleporting again.'});return;}
@@ -617,7 +622,7 @@ webSocketServer.on('connection', ws => {
         broadcast(currentRoom.players, banner);
         // The crawl scrolls away, so the same line is kept in city chat.
         try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
-        broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z), text: clean, sentAt: at, gameMaster: true, channel: 'all' });
+        broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z,player.x), text: clean, sentAt: at, gameMaster: true, channel: 'all' });
         return;
       }
       const filtered = filterChat(text), sentAt = new Date().toISOString();
@@ -634,7 +639,7 @@ webSocketServer.on('connection', ws => {
       }
       // Where they were standing when they said it, stamped once per message rather than
       // streamed per frame.
-      const payload = { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z), text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
+      const payload = { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z,player.x), text: filtered, sentAt, gameMaster: !!player.gameMaster, channel };
 
       if (channel === 'party') {
         const members = party.members(currentRoom.players, player);
@@ -669,16 +674,15 @@ webSocketServer.on('connection', ws => {
       const now = Date.now();
       if (now - lastStateAt < 35) return;
       lastStateAt = now;
-      if (player.passengerOf || player.chairId || (player.danceUntil||0)>Date.now()) return;
+      if (park.locked(player) || player.passengerOf || player.chairId || (player.danceUntil||0)>Date.now()) return;
       if(player.fleetId&&message.fleetId!==player.fleetId)return;
-      player.x = finiteNumber(message.x, player.x, -153, 153);
-      player.z = finiteNumber(message.z, player.z, -153, 153);
+      Object.assign(player,clampWorldPoint(finiteNumber(message.x,player.x,-525,153),finiteNumber(message.z,player.z,-290,180),.5));
       const lift = klccLiftFor(player, typeof message.liftId === 'string' ? message.liftId : '');
       player.liftId = lift?.id || null;
       player.y = lift ? finiteNumber(message.y, 0, 0, KLCC_LIFT_TOP) : finiteNumber(message.y, 0, 0, 6);
       player.yaw = finiteNumber(message.yaw, player.yaw, -Math.PI * 4, Math.PI * 4);
       player.speed = finiteNumber(message.speed, 0, -5, 24);
-      player.riding = Boolean(message.riding);
+      player.riding = !player.parkRide && Boolean(message.riding);
       player.vehicle = message.vehicle === 'car' ? 'car' : 'bike';
       const requestedRest = BEACH_REST_SPOTS.find(spot => spot.id === message.restSpotId && spot.kind === message.resting);
       const occupiedRest = requestedRest && [...currentRoom.players.values()].some(other => other !== player && other.restSpotId === requestedRest.id && other.resting === requestedRest.kind);

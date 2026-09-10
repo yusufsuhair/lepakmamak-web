@@ -1,0 +1,453 @@
+{
+  "lands": [
+    {
+      "name": "The Beginning",
+      "x": 0,
+      "z": 125,
+      "color": "#e54b36"
+    },
+    {
+      "name": "LEGO Technic",
+      "x": -95,
+      "z": 90,
+      "color": "#e8ad22"
+    },
+    {
+      "name": "LEGO Kingdoms",
+      "x": -110,
+      "z": 5,
+      "color": "#b84956"
+    },
+    {
+      "name": "Imagination",
+      "x": -85,
+      "z": -85,
+      "color": "#935fd0"
+    },
+    {
+      "name": "Land of Adventure",
+      "x": 15,
+      "z": -110,
+      "color": "#c18e43"
+    },
+    {
+      "name": "LEGO City",
+      "x": 110,
+      "z": -65,
+      "color": "#2876bc"
+    },
+    {
+      "name": "LEGO NINJAGO World",
+      "x": 110,
+      "z": 35,
+      "color": "#a93236"
+    },
+    {
+      "name": "MINILAND",
+      "x": 0,
+      "z": 0,
+      "color": "#4c9b68"
+    },
+    {
+      "name": "Water Park",
+      "x": 220,
+      "z": 0,
+      "color": "#23aabd"
+    },
+    {
+      "name": "SEA LIFE",
+      "x": 115,
+      "z": 125,
+      "color": "#245a9d"
+    }
+  ],
+  "attractions": [
+    {
+      "id": 0,
+      "land": 0,
+      "name": "LEGOLAND Express",
+      "kind": "boat",
+      "x": 25,
+      "z": 122
+    },
+    {
+      "id": 1,
+      "land": 0,
+      "name": "The Big Shop · Brick Workshop",
+      "kind": "build",
+      "x": -25,
+      "z": 122
+    },
+    {
+      "id": 2,
+      "land": 1,
+      "name": "The Great LEGO Race",
+      "kind": "coaster",
+      "x": -95,
+      "z": 114
+    },
+    {
+      "id": 3,
+      "land": 1,
+      "name": "Technic Twister",
+      "kind": "spin",
+      "x": -72.17464360891631,
+      "z": 97.41640786499875
+    },
+    {
+      "id": 4,
+      "land": 1,
+      "name": "Aquazone Wave Racers",
+      "kind": "boat",
+      "x": -80.89315394498064,
+      "z": 70.58359213500127
+    },
+    {
+      "id": 5,
+      "land": 1,
+      "name": "LEGO Academy",
+      "kind": "build",
+      "x": -109.10684605501936,
+      "z": 70.58359213500125
+    },
+    {
+      "id": 6,
+      "land": 1,
+      "name": "LEGO Mindstorms",
+      "kind": "build",
+      "x": -117.82535639108369,
+      "z": 97.41640786499873
+    },
+    {
+      "id": 7,
+      "land": 2,
+      "name": "The Dragon",
+      "kind": "coaster",
+      "x": -110,
+      "z": 29
+    },
+    {
+      "id": 8,
+      "land": 2,
+      "name": "Dragon’s Apprentice",
+      "kind": "coaster",
+      "x": -87.17464360891631,
+      "z": 12.416407864998739
+    },
+    {
+      "id": 9,
+      "land": 2,
+      "name": "Merlin’s Challenge",
+      "kind": "spin",
+      "x": -95.89315394498064,
+      "z": -14.416407864998735
+    },
+    {
+      "id": 10,
+      "land": 2,
+      "name": "Royal Joust",
+      "kind": "drive",
+      "x": -124.10684605501936,
+      "z": -14.416407864998739
+    },
+    {
+      "id": 11,
+      "land": 2,
+      "name": "The Forestmen’s Hideout",
+      "kind": "explore",
+      "x": -132.8253563910837,
+      "z": 12.416407864998734
+    },
+    {
+      "id": 12,
+      "land": 3,
+      "name": "Observation Tower",
+      "kind": "tower",
+      "x": -85,
+      "z": -61
+    },
+    {
+      "id": 13,
+      "land": 3,
+      "name": "Kids Power Tower",
+      "kind": "tower",
+      "x": -62.17464360891631,
+      "z": -77.58359213500125
+    },
+    {
+      "id": 14,
+      "land": 3,
+      "name": "DUPLO Express",
+      "kind": "boat",
+      "x": -70.89315394498064,
+      "z": -104.41640786499873
+    },
+    {
+      "id": 15,
+      "land": 3,
+      "name": "Build & Test",
+      "kind": "build",
+      "x": -99.10684605501936,
+      "z": -104.41640786499875
+    },
+    {
+      "id": 16,
+      "land": 3,
+      "name": "Ferrari Build & Race",
+      "kind": "drive",
+      "x": -107.82535639108369,
+      "z": -77.58359213500127
+    },
+    {
+      "id": 17,
+      "land": 4,
+      "name": "Dino Island",
+      "kind": "slide",
+      "x": 15,
+      "z": -86
+    },
+    {
+      "id": 18,
+      "land": 4,
+      "name": "Lost Kingdom Adventure",
+      "kind": "shoot",
+      "x": 39,
+      "z": -110
+    },
+    {
+      "id": 19,
+      "land": 4,
+      "name": "Beetle Bounce",
+      "kind": "tower",
+      "x": 15.000000000000004,
+      "z": -134
+    },
+    {
+      "id": 20,
+      "land": 4,
+      "name": "Pharaoh’s Revenge",
+      "kind": "shoot",
+      "x": -9,
+      "z": -110
+    },
+    {
+      "id": 21,
+      "land": 5,
+      "name": "Driving School",
+      "kind": "drive",
+      "x": 110,
+      "z": -41
+    },
+    {
+      "id": 22,
+      "land": 5,
+      "name": "Junior Driving School",
+      "kind": "drive",
+      "x": 130.78460969082653,
+      "z": -53
+    },
+    {
+      "id": 23,
+      "land": 5,
+      "name": "Boating School",
+      "kind": "boat",
+      "x": 130.78460969082653,
+      "z": -77
+    },
+    {
+      "id": 24,
+      "land": 5,
+      "name": "Rescue Academy",
+      "kind": "shoot",
+      "x": 110,
+      "z": -89
+    },
+    {
+      "id": 25,
+      "land": 5,
+      "name": "LEGO City Airport",
+      "kind": "spin",
+      "x": 89.21539030917347,
+      "z": -77.00000000000001
+    },
+    {
+      "id": 26,
+      "land": 5,
+      "name": "The Shipyard",
+      "kind": "explore",
+      "x": 89.21539030917347,
+      "z": -53
+    },
+    {
+      "id": 27,
+      "land": 6,
+      "name": "LEGO NINJAGO The Ride",
+      "kind": "shoot",
+      "x": 110,
+      "z": 53
+    },
+    {
+      "id": 28,
+      "land": 6,
+      "name": "Cole’s Rock Climb",
+      "kind": "tower",
+      "x": 110,
+      "z": 17
+    },
+    {
+      "id": 29,
+      "land": 7,
+      "name": "Amazing Malaysia",
+      "kind": "explore",
+      "x": 0,
+      "z": 24
+    },
+    {
+      "id": 30,
+      "land": 7,
+      "name": "MINILAND Asia",
+      "kind": "explore",
+      "x": 24,
+      "z": 1.4695761589768238e-15
+    },
+    {
+      "id": 31,
+      "land": 7,
+      "name": "MINILAND Singapore",
+      "kind": "explore",
+      "x": 2.9391523179536475e-15,
+      "z": -24
+    },
+    {
+      "id": 32,
+      "land": 7,
+      "name": "Flower Garden",
+      "kind": "build",
+      "x": -24,
+      "z": -4.408728476930472e-15
+    },
+    {
+      "id": 33,
+      "land": 8,
+      "name": "Build-A-Raft River",
+      "kind": "boat",
+      "x": 220,
+      "z": 42
+    },
+    {
+      "id": 34,
+      "land": 8,
+      "name": "LEGO Wave Pool",
+      "kind": "boat",
+      "x": 242.7069143331351,
+      "z": 35.33264837890961
+    },
+    {
+      "id": 35,
+      "land": 8,
+      "name": "Joker Soaker",
+      "kind": "shoot",
+      "x": 258.2045438048898,
+      "z": 17.44743054607923
+    },
+    {
+      "id": 36,
+      "land": 8,
+      "name": "LEGO Slide Racers",
+      "kind": "slide",
+      "x": 261.5725005589992,
+      "z": -5.97722320747797
+    },
+    {
+      "id": 37,
+      "land": 8,
+      "name": "Splash ’N’ Swirl",
+      "kind": "slide",
+      "x": 251.74148212287886,
+      "z": -27.50415082570197
+    },
+    {
+      "id": 38,
+      "land": 8,
+      "name": "Brick Blaster",
+      "kind": "slide",
+      "x": 231.83276738734006,
+      "z": -40.29870489180888
+    },
+    {
+      "id": 39,
+      "land": 8,
+      "name": "Red Rush",
+      "kind": "slide",
+      "x": 208.16723261265997,
+      "z": -40.298704891808896
+    },
+    {
+      "id": 40,
+      "land": 8,
+      "name": "Tidal Tube",
+      "kind": "slide",
+      "x": 188.25851787712116,
+      "z": -27.504150825701977
+    },
+    {
+      "id": 41,
+      "land": 8,
+      "name": "Twin Chasers",
+      "kind": "slide",
+      "x": 178.42749944100083,
+      "z": -5.977223207477979
+    },
+    {
+      "id": 42,
+      "land": 8,
+      "name": "DUPLO Splash Safari",
+      "kind": "boat",
+      "x": 181.79545619511023,
+      "z": 17.447430546079246
+    },
+    {
+      "id": 43,
+      "land": 8,
+      "name": "Build-A-Boat",
+      "kind": "build",
+      "x": 197.29308566686487,
+      "z": 35.33264837890959
+    },
+    {
+      "id": 44,
+      "land": 9,
+      "name": "Ocean Tunnel",
+      "kind": "explore",
+      "x": 115,
+      "z": 149
+    },
+    {
+      "id": 45,
+      "land": 9,
+      "name": "Coral Reef",
+      "kind": "explore",
+      "x": 135.78460969082653,
+      "z": 113
+    },
+    {
+      "id": 46,
+      "land": 9,
+      "name": "Malaysian Rainforest",
+      "kind": "explore",
+      "x": 94.21539030917347,
+      "z": 112.99999999999999
+    }
+  ],
+  "instructions": {
+    "coaster": "Naik coaster melalui selekoh dan bukit. Kumpul cop selepas satu pusingan.",
+    "boat": "Ikut perjalanan air atau kereta api mengelilingi tarikan.",
+    "tower": "Naik tinggi, nikmati panorama taman, kemudian turun semula.",
+    "spin": "Naik wahana berputar. Kamera kekal stabil untuk pandangan yang selesa.",
+    "drive": "Pandu dengan WASD / anak panah. Lalui semua checkpoint kuning mengikut turutan.",
+    "shoot": "Klik atau sentuh sasaran bercahaya. Dapatkan 8 hit dalam 30 saat.",
+    "build": "Letakkan 8 blok berwarna untuk membina model sendiri. Undo untuk ubah binaan.",
+    "slide": "Luncur dari menara melalui gelongsor berliku hingga ke kolam.",
+    "explore": "Cari 5 objek berkilau di sekitar tarikan. Dekati dan tekan Kutip."
+  }
+}

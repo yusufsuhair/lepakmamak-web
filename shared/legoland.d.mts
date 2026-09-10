@@ -1,0 +1,9 @@
+export type ParkAttraction={id:number;name:string;kind:string;land:number;x:number;z:number};
+export type ParkRide={id:number;startedAt:number};
+export const parkAttractions:ParkAttraction[];
+export function automated(a:ParkAttraction):boolean;
+export function toParkWorld(x:number,z:number):{x:number;z:number};
+export function toParkLocal(x:number,z:number):{x:number;z:number};
+export function rideDuration(a:ParkAttraction):number;
+export function parkPose(a:ParkAttraction,progress:number):{x:number;y:number;z:number;yaw:number};
+export function parkExit(a:ParkAttraction):{x:number;y:number;z:number};

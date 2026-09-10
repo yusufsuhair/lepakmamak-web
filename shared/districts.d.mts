@@ -1,1 +1,1 @@
-export function districtFor(z: number): string;
+export function districtFor(z: number, x?: number): string;

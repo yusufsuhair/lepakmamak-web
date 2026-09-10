@@ -4,8 +4,8 @@ import places from '../shared/places.json';
 /** A lazy, low-resolution second view of the actual city; no duplicate world. */
 export function createMapOverview(scene:THREE.Scene, canvas:HTMLCanvasElement, select:(id:string)=>void){
  let renderer:THREE.WebGLRenderer|undefined;
- const camera=new THREE.OrthographicCamera(-245,245,245,-245,1,1500);
- camera.position.set(230,340,300);camera.lookAt(0,0,0);camera.updateMatrixWorld();
+ const camera=new THREE.OrthographicCamera(-440,440,440,-440,1,1500);
+ camera.position.set(50,600,250);camera.lookAt(-180,0,-50);camera.updateMatrixWorld();
  const point=new THREE.Vector3();
  let lastRender=0,lastSelection='';
  let hits:{id:string;x:number;y:number}[]=[];

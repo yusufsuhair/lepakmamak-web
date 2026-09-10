@@ -106,7 +106,7 @@
  },
  {
   "id": "16",
-  "name": "PETRONAS \u00b7 Kedai Mesra",
+  "name": "PETRONAS · Kedai Mesra",
   "x": -31,
   "z": 112,
   "kind": "minyak"
@@ -218,70 +218,70 @@
  },
  {
   "id": "32",
-  "name": "Upin & Ipin \u00b7 Kampung Durian Runtuh",
+  "name": "Upin & Ipin · Kampung Durian Runtuh",
   "x": 122,
   "z": -114,
   "kind": "zoo"
  },
  {
   "id": "33",
-  "name": "LRT \u00b7 KLCC",
+  "name": "LRT · KLCC",
   "x": -32,
   "z": -73,
   "kind": "lrt"
  },
  {
   "id": "34",
-  "name": "LRT \u00b7 Ampang Park",
+  "name": "LRT · Ampang Park",
   "x": 32,
   "z": -73,
   "kind": "lrt"
  },
  {
   "id": "35",
-  "name": "LRT \u00b7 TRX",
+  "name": "LRT · TRX",
   "x": 85,
   "z": -30,
   "kind": "lrt"
  },
  {
   "id": "36",
-  "name": "LRT \u00b7 Mamak Timur",
+  "name": "LRT · Mamak Timur",
   "x": 85,
   "z": 30,
   "kind": "lrt"
  },
  {
   "id": "37",
-  "name": "LRT \u00b7 Busking Sentral",
+  "name": "LRT · Busking Sentral",
   "x": 32,
   "z": 87,
   "kind": "lrt"
  },
  {
   "id": "38",
-  "name": "LRT \u00b7 Mamak Maju",
+  "name": "LRT · Mamak Maju",
   "x": -32,
   "z": 87,
   "kind": "lrt"
  },
  {
   "id": "39",
-  "name": "LRT \u00b7 Rembayung",
+  "name": "LRT · Rembayung",
   "x": -91,
   "z": 30,
   "kind": "lrt"
  },
  {
   "id": "40",
-  "name": "LRT \u00b7 Zoo & Kampung",
+  "name": "LRT · Zoo & Kampung",
   "x": -91,
   "z": -30,
   "kind": "lrt"
  },
  {
   "id": "41",
-  "name": "Shell \u00b7 Select",
+  "name": "Shell · Select",
   "x": 33,
   "z": 103,
   "kind": "minyak"
@@ -299,5 +299,12 @@
   "x": 97,
   "z": 132,
   "kind": "lepak"
+ },
+ {
+  "id": "legoland",
+  "name": "LEGOLAND · Pintu Masuk",
+  "x": -198,
+  "z": 0,
+  "kind": "zoo"
  }
 ]

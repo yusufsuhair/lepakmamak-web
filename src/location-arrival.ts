@@ -1,11 +1,12 @@
 import places from '../shared/places.json';
+import {districtFor} from '../shared/districts.mjs';
 
 const kinds:Record<string,string>={mercu:'Landmark',zoo:'City attraction',kedai:'Shop',bank:'Bank',hotel:'Hotel',civic:'Community',lepak:'Hangout',gerai:'Street food',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
 
 export function locationAt(x:number,z:number){
  const nearby=places.map(place=>({place,distance:Math.hypot(x-place.x,z-place.z)})).filter(item=>item.distance<=16).sort((a,b)=>a.distance-b.distance)[0]?.place;
  if(nearby)return{key:`place:${nearby.id}`,name:nearby.name,subtitle:kinds[nearby.kind]||'Landmark'};
- const name=z < -74?'KLCC Park':z < 9?'Jalan Lepak':'Kampung Maju';
+ const name=districtFor(z,x);
  return{key:`district:${name}`,name,subtitle:'District'};
 }
 
