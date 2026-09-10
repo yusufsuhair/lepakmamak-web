@@ -58,33 +58,33 @@
   {
     "id": "pantai-1",
     "name": "Pantai Senja \u00b7 Meja 1",
-    "x": 24,
+    "x": 109,
     "z": 137,
-    "arrivalX": 28,
+    "arrivalX": 113,
     "arrivalZ": 137
   },
   {
     "id": "pantai-2",
     "name": "Pantai Senja \u00b7 Meja 2",
-    "x": 37,
+    "x": 122,
     "z": 137,
-    "arrivalX": 41,
+    "arrivalX": 126,
     "arrivalZ": 137
   },
   {
     "id": "pantai-3",
     "name": "Pantai Senja \u00b7 Meja 3",
-    "x": 52,
+    "x": 137,
     "z": 137,
-    "arrivalX": 56,
+    "arrivalX": 141,
     "arrivalZ": 137
   },
   {
     "id": "pantai-4",
     "name": "Pantai Senja \u00b7 Meja 4",
-    "x": 25,
+    "x": 110,
     "z": 147,
-    "arrivalX": 29,
+    "arrivalX": 114,
     "arrivalZ": 147
   }
 ]

@@ -1,3 +1,4 @@
+import {createBeach} from './beach';
 import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
 import {setupVehicleRadio} from './vehicle-radio';
@@ -193,6 +194,7 @@ async function init() {
   villageTalk.onclick=()=>{if(!villageNearby)return;villageName.textContent=villageNearby.name;villageLine.textContent=villageNearby.line;villageDialog.showModal();};
   const pickleball=createPickleball(scene,world);
   const basketball=createBasketball(scene,world);
+  const beach=createBeach(scene,world);
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);
   createStallWorld(scene,world.solids);
   const buskers=createBuskers(scene,world.solids);
@@ -1791,6 +1793,7 @@ async function init() {
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
+    beach.update(simTime);
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     renderer.render(scene, camera);
