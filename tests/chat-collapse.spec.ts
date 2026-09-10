@@ -51,3 +51,39 @@ test('collapsed chat shows an unread badge for new messages and clears it on ope
   await expect(page.locator('#chat-unread-badge')).toBeHidden();
   await expect(page.locator('#chat-heading')).toHaveAttribute('aria-label', 'Collapse city chat');
 });
+
+// The two window controls were split apart and one of them was gone: expand floated over
+// the middle of the title bar, and minimise had been removed in favour of the header
+// click. They belong together in the corner, the way any other window says it.
+test('the window controls sit in the far-left corner and both still work', async ({ page }) => {
+  await page.route('**/chat-controls-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
+  await page.goto('/chat-controls-harness');
+  await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); (window as any).chat = setupChat(() => true, () => {}); });
+
+  const placed = await page.evaluate(() => {
+    const controls = document.querySelector('#chat-controls')!.getBoundingClientRect();
+    const panel = document.querySelector('#city-chat')!.getBoundingClientRect();
+    const title = document.querySelector('#chat-heading b')!.getBoundingClientRect();
+    return { fromLeft: controls.left - panel.left, fromRight: panel.right - controls.right, aheadOfTitle: controls.right <= title.left };
+  });
+  expect(placed.fromLeft).toBeLessThan(12);
+  expect(placed.fromLeft).toBeLessThan(placed.fromRight);
+  // The title makes room for them rather than sitting underneath.
+  expect(placed.aheadOfTitle).toBe(true);
+
+  const minimise = page.getByRole('button', { name: 'Minimise city chat' });
+  await minimise.click();
+  await expect(page.locator('#chat-body')).toBeHidden();
+  await page.getByRole('button', { name: 'Restore city chat' }).click();
+  await expect(page.locator('#chat-body')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
+  await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
+  await page.getByRole('button', { name: 'Shrink chat back' }).click();
+  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
+
+  // Maximising a minimised panel would otherwise be a full-screen window with nothing in it.
+  await minimise.click();
+  await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
+  await expect(page.locator('#chat-body')).toBeVisible();
+});

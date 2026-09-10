@@ -54,7 +54,7 @@ test('a phone can blow the chat up to fill the screen, and close it again',async
   await page.screenshot({path:'test-results/chat-fullscreen-phone.png'});
   // The same control closes it, and says so.
   const close=page.getByRole('button',{name:'Shrink chat back'});
-  await expect(close).toHaveText('×');
+  await expect(close).toHaveText('⤡');
   await close.tap();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
  } finally { await context.close(); }

@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.37.2",
+  "date": "2026-09-10",
+  "title": "Butang chat balik ke penjuru",
+  "notes": [
+   "The chat window controls sit together in the top-left corner now, ahead of the title, instead of the expand button floating over the middle of the bar.",
+   "The minimise button is back, next to maximise. Clicking the chat header still works the same way."
+  ]
+ },
+ {
   "version": "1.37.1",
   "date": "2026-09-10",
   "title": "Werewolf lapan dan sembilan orang boleh main",

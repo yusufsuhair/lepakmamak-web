@@ -103,7 +103,7 @@ type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm' | 'ta
 
 export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' | 'table', to?: string) => boolean, focus: () => void) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><button type="button" id="chat-expand"></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<span id="chat-controls"><button type="button" id="chat-min"></button><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
@@ -111,6 +111,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   const unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
+  const minimise = el<HTMLButtonElement>('chat-min');
   const dmBar = createDmBar({select: key => select(key), close: key => closeThread(key)});
   body.prepend(dmBar.root);
   const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
@@ -187,8 +188,10 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
     panel.classList.toggle('chat-expanded', expanded);
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
-    expand.textContent = expanded ? '×' : '⤢';
+    expand.textContent = expanded ? '⤡' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
+    minimise.textContent = collapsed ? '▢' : '–';
+    minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
@@ -217,8 +220,12 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   };
   selector.onkeydown = event => event.stopPropagation();
   menu.addEventListener('keydown', event => event.stopPropagation());
-  expand.onclick = () => { expanded = !expanded; render(); };
+  // Maximising a minimised panel would otherwise give you a full-screen window with its
+  // body still hidden, so it un-minimises on the way up.
+  expand.onclick = () => { expanded = !expanded; if (expanded) setCollapsed(false); else render(); };
   expand.onkeydown = event => event.stopPropagation();
+  minimise.onclick = () => setCollapsed(!collapsed);
+  minimise.onkeydown = event => event.stopPropagation();
 
   function expandPanel() { collapsed = false; render(); }
   // Enter (or a tap on the pill) is the only way in; sending or Escape is the way out.
@@ -227,11 +234,15 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   compose.onclick = openComposer;
   compose.onkeydown = event => event.stopPropagation();
 
-  heading.onclick = () => {
-    if (collapsed) { expandPanel(); threads.get(active)!.unread = 0; render(); }
-    else { collapsed = true; composing = false; closeMenu(); input.blur(); render(); }
+  // The header and the minimise button are the same switch, so they persist the same way.
+  function setCollapsed(next: boolean) {
+    collapsed = next;
+    if (collapsed) { composing = false; closeMenu(); input.blur(); }
+    else threads.get(active)!.unread = 0;
+    render();
     try { localStorage.setItem('lepak-chat-collapsed', String(collapsed)); } catch { /* Keep working without storage. */ }
-  };
+  }
+  heading.onclick = () => setCollapsed(!collapsed);
   heading.onkeydown = event => event.stopPropagation();
   try { const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true'; } catch { /* Preference storage is optional. */ }
   render();
