@@ -190,11 +190,13 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
     expand.textContent = expanded ? '⤡' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
+    minimise.disabled = expanded;
+    heading.disabled = expanded;
     minimise.textContent = collapsed ? '▢' : '–';
     minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
-    heading.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
+    heading.setAttribute('aria-label', expanded ? 'City chat' : `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
     for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
     const current = threads.get(active)!;
@@ -236,6 +238,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
 
   // The header and the minimise button are the same switch, so they persist the same way.
   function setCollapsed(next: boolean) {
+    if (expanded && next) return;
     collapsed = next;
     if (collapsed) { composing = false; closeMenu(); input.blur(); }
     else threads.get(active)!.unread = 0;

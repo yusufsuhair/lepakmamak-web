@@ -732,3 +732,7 @@ html, body, #app { touch-action: manipulation; }
 #table-social #city-chat { position: static; left: auto; right: auto; top: auto; bottom: auto; transform: none; width: auto; max-width: none; margin: 14px 0 0; z-index: auto; }
 #table-social #city-chat.chat-expanded { position: static; width: auto; transform: none; }
 #table-social #chat-messages { max-height: 150px; }
+
+/* Fullscreen chat stays open until the user leaves fullscreen. */
+#chat-controls button:disabled { opacity: .35; cursor: default; background: #ffffff14; color: #cdd8c0; }
+#chat-heading:disabled { cursor: default; }
