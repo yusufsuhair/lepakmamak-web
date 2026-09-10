@@ -4,7 +4,7 @@ const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
 // Minimums come from the games themselves; the lobby only decides when to let them start.
 // Games that keep their own roster need every member joined before the deal, or the start
-// lands on an empty village. Lukis and Poker build theirs from whoever is seated instead.
+// lands on an empty village. Games with a start hook receive the lobby roster directly.
 export const ROSTER_GAMES = {werewolf: true, uno: true};
 
 export const LOBBY_RULES = {
@@ -77,6 +77,13 @@ export function createTableLobby(send, games, now = Date.now) {
     if (!game) return;
     const seated = lobby.members.map(member => players.get(member.id)).filter(Boolean);
     if (!seated.length) return;
+    // Poker and Lukis keep their roster inside the engine. Do not make them rediscover it
+    // from every occupied chair: sitting nearby is not consent to enter the match. The
+    // start hook is internal (not a client message), so the engine can trust this selection.
+    if (typeof game.start === 'function') {
+      game.start(players, seated[0], seated);
+      return;
+    }
     if (ROSTER_GAMES[lobby.game]) {
       // Werewolf deals to an exact headcount, and its join gate caps at the current size,
       // which starts at 7. Setting the size after everyone had joined therefore turned away

@@ -48,6 +48,21 @@ export function createPoker(send,now=Date.now){
   do{g.turn=(g.turn+1)%g.players.length;}while(g.players[g.turn].folded);g.ends=now()+25000;
  }
  function act(g,action){const p=g.players[g.turn];if(action==='fold')p.folded=true;else {if(action==='raise'){g.bet+=10;g.players.forEach(q=>q.acted=false);}const cost=g.bet-p.paid;p.chips-=cost;p.paid=g.bet;g.pot+=cost;}p.acted=true;advance(g);}
+ function startGame(ps,p,roster){
+  tick(ps);
+  const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Duduk di meja bersama member untuk Poker Kampung.'});return true;}
+  subscriptions.set(p,id);const map=mapFor(ps);let g=map.get(id);
+  if(g&&g.phase!=='finished')return true;
+  if(g&&now()-g.finishedStartedAt<3000)return true;
+  const people=(roster||members(ps,id)).filter(q=>ps.get(q.id)===q&&tableOf(q)===id);
+  if(people.length<2){send(p.ws,{type:'notice',message:'Poker perlukan 2 atau 3 orang duduk semeja.'});return true;}
+  const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}
+  const previous=g?.dealer,index=(people.findIndex(q=>q.id===previous)+1)%people.length;
+  g={tableId:id,hand:randomUUID(),revision:0,phase:'preflop',board:[],deck,players:people.map(q=>({id:q.id,name:q.name,cards:[deck.pop(),deck.pop()],chips:200,paid:0,folded:false,acted:false})),dealer:people[index].id,bet:10,pot:15,turn:0,ends:now()+25000,result:'',finishedStartedAt:now()};
+  const small=people.length===2?index:(index+1)%people.length,big=(small+1)%people.length;
+  g.players[small].paid=5;g.players[small].chips-=5;g.players[big].paid=10;g.players[big].chips-=10;g.turn=(big+1)%people.length;
+  map.set(id,g);for(const q of people)subscriptions.set(q,id);publish(ps,g);return true;
+ }
  function tick(ps){
   const map=rooms.get(ps);if(!map)return;
   for(const [id,g] of map){const people=members(ps,id);if(!people.length){map.delete(id);continue;}if(g.phase==='finished')continue;
@@ -57,21 +72,11 @@ export function createPoker(send,now=Date.now){
   }
   for(const p of ps.values()){const old=subscriptions.get(p);if(old&&old!==tableOf(p)){subscriptions.delete(p);send(p.ws,{type:'poker-state',game:null});}}
  }
- return {tick,handle(ps,p,m){
+ return {tick,start(ps,p,roster){return startGame(ps,p,roster)},handle(ps,p,m){
   if(!['poker-open','poker-start','poker-action'].includes(m.type))return false;tick(ps);
   const id=tableOf(p);if(!id){send(p.ws,{type:'notice',message:'Duduk di meja bersama member untuk Poker Kampung.'});return true;}
+  if(m.type==='poker-start')return startGame(ps,p);
   subscriptions.set(p,id);const map=mapFor(ps);let g=map.get(id);
-  if(m.type==='poker-start'){
-   if(g&&g.phase!=='finished')return true;
-   if(g&&now()-g.finishedStartedAt<3000)return true;
-   const people=members(ps,id);if(people.length<2){send(p.ws,{type:'notice',message:'Poker perlukan 2 atau 3 orang duduk semeja.'});return true;}
-   const deck=Array.from({length:52},(_,i)=>i);for(let i=51;i>0;i--){const j=randomInt(i+1);[deck[i],deck[j]]=[deck[j],deck[i]];}
-   const previous=g?.dealer,index=(people.findIndex(q=>q.id===previous)+1)%people.length;
-   g={tableId:id,hand:randomUUID(),revision:0,phase:'preflop',board:[],deck,players:people.map(q=>({id:q.id,name:q.name,cards:[deck.pop(),deck.pop()],chips:200,paid:0,folded:false,acted:false})),dealer:people[index].id,bet:10,pot:15,turn:0,ends:now()+25000,result:'',finishedStartedAt:now()};
-   const small=people.length===2?index:(index+1)%people.length,big=(small+1)%people.length;
-   g.players[small].paid=5;g.players[small].chips-=5;g.players[big].paid=10;g.players[big].chips-=10;g.turn=(big+1)%people.length;
-   map.set(id,g);for(const q of people)subscriptions.set(q,id);publish(ps,g);return true;
-  }
   if(m.type==='poker-open'){send(p.ws,{type:'poker-state',game:g?view(g,p):null});return true;}
   if(!g||g.phase==='finished'||g.players[g.turn]?.id!==p.id||m.hand!==g.hand||m.revision!==g.revision)return true;
   if(!['fold','call','raise'].includes(m.action)||m.action==='raise'&&g.bet>=40)return true;

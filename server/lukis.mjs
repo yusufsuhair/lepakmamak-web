@@ -25,9 +25,18 @@ export function createLukis(send,now=Date.now,pick=randomInt){
  }
  function tick(ps){const map=games.get(ps);if(!map)return;for(const [id,g] of map){const people=members(ps,id).filter(p=>g.order.includes(key(p)));let presenceChanged=false;for(const participant of g.order){if(people.some(p=>key(p)===participant)){if(g.missingAt[participant]){delete g.missingAt[participant];presenceChanged=true;}}else if(!g.missingAt[participant]){g.missingAt[participant]=now();presenceChanged=true;}}g.waitingForPlayers=people.length<2;if(g.protocol===2&&g.waitingForPlayers&&Object.values(g.missingAt).every(at=>now()-at<30000)){if(presenceChanged)state(ps,g,undefined,false);continue;}if(people.length<2){map.delete(id);for(const p of members(ps,id))send(p.ws,{type:'lukis-state',game:null});continue;}if(presenceChanged)state(ps,g,undefined,false);if(g.phase==='finished')continue;
   if(['drawing','choosing'].includes(g.phase)&&!people.some(p=>key(p)===g.drawer)&&(g.protocol!==2||now()-(g.missingAt[g.drawer]||0)>=30000)){reveal(g);state(ps,g);continue;}
-  if(g.phase==='drawing'){const stage=g.ends-now()<=20000?2:g.ends-now()<=40000?1:0;const targets=people.filter(p=>key(p)!==g.drawer);if(now()>=g.ends||targets.every(p=>g.solved.includes(key(p)))){reveal(g);state(ps,g);}else if(stage!==g.lastHint){g.lastHint=stage;state(ps,g,undefined,false);}}
-  else if(now()>=g.ends){if(g.phase==='choosing')choose(g,0);else next(g);state(ps,g);}
+ if(g.phase==='drawing'){const stage=g.ends-now()<=20000?2:g.ends-now()<=40000?1:0;const targets=people.filter(p=>key(p)!==g.drawer);if(now()>=g.ends||targets.every(p=>g.solved.includes(key(p)))){reveal(g);state(ps,g);}else if(stage!==g.lastHint){g.lastHint=stage;state(ps,g,undefined,false);}}
+ else if(now()>=g.ends){if(g.phase==='choosing')choose(g,0);else next(g);state(ps,g);}
  }}
+ function startGame(ps,p,roster,version,rounds){
+  tick(ps);
+  const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}
+  if(!games.has(ps))games.set(ps,new Map());
+  const map=games.get(ps),people=(roster||members(ps,tableId)).filter(q=>ps.get(q.id)===q&&tableOf(q)===tableId);let g=map.get(tableId);
+  if(g&&g.phase!=='finished')return true;
+  if(people.length<2){send(p.ws,{type:'notice',message:'Ajak seorang lagi duduk semeja.'});return true;}
+  g={id:randomUUID(),tableId,protocol:version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false};map.set(tableId,g);next(g);state(ps,g);return true;
+ }
  function validLine(a){return Array.isArray(a)&&a.length===7&&a.slice(0,4).every(n=>Number.isFinite(n)&&n>=0&&n<=1)&&colors.includes(a[4])&&config.sizes.includes(a[5])&&Number.isSafeInteger(a[6])&&a[6]>=0&&a[6]<1e9;}
  function append(g,lines){const id=lines[0][6];let last=g.history[g.cursor-1];if(g.cursor!==g.history.length||last?.id!==id){g.history=g.history.slice(0,g.cursor);last={id,lines:[]};g.history.push(last);g.cursor++;}last.lines.push(...lines);g.lines.push(...lines);g.maxStroke=Math.max(g.maxStroke,id);g.totalPoints+=lines.length;}
  // True while this player's table has a round in progress. The chat handler asks so it can
@@ -38,9 +47,8 @@ export function createLukis(send,now=Date.now,pick=randomInt){
   return !!g&&g.phase!=='finished'&&g.phase!=='lobby';
  }
  const canJoin=(ps,p)=>{const g=games.get(ps)?.get(tableOf(p));return !g||g.phase==='finished'||g.order.includes(key(p));};
- return {tick,live,canJoin,handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
+ return {tick,live,canJoin,start(ps,p,roster){return startGame(ps,p,roster,2)},handle(ps,p,m){if(!['lukis-open','lukis-start','lukis-choose','lukis-line','lukis-ink','lukis-undo','lukis-redo','lukis-clear','lukis-guess'].includes(m.type))return false;if(m.type==='lukis-start')return startGame(ps,p,undefined,m.version,m.rounds);tick(ps);const tableId=tableOf(p);if(!tableId){send(p.ws,{type:'notice',message:'Duduk semeja dahulu untuk Lukis Lah!'});return true;}if(!games.has(ps))games.set(ps,new Map());const map=games.get(ps),people=members(ps,tableId);let g=map.get(tableId);const id=key(p);
   if(g&&g.phase!=='finished'&&!g.order.includes(id)){send(p.ws,{type:'lukis-state',game:null});send(p.ws,{type:'notice',message:'Game ini sedang berlangsung. Tunggu game seterusnya untuk sertai.'});return true;}
-  if(m.type==='lukis-start'){if(g&&g.phase!=='finished')return true;if(people.length<2){send(p.ws,{type:'notice',message:'Ajak seorang lagi duduk semeja.'});return true;}g={id:randomUUID(),tableId,protocol:m.version===2?2:1,order:people.map(key),names:Object.fromEntries(people.map(p=>[key(p),p.name])),scores:Object.fromEntries(people.map(p=>[key(p),0])),round:0,rounds:Math.min(5,Math.max(1,Math.round(Number(m.rounds))||3)),used:new Set(),missingAt:{},waitingForPlayers:false};map.set(tableId,g);next(g);state(ps,g);return true;}
   if(m.type==='lukis-open'){if(g)state(ps,g,p);else send(p.ws,{type:'lukis-state',game:null});return true;}if(!g)return true;
   const epoch=m.gameId===g.id&&m.round===g.round;
   if(g.protocol===2&&!epoch)return true;
