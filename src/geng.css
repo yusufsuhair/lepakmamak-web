@@ -19,6 +19,12 @@
 #game-geng .geng-section-head>button{width:38px;height:34px;border:1px solid #98aa91;border-radius:8px;background:#ffffff70;color:#325c48;font-size:18px;cursor:pointer}
 #game-geng .geng-section-head>span{padding:5px 8px;border:1px solid #d3a34e;border-radius:6px;background:#f4d68e;color:#654517;font:800 9px 'Oxanium';letter-spacing:.1em}
 #game-geng form{display:grid;gap:11px}
+#game-geng .geng-topup-prompt{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:13px 0 14px;padding:12px;border:1px solid #d0a24e;border-radius:10px;background:linear-gradient(135deg,#fff7dc,#f7e8b3)}
+#game-geng .geng-topup-prompt>div{min-width:0}
+#game-geng .geng-topup-prompt small{display:block;color:#98621e;font-size:9px;font-weight:800;letter-spacing:.13em}
+#game-geng .geng-topup-prompt strong{display:block;margin-top:4px;color:#5c451f;font:800 14px 'Oxanium'}
+#game-geng .geng-topup-prompt p{margin:4px 0 0;font-size:11px;line-height:1.4}
+#game-geng .geng-topup-prompt button.primary{flex:none;min-height:40px;padding:0 13px;border:1px solid #9b6922;border-radius:8px;background:#b97822;color:#fff8e7;font:800 11px 'Oxanium';cursor:pointer}
 #game-geng label{display:grid;gap:6px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#607766}
 #game-geng input{width:100%;box-sizing:border-box;padding:12px 13px;border:1px solid #aebda8;border-radius:8px;background:#fffdf4;color:#214638;font:15px 'Oxanium';letter-spacing:0;text-transform:none}
 #game-geng input:focus-visible,#game-geng button:focus-visible{outline:3px solid #d8ee8d;outline-offset:2px}
@@ -47,4 +53,4 @@
 #game-geng .geng-live li.geng-live-reconnecting span{color:#98621e}
 #game-geng .geng-live-help{margin:10px 0 12px;font-size:10px}
 #game-geng #geng-live-leave{min-height:38px;padding:0 12px;border:1px solid #9caf95;border-radius:7px;background:#f1d5cd;color:#7b2d20;font:700 11px 'Oxanium';cursor:pointer}
-@media(max-width:600px){#game-geng{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:13px}#game-geng header{padding:18px 16px 12px}#game-geng>section,#game-geng>.geng-balance,#game-geng>.geng-message{margin-left:16px;margin-right:16px}#game-geng header h2{font-size:26px}#game-geng li{padding:8px 7px}}
+@media(max-width:600px){#game-geng{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:13px}#game-geng header{padding:18px 16px 12px}#game-geng>section,#game-geng>.geng-balance,#game-geng>.geng-message{margin-left:16px;margin-right:16px}#game-geng header h2{font-size:26px}#game-geng li{padding:8px 7px}#game-geng .geng-topup-prompt{align-items:stretch;flex-direction:column;gap:10px}#game-geng .geng-topup-prompt button.primary{width:100%}}

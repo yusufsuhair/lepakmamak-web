@@ -517,9 +517,10 @@ async function init() {
   const tableGameTitles:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
+  let openShopFromGeng:()=>void = () => {};
   const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; }, action => {
     if (action === 'leave' && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'geng-leave'}));
-  });
+  }, () => openShopFromGeng());
   const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
@@ -1222,6 +1223,7 @@ async function init() {
   const security = setupSecurity(apiBase);
   $('open-security').onclick = () => security();
   const itemShop = setupShop(setAccessories);
+  openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers, tudung: look.tudung }));

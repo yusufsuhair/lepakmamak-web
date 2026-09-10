@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.30",
+  "date": "2026-09-11",
+  "title": "Tambah Syiling terus dari Geng",
+  "notes": [
+    "Jika baki belum cukup 1,000 Syiling untuk cipta Geng, panel Geng kini tunjuk jumlah baki dan jumlah yang diperlukan dengan jelas.",
+    "Butang Tambah Syiling membuka Kedai terus supaya pemain boleh guna top up atau tuntutan harian tanpa keluar mencari menu lain.",
+    "Flow ini responsif pada desktop dan mobile, dan butang cipta kekal terkunci sehingga baki mencukupi."
+  ]
+},
+{
   "version": "1.39.29",
   "date": "2026-09-11",
   "title": "Wet Deck rooftop lounge dibuka",

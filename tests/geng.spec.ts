@@ -136,3 +136,26 @@ test('the Geng leader badge redraws only when its value or leadership changes', 
   });
   expect(result).toEqual({first: 1, draws: 3, stored: '', leader: false});
 });
+
+test('an underfunded Geng creation shows a top-up action', async ({page}) => {
+  await page.route('**/src/auth.ts*', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: 'export const session={access_token:"test"}; export const guestName="";',
+  }));
+  await page.route('**/geng-harness', route => route.fulfill({contentType: 'text/html', body: '<main></main>'}));
+  await page.route('**/geng/state', route => route.fulfill({
+    json: {state: {balance: 500, current: null, members: [], pending: [], guilds: []}},
+  }));
+  await page.goto('/geng-harness');
+  await page.evaluate(async () => {
+    const {setupGeng} = await import('/src/geng.ts');
+    (window as any).geng = setupGeng(location.origin, () => {}, () => {}, () => {}, () => { document.body.dataset.topup = 'opened'; });
+    (window as any).geng.open();
+  });
+
+  await expect(page.locator('#geng-topup-prompt')).toBeVisible();
+  await expect(page.locator('#geng-topup-copy')).toHaveText('You have 500 Syiling. You need 1,000 Syiling to create a Geng.');
+  await expect(page.locator('#geng-create-submit')).toBeDisabled();
+  await page.getByRole('button', {name: 'Tambah Syiling'}).click();
+  await expect(page.locator('body')).toHaveAttribute('data-topup', 'opened');
+});
