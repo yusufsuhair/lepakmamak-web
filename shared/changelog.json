@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.27",
+  "date": "2026-09-11",
+  "title": "Add Friend dan Friend List",
+  "notes": [
+    "Pemain berdaftar kini boleh Add Friend dari player menu, dengan request yang disimpan selamat dalam Supabase.",
+    "Friend List membezakan kawan online dan offline serta menyediakan Accept, Decline, Cancel dan Remove.",
+    "Butang Message daripada Friend List membuka private chat sedia ada terus pada desktop dan mobile."
+  ]
+},
+{
   "version": "1.39.26",
   "date": "2026-09-11",
   "title": "Sambung semula bila connection terputus",

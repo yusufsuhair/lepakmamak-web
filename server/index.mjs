@@ -32,6 +32,7 @@ import {createWall} from './wall.mjs';
 import {createAccounts} from './account.mjs';
 import {createLeaderboard} from './leaderboard.mjs';
 import {createGengs} from './geng.mjs';
+import {createFriends} from './friends.mjs';
 import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
@@ -137,6 +138,32 @@ async function refreshConnectedGengs() {
   }
 }
 const gengs = createGengs({onChanged: () => refreshConnectedGengs()});
+function playerForUser(userId) {
+  if (!userId) return null;
+  for (const players of rooms.values()) for (const player of players.values()) {
+    if (player.userId === userId) return player;
+  }
+  return null;
+}
+function playerForId(playerId) {
+  if (!playerId) return null;
+  for (const players of rooms.values()) {
+    const player = players.get(playerId);
+    if (player) return player;
+  }
+  return null;
+}
+const friends = createFriends({
+  playerFor: playerForUser,
+  resolvePlayer: playerForId,
+  isOnline: userId => !!playerForUser(userId),
+  onChanged: ids => {
+    const changed = new Set(ids);
+    for (const players of rooms.values()) for (const player of players.values()) {
+      if (player.userId && changed.has(player.userId)) send(player.ws, {type: 'friends-updated'});
+    }
+  },
+});
 const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4001,'Account deleted')});
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
@@ -260,6 +287,7 @@ const server = http.createServer(async (request, response) => {
     response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
   }
   response.setHeader('Cache-Control', 'no-store');
+  if (await friends.handle(request, response)) return;
   if (await gengs.handle(request, response)) return;
   if (await shop.handle(request, response)) return;
   if (await socialProfiles.handle(request,response)) return;

@@ -1,0 +1,33 @@
+#game-friends{width:min(650px,calc(100vw - 28px));max-height:min(820px,calc(100dvh - 28px));padding:0;border:1px solid #a8b891;border-radius:16px;background:#f4f0df;color:#234839;box-shadow:0 24px 90px #10251b66;overflow:auto}
+#game-friends::backdrop{background:#102b24b8;backdrop-filter:blur(5px)}
+#game-friends .friends-shell{min-height:100%}
+#game-friends header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px 16px;background:linear-gradient(135deg,#173c32,#285647);color:#fff8e7}
+#game-friends header small,#game-friends section>small{font-size:9px;letter-spacing:.18em;font-weight:800;color:#bcd3b3}
+#game-friends header h2{margin:5px 0 0;font:800 32px/1 'Oxanium',sans-serif;text-transform:uppercase;letter-spacing:.04em}
+#game-friends header p{margin:7px 0 0;color:#dbe7d4;font-size:11px}
+#game-friends header>button{width:40px;height:40px;border:1px solid #ffffff42;border-radius:10px;background:#ffffff12;color:#fff8e7;font-size:24px;line-height:1;cursor:pointer}
+#game-friends section,#game-friends>.friends-message,#game-friends>.friends-login{margin-left:24px;margin-right:24px}
+#game-friends section{padding:17px 0 18px;border-bottom:1px solid #315b4826}
+#game-friends section:last-of-type{border-bottom:0}
+#game-friends .friends-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#game-friends .friends-section-head h3{margin:5px 0 0;font:800 21px/1.15 'Oxanium';text-transform:uppercase}
+#game-friends .friends-section-head>span{min-width:26px;padding:5px 8px;border:1px solid #a7b899;border-radius:7px;background:#e1e8d5;color:#315a47;font:800 11px 'Oxanium';text-align:center}
+#game-friends ul{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:7px}
+#game-friends li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:8px 10px;border:1px solid #b5c4ac88;border-radius:8px;background:#fffdf566;font-size:12px}
+#game-friends li strong{min-width:0;overflow-wrap:anywhere}
+#game-friends .friend-copy{display:flex;align-items:center;gap:9px;min-width:0}
+#game-friends .friend-copy strong{display:block}
+#game-friends .friend-copy small{position:relative;padding-left:12px;font-size:10px;color:#718372;white-space:nowrap}
+#game-friends .friend-copy small::before{content:'';position:absolute;left:0;top:50%;width:7px;height:7px;border-radius:50%;background:#9ba69a;transform:translateY(-50%)}
+#game-friends .friend-copy small.is-online{color:#3a7950}
+#game-friends .friend-copy small.is-online::before{background:#4eaa69;box-shadow:0 0 0 3px #4eaa6930}
+#game-friends .friend-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:none}
+#game-friends .friend-actions button,#game-friends li>button{min-height:35px;padding:0 10px;border:1px solid #9caf95;border-radius:7px;background:#e0e7d4;color:#315a47;font:700 10px 'Oxanium';cursor:pointer}
+#game-friends .friend-actions button.primary{border-color:#2d674f;background:#2d674f;color:#f4f2d9}
+#game-friends .friend-actions button.danger{border-color:#c18a7b;background:#f1d5cd;color:#7b2d20}
+#game-friends button:disabled{opacity:.48;cursor:default}
+#game-friends .friends-message{min-height:18px;margin-top:12px;margin-bottom:0;color:#597064;font-size:12px}
+#game-friends .friends-login{padding:22px 0;margin-top:0;color:#657564;font-size:12px;line-height:1.55}
+#game-friends .friends-empty{justify-content:center;color:#718372;font-size:11px;text-align:center}
+#game-friends button:focus-visible{outline:3px solid #d8ee8d;outline-offset:2px}
+@media(max-width:600px){#game-friends{width:calc(100vw - 14px);max-height:calc(100dvh - 14px);border-radius:13px}#game-friends header{padding:18px 16px 13px}#game-friends header h2{font-size:27px}#game-friends section,#game-friends>.friends-message,#game-friends>.friends-login{margin-left:16px;margin-right:16px}#game-friends li{align-items:flex-start;padding:9px 7px}#game-friends .friend-copy{display:grid;gap:3px}#game-friends .friend-actions{flex-wrap:wrap}.friend-actions button{min-height:39px!important}}

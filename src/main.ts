@@ -63,6 +63,7 @@ import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
 import {setupGeng, type GengState} from './geng';
+import {setupFriends, type FriendState} from './friends';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -114,7 +115,7 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">AFK note</label><input id="afk-note" maxlength="60" placeholder="e.g. berak jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
@@ -355,6 +356,7 @@ async function init() {
   // Guests have no wallet or membership, so they simply carry no badge.
   let geng = '', gengLeader = false;
   let gengButton: HTMLButtonElement | null = null;
+  let friendsButton: HTMLButtonElement | null = null;
   function applyGengState(state: GengState | null) {
     const current = state?.current || null;
     geng = current?.name || ''; gengLeader = !!current?.leader;
@@ -486,6 +488,11 @@ async function init() {
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
   const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; });
+  const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
+    if (friendsButton) friendsButton.hidden = !session || !!guestName;
+  }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
+    friendsUI.close(); chat.openDm(playerId, name); chat.open();
+  });
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
   function resetStick() {
@@ -1039,6 +1046,7 @@ async function init() {
           tableSocial.party(partyMembers.size);
         }
         if (message.type === 'party-invited' && message.inviter) showPartyInvite(message.inviter.name);
+        if (message.type === 'friends-updated') void friendsUI.refresh();
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if (message.type === 'dm-closed' && message.id) chat.closeDm(message.id);
         if(message.type==='wall-new'&&message.post)wall.receive(message.post);
@@ -1177,8 +1185,10 @@ async function init() {
   const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';// Wall · recentre · Kedai · character · Geng · settings, reading outwards along the top bar.
   const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
   gengButton=document.createElement('button');gengButton.id='open-geng';gengButton.type='button';gengButton.setAttribute('aria-label','Open Geng');gengButton.title='Create or join a Geng';gengButton.setAttribute('aria-haspopup','dialog');gengButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 1.8 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/></svg>';
-  $('menu').before(shopButton,inventoryButton,gengButton);inventoryButton.onclick=()=>inventory.open();
+  friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
+  $('menu').before(shopButton,inventoryButton,gengButton,friendsButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
+  friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!session||!!guestName;
 
   $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
   function start() {
@@ -1188,6 +1198,7 @@ async function init() {
     $('open-my-profile').hidden = !session || !!guestName;
     $('open-edit-profile').hidden = !session || !!guestName;
     $('open-security').hidden = !session || !!guestName;
+    if (friendsButton) friendsButton.hidden = !session || !!guestName;
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
     $('open-shop').hidden = !!guestName;
@@ -1215,7 +1226,8 @@ async function init() {
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
-    inventory.close();itemShop.close(); profileEditor.close(); clearGuest();
+    inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); clearGuest();
+    if (friendsButton) friendsButton.hidden = true;
     onlinePlayersDialog.close();
     finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
@@ -1450,6 +1462,11 @@ async function init() {
     $('superman-action').hidden=object.userData.profileId!==networkPlayerId||!riding||!!passengerOf||vehicle!=='bike';
     const targetId=object.userData.profileId||'', mine=targetId===networkPlayerId;
     // You cannot invite yourself, someone already in your geng, or nobody in particular.
+    const relation = friendsUI.relationship(targetId);
+    const addFriend = $<HTMLButtonElement>('add-friend');
+    addFriend.hidden = mine || !targetId || !networkConnected || relation === 'friend';
+    addFriend.disabled = relation === 'outgoing';
+    addFriend.textContent = relation === 'incoming' ? 'Accept friend request' : relation === 'outgoing' ? 'Request sent' : 'Add friend';
     $('invite-party').hidden=mine||!targetId||!networkConnected||partyMembers.has(targetId)||partyMembers.size>=6;
     $('message-player').hidden=mine||!targetId||!networkConnected;
     $('report-player').hidden=mine||!targetId||!networkConnected;
@@ -1466,6 +1483,13 @@ async function init() {
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
   function openSelectedProfile() { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; profile.showModal(); $('close-profile').focus(); }
   $('view-profile').onclick = openSelectedProfile;
+  $('add-friend').onclick = () => {
+    const relation = friendsUI.relationship(selectedProfileId);
+    const relationId = friendsUI.relationshipId(selectedProfileId);
+    closeOptions();
+    if (relation === 'incoming' && relationId) void friendsUI.respond(relationId, true);
+    else if (relation === 'none') void friendsUI.add(selectedProfileId, selectedName);
+  };
   $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-invite',id:selectedProfileId})); };
   $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
   $('leave-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-leave'})); };

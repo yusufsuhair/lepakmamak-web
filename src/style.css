@@ -671,6 +671,11 @@ html, body, #app { touch-action: manipulation; }
 #open-geng svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #open-geng[data-geng]:not([data-geng=""]) { border-color: #d8b86a; color: #ffe8a5; }
 #open-geng[hidden] { display: none; }
+#open-friends { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; padding: 0; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
+#open-friends svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#open-friends:hover { background: #255647; }
+#open-friends:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
+#open-friends[hidden] { display: none; }
 
 /* The weekly board reads on open and never pushes, so it is plain markup with no state.
    The Wall is a cream panel, so this matches the feed cards rather than the dark HUD. */
