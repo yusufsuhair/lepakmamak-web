@@ -230,6 +230,16 @@
   "npc": false
  },
  {
+  "id": "parked-gt3-rs",
+  "style": "gt3-rs",
+  "x": -122,
+  "z": 142,
+  "axis": "z",
+  "direction": 1,
+  "speed": 0,
+  "npc": false
+ },
+ {
   "id": "police-1",
   "style": "police",
   "x": 76,
