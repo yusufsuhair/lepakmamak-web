@@ -1498,8 +1498,9 @@ async function init() {
 
     else toast('City offline','Reconnect before teleporting.');
   };
-  let mapMode:'2d'|'3d'='2d';
+  let mapMode:'2d'|'3d'='3d';
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
+  expandedCanvas.dataset.mode=mapMode;
   const selectMapPlace=(id:string)=>{selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
   const mapDirectory=setupCityDirectory($('city-directory'),expandedCanvas,selectMapPlace);
   const overview=createMapOverview(scene,expandedCanvas,selectMapPlace);

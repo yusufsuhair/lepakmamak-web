@@ -22,6 +22,12 @@ test('the swapped mosque and court entrances follow their new locations',()=>{
   {id:'22',x:129,z:99},
  ]));
 });
+test('expanded city map opens in 3D by default',async({page})=>{
+ await page.goto('/');
+ await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
+ await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','3d');
+ await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
+});
 test('3D map renders actual city and preserves directory selection across view modes',async({page})=>{
  await page.goto('/');await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  await page.getByRole('button',{name:'3D',exact:true}).click();
