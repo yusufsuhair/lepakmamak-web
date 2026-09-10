@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.11",
+    "date": "2026-09-10",
+    "title": "City map dibuka dalam 3D",
+    "notes": [
+      "Expanded city map kini terus dibuka dalam paparan 3D supaya bandar lebih mudah dibaca dan diterokai.",
+      "Toggle 2D masih tersedia untuk peta top-down apabila diperlukan."
+    ]
+  },
+  {
     "version": "1.39.10",
     "date": "2026-09-10",
     "title": "Speedometer dan lif KLCC lebih kemas",
