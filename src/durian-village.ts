@@ -1,28 +1,29 @@
 import * as THREE from 'three';
 import {box,createPerson,material,type World} from './world';
+import {createVillageChores,createVillageCycle,groupRoute,villageActivity} from './village-activities';
 
 // All authored coordinates are relative to this origin: relocate the whole neighbourhood here.
 export const villageOrigin={x:122,z:-132};
 export const villageResidents=[
- {name:'Upin',x:0,z:4,color:'#f3ce32',child:true,line:'Jom tengok kami main badminton! Aku hantar, Ipin sambut!',hair:false},
- {name:'Ipin',x:0,z:14,color:'#56a9dd',child:true,line:'Betul, betul, betul! Jangan masuk gelanggang masa bulu tangkis terbang!',hair:false},
- {name:'Opah',x:-17,z:-5,color:'#b797cc',child:false,line:'Selamat datang, cucu. Jaga diri dan berbaik dengan semua orang.',hair:true},
- {name:'Kak Ros',x:-13,z:-4,color:'#dc6885',child:false,line:'Lepas main, ingat kemas halaman ya!',hair:true},
- {name:'Tok Dalang',x:16,z:-5,color:'#d5c8a0',child:false,line:'Mari tengok kebun Tok. Jangan pijak anak pokok!',hair:true},
+ {name:'Upin',x:-9,z:7,color:'#f3ce32',child:true,line:'Jom main kejar-kejar! Ipin, tunggu kami!',hair:false},
+ {name:'Ipin',x:-9,z:9,color:'#56a9dd',child:true,line:'Betul, betul, betul! Jom lari sama-sama!',hair:false},
+ {name:'Opah',x:-10,z:-3.4,color:'#b797cc',child:false,line:'Opah tengah sidai baju, cucu. Harap-harap petang ini tak hujan.',hair:true},
+ {name:'Kak Ros',x:-10,z:1,color:'#dc6885',child:false,line:'Kak Ros sapu daun dulu. Main boleh, jangan sepahkan halaman ya!',hair:true},
+ {name:'Tok Dalang',x:9,z:-4,color:'#d5c8a0',child:false,line:'Meh, meh ayam! Tok tabur makanan. Jangan kejar ayam Tok ya!',hair:true},
  {name:'Ehsan',x:6,z:7,color:'#e55858',child:true,line:'Kita berkumpul di clubhouse hari ini!',hair:true},
  {name:'Fizi',x:9,z:10,color:'#dcb153',child:true,line:'Ramainya orang hari ini. Jom cari Mail!',hair:true},
- {name:'Mail',x:18,z:12,color:'#76a870',child:true,line:'Singgah warung dulu! Lepas itu kita main bersama.',hair:true},
+ {name:'Mail',x:18,z:17,color:'#76a870',child:true,line:'Rajoo, jom kayuh pusing kampung! Perlahan dekat orang berjalan.',hair:true},
  {name:'Mei Mei',x:-8,z:11,color:'#e89ca8',child:true,line:'Mari belajar dan bermain sama-sama!',hair:true},
- {name:'Jarjit',x:6,z:14,color:'#5986c5',child:true,line:'Dua tiga bulu tangkis, pukul tinggi jangan terkikis!',hair:true},
+ {name:'Jarjit',x:0,z:4,color:'#5986c5',child:true,line:'Dua tiga bulu tangkis, Ijat sambut jangan terlepas!',hair:true},
  {name:'Susanti',x:-11,z:13,color:'#c787bc',child:true,line:'Cantik kampung ini. Mari jalan-jalan!',hair:true},
  {name:'Cikgu Melati',x:-18,z:10,color:'#b683b1',child:false,line:'Selamat datang ke tadika. Semua orang boleh belajar sesuatu yang baru.',hair:true},
  {name:'Uncle Muthu',x:20,z:6,color:'#d2a078',child:false,line:'Selamat datang! Duduklah, berehat sekejap di warung.',hair:true},
- {name:'Abang Salleh',x:10,z:-3,color:'#d778a8',child:false,line:'Meriahnya kampung! Abang nak jalan tengok kawan-kawan.',hair:true},
- {name:'Abang Iz',x:-7,z:-3,color:'#6398a8',child:false,line:'Jom bersukan petang ini. Panaskan badan dulu!',hair:true},
- {name:'Dzul',x:-7,z:7,color:'#e79943',child:true,line:'Fizi, lepas Upin dan Ipin giliran kita pula!',hair:true},
- {name:'Ijat',x:-10,z:7,color:'#7b9cc9',child:true,line:'Jom! Aku sokong kamu semua!',hair:true},
+ {name:'Abang Salleh',x:12,z:3,color:'#d778a8',child:false,line:'Meriahnya kampung! Abang nak jalan tengok kawan-kawan.',hair:true},
+ {name:'Abang Iz',x:-5,z:-3,color:'#6398a8',child:false,line:'Jom bersukan petang ini. Panaskan badan dulu!',hair:true},
+ {name:'Dzul',x:-7,z:7,color:'#e79943',child:true,line:'Fizi, cepat! Kita kejar Upin dan Ipin!',hair:true},
+ {name:'Ijat',x:0,z:14,color:'#7b9cc9',child:true,line:'Haa! Jarjit, sambut!',hair:true},
  {name:'Devi',x:-14,z:10,color:'#b865aa',child:true,line:'Mei Mei, mari tengok perlawanan!',hair:true},
- {name:'Rajoo',x:23,z:9,color:'#cc7850',child:true,line:'Ayah di warung. Aku tengok badminton dulu!',hair:true},
+ {name:'Rajoo',x:21,z:17,color:'#cc7850',child:true,line:'Mail, tunggu! Kita kayuh basikal sama-sama!',hair:true},
  {name:'Ah Tong',x:24,z:-4,color:'#ded3ac',child:false,line:'Selamat petang! Seronok tengok kampung ramai orang.',hair:true},
  {name:'Cikgu Jasmin',x:-23,z:6,color:'#78b8af',child:false,line:'Main dengan baik dan beri semangat pada kawan ya.',hair:true},
 ] as const;
@@ -66,7 +67,12 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  for(let y=.9;y<=1.7;y+=.16)box(g,0,y,9,7.6,.018,.025,'#e8e2cf');
  for(let x=-3.8;x<=3.8;x+=.25)box(g,x,1.3,9,.015,.8,.025,'#e8e2cf');
  box(g,0,1.73,9,7.6,.065,.045,'#fff5d5');
- sign(g,'BADMINTON PETANG • UPIN vs IPIN',0,2.8,1.7,7,.65);
+ sign(g,'BADMINTON PETANG • JARJIT vs IJAT',0,2.8,1.7,7,.65);
+ // Chore props and bicycle route stay in open ground, away from doors and the court.
+ for(const x of [-13,-7]){box(g,x,1.3,-2.5,.09,2.4,.09,'#82603f');solid(x,-2.5,.12,.12);}
+ box(g,-10,2.35,-2.5,6,.025,.025,'#e6dfc7');
+ box(g,-11,.38,-3.7,.8,.4,.6,'#b88960');solid(-11,-3.7,.8,.6);
+ for(let i=0;i<48;i++){const a=i/48*Math.PI*2;box(g,18+Math.sin(a)*4.7,.16,16.8+Math.cos(a)*1.65,.18,.04,.18,'#d4bf90');}
  for(const x of [-6,6]){box(g,x,.55,17,3,.15,.7,'#b98b53');for(const dx of [-1,1])box(g,x+dx,.3,17,.15,.5,.5,'#71553a');solid(x,17,3,.7);}
 }
 
@@ -84,29 +90,31 @@ export function createVillageResidents(scene:THREE.Scene){
   if(['Mei Mei','Susanti','Devi','Kak Ros'].includes(resident.name))for(const side of [-1,1])box(rig.group,side*.23,1.82,-.12,.16,.4,.18,'#202c2b');
   if(resident.name==='Uncle Muthu'||resident.name==='Ah Tong')box(rig.group,0,1.76,.25,.22,.06,.03,'#38332e');
   if(resident.name==='Mail')box(rig.group,0,1.15,.19,.44,.48,.035,'#eee0b9');
-  if(resident.name==='Upin'||resident.name==='Ipin'){
-   sign(rig.group,resident.name==='Upin'?'U':'I',0,1.25,.185,.32,.3);
+  if(resident.name==='Upin'||resident.name==='Ipin')sign(rig.group,resident.name==='Upin'?'U':'I',0,1.25,.185,.32,.3);
+  if(villageActivity(resident.name)==='badminton'){
    box(rig.rightArm,0,-.8,0,.05,.55,.05,'#ded9c8');
    const racket=new THREE.Mesh(new THREE.TorusGeometry(.23,.025,6,18),material('#efb14d'));
    racket.position.set(0,-1.2,0);racket.scale.y=1.3;rig.rightArm.add(racket);
    for(const offset of [-.12,0,.12]){box(rig.rightArm,offset,-1.2,0,.009,.44,.012,'#f4f1dc');box(rig.rightArm,0,-1.2+offset,0,.4,.009,.012,'#f4f1dc');}
   }
-  sign(rig.group,resident.name,0,2.6,0,1.7,.36);group.add(rig.group);return{rig,resident,phase:i*1.3};
+  const activity=villageActivity(resident.name);
+  const cycle=activity==='cycle'?createVillageCycle(rig,resident.color):undefined;
+  sign(rig.group,resident.name,0,cycle?3:2.6,0,1.7,.36);group.add(rig.group);return{rig,resident,activity,cycle,phase:i*1.3};
  });
+ const chores=createVillageChores(group,people);
  const shuttle=new THREE.Group();group.add(shuttle);
  const cork=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),material('#ebcfa0'));shuttle.add(cork);
  const feathers=new THREE.Mesh(new THREE.ConeGeometry(.16,.3,8,1,true),material('#fff9e8'));feathers.rotation.x=Math.PI;feathers.position.y=.15;shuttle.add(feathers);
- return{group,people,shuttle,
+ return{group,people,shuttle,chores,
   nearby(x:number,z:number){return people.filter(p=>Math.hypot(x-villageOrigin.x-p.rig.group.position.x,z-villageOrigin.z-p.rig.group.position.z)<2.6).sort((a,b)=>Math.hypot(x-villageOrigin.x-a.rig.group.position.x,z-villageOrigin.z-a.rig.group.position.z)-Math.hypot(x-villageOrigin.x-b.rig.group.position.x,z-villageOrigin.z-b.rig.group.position.z))[0]?.resident;},
   update(time:number){
    const rally=time/1.65,leg=Math.floor(rally),progress=rally-leg;
    const forward=leg%2===0;
    shuttle.position.set((forward?1:-1)*(.285-.57*progress),1.8+Math.sin(progress*Math.PI)*3,forward?4+10*progress:14-10*progress);
    shuttle.rotation.x=(forward?1:-1)*Math.atan2(10,3*Math.PI*Math.cos(progress*Math.PI));
-   for(const {rig,resident,phase} of people){
-    const badminton=resident.name==='Upin'||resident.name==='Ipin';
-    if(badminton){
-     const north=resident.name==='Upin';
+   for(const {rig,resident,phase,activity,cycle} of people){
+    if(activity==='badminton'){
+     const north=resident.name==='Jarjit';
      rig.group.rotation.y=north?0:Math.PI;
      rig.group.position.set(resident.x,.24,resident.z);
      const hitting=north===forward;
@@ -114,7 +122,17 @@ export function createVillageResidents(scene:THREE.Scene){
      rig.rightArm.rotation.x=-.65-swing*2.1;
      rig.leftArm.rotation.x=-.4;rig.leftLeg.rotation.x=.12;rig.rightLeg.rotation.x=-.12;
      rig.group.position.y+=Math.sin(swing*Math.PI)*.12;
-    }else{
+    }else if(activity==='run'||activity==='walk'||activity==='cycle'){
+     const route=groupRoute(resident.name,time);
+     rig.group.position.set(route.x,cycle?.18:.18+Math.abs(Math.sin(route.stride))*(route.running?.09:.015),route.z);
+     rig.group.rotation.y=route.heading;
+     if(cycle)cycle.update(time);
+     else{
+      const stride=Math.sin(route.stride)*(route.running?.65:.28);
+      rig.leftLeg.rotation.x=stride;rig.rightLeg.rotation.x=-stride;
+      rig.leftArm.rotation.x=-stride-(route.running?.3:0);rig.rightArm.rotation.x=stride-(route.running?.3:0);
+     }
+    }else if(activity==='idle'){
      // Small open-ground loops remain outside house, table and playground colliders.
      const angle=time*.4+phase,walking=resident.child||['Abang Salleh','Abang Iz','Ah Tong'].includes(resident.name);
      const radius=walking?.65:0;
@@ -125,5 +143,6 @@ export function createVillageResidents(scene:THREE.Scene){
      rig.leftArm.rotation.x=-stride;rig.rightArm.rotation.x=walking?stride:Math.sin(time*1.5+phase)*.25;
     }
    }
+   chores.update(time);
   }};
 }
