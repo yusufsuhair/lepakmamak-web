@@ -201,8 +201,8 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
 .control kbd { border-color: rgb(255 255 255 / 22%); color: var(--ui-lime-hot); }
 .recall-button, .stunt-button { border-radius: 9px; }
 #speedometer {
-  right: 24px; bottom: 24px; width: 150px; padding: 14px 15px 12px; border: 1px solid var(--ui-line);
-  border-radius: 16px; background: rgb(7 29 23 / 58%); box-shadow: 0 12px 34px rgb(1 13 10 / 22%); backdrop-filter: blur(12px);
+  right: 24px; bottom: 24px; width: 150px; padding: 0; border: 0;
+  border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none;
 }
 .speed-number { font-size: 65px; }
 .speed-unit, .vehicle-label { color: var(--ui-muted); }
@@ -342,7 +342,7 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
   #city-chat { left: 12px; bottom: 148px; width: min(240px, calc(100vw - 124px)); }
   #chat-heading { border-radius: 12px 12px 0 0; }
   #chat-body { border-radius: 0 0 12px 12px; }
-  #speedometer { right: 12px; padding: 10px; border-radius: 13px; background: rgb(7 29 23 / 68%); }
+  #speedometer { right: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
   .speed-number { font-size: 46px; }
   .touch-actions { right: 12px; bottom: max(16px, env(safe-area-inset-bottom)); }
   .touch-actions button { border-radius: 12px; box-shadow: 0 8px 22px rgb(1 13 10 / 24%); backdrop-filter: blur(10px); }
