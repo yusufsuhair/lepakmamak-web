@@ -1,5 +1,14 @@
 [
  {
+  "version": "1.28.0",
+  "date": "2026-09-10",
+  "title": "Susun atur tablet dibetulkan",
+  "notes": [
+   "On tablets the chat box and the speedometer were sitting on top of the thumbstick and the action buttons. Every layout rule written for tablets was switched off on the tablets it was written for — an iPad with a keyboard attached was being treated as a desktop. Chat now sits clear above the stick, and the speed above the buttons.",
+   "Chat can be blown up to fill the screen on a phone too, not just on a computer. The same button closes it."
+  ]
+ },
+ {
   "version": "1.27.0",
   "date": "2026-09-10",
   "title": "Tetapan lebih kemas",

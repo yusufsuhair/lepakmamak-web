@@ -109,7 +109,7 @@ test('unread piles up per channel and shows against its entry in the list',async
  await expect(page.getByRole('option',{name:/PARTY/})).not.toContainText('1');
 });
 
-test('desktop can blow the chat up into a popup, and phones are not offered it',async({page})=>{
+test('the chat blows up into a bigger window on any screen',async({page})=>{
  await mount(page,'expand-harness');
  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
  await page.getByRole('button',{name:'Expand chat to a larger window'}).click();
@@ -122,6 +122,8 @@ test('desktop can blow the chat up into a popup, and phones are not offered it',
  await page.getByRole('button',{name:'Shrink chat back'}).click();
  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 
+ // A phone gets it too — a small panel is hardest to read exactly there. Covered in full
+ // by touch-layout.spec, which checks it fills the screen rather than becoming a card.
  await page.setViewportSize({width:390,height:844});
- await expect(page.getByRole('button',{name:'Expand chat to a larger window'})).toBeHidden();
+ await expect(page.getByRole('button',{name:'Expand chat to a larger window'})).toBeVisible();
 });

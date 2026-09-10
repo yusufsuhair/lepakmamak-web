@@ -171,7 +171,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm', 
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
     panel.classList.toggle('chat-expanded', expanded);
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
-    expand.textContent = expanded ? '⤡' : '⤢';
+    expand.textContent = expanded ? '×' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
