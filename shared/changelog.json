@@ -1,5 +1,16 @@
 [
  {
+  "version": "1.36.0",
+  "date": "2026-09-10",
+  "title": "Nampak siapa ada di mana",
+  "notes": [
+   "Walk up to a table and it tells you who is sitting there by name, not just how many.",
+   "Meja Besar was telling everyone it had three seats. It has nine. Every table now counts its own chairs.",
+   "The top left shows who else is in the city at a glance, without opening anything.",
+   "In a game lobby, a player who is not ready yet says so. Before, ready showed a tick and not-ready showed nothing at all."
+  ]
+ },
+ {
   "version": "1.35.0",
   "date": "2026-09-10",
   "title": "Lukis Lah ada gerak, semua game satu bunyi",

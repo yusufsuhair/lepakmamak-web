@@ -77,7 +77,11 @@ export function createTableShell(send: (message: object) => boolean) {
         const face = document.createElement('span'); face.className = 'seat-face';
         face.textContent = member.name.slice(0, 1).toUpperCase();
         const name = document.createElement('b'); name.textContent = member.name;
-        const tick = document.createElement('i'); tick.textContent = member.ready ? '✓' : '';
+        // Not-ready was an empty element, which reads the same as "no information". Both
+        // states say what they are now.
+        const tick = document.createElement('i');
+        tick.textContent = member.ready ? '✓ Sedia' : 'Tunggu…';
+        tick.dataset.ready = String(!!member.ready);
         seat.append(face, name, tick);
       } else {
         // An empty seat is the natural place to pull your geng in. Party chat already
