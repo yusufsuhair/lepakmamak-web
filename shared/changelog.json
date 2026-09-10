@@ -1,5 +1,14 @@
 [
 {
+  "version": "1.39.34",
+  "date": "2026-09-11",
+  "title": "Nota pemain dipermudahkan",
+  "notes": [
+    "Label AFK note dalam Settings kini dipanggil Note supaya lebih ringkas dan mudah difahami.",
+    "Status selepas menyimpan atau mengosongkan nota turut menggunakan nama Note yang sama."
+  ]
+},
+{
   "version": "1.39.33",
   "date": "2026-09-11",
   "title": "Google boleh dinyahpaut dengan selamat",
