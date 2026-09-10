@@ -294,6 +294,37 @@ async function init() {
   let onBridge = false, deckY = 0;
   type KlccLiftRide = { lift: KlccLift; direction: 'up' | 'down'; elapsed: number; phase: 'moving' | 'top' };
   let klccLiftRide: KlccLiftRide | null = null;
+  const KLCC_LIFT_TRAVEL_SECONDS = 16;
+  const klccLiftPanel = document.createElement('section');
+  klccLiftPanel.id = 'klcc-lift-status'; klccLiftPanel.setAttribute('role', 'status'); klccLiftPanel.setAttribute('aria-live', 'polite');
+  klccLiftPanel.hidden = true;
+  klccLiftPanel.innerHTML = '<strong>Lif KLCC</strong><small></small><b></b><button type="button">Turun lif KLCC</button>';
+  $('hud').append(klccLiftPanel);
+  const klccLiftPhase = klccLiftPanel.querySelector('small')!;
+  const klccLiftCountdown = klccLiftPanel.querySelector('b')!;
+  const klccLiftDown = klccLiftPanel.querySelector('button')!;
+  function renderKlccLiftStatus() {
+    const ride = klccLiftRide;
+    klccLiftPanel.hidden = !started || !ride || paused || cityMap.open;
+    if (!ride) return;
+    const duration = reducedMotion ? .35 : KLCC_LIFT_TRAVEL_SECONDS;
+    const remaining = Math.max(0, Math.ceil(duration - ride.elapsed));
+    if (ride.phase === 'top') {
+      klccLiftPhase.textContent = 'Berhenti di rooftop · sedia untuk turun';
+      klccLiftCountdown.textContent = 'STOP';
+      klccLiftDown.hidden = false;
+      klccLiftDown.disabled = false;
+    } else {
+      klccLiftPhase.textContent = ride.direction === 'up' ? 'Sedang naik ke rooftop' : 'Sedang turun ke bawah';
+      klccLiftCountdown.textContent = `${remaining}s`;
+      klccLiftDown.hidden = true;
+      klccLiftDown.disabled = true;
+    }
+  }
+  klccLiftDown.onclick = () => {
+    const ride = klccLiftRide;
+    if (ride?.phase === 'top') startKlccLift(ride.lift, 'down');
+  };
   // The Game Master floats, wings out, over a turning seal. Gated on the server's
   // gameMaster flag, which only the Game Master account carries.
   let isGm = false;
@@ -492,7 +523,9 @@ async function init() {
     lift.cabin.position.y = y;
   }
   function startKlccLift(lift: KlccLift, direction: 'up' | 'down') {
-    if (klccLiftRide || riding || seated || lrtId != null) return;
+    // A completed upward trip remains in `top` until the player asks to go down.
+    // Blocking every non-null ride made the downward action silently do nothing.
+    if (klccLiftRide?.phase === 'moving' || riding || seated || lrtId != null) return;
     const from = direction === 'up' ? 0 : lift.topY;
     klccLiftRide = {lift, direction, elapsed: 0, phase: 'moving'};
     pos.set(lift.x, .12, lift.z); deckY = from; onBridge = false;
@@ -500,12 +533,13 @@ async function init() {
     player.group.visible = true; bike.rider.visible = false; car.driver.visible = false;
     player.group.position.set(pos.x, deckY + .12, pos.z);
     jumpHeight = 0; jumpVelocity = 0; walkSpeed = 0; keys.clear(); resetStick();
+    renderKlccLiftStatus();
     toast('Lif KLCC', direction === 'up' ? 'Naik perlahan ke rooftop KLCC…' : 'Turun perlahan ke bawah…', 4);
   }
   function updateKlccLift(dt: number) {
     const ride = klccLiftRide;
-    if (!ride || ride.phase !== 'moving') return;
-    const duration = reducedMotion ? .35 : 16;
+    if (!ride || ride.phase !== 'moving') { renderKlccLiftStatus(); return; }
+    const duration = reducedMotion ? .35 : KLCC_LIFT_TRAVEL_SECONDS;
     ride.elapsed = Math.min(duration, ride.elapsed + dt);
     const progress = ride.elapsed / duration;
     const eased = reducedMotion ? progress : cubicBezier(progress, .77, 0, .175, 1);
@@ -514,13 +548,16 @@ async function init() {
     deckY = THREE.MathUtils.lerp(from, to, eased);
     setKlccLiftHeight(ride.lift, deckY);
     player.group.position.set(pos.x, deckY + .12, pos.z);
+    renderKlccLiftStatus();
     if (progress < 1) return;
     if (ride.direction === 'up') {
       deckY = ride.lift.topY; ride.phase = 'top';
+      renderKlccLiftStatus();
       toast('Sampai rooftop KLCC', 'Jalan sikit atas platform, atau tekan Turun lif KLCC.', 5);
     } else {
       setKlccLiftHeight(ride.lift, 0); deckY = 0; klccLiftRide = null;
       player.group.position.set(pos.x, .12, pos.z);
+      renderKlccLiftStatus();
       toast('Sampai bawah', 'Jom sambung jalan.', 3);
     }
   }
@@ -1110,7 +1147,7 @@ async function init() {
     locationArrival.reset();
     saveLocation();danceAudio.stop();localSupermanUntil=0;
     if (klccLiftRide) setKlccLiftHeight(klccLiftRide.lift, 0);
-    klccLiftRide = null; deckY = 0; onBridge = false; player.group.position.set(pos.x, .12, pos.z);
+    klccLiftRide = null; renderKlccLiftStatus(); deckY = 0; onBridge = false; player.group.position.set(pos.x, .12, pos.z);
     park.disconnect();
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
@@ -1147,6 +1184,7 @@ async function init() {
   function sitPose(person: ReturnType<typeof createPerson>) { person.leftLeg.rotation.x = person.rightLeg.rotation.x = -Math.PI / 2; person.leftArm.rotation.x = person.rightArm.rotation.x = -.35; }
   function objectAction() {
     if(lrtId!=null || park.active || klccLiftRide?.phase === 'moving')return null;
+    if (klccLiftRide?.phase === 'top') return { point: klccLiftRide.lift, height: deckY + 2.6, label: 'Turun lif KLCC', disabled: false };
     if (passengerOf || riding) return { point: pos, height: 2, label: Math.abs(speed) < 1.5 ? 'Get out' : 'Wait until stopped', disabled: Math.abs(speed) >= 1.5 };
     if (beachResting && beachRestSpot) return { point: beachRestSpot, height: beachRestSpot.height + 1.15, label: 'Bangun', disabled: false };
     if (seated) return { point: pos, height: 1.3, label: 'Stand', disabled: false };
@@ -1184,6 +1222,7 @@ async function init() {
     if(lrtId!=null)return;
     if (!started || paused || park.active || klccLiftRide?.phase === 'moving' || isDancing() || tableSocial.opened) return;
     if (jumpHeight > 0 || jumpVelocity > 0) return;
+    if (klccLiftRide?.phase === 'top') { startKlccLift(klccLiftRide.lift, 'down'); return; }
     if (beachResting && beachRestSpot) {
       const exit = beach.exitSpot(beachRestSpot);
       beachResting = null; beachRestSpot = null; beachRestPose(player, null);
@@ -1934,7 +1973,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
