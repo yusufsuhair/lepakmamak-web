@@ -158,6 +158,20 @@ export function createTableLobby(send, games, now = Date.now) {
       }
       if (message.type === 'lobby-leave') { drop(players, player, lobby); return true; }
       if (message.type === 'lobby-rematch') {
+        // Lukis already owns a safe, player-driven `lukis-start` action. Sending it
+        // through the generic lobby reset made every seated client receive `lobby: null`
+        // for the game view, so one person's Main lagi looked like the whole table had
+        // been kicked out. Keep the table lobby playing and let Lukis replace only its
+        // finished round. Its own handler ignores the request while a round is active.
+        if (lobby.game === 'lukis' && lobby.phase === 'playing' && typeof games.lukis?.handle === 'function') {
+          games.lukis.handle(players, player, {type: 'lukis-start', version: 2});
+          return true;
+        }
+        // Werewolf keeps its roster after the village reaches `finished`. Resetting only
+        // this lobby would send the next countdown back into that same role deal, because
+        // werewolf-start quite correctly refuses to start a finished village. Replace the
+        // private game before opening the next lobby.
+        if (lobby.game === 'werewolf' && typeof games.werewolf?.rematch === 'function' && lobby.phase === 'playing' && !games.werewolf.rematch(players, player)) return true;
         lobby.phase = 'lobby'; lobby.ends = 0;
         for (const member of lobby.members) member.ready = false;
         settle(players, lobby);

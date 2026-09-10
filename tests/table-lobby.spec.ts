@@ -120,19 +120,23 @@ test('a reaction reaches the table and nobody else',()=>{
  expect(sent.filter(m=>m.type==='lobby-react')).toHaveLength(2);
 });
 
-test('a finished game can be run back without leaving the table',()=>{
+test('Lukis Main lagi starts a fresh round without leaving the table',()=>{
  const [a,b]=seatsAt('meja-1');
  const {lobby,players,seat,state,started,tick}=rig();
  const ali=seat('ali',a), mei=seat('mei',b);
  for(const p of [ali,mei]){lobby.handle(players,p,{type:'lobby-join',game:'lukis'});lobby.handle(players,p,{type:'lobby-ready',ready:true});}
  tick(COUNTDOWN+50);
- expect(state('ali').phase).toBe('playing');
+  expect(state('ali').phase).toBe('playing');
 
- lobby.handle(players,ali,{type:'lobby-rematch'});
- // Everyone is back in the lobby, nobody is pre-readied, and the game has not restarted.
- expect(state('ali').phase).toBe('lobby');
- expect(state('ali').members.every((m:any)=>!m.ready)).toBe(true);
- expect(started).toHaveLength(1);
+  lobby.handle(players,ali,{type:'lobby-rematch'});
+ // The game-specific bridge handles Lukis rematches. The table stays in play and the
+ // current roster is not thrown back into SEDIA for everyone else.
+ expect(state('ali').phase).toBe('playing');
+ expect(state('ali').members.every((m:any)=>m.ready)).toBe(true);
+ expect(started).toEqual([
+  {game:'lukis',by:'ali',type:'lukis-start'},
+  {game:'lukis',by:'ali',type:'lukis-start'},
+ ]);
 });
 
 test('an idle lobby stops talking instead of pushing state twenty times a second',()=>{

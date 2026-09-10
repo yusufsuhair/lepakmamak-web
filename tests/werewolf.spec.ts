@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {createWerewolf,WEREWOLF_TIMES} from '../server/werewolf.mjs';
+import {createTableLobby,COUNTDOWN} from '../server/table-lobby.mjs';
 import chairs from '../shared/chairs.json' with {type:'json'};
 function fixture(size=7){let time=100000;const events:any[]=[];const ps=new Map<string,any>(Array.from({length:size},(_,i)=>[String(i),{id:String(i),userId:`user-${i}`,name:`Player ${i}`,chairId:chairs[i].id,ws:String(i)}]));const engine=createWerewolf((ws:any,m:any)=>events.push({ws,...structuredClone(m)}),()=>time,(n:number)=>n-1);const p=(i:number)=>ps.get(String(i));const state=(i:number)=>events.filter(e=>e.ws===String(i)&&e.type==='werewolf-state').at(-1).game;const send=(i:number,m:any)=>engine.handle(ps,p(i),m);send(0,{type:'werewolf-join'});if(size!==7)send(0,{type:'werewolf-size',size});for(let i=1;i<size;i++)send(i,{type:'werewolf-join'});send(0,{type:'werewolf-start'});return{ps,events,engine,p,state,send,act(i:number,target:string){const s=state(i);send(i,{type:'werewolf-action',gameId:s.id,revision:s.revision,target});},step(ms:number){time+=ms;engine.tick(ps);}};}
 test('secret cards, spectator privacy, doctor protection and seer results',()=>{
@@ -21,6 +22,32 @@ test('ties skip trial, evil parity ends game and host can create a fresh lobby',
 });
 test('rejoining by account restores role and ghosts cannot leak messages into live chat',()=>{
  const f=fixture();const original=f.p(4);f.ps.delete('4');f.step(1000);const reconnected={...original,id:'new-4'};f.ps.set('4',reconnected);f.step(1000);f.send(4,{type:'werewolf-open'});expect(f.state(4).role).toBe('villager');expect(f.state(4).players.find((p:any)=>p.id==='user-4').alive).toBe(true);f.send(4,{type:'werewolf-leave'});f.send(4,{type:'werewolf-chat',text:'ghost only secret'});expect(JSON.stringify(f.state(0))).not.toContain('ghost only secret');expect(JSON.stringify(f.state(4))).toContain('ghost only secret');f.send(0,{type:'werewolf-chat',text:'wolf only secret'});expect(JSON.stringify(f.state(4))).not.toContain('wolf only secret');
+});
+test('the table rematch deals a fresh village instead of reusing finished roles',()=>{
+ let time=100000;const events:any[]=[];
+ const seats=chairs.filter(c=>c.tableId).slice(0,7);
+ const ps=new Map<string,any>(seats.map((chair,i)=>[String(i),{id:String(i),userId:`rematch-${i}`,name:`Player ${i}`,chairId:chair.id,ws:String(i)}]));
+ const engine=createWerewolf((ws:any,m:any)=>events.push({ws,...structuredClone(m)}),()=>time,(n:number)=>n-1);
+ const lobby=createTableLobby((ws:any,m:any)=>events.push({ws,...structuredClone(m)}),{werewolf:engine},()=>time);
+ const send=(i:number,m:any)=>lobby.handle(ps,ps.get(String(i)),m);
+ for(let i=0;i<7;i++){send(i,{type:'lobby-join',game:'werewolf'});send(i,{type:'lobby-ready',ready:true});}
+ time+=COUNTDOWN+1;lobby.tick(ps);
+ const first=events.filter(e=>e.type==='werewolf-state'&&e.ws==='0').at(-1).game;
+ expect(first.phase).toBe('night');
+ const firstRoles=Object.fromEntries(first.players.map((p:any)=>[p.id,p.role]));
+ // The rematch bridge is only meant for a completed village. Leaving the members one by
+ // one is the same authoritative path as a real disconnect/leave and quickly reaches a
+ // finished result without reaching into Werewolf's private room state.
+ for(let i=0;i<7;i++)engine.handle(ps,ps.get(String(i)),{type:'werewolf-leave'});
+ expect(events.filter(e=>e.type==='werewolf-state'&&e.ws==='0').at(-1).game.phase).toBe('finished');
+ send(0,{type:'lobby-rematch'});
+ const reset=events.filter(e=>e.type==='werewolf-state'&&e.ws==='0').at(-1).game;
+ expect(reset.phase).toBe('lobby');expect(reset.players).toEqual([]);expect(reset.id).not.toBe(first.id);
+ for(let i=0;i<7;i++)send(i,{type:'lobby-ready',ready:true});
+ time+=COUNTDOWN+1;lobby.tick(ps);
+ const second=events.filter(e=>e.type==='werewolf-state'&&e.ws==='0').at(-1).game;
+ expect(second.phase).toBe('night');expect(second.id).not.toBe(first.id);
+ expect(second.players.map((p:any)=>p.role).sort()).toEqual(Object.values(firstRoles).sort());
 });
 test('mobile Werewolf card opens and untrusted names remain plain text',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.waitForTimeout(300);await page.evaluate(async()=>{document.querySelectorAll('#table-social').forEach(e=>e.remove());const{setupTableSocial}=await import('/src/table-social.ts');const ui=(window as any).ui=setupTableSocial(()=>true,'test',()=>{},()=>{});ui.state([{id:'meja-1',name:'Meja 1',capacity:3,occupants:[{id:'a',name:'A',chairId:'chair-0'}]}],'a',true);ui.werewolf({id:'test',phase:'lobby',revision:0,day:0,ends:0,serverTime:Date.now(),size:7,host:'a',self:'a',players:[{id:'a',name:'<img src=x>',alive:true,online:true,role:null}],role:null,log:[],chat:[]});ui.open('meja-1');});
