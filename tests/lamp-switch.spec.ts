@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {nearestLamp,LAMP_REACH} from '../src/lamps';
 
 test('each lamp keeps its own state, and only the one you touch changes',async({page})=>{
  await page.route('**/lamp-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
@@ -86,8 +87,42 @@ test('walking up to a lamp offers the switch, and it is not in the HUD',async({p
 
  const prompt=page.locator('#interaction-text');
  await expect(prompt).toHaveText(/Turn (on|off)/,{timeout:15000});
+ // toHaveText passes on a hidden element, and the prompt hides itself when its anchor
+ // leaves the viewport, so the button has to be asserted visible in its own right.
+ await expect(page.locator('#interaction')).toBeVisible();
+
+ // Lamps stand on the kerb of the roads, and a traffic car counts as near from 4.8m out.
+ // Standing at the post, the prompt has to stay the lamp's rather than flicking to Cilok
+ // every time something drives past.
+ for(let sample=0;sample<12;sample++){
+  await expect(prompt).toHaveText(/Turn (on|off)/);
+  await page.waitForTimeout(250);
+ }
  const before=await prompt.textContent();
  await page.locator('#interaction').click();
  // Offline the flip is local, online the server answers; either way the lamp changes.
  await expect(prompt).not.toHaveText(before!,{timeout:10000});
+});
+
+// "All lamps" has to mean all of them, so this asks the question of every lamp rather than
+// of whichever one happens to be nearest the spawn point.
+test('every lamp in the city can be reached, and none of them reaches further than the rest',async({page})=>{
+ await page.route('**/reach-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
+ await page.goto('/reach-harness');
+ const lamps=await page.evaluate(async()=>{
+  const THREE=await import('/node_modules/three/build/three.module.js');
+  const {createStreetLights}=await import('/src/world.ts');
+  return createStreetLights(new (THREE as any).Scene()).lamps.map((lamp:any)=>({x:lamp.x,z:lamp.z}));
+ });
+ expect(lamps.length).toBeGreaterThan(40);
+
+ for(const [index,lamp] of lamps.entries()){
+  // Standing on top of it, a step away, and at the edge of reach.
+  expect(nearestLamp(lamps,lamp.x,lamp.z)).toBe(index);
+  expect(nearestLamp(lamps,lamp.x+1,lamp.z)).toBe(index);
+  expect(nearestLamp(lamps,lamp.x,lamp.z+LAMP_REACH-.2)).toBe(index);
+ }
+ // Out of reach is nothing at all, not the next lamp down the street.
+ const far=lamps.reduce((a:any,b:any)=>a.z<b.z?a:b);
+ expect(nearestLamp(lamps,far.x,far.z-LAMP_REACH-1)).toBe(-1);
 });

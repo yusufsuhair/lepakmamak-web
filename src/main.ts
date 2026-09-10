@@ -40,6 +40,7 @@ import { version as appVersion } from '../package.json';
 import * as THREE from 'three';
 import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,passengerPoint,railHeight,arrivalIn} from '../shared/lrt.mjs';
+import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
@@ -146,14 +147,7 @@ async function init() {
   const streetLights = createStreetLights(scene, world.solids);
   // Night only decides the default: each lamp carries its own answer once somebody walks
   // up and flips it, and that answer is shared with everyone in the room.
-  const lampNear = () => {
-    let best = -1, closest = 3.4;
-    streetLights.lamps.forEach((lamp, index) => {
-      const away = Math.hypot(pos.x - lamp.x, pos.z - lamp.z);
-      if (away < closest) { closest = away; best = index; }
-    });
-    return best;
-  };
+  const lampNear = () => nearestLamp(streetLights.lamps, pos.x, pos.z);
   function flipLamp(index: number) {
     const on = !streetLights.lit(index);
     // Solo play still gets the switch; online it is the server that tells everybody.
@@ -980,13 +974,19 @@ async function init() {
     if (chair) return { point: chair, height: 1.3, label: chairOccupied(chair.id) ? 'Occupied' : 'Sit', disabled: chairOccupied(chair.id) };
     const station=lrtStations.find(s=>distanceTo(s)<5);
     if(station){const train=[0,1].find(id=>{const t=trainState(id,lrtNow());return t.doors&&lrtStations[t.station]?.id===station.id;});return{point:station,height:2,label:train!=null?'Naik LRT':`LRT ${station.name} · ${arrivalIn(lrtStations.indexOf(station),lrtNow())}s`,disabled:train==null||!networkConnected};}
-    const trafficCar=nearbyCar();
-    if(trafficCar)return {carId:trafficCar.id,point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
-    const vehiclePoint = distanceTo(personalCar.group.position) < distanceTo(bike.group.position) ? personalCar.group.position : bike.group.position;
-    if (distanceTo(vehiclePoint) < 3.8) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
-    // Lamps come last, so walking past one never steals the prompt from a chair or a car.
+    // Lamps stand on the kerb of the roads the traffic drives down, and a car counts as
+    // near from 4.8m away. Last place meant a passing car took the prompt off every lamp
+    // in the city, so from here on it is whichever is actually closer that wins.
     const lamp = lampNear();
-    if (lamp >= 0) return { point: streetLights.lamps[lamp], height: 5.7, label: streetLights.lit(lamp) ? 'Turn off' : 'Turn on', disabled: false };
+    const lampAway = lamp >= 0 ? distanceTo(streetLights.lamps[lamp]) : Infinity;
+    // Anchored on the post rather than the lamp head, which is off the top of the screen
+    // by the time you are close enough to reach it.
+    const lampAction = () => ({index: lamp, point: streetLights.lamps[lamp], height: 2.2, label: streetLights.lit(lamp) ? 'Turn off' : 'Turn on', disabled: false});
+    const trafficCar=nearbyCar();
+    if(trafficCar&&distanceTo(trafficCar)<=lampAway)return {carId:trafficCar.id,point:trafficCar.group.position,height:2.4,label:performance.now()<claimPendingUntil?'Wait…':trafficCar.npc?'Cilok':'Enter',disabled:!networkConnected||performance.now()<claimPendingUntil};
+    const vehiclePoint = distanceTo(personalCar.group.position) < distanceTo(bike.group.position) ? personalCar.group.position : bike.group.position;
+    if (distanceTo(vehiclePoint) < 3.8 && distanceTo(vehiclePoint) <= lampAway) return { point: vehiclePoint, height: 1.8, label: 'Enter', disabled: false };
+    if (lamp >= 0) return lampAction();
     return null;
   }
   function interact() {
@@ -1007,12 +1007,14 @@ async function init() {
       if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
       riding = false; localSupermanUntil=0; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; car.driver.visible = false; return;
     }
+    // objectAction already worked out which of the car, the vehicle and the lamp is nearest,
+    // so the click follows the prompt instead of deciding again and disagreeing with it.
+    const showing = objectAction();
+    if (showing && 'index' in showing) { flipLamp(showing.index); return; }
     const trafficCar=nearbyCar();
     if(trafficCar){claimCar(trafficCar.id);return;}
     if (distanceTo(personalCar.group.position) < 3.8 && distanceTo(personalCar.group.position) < distanceTo(bike.group.position)) { car=personalCar;fleetId=null;localSupermanUntil=0; vehicle = 'car'; riding = true; player.group.visible = false; car.driver.visible = true; pos.copy(car.group.position); yaw = car.group.rotation.y; speed = 0; orbit = 0; chime(); return; }
-    if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); return; }
-    const lamp = lampNear();
-    if (lamp >= 0) flipLamp(lamp);
+    if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('interaction').onclick = () => { const id=pressedCarId||$('interaction').dataset.carId;pressedCarId=null;interactionPressUntil=0;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
