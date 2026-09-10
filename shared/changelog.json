@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.26.0",
+  "date": "2026-09-10",
+  "title": "Butang atas kanan jadi satu pada telefon",
+  "notes": [
+   "On a phone, the buttons in the top right corner now live behind one ⋮ button. Tap it and they drop down underneath; tap anything, or anywhere else, and it folds away again. On a bigger screen the row stays as it was."
+  ]
+ },
+ {
   "version": "1.25.0",
   "date": "2026-09-10",
   "title": "Chat tunjuk siapa di mana",
