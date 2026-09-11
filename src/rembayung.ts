@@ -4,12 +4,14 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import type {Solid} from './physics';
 import {REMBAYUNG, rembayungSolids} from './rembayung-layout';
+import {cdnUrl} from './cdn';
 
 export interface RembayungSite {
   group:THREE.Group;
   fallback:THREE.Group;
-  ready:Promise<void>;
-  status:{state:'loading'|'ready'|'fallback';batches:number;triangles:number};
+  /** Starts the download on the first call; until it resolves the fallback and the layout's collisions serve. */
+  load():Promise<void>;
+  status:{state:'idle'|'loading'|'ready'|'fallback';batches:number;triangles:number};
 }
 
 function proceduralFallback():THREE.Group {
@@ -66,7 +68,8 @@ function proceduralFallback():THREE.Group {
     child.geometry.dispose();group.remove(child);
   }
   for(const [mat,geos] of batches){const merged=mergeGeometries(geos);if(merged)group.add(new THREE.Mesh(merged,mat));geos.forEach(g=>g.dispose());}
-  const wordmark=new THREE.TextureLoader().load('/rembayung-wordmark.png');wordmark.colorSpace=THREE.SRGBColorSpace;
+  // WebP of the same artwork (~50 dB PSNR composited); the PNG stays as the Blender build's source.
+  const wordmark=new THREE.TextureLoader().load('/rembayung-wordmark.webp');wordmark.colorSpace=THREE.SRGBColorSpace;
   const logo=new THREE.Mesh(new THREE.PlaneGeometry(11,11/3),new THREE.MeshBasicMaterial({map:wordmark,transparent:true,alphaTest:.05,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
   logo.position.set(0,8.733,.25);group.add(logo);
   return group;
@@ -85,8 +88,9 @@ export function createRembayung(scene:THREE.Scene,solids:Solid[]):RembayungSite 
   scene.add(group);
   const fallback=proceduralFallback();group.add(fallback);
   solids.push(...rembayungSolids());
-  const status:RembayungSite['status']={state:'loading',batches:0,triangles:0};
-  const ready=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(REMBAYUNG.asset).then(gltf=>{
+  const status:RembayungSite['status']={state:'idle',batches:0,triangles:0};
+  let ready:Promise<void>|undefined;
+  const load=()=>{if(ready)return ready;status.state='loading';return ready=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Rembayung.glb')).then(gltf=>{
     const asset=gltf.scene;asset.name='LM_ENV_Rembayung';
     asset.updateMatrixWorld(true);
     const instances=new Map<string,THREE.Mesh[]>();
@@ -113,6 +117,6 @@ export function createRembayung(scene:THREE.Scene,solids:Solid[]):RembayungSite 
     });
     if(!status.batches)throw new Error('Empty Rembayung GLB');
     asset.userData.source='blender-glb';group.add(asset);fallback.visible=false;fallback.removeFromParent();dispose(fallback);status.state='ready';
-  }).catch(error=>{status.state='fallback';console.warn('[Rembayung] Keeping playable fallback; asset unavailable',error);});
-  return {group,fallback,ready,status};
+  }).catch(error=>{status.state='fallback';console.warn('[Rembayung] Keeping playable fallback; asset unavailable',error);});};
+  return {group,fallback,load,status};
 }

@@ -24,12 +24,14 @@ test('city replacement preserves pump islands, shop collision, busker frontage a
   await page.goto('/petronas-preview.html');
   const result=await page.evaluate(async()=>{
     const THREE=await import('/node_modules/three/build/three.module.js');const {createWorld}=await import('/src/world.ts');const {moveWithCollisions,overlaps}=await import('/src/physics.ts');
-    const world=createWorld(new THREE.Scene());await world.petronas.ready;
+    // Collisions come from the procedural station, so they are checked before the model is even requested.
+    const world=createWorld(new THREE.Scene());const idle=world.petronas.status.state;
     const checks=[[-42,103,5.5,2.25],[-31,103,5.5,2.25],[-20,103,5.5,2.25],[-31,130,36,14],[-8,88,3.8,1.1]].map(([x,z,w,d])=>world.solids.some(s=>s.x===x&&s.z===z&&s.hx===w/2&&s.hz===d/2));
+    await world.petronas.load();
     const pos={x:-36.5,z:94};moveWithCollisions(pos,0,24,.46,world.solids);
-    return {status:world.petronas.status,fallback:world.petronas.fallback.visible,checks,driveZ:pos.z,arrivalBlocked:world.solids.some(s=>overlaps({x:-31,z:112},.46,s))};
+    return {idle,status:world.petronas.status,fallback:world.petronas.fallback.visible,checks,driveZ:pos.z,arrivalBlocked:world.solids.some(s=>overlaps({x:-31,z:112},.46,s))};
   });
-  expect(result.status.state).toBe('ready');expect(result.fallback).toBe(false);expect(result.checks.every(Boolean)).toBe(true);expect(result.driveZ).toBeCloseTo(118);expect(result.arrivalBlocked).toBe(false);
+  expect(result.idle).toBe('idle');expect(result.status.state).toBe('ready');expect(result.fallback).toBe(false);expect(result.checks.every(Boolean)).toBe(true);expect(result.driveZ).toBeCloseTo(118);expect(result.arrivalBlocked).toBe(false);
 });
 
 test('failed station download retains the existing complete forecourt',async({page})=>{

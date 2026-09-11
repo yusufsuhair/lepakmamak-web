@@ -26,9 +26,11 @@ const FOLDERS = {'.mp3': 'audio', '.glb': 'models'};
 // not compress model/gltf-binary on its own. Audio is already entropy-coded.
 const ENCODINGS = {'.glb': 'br'};
 /** Paths under public/. Only assets the game still loads belong here. */
-export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3'];
+export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3',
+  'assets/models/environment/LM_ENV_MamakMaju_Realism.glb', 'assets/models/environment/LM_ENV_Petronas.glb', 'assets/models/environment/LM_ENV_Rembayung.glb'];
 
 const md5 = body => createHash('md5').update(body).digest('hex');
+const sha256 = body => createHash('sha256').update(body).digest('hex');
 
 /** Immutable object key for a source file: its content and stored encoding decide the name. */
 export function keyFor(file) {
@@ -42,7 +44,7 @@ function bodyFor(file) {
 }
 
 // A fresh query string skips the edge cache, so this reads what R2 actually holds.
-const head = key => fetch(`${BASE}${key}?verify=${Date.now()}`, {method: 'HEAD', headers: {Origin: ORIGIN}});
+const head = key => fetch(`${BASE}${key}?verify=${Date.now()}`, {method: 'HEAD', headers: {Origin: ORIGIN, 'Accept-Encoding': 'br, gzip'}});
 
 /** Everything a browser relies on: bytes, MIME, immutable caching, CORS, and ranges for audio. */
 async function verify(file, entry) {
@@ -58,6 +60,11 @@ async function verify(file, entry) {
     await range.arrayBuffer();
     if (range.status !== 206 || range.headers.get('content-range') !== `bytes 0-1/${entry.bytes}`) problems.push(`range answered ${range.status} ${range.headers.get('content-range')}`);
     if (range.headers.get('access-control-allow-origin') !== ORIGIN) problems.push(`cached CORS is ${range.headers.get('access-control-allow-origin')}`);
+  } else {
+    // What a browser gets at the public URL must decode to exactly the public/ original.
+    const res = await fetch(BASE + entry.key, {headers: {Origin: ORIGIN}}), decoded = Buffer.from(await res.arrayBuffer());
+    if (sha256(decoded) !== sha256(readFileSync(join('public', file)))) problems.push(`decoded ${decoded.length} bytes differ from public/${file}`);
+    if (res.headers.get('access-control-allow-origin') !== ORIGIN) problems.push(`cached CORS is ${res.headers.get('access-control-allow-origin')}`);
   }
   return problems;
 }

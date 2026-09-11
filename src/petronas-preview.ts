@@ -24,5 +24,5 @@ function view(name:string){
 document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view!));document.querySelector<HTMLButtonElement>('#night')!.onclick=()=>setNight(!night);
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}window.addEventListener('resize',resize);resize();setNight(false);view('hero');
 function frame(){controls.update();renderer.render(scene,camera);requestAnimationFrame(frame);}requestAnimationFrame(frame);
-void site.ready.then(()=>{document.querySelector('#status')!.textContent=site.status.state==='ready'?'Model Blender · enam pam · material PBR':'Model tidak dapat dimuatkan';});
+void site.load().then(()=>{document.querySelector('#status')!.textContent=site.status.state==='ready'?'Model Blender · enam pam · material PBR':'Model tidak dapat dimuatkan';});
 Object.assign(window,{__petronasPreview:{view,setNight,state:()=>({...site.status,drawCalls:renderer.info.render.calls,trianglesRendered:renderer.info.render.triangles,night})}});

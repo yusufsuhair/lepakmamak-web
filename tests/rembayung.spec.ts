@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
+import {enterAt} from './city';
 
 test('deployed CSP permits the model decoder without enabling JavaScript eval',async({page})=>{
   const policy=readFileSync('public/_headers','utf8').match(/Content-Security-Policy: (.*)/)![1];
@@ -42,8 +43,8 @@ test('city placement, entrance, aisle and stairs form an unobstructed route',asy
     const {createWorld}=await import('/src/world.ts');
     const {rembayungPoint,rembayungGroundHeight}=await import('/src/rembayung-layout.ts');
     const {overlaps,moveWithCollisions}=await import('/src/physics.ts');
-    const world=createWorld({add(){}} as any);
-    await world.rembayung.ready;
+    // Walked before the model is even requested: every collision is the layout's, not the GLB's.
+    const world=createWorld({add(){}} as any);const idle=world.rembayung.status.state;
     const pos=rembayungPoint(0,-3),legs:any[]=[];
     for(const [x,d] of [[0,3.2],[3.8,3.2],[3.8,26.8],[7.85,26.8],[7.85,28.35],[-2.65,28.35],[-2.65,30.1]]){
       const target=rembayungPoint(x,d);moveWithCollisions(pos,target.x-pos.x,target.z-pos.z,.46,world.solids);
@@ -51,8 +52,9 @@ test('city placement, entrance, aisle and stairs form an unobstructed route',asy
     }
     const wall=rembayungPoint(5,-2),target=rembayungPoint(5,2);moveWithCollisions(wall,target.x-wall.x,target.z-wall.z,.46,world.solids);
     const clear=[[-116,119],[-109,130],[-122,134],[-122,142],[-136,78]].map(([x,z])=>!world.solids.some(s=>s.id?.startsWith('rembayung-')&&overlaps({x,z},1,s)));
-    return {legs,wallZ:wall.z,clear,oldBlock:world.solids.some(s=>s.x===-121&&s.z===101&&s.hx===15&&s.hz===11)};
+    return {idle,legs,wallZ:wall.z,clear,oldBlock:world.solids.some(s=>s.x===-121&&s.z===101&&s.hx===15&&s.hz===11)};
   });
+  expect(report.idle).toBe('idle');
   for(const leg of report.legs)expect(leg.error,JSON.stringify(leg)).toBeLessThan(.03);
   expect(report.legs.at(-1).height).toBeCloseTo(4.06,2);
   expect(report.wallZ).toBeGreaterThan(125);expect(report.clear.every(Boolean)).toBe(true);expect(report.oldBlock).toBe(false);
@@ -67,6 +69,14 @@ test('failed asset keeps a visible, walkable fallback',async({page})=>{
   await expect.poll(()=>page.evaluate(()=>(window as any).__rembayungPreview.state().position.z),{timeout:10000}).toBeLessThan(123);
   await page.keyboard.up('KeyW');
   expect(await page.evaluate(()=>(window as any).__rembayungPreview.state().fallbackVisible)).toBe(true);
+});
+
+test('the city requests the detailed model only on approach and keeps the fallback meanwhile',async({page})=>{
+  const requests:string[]=[];page.on('request',r=>{if(r.url().includes('LM_ENV_Rembayung'))requests.push(r.url());});
+  const moveTo=await enterAt(page,-18,52);const state=()=>page.evaluate(()=>(window as any).__lepakRembayung);
+  await page.waitForTimeout(3000);expect(requests).toEqual([]);expect(await state()).toMatchObject({state:'idle',fallbackVisible:true});
+  moveTo(-116,119);await expect.poll(async()=>(await state()).state,{timeout:45000}).toBe('ready');
+  expect(requests).toHaveLength(1);expect((await state()).fallbackVisible).toBe(false);
 });
 
 test('mobile preview loads and its touch movement enters the building',async({page},info)=>{

@@ -3,8 +3,10 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {disposeWebAsset,loadWebAsset} from './web-assets';
+import {cdnUrl} from './cdn';
 
-export const MAMAK_REALISM_URL='/assets/models/environment/LM_ENV_MamakMaju_Realism.glb?v=dining-v7-4-seat-metadata';
+// Spawn is beside the Mamak, so this one loads at entry; the V7 baseline stays on Pages as its fallback.
+export const MAMAK_REALISM_URL=cdnUrl('assets/models/environment/LM_ENV_MamakMaju_Realism.glb');
 export const mamakRealismStatus={state:'loading' as 'loading'|'ready'|'baseline'|'fallback',triangles:0,draws:0,textures:0};
 
 /** Validate all decoded images before the existing Mamak fallback can be hidden. */

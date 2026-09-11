@@ -19,7 +19,7 @@ scene.add(sun,sun.target);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(70,90),new THREE.MeshStandardMaterial({color:'#b7aa91',roughness:.95}));floor.rotation.x=-Math.PI/2;floor.position.set(-130,0,111);floor.receiveShadow=true;scene.add(floor);
 const camera=new THREE.PerspectiveCamera(53,innerWidth/innerHeight,.05,300);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxDistance=70;controls.minDistance=.4;controls.maxPolarAngle=Math.PI*.495;
-const solids:Solid[]=[];const site=createRembayung(scene,solids);
+const solids:Solid[]=[];const site=createRembayung(scene,solids);void site.load();
 const keys=new Set<string>();let walking=false,yaw=Math.PI,pitch=0,last=performance.now();const pos=rembayungPoint(0,-3);
 function view(name:string){
   walking=name==='walk';controls.enabled=!walking;document.body.classList.toggle('walk',walking);keys.clear();
