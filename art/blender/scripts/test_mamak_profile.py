@@ -9,7 +9,7 @@ from lm_pipeline import ROOT, validate_scene, export_collection, sha256, write_j
 from mamak_polish import PROFILE, COUNTER
 
 parser=argparse.ArgumentParser()
-parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v6")
+parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v7")
 args=parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
 source=args.generated/"source/LM_ENV_MamakMaju.blend"
 before=sha256(source)
@@ -49,6 +49,24 @@ festoon=bpy.data.objects['LM_ENV_MamakMaju_Festoon']
 for label in ('FestoonPole','FestoonCable','FestoonBulb'):
     assert any(g.name.endswith('_'+label) for g in festoon.vertex_groups), label
 checks.append({'test':'version and required authored frontage/atmosphere parts','passed':True})
+if PROFILE['version']>=7:
+    color=site.data.color_attributes.get('LM_Baked_Occlusion')
+    assert color and max(c.color[0] for c in color.data)-min(c.color[0] for c in color.data)>.1
+    assert all(.579<=v<=1.001 for c in color.data for v in c.color)
+    assert site['lm_vertex_bake']=='cycles-ao-1.25m-v1'
+    checks.append({'test':'portable Cycles vertex bake has bounded nonflat linear occlusion','passed':True})
+    labels=('TeaSaucer','TeaSurface','MugHandleRail','MugHandleOuter','DhalBowl','DhalSurface','Spoon','RotiFold','TissueBox','TableMenu','MenuPrint','SharingPlate','SharingRoti')
+    tables=__import__('json').loads(site['lm_tables_json'])
+    for label in labels:
+        groups=[g for g in site.vertex_groups if g.name.endswith('_'+label)]
+        assert groups,label
+        for group in groups:
+            verts=[v.co for v in site.data.vertices if any(g.group==group.index for g in v.groups)]
+            center=sum(verts,__import__('mathutils').Vector())/len(verts)
+            t=min(tables,key=lambda t:(center.x-29-t['x'])**2+(30-center.y-t['z'])**2)
+            radius=1.95 if t['id']=='meja-9' else 1.14
+            assert all((v.x-29-t['x'])**2+(30-v.y-t['z'])**2<(radius-.08)**2 and 1.14<v.z<1.65 for v in verts),label
+    checks.append({'test':'table details remain on physical tabletops and clear playable seats','passed':True})
 festoon_ids={g.index for g in festoon.vertex_groups if g.name.endswith(('_FestoonCable','_FestoonBulb'))}
 festoon_vertices=[v for v in festoon.data.vertices if any(g.group in festoon_ids for g in v.groups)]
 assert festoon_vertices and min(v.co.z for v in festoon_vertices) > 4.45

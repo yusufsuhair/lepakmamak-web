@@ -1,10 +1,10 @@
 {
-  "triangles": 134900,
+  "triangles": 139856,
   "draws": 18,
   "textures": 6,
-  "rawBytes": 10240212,
-  "webBytes": 6688140,
-  "streams": 78,
+  "rawBytes": 10142372,
+  "webBytes": 6614512,
+  "streams": 71,
   "losslessDecode": "PASS",
   "khronosErrors": 0,
   "khronosWarnings": 0

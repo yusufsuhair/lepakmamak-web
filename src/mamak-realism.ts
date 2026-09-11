@@ -4,7 +4,7 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {disposeWebAsset,loadWebAsset} from './web-assets';
 
-export const MAMAK_REALISM_URL='/assets/models/environment/LM_ENV_MamakMaju_Realism.glb?v=dining-1';
+export const MAMAK_REALISM_URL='/assets/models/environment/LM_ENV_MamakMaju_Realism.glb?v=dining-v7-2';
 export const mamakRealismStatus={state:'loading' as 'loading'|'ready'|'baseline'|'fallback',triangles:0,draws:0,textures:0};
 
 /** Validate all decoded images before the existing Mamak fallback can be hidden. */
@@ -38,7 +38,7 @@ export async function loadMamakRealism(scene:THREE.Scene,renderer:THREE.WebGLRen
   }catch(error){
     if(asset)disposeWebAsset(asset);
     console.warn('[mamak-realism] Keeping original Mamak appearance',error);
-    try{const baseline=await loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6',scene,new THREE.Vector3(-29,0,30),'LM_ENV_MamakMaju');mamakRealismStatus.state='baseline';return baseline;}
+    try{const baseline=await loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v7',scene,new THREE.Vector3(-29,0,30),'LM_ENV_MamakMaju');mamakRealismStatus.state='baseline';return baseline;}
     catch(error){mamakRealismStatus.state='fallback';throw error;}
   }
 }

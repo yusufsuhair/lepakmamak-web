@@ -101,6 +101,32 @@ account-only; browser checks stopped at the login screen without creating an
 account or changing production data. Sit/stand gameplay was verified locally in
 the 14-test main run, not inside a signed-in production session.
 
+## Combined V7 integration — 11 September 2026
+
+Yusuf explicitly authorized combining Modeller 1's V7 with this task's detailed
+furniture, merging and deploying this batch. Integrated Modeller 1 commit
+`520ce9c`: V7 architecture/contact AO, normal-facing canopy night warmth, and
+shared steam layout. All V7 low-detail furniture/tabletop groups are removed in
+the derivative before inserting the existing detailed furniture. The baseline
+V7 source and GLB remain available as the first fallback.
+
+The derivative is now version 2. Contact AO was freshly rebaked **after** placing
+the detailed furniture (CPU Cycles, 32 samples, 1.25 m, COLOR_0 range .58–1),
+not copied with stale old-furniture shadows. Detailed export transforms are
+applied before batching so the V7 local-position/normal warmth shader aligns.
+Shared JSON contains separate realistic and baseline cup layouts; runtime steam
+selects realism, V7 baseline or original procedural coordinates after loading.
+
+Measured: 139,856 triangles, 18 draws, six textures, 6,614,512 bytes, 71 lossless
+meshopt streams. Khronos validation: zero errors and warnings. Build and 18
+focused tests pass on verified-free port 5294, including fresh COLOR_0 and visual
+AO A/B, raycast steam origins on all ten mugs, 25 chairs/table heights, sit/stand,
+both fallback levels, reduced-motion steam and Rembayung traversal. Day/night
+and complete-site screenshots inspected in `/tmp/mamak-v7-combined-tests/`.
+
+Production deployment verification will be appended after integration into the
+latest main; future autonomous batches still remain local pending new approval.
+
 ## Next batch
 
 Prioritize the two planters near the Mamak canopy and realistic broadleaf foliage,

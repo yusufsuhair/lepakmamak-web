@@ -2,7 +2,29 @@
 
 Reproducible **Blender 5.2 LTS → GLB → Three.js** workflow. The calibration profile supports small, opaque, unrigged, untextured static meshes. Mamak Maju v3 adds a separately validated Cycles AO/normal bake for its serving counter. All other assets keep their existing untextured profiles.
 
-## Current runtime: Mamak Maju v6
+## Current local runtime: Mamak Maju v7
+
+V7 adds Cycles CPU ambient occlusion baked into `COLOR_0` on the site, with a sparse
+surface grid on the paving/building/awning. No extra texture or draw call is required.
+The bake is neutral contact shading (linear multiplier 0.58–1), not fixed sunlight.
+Night canopy pools now respect surface normals. Five table settings have rotated
+mugs with open handles, saucers, folded roti, kuah bowls, spoons, tissue boxes and menu
+cards; `shared/mamak-tabletop.json` keeps steam aligned with the authored cups.
+
+Editable source and evidence: `generated/mamak-maju-v7/`.
+Measured asset: 23,425 triangles, nine draws, seven materials, 1,737,876 bytes.
+The two existing 512×512 counter maps remain; the added shading uses vertex data.
+See [MAMAK-V7-REPORT.md](MAMAK-V7-REPORT.md).
+
+Build into a fresh directory with `scripts/build_mamak_asset.py`, validate using
+`tools/validate-mamak-glb.mjs` and `scripts/test_mamak_profile.py`, then compare a
+second build with `tools/compare-mamak-builds.mjs`. Re-export with
+`scripts/export_glb.py --profile mamak-v7 --source SOURCE.blend --output NEW.glb`.
+Changing geometry requires rebuilding/rebaking AO; exporting alone cannot rebake it.
+Unity must use a material shader that multiplies the base colour by `COLOR_0` to
+retain the vertex bake, and recreate the runtime night-lighting shader separately.
+
+## Archived runtime: Mamak Maju v6
 
 Editable source, packed/external textures, five Blender previews and local browser
 evidence live in `generated/mamak-maju-v6/`; refreshed foliage sources live in

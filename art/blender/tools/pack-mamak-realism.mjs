@@ -15,7 +15,9 @@ const triangles=doc.meshes.flatMap(m=>m.primitives).reduce((sum,p)=>sum+doc.acce
 const draws=doc.meshes.reduce((sum,m)=>sum+m.primitives.length,0);
 assert.ok(triangles<250000,`${triangles} triangles`);assert.ok(draws<=24,`${draws} draws`);
 assert.ok(doc.nodes.some(n=>n.name==='LM_ENV_MamakMaju_Festoon'));
-assert.ok(doc.nodes.some(n=>n.extras?.lm_realism_version===1));
+assert.ok(doc.nodes.some(n=>n.extras?.lm_realism_version===2));
+const site=doc.nodes.find(n=>n.name==='LM_ENV_MamakMaju');
+assert.ok(doc.meshes[site.mesh].primitives.every(p=>p.attributes.COLOR_0!==undefined),'Portable baked AO must survive export');
 assert.ok(doc.images.length>=6);assert.ok(doc.images.every(i=>i.bufferView!==undefined&&!i.uri));
 await Promise.all([MeshoptEncoder.ready,MeshoptDecoder.ready]);
 const bin=raw.subarray(28+jsonSize),pieces=[];let offset=0,fallbackOffset=0,streams=0;

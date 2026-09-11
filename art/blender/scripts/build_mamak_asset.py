@@ -24,10 +24,25 @@ class Author:
         self.vertices, self.faces, self.materials, self.parts = [], [], [], []
 
     def add(self, name, points, faces, material, closed=True):
+        if name in ('Courtyard','BigTablePaving','Building','CanopyStripe'):
+            # Sparse surface grid lets baked contact shading vary across large planes.
+            grid_points,grid_faces=[],[]
+            for face in faces:
+                p,q,r,s=[Vector(points[i]) for i in face]
+                nu=max(1,math.ceil((q-p).length/1.5));nv=max(1,math.ceil((s-p).length/1.5))
+                start=len(grid_points)
+                for j in range(nv+1):
+                    for i in range(nu+1):grid_points.append(tuple(p+(q-p)*(i/nu)+(s-p)*(j/nv)))
+                for j in range(nv):
+                    for i in range(nu):
+                        k=start+j*(nu+1)+i;grid_faces.append((k,k+1,k+nu+2,k+nu+1))
+            points,faces=grid_points,grid_faces
         # Rotation, not reflection: world +Y up/+Z forward -> Blender +Z up/-Y forward.
         points = [(x - ORIGIN[0], -(z - ORIGIN[2]), y) for x, y, z in points]
         if closed:
-            volume = sum(Vector(points[f[0]]).dot(Vector(points[f[i]]).cross(Vector(points[f[i + 1]]))) / 6
+            origin=points[0]
+            relative=[Vector(tuple(p[j]-origin[j] for j in range(3))) for p in points]
+            volume = sum(relative[f[0]].dot(relative[f[i]].cross(relative[f[i + 1]])) / 6
                          for f in faces for i in range(1, len(f) - 1))
             assert volume > 1e-9, f"Inward or empty solid: {name} ({volume})"
         start = len(self.vertices)
@@ -86,7 +101,7 @@ class Author:
         for i, (name, start, count) in enumerate(self.parts):
             obj.vertex_groups.new(name=f"LM_PART_{i:03d}_{name}").add(list(range(start,start+count)), 1, "REPLACE")
         obj["lm_asset_id"], obj["lm_sign_text"] = ASSET, SIGN_TEXT
-        obj["lm_version"] = 6
+        obj["lm_version"] = 7
         obj["lm_origin_world"] = list(ORIGIN)
         obj["lm_tables_json"] = json.dumps([{k:t[k] for k in ("id","x","z")} for t in tables], sort_keys=True)
         obj["lm_chairs_json"] = json.dumps([{k:c[k] for k in ("id","x","z","yaw","tableId")} for c in chairs], sort_keys=True)
@@ -156,21 +171,15 @@ def build_site():
         a.cylinder("UrnLid",x,2.97,35.0,.46,.08,CREAM,12)
         a.box("UrnTap",x,2.15,35.46,.08,.12,.19,WOOD)
     a.text("TeaLabel","TEH TARIK",-18.7,3.65,34.85,5.8,.38)
-    for t in tables:
+    for table_index,t in enumerate(tables):
         x,z = t["x"],t["z"]
         radius=1.95 if t["id"] == "meja-9" else 1.14
         a.cylinder("TableBase",x,.27,z,.6,.14,METAL,8)
         a.cylinder("TableLeg",x,.64,z,.13,.70,METAL,8)
         a.cylinder("TableRim",x,1.05,z,radius,.14,WOOD,16)
         a.cylinder("TableTop",x,1.13,z,radius-.035,.025,CREAM,16)
-        for dx,dz in ((.38,.12),(-.40,-.20)):
-            a.cylinder("TeaCup",x+dx,1.29,z+dz,.105,.28,WOOD,10)
-            a.cylinder("TeaFoam",x+dx,1.435,z+dz,.10,.008,CREAM,10)
-            a.box("CupHandle",x+dx+.12,1.28,z+dz,.10,.12,.05,WOOD)
-        a.cylinder("Plate",x-.25,1.16,z+.35,.27,.04,CREAM,12)
-        a.cylinder("Roti",x-.25,1.19,z+.35,.19,.025,WOOD,10)
-        a.box("TissueBox",x+.23,1.26,z-.35,.34,.22,.23,GREEN)
-        a.box("Tissue",x+.23,1.40,z-.35,.20,.07,.02,CREAM)
+        from mamak_tabletop import add_tabletop
+        add_tabletop(a,t,table_index)
     for seat in chairs: chair(a,seat,seat["id"])
     chair(a,{"x":-29,"z":46.7,"yaw":math.pi},"CustomerReserved")
     for x in (-40,-29,-18):
@@ -237,6 +246,8 @@ def main():
         bpy.data.materials[name].node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value=roughness
     obj,counter,festoon=build_site()
     bake_counter(counter,output)
+    from mamak_vertex_bake import bake_site
+    bake_site(obj,output)
     preview_setup()
     source=output/"source"/f"{ASSET}.blend"
     save_source(source)
@@ -251,7 +262,10 @@ def main():
         bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
     write_json(output/"reports"/"validation.json",result)
     write_json(output/"reports"/"manifest.json",{
-        "asset":ASSET,"version":6,"blender_version":bpy.app.version_string,
+        "asset":ASSET,"version":7,"blender_version":bpy.app.version_string,
+        "tabletop_sha256":sha256(ROOT/"scripts/mamak_tabletop.py"),
+        "tabletop_layout_sha256":sha256(GAME_ROOT/"shared/mamak-tabletop.json"),
+        "vertex_bake_sha256":sha256(ROOT/"scripts/mamak_vertex_bake.py"),
         "service_sha256":sha256(ROOT/"scripts/mamak_service.py"),
         "streets_sha256":sha256(GAME_ROOT/"shared/mamak-streets.json"),
         "atmosphere_sha256":sha256(ROOT/"scripts/mamak_atmosphere.py"),

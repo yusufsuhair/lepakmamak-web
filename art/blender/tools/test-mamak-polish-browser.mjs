@@ -4,7 +4,7 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 
 const base=process.env.LM_BASE_URL ?? 'http://127.0.0.1:5192';
-const output=path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v6');
+const output=path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v7');
 await fs.mkdir(path.join(output,'previews'),{recursive:true});
 await fs.mkdir(path.join(output,'reports'),{recursive:true});
 const browser=await chromium.launch({channel:'chrome'});
@@ -21,7 +21,7 @@ try {
       const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');
       const {NIGHT_AMBIENT,NIGHT_SUN}=await import('/src/weather.ts');
       const {configureMamakLighting}=await import('/src/web-assets.ts');
-      const gltf=await new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6');
+      const gltf=await new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v7');
       const scene=new THREE.Scene();scene.add(gltf.scene);
       const lighting=configureMamakLighting(gltf.scene);
       const ambient=new THREE.HemisphereLight('#f6edcf','#758b75',1.8);
@@ -48,6 +48,11 @@ try {
         let total=0;for(let i=0;i<pixels.length;i+=4)total+=pixels[i]+pixels[i+1]+pixels[i+2];
         return {draws:renderer.info.render.calls,triangles:renderer.info.render.triangles,
           meanBrightness:total/(pixels.length/4*3),webglError:gl.getError()};
+      };
+      window.renderTable=(night,baked)=>{
+        camera.position.set(1.6,2.9,17.8);camera.lookAt(0,1.18,15);
+        gltf.scene.traverse(o=>{if(o.isMesh && o.geometry.attributes.color){o.material.vertexColors=baked;o.material.needsUpdate=true;}});
+        return window.renderCounter(night,true);
       };
       return {ao:{width:ao.image.width,height:ao.image.height,colorSpace:ao.colorSpace},
         normal:{width:normal.image.width,height:normal.image.height,colorSpace:normal.colorSpace},
@@ -77,7 +82,19 @@ try {
       assert.notDeepEqual(plain,baked,'baked material must affect real rendered output');
     }
     assert.deepEqual(errors,[]);
-    results.push({device,textures,views,pageErrors:errors});
+    const tabletop={};
+    for(const night of [false,true]) {
+      for(const baked of [false,true]) {
+        const key=`${night?'night':'day'}-${baked?'baked':'plain'}`;
+        tabletop[key]=await page.evaluate(([night,baked])=>window.renderTable(night,baked),[night,baked]);
+        assert.equal(tabletop[key].draws,9);assert.equal(tabletop[key].webglError,0);
+        await page.screenshot({path:path.join(output,'previews',`table-${device}-${key}.png`)});
+      }
+      const time=night?'night':'day';
+      assert.ok(tabletop[`${time}-plain`].meanBrightness>tabletop[`${time}-baked`].meanBrightness+.1,'vertex bake affects rendered contact shading');
+    }
+    assert.deepEqual(errors,[]);
+    results.push({device,textures,views,tabletop,pageErrors:errors});
     await context.close();
   }
 } finally {await browser.close();}

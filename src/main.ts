@@ -186,12 +186,14 @@ async function init() {
       try { mamakLighting = configureMamakLighting(asset); }
       catch (error) { scene.remove(asset); disposeWebAsset(asset); throw error; }
       mamakLighting.setNight(mamakNight);
+      mamakSteam.setLayout(mamakRealismStatus.state==='ready'?'realism':'baseline');
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';
       asset.userData.source = 'blender-glb';
     })
     .catch(error => {
       mamakAssetState = 'fallback';
+      mamakSteam.setLayout('procedural');
       console.warn('[web-assets] Mamak Maju GLB unavailable; keeping procedural fallback', error);
     });
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakRembayung',{configurable:true,get:()=>({...world.rembayung.status,fallbackVisible:world.rembayung.fallback.visible})});

@@ -1,4 +1,4 @@
-"""Non-destructive V6 derivative: detailed dining furniture at authoritative seats.
+"""V7 lighting derivative: detailed dining furniture at authoritative seats.
 
 Blender -b --python-exit-code 1 --python art/blender/scripts/build_mamak_realism.py -- --build
 Blender -b --python-exit-code 1 --python art/blender/scripts/build_mamak_realism.py -- --render
@@ -10,12 +10,13 @@ from mathutils import Vector
 ROOT=Path(__file__).resolve().parents[3]
 OUT=ROOT/'assets/mamak-realism';OUT.mkdir(parents=True,exist_ok=True)
 for name in ['textures','renders','reports']:(OUT/name).mkdir(exist_ok=True)
-BASE=ROOT/'art/blender/generated/mamak-maju-v6/source/LM_ENV_MamakMaju.blend'
+BASE=ROOT/'art/blender/generated/mamak-maju-v7/source/LM_ENV_MamakMaju.blend'
 SOURCE=OUT/'mamak-realism.blend'
 EXPORT=ROOT/'public/assets/models/environment/LM_ENV_MamakMaju_Realism.glb'
 ORIGIN=(-29,0,30);IDS={'meja-1','meja-2','meja-3','meja-4','meja-9'}
 TABLES=[t for t in json.loads((ROOT/'shared/tables.json').read_text()) if t['id'] in IDS]
 CHAIRS=[c for c in json.loads((ROOT/'shared/chairs.json').read_text()) if c.get('tableId') in IDS]
+TABLETOP=json.loads((ROOT/'shared/mamak-tabletop.json').read_text())['realism']
 ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 RNG=random.Random(91026);CREATED=[];OWNER=''
 
@@ -101,6 +102,7 @@ def uv(o):
 def strip_old_furniture():
     o=bpy.data.objects['LM_ENV_MamakMaju'];names={v.index:v.name.split('_',3)[-1] for v in o.vertex_groups}
     exact={'TableBase','TableLeg','TableRim','TableTop','TeaCup','TeaFoam','CupHandle','Plate','Roti','TissueBox','Tissue'}
+    exact.update({'TeaSaucer','TeaSurface','FoamBubble','MugHandleRail','MugHandleOuter','PlateRim','PlateWell','RotiFold','RotiToast','DhalBowl','DhalSurface','Spoon','TissueSlot','TableMenuBase','TableMenu','MenuPrint','SharingPlate','SharingRoti'})
     prefixes=tuple(c['id'] for c in CHAIRS)+('CustomerReserved',)
     indices={i for i,name in names.items() if name in exact or name.startswith(prefixes)}
     doomed={v.index for v in o.data.vertices if any(g.group in indices for g in v.groups)}
@@ -109,7 +111,7 @@ def strip_old_furniture():
     selected_names={group.name for group in o.vertex_groups if group.index in indices}
     for group in list(o.vertex_groups):
         if group.name in selected_names:o.vertex_groups.remove(group)
-    o['lm_realism_version']=1;o['lm_realism_removed_vertices']=len(doomed)
+    o['lm_realism_version']=2;o['lm_realism_removed_vertices']=len(doomed)
     return len(doomed)
 
 def chair(seat,plastic,rubber):
@@ -155,7 +157,7 @@ def table(t,steel,laminate,rubber,ceramic,tea,glass,foam,bread,tissue):
     lathe(OWNER+' | speckled laminate top',x,0,z,[(0,1.145),(r-.032,1.145),(r-.02,1.138),(r-.025,1.115),(0,1.115)],laminate,96)
     for a in [0,math.pi/2,math.pi,math.pi*1.5]:
         tube(OWNER+' | underside steel spoke',[(x,1.04,z),(x+math.cos(a)*r*.72,1.035,z+math.sin(a)*r*.72)],.019,steel)
-    for dx,dz in [(.46,-.26),(-.43,.33)]:
+    for dx,dz in TABLETOP['cups']:
         cx,cz=x+dx,z+dz
         lathe(OWNER+' | glass teh tarik mug',cx,1.15,cz,[(0,0),(.081,0),(.095,.025),(.10,.27),(.096,.285),(.084,.285),(.081,.05),(0,.043)],glass,40)
         lathe(OWNER+' | tea liquid',cx,1.15,cz,[(0,.044),(.080,.044),(.088,.232),(0,.232)],tea,40)
@@ -208,10 +210,20 @@ def build():
             for i,v in enumerate((p.x+ORIGIN[0],p.z,-p.y+ORIGIN[2])):entry['min'][i]=min(entry['min'][i],v);entry['max'][i]=max(entry['max'][i],v)
     for c in CHAIRS:
         b=owners[c['id']];assert abs((b['min'][0]+b['max'][0])/2-c['x'])<.10;assert abs((b['min'][2]+b['max'][2])/2-c['z'])<.10
-    s=bpy.context.scene;s['mamak_realism_version']=1;s['scope']='Mamak V6 furniture-only derivative; gameplay and surrounding city unchanged'
+    s=bpy.context.scene;s['mamak_realism_version']=2;s['scope']='V7 contact shading rebaked with realistic furniture; gameplay unchanged'
+    # Never reuse contact shadows baked around the old low-poly furniture.
+    site=bpy.data.objects['LM_ENV_MamakMaju'];festoon=bpy.data.objects['LM_ENV_MamakMaju_Festoon']
+    for o in [site,festoon]:
+        for attr in list(o.data.color_attributes):o.data.color_attributes.remove(attr)
+    for m in site.data.materials:
+        for node in list(m.node_tree.nodes):
+            if node.name.startswith(('LM_Baked_Occlusion','LM_Occlusion_Tint')):m.node_tree.nodes.remove(node)
+    sys.path.insert(0,str(ROOT/'art/blender/scripts'))
+    from mamak_vertex_bake import bake_site
+    bake_site(site,OUT)
     # Existing counter images remain packed; all new textures are fresh packed PNGs.
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE))
-    report={'version':1,'base_source_sha256':hashlib.sha256(BASE.read_bytes()).hexdigest(),'tables':TABLES,'chairs':CHAIRS,'geometry_bounds':owners,'removed_old_vertices':removed,'detail_objects':len(CREATED)}
+    report={'version':2,'base_source_sha256':hashlib.sha256(BASE.read_bytes()).hexdigest(),'tabletop_sha256':hashlib.sha256((ROOT/'shared/mamak-tabletop.json').read_bytes()).hexdigest(),'tables':TABLES,'chairs':CHAIRS,'geometry_bounds':owners,'removed_old_vertices':removed,'detail_objects':len(CREATED),'rebaked_after_furniture':True}
     (OUT/'reports/source.json').write_text(json.dumps(report,indent=2)+'\n');export()
 
 def export():
@@ -222,6 +234,7 @@ def export():
         if o.type=='CURVE':
             # Preserve dense editable curves in .blend; use a smaller web tessellation.
             o.data.resolution_u=4;o.data.bevel_resolution=2;bpy.ops.object.convert(target='MESH');uv(o)
+        bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
         groups.setdefault(o.data.materials[0].name,[]).append(o)
     for name,objects in groups.items():
         bpy.ops.object.select_all(action='DESELECT')
@@ -238,7 +251,14 @@ def export():
         o.select_set(True)
         if o.type=='MESH':
             bpy.context.view_layer.objects.active=o;mod=o.modifiers.new('Web triangulation','TRIANGULATE');bpy.ops.object.modifier_apply(modifier=mod.name)
-    bpy.ops.export_scene.gltf(filepath=str(EXPORT),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_tangents=True,export_extras=True,export_cameras=False,export_lights=False)
+            if not any(n.type=='TEX_IMAGE' for m in o.data.materials for n in m.node_tree.nodes):
+                for layer in list(o.data.uv_layers):o.data.uv_layers.remove(layer)
+    # Keep palette factors and COLOR_0 separate; legacy MixRGB is not a glTF input.
+    for m in bpy.data.materials:
+        if m.use_nodes and m.node_tree.nodes.get('LM_Occlusion_Tint'):
+            socket=m.node_tree.nodes['Principled BSDF'].inputs['Base Color']
+            for link in list(socket.links):m.node_tree.links.remove(link)
+    bpy.ops.export_scene.gltf(filepath=str(EXPORT),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_tangents=True,export_extras=True,export_vertex_color='ACTIVE',export_cameras=False,export_lights=False)
     print('MAMAK REALISM EXPORTED',EXPORT.stat().st_size,flush=True)
 
 def render():

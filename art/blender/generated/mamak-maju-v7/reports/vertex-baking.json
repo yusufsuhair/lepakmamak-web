@@ -1,0 +1,19 @@
+{
+  "additional_textures": 0,
+  "device": "CPU",
+  "direct_lighting_baked": false,
+  "distance_m": 1.25,
+  "engine": "CYCLES",
+  "export_range": [
+    0.5799999833106995,
+    1.0
+  ],
+  "loops": 42349,
+  "passed": true,
+  "raw_range": [
+    0.0,
+    1.0
+  ],
+  "samples": 32,
+  "seed": 17
+}

@@ -30,21 +30,23 @@ export function configureMamakLighting(asset: THREE.Group): MamakLighting {
       if (!material.isMeshStandardMaterial) return material;
       material.onBeforeCompile = shader => {
         shader.uniforms.lmWarmth = warmth;
-        shader.vertexShader = 'varying vec3 lmPosition;\n' + shader.vertexShader;
+        shader.vertexShader = 'varying vec3 lmPosition;\nvarying vec3 lmNormal;\n' + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
-          '#include <begin_vertex>\nlmPosition = position;');
-        shader.fragmentShader = 'uniform float lmWarmth;\nvarying vec3 lmPosition;\n' + shader.fragmentShader;
+          '#include <begin_vertex>\nlmPosition = position;\nlmNormal = normal;');
+        shader.fragmentShader = 'uniform float lmWarmth;\nvarying vec3 lmPosition;\nvarying vec3 lmNormal;\n' + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
           float zone = 1.0 - smoothstep(3.5, 5.0, lmPosition.y);
           float pools = 0.0;
           for (int i = 0; i < 3; i++) {
             vec2 delta = (lmPosition.xz - vec2(-11.0 + float(i)*11.0, 8.2)) / vec2(6.2, 5.0);
-            pools += exp(-dot(delta,delta)*1.8);
+            vec3 toLamp = vec3(-11.0 + float(i)*11.0, 3.70, 10.0) - lmPosition;
+            float facing = 0.18 + 0.82 * max(dot(normalize(lmNormal), normalize(toLamp)), 0.0);
+            pools += exp(-dot(delta,delta)*1.8) * facing;
           }
           outgoingLight += diffuseColor.rgb * vec3(1.0, 0.52, 0.19) * min(pools,1.0) * zone * lmWarmth;
           #include <opaque_fragment>`);
       };
-      material.customProgramCacheKey = () => 'lm-canopy-warmth-v6';
+      material.customProgramCacheKey = () => 'lm-canopy-warmth-v7';
       return material;
     });
     mesh.material = Array.isArray(mesh.material) ? copies : copies[0];
