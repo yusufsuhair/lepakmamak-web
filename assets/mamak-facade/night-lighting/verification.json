@@ -1,0 +1,30 @@
+{
+  "baseline_commit": "094da79fe63bc7006efd21719dca2c532c135269",
+  "build": "passed",
+  "focused_tests": {"passed": 20, "failed": 0, "duration_minutes_rounded": 1.6, "port": 5293, "output": "test-results/mamak-facade-night-verified"},
+  "geometry_and_source_unchanged": true,
+  "facade_glb_sha256": "1dce4e5bf46bd55dd6d127ba6f84cc84be4faa2e5860c3990b647f0224a659bd",
+  "desktop_preview": {
+    "night_sign_sample_luminance_before": 33.486,
+    "night_sign_sample_luminance_after": 146.509,
+    "night_plaque_sample_luminance_before": 23.323,
+    "night_plaque_sample_luminance_after": 160.601,
+    "day_probe_pixels_unchanged": true,
+    "table_and_window_probe_pixels_unchanged_at_night": true,
+    "render_calls_before_and_after": 46
+  },
+  "mobile_viewport_preview": {
+    "night_sign_sample_luminance_before": 33.595,
+    "night_sign_sample_luminance_after": 146.160,
+    "day_probe_pixels_unchanged": true,
+    "table_and_window_probe_pixels_unchanged_at_night": true,
+    "side_plaque_outside_view_not_measured": true,
+    "render_calls_before_and_after": 46
+  },
+  "luminance_units": "weighted RGB screenshot samples, 0-255; not physical luminance or a contrast audit",
+  "preview_shader_and_page_errors": 0,
+  "facade_draws": 5,
+  "new_geometry_textures_or_light_objects": 0,
+  "full_regression_and_physical_phone_benchmark": "not run",
+  "merged_pushed_or_deployed": false
+}

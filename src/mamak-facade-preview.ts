@@ -37,11 +37,29 @@ document.querySelector<HTMLButtonElement>('#before')!.onclick=()=>setBefore(!bef
 document.querySelector<HTMLButtonElement>('#night')!.onclick=()=>setNight(!night);
 void loadMamakRealism(scene,renderer).then(async asset=>{
   site=asset;lighting=configureMamakLighting(asset);lighting.setNight(night);
-  await facade.load();
+  await facade.load(asset);
   document.querySelector('#status')!.textContent=facade.status.state==='ready'?'Façade Blender · 4 lampu · aset berasingan':'Façade tidak tersedia; Mamak asal dikekalkan';
 });
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 window.addEventListener('resize',resize);resize();view('front');setNight(false);
 renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
-Object.assign(window,{__mamakFacadePreview:{view,setNight,setBefore,facade:()=>facade.asset,site:()=>site,
+// Read pixels immediately after a render (no persistent drawing buffer required).
+// World-space probe regions keep A/B checks independent of screen size.
+function probe() {
+  controls.update();renderer.render(scene,camera);
+  const copy=document.createElement('canvas');copy.width=renderer.domElement.width;copy.height=renderer.domElement.height;
+  const context=copy.getContext('2d')!;context.drawImage(renderer.domElement,0,0);
+  const pixels=context.getImageData(0,0,copy.width,copy.height).data;
+  const regions:Record<string,number[]>={sign:[-29,4.23,42.55],plaque:[-16.35,4.23,42.68],table:[-29,1.2,52],window:[-29,6.8,34.86]};
+  return Object.fromEntries(Object.entries(regions).map(([name,point])=>{
+    const p=new THREE.Vector3().fromArray(point).project(camera),cx=Math.round((p.x+1)*copy.width/2),cy=Math.round((1-p.y)*copy.height/2);
+    let sum=0,count=0,hash=2166136261;
+    for(let y=Math.max(0,cy-7);y<Math.min(copy.height,cy+7);y++)for(let x=Math.max(0,cx-35);x<Math.min(copy.width,cx+35);x++){
+      const i=(y*copy.width+x)*4;sum+=pixels[i]*.2126+pixels[i+1]*.7152+pixels[i+2]*.0722;count++;
+      for(let j=0;j<3;j++)hash=Math.imul(hash^pixels[i+j],16777619);
+    }
+    return [name,{luminance:sum/Math.max(count,1),hash:hash>>>0,pixels:count}];
+  }));
+}
+Object.assign(window,{__mamakFacadePreview:{view,setNight,setBefore,probe,setWashEnabled:facade.setWashEnabled,facade:()=>facade.asset,site:()=>site,
   state:()=>({...facade.status,siteState:mamakRealismStatus.state,night,before,renderCalls:renderer.info.render.calls})}});

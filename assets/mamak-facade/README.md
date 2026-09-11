@@ -6,6 +6,9 @@ Realism loader, chairs, tables, collision layout or shared Blender pipeline was 
 Only the main app's small import/load/weather hooks are shared integration points.
 No merge, push, dev deployment or production deployment is included.
 
+Follow-up: [night readability pass](night-lighting/README.md) adds a runtime sign
+wash without changing the Blender geometry or the V1 evidence archived below.
+
 ## Contents
 
 Window hoods and shutter accents, pillar capitals, canopy end caps and gutter,

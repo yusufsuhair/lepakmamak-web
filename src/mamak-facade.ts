@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {disposeWebAsset} from './web-assets';
+import {createFacadeWash} from './mamak-facade-lighting';
 
 export const MAMAK_FACADE_URL = '/assets/models/environment/LM_ENV_MamakFacade.glb?v=facade-1';
 
@@ -10,14 +11,22 @@ export function createMamakFacade(scene: THREE.Scene) {
   let lamps: THREE.MeshStandardMaterial[] = [];
   let pending: Promise<void> | undefined;
   let enabled = true;
+  let washEnabled = true;
+  const wash = createFacadeWash();
   const status = {state: 'idle' as 'idle'|'loading'|'ready'|'unavailable', night: false,
-    draws: 0, triangles: 0, lampCount: 0, intensity: 0};
+    draws: 0, triangles: 0, lampCount: 0, intensity: 0, washIntensity: 0, washMaterials: 0};
+  function updateWash() {
+    wash.setActive(status.state === 'ready' && status.night && enabled && washEnabled);
+    status.washIntensity = wash.intensity;
+    status.washMaterials = wash.materialCount;
+  }
   function setNight(night: boolean) {
     status.night = night;
     status.intensity = night ? 2.0 : .04;
     for (const material of lamps) material.emissiveIntensity = status.intensity;
+    updateWash();
   }
-  function load() {
+  function load(site?: THREE.Group) {
     return pending ??= (async () => {
       status.state = 'loading';
       let candidate: THREE.Group | undefined;
@@ -56,11 +65,14 @@ export function createMamakFacade(scene: THREE.Scene) {
         candidate.name = 'LM_ENV_MamakFacade';
         candidate.position.set(-29, 3.555, 30);
         candidate.visible = enabled;
+        wash.attach(candidate);
+        if (site) wash.attach(site);
         asset = candidate;
         lamps = newLamps;
         setNight(status.night);
         scene.add(asset);
         Object.assign(status, {state: 'ready', draws, triangles, lampCount});
+        updateWash();
       } catch (error) {
         if (candidate) disposeWebAsset(candidate);
         status.state = 'unavailable';
@@ -69,5 +81,6 @@ export function createMamakFacade(scene: THREE.Scene) {
     })();
   }
   return {load, setNight, status, get asset() { return asset; },
-    setVisible(value: boolean) { enabled = value; if (asset) asset.visible = value; }};
+    setWashEnabled(value: boolean) { washEnabled = value; updateWash(); },
+    setVisible(value: boolean) { enabled = value; if (asset) asset.visible = value; updateWash(); }};
 }

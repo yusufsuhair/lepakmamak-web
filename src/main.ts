@@ -219,7 +219,7 @@ async function init() {
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';
       asset.userData.source = 'blender-glb';
-      void mamakFacade.load();
+      void mamakFacade.load(asset);
     })
     .catch(error => {
       mamakAssetState = 'fallback';

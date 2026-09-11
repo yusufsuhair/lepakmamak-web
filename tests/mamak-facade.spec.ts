@@ -50,7 +50,7 @@ test('game applies night state even when optional facade finishes loading later'
     await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakLighting.night)).toBe(true);
     await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakFacade.state)).toBe('loading');
   }finally{release();}
-  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakFacade)).toMatchObject({state:'ready',night:true,intensity:2,lampCount:4});
+  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakFacade)).toMatchObject({state:'ready',night:true,intensity:2,lampCount:4,washIntensity:2});
   expect(await page.evaluate(()=>(window as any).__lepak.mamakMaju)).toEqual({state:'ready',fallbackVisible:false});
 });
 
