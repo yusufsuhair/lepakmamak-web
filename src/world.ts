@@ -4,6 +4,7 @@ import fleetSeeds from '../shared/fleet.json';
 import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
 import mamakStreetLayout from '../shared/mamak-streets.json';
+import mamakShops from '../shared/mamak-shops.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { appearance, tudungColour, type Appearance } from './appearance';
@@ -48,6 +49,33 @@ function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: num
   }
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), textMaterials.get(key));
   mesh.position.set(x, y, z); mesh.rotation.y = rotation; parent.add(mesh); return mesh;
+}
+
+/** Keep an independently replaceable facade cheap while it waits for its GLB. */
+function batchShopFallback(root: THREE.Group) {
+  root.updateMatrixWorld(true);
+  const inverse = root.matrixWorld.clone().invert();
+  const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  const sources: THREE.Mesh[] = [];
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || Array.isArray(object.material)) return;
+    const geometry = object.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, object.matrixWorld));
+    if (!geometry.getAttribute('uv')) geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 2), 2));
+    const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
+    if (geometry !== nonIndexed) geometry.dispose();
+    if (!batches.has(object.material)) batches.set(object.material, []);
+    batches.get(object.material)!.push(nonIndexed); sources.push(object);
+  });
+  for (const source of sources) source.removeFromParent();
+  for (const [material, geometries] of batches) {
+    const geometry = mergeGeometries(geometries);
+    if (geometry) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = !(material instanceof THREE.MeshBasicMaterial); mesh.receiveShadow = true;
+      mesh.userData.keepUnbatched = true; root.add(mesh);
+    }
+    for (const geometry of geometries) geometry.dispose();
+  }
 }
 
 export interface Person { group: THREE.Group; leftLeg: THREE.Group; rightLeg: THREE.Group; leftArm: THREE.Group; rightArm: THREE.Group }
@@ -608,7 +636,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group }
+export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group> }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -670,6 +698,7 @@ export function createWorld(scene: THREE.Scene): World {
   const chairs: World['chairs'] = chairLocations;
   const group = new THREE.Group(); const solids: Solid[] = []; const mapBuildings: World['mapBuildings'] = [];
   const mamakStreetFallback = new THREE.Group(); mamakStreetFallback.name = 'mamak-street-fallback'; group.add(mamakStreetFallback);
+  const shopFallbacks = new Map<string, THREE.Group>();
   scene.add(group);
   const solid = (x: number, z: number, w: number, d: number) => solids.push({ x, z, hx: w / 2, hz: d / 2 });
   const block = (x: number, z: number, w: number, h: number, d: number, color: string) => {
@@ -813,6 +842,8 @@ export function createWorld(scene: THREE.Scene): World {
   const shopColors = ['#d8ac89', '#c0c9a4', '#c6aba0', '#edcf93', '#a4baba', '#d7b9a0'];
   function shop(x: number, z: number, width: number, color: string, label: string, facing = 0) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = facing; group.add(g);
+    const replacement = mamakShops.find(shop => shop.x === x && shop.z === z);
+    if (replacement) { g.name = `${replacement.asset}_Fallback`; shopFallbacks.set(replacement.asset, g); }
     box(g, 0, 5.5, 0, width, 11, 12, color);
     box(g, 0, 11.05, 0, width + .4, .4, 12.5, '#bfa98a');
     box(g, 0, 11.4, 5.8, width + .15, .5, .45, '#ead9b9');
@@ -1351,6 +1382,7 @@ export function createWorld(scene: THREE.Scene): World {
   box(group,-31.5,1.1,156,252,2.2,3,'#718361');
 
   // Batch the static city by material to avoid thousands of draw calls.
+  for (const fallback of shopFallbacks.values()) batchShopFallback(fallback);
   group.updateMatrixWorld(true);
   const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const sources: THREE.Mesh[] = [];
@@ -1393,7 +1425,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can

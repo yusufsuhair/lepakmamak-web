@@ -1,0 +1,8 @@
+[
+  {"asset":"LM_SHOP_BengkelAzlan","label":"BENGKEL AZLAN","kind":"workshop","x":-60,"z":58,"width":18,"depth":12},
+  {"asset":"LM_SHOP_SevenEleven","label":"7-ELEVEN","kind":"seven","x":-59,"z":32,"width":17,"depth":12},
+  {"asset":"LM_SHOP_WarungKakAna","label":"WARUNG KAK ANA","kind":"warung","x":27,"z":34,"width":19,"depth":12},
+  {"asset":"LM_SHOP_ZusCoffee","label":"ZUS COFFEE","kind":"zus","x":27,"z":58,"width":19,"depth":12},
+  {"asset":"LM_SHOP_FamilyMart","label":"FAMILYMART","kind":"family","x":49,"z":34,"width":22,"depth":12},
+  {"asset":"LM_SHOP_KkSuperMart","label":"KK SUPER MART","kind":"market","x":49,"z":58,"width":19,"depth":12}
+]

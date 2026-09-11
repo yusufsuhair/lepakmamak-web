@@ -57,6 +57,7 @@ import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
 import { loadWebAsset, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
+import { loadMamakShops } from './mamak-shops';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -164,6 +165,9 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  const shopAssets = loadMamakShops(scene, world.shopFallbacks);
+  if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
+    Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
   void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
     .then(asset => {
