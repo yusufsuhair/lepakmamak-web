@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.59",
+    "date": "2026-09-11",
+    "title": "Kawalan chat mobile lebih ringkas",
+    "notes": [
+      "Butang fullscreen kini hanya dipaparkan apabila panel chat sedang terbuka.",
+      "Chat yang dicollapse hanya menunjukkan satu butang restore yang jelas."
+    ]
+  },
+  {
     "version": "1.39.58",
     "date": "2026-09-11",
     "title": "Chat mobile pulih dengan bersih",

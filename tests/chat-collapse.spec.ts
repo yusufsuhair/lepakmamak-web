@@ -18,9 +18,11 @@ test('mobile chat shows the log by default and remembers a collapse choice', asy
   await page.getByLabel('Message to the city').fill('Draft message');
   await page.getByRole('button', { name: 'Collapse city chat' }).tap();
   await expect(page.locator('#chat-body')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Expand chat to a larger window' })).toBeHidden();
 
   await page.getByRole('button', { name: 'Expand city chat' }).tap();
   await expect(page.locator('#chat-body')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand chat to a larger window' })).toBeVisible();
   await page.locator('#chat-compose').tap();
   await expect(page.getByLabel('Message to the city')).toHaveValue('Draft message');
 
@@ -103,8 +105,11 @@ test('the window controls sit in the far-right corner and both still work', asyn
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 
-  // Maximising a minimised panel would otherwise be a full-screen window with nothing in it.
+  // A minimised panel exposes only its restore control. Fullscreen becomes available again
+  // after the player opens the chat, so mobile never shows two competing open actions.
   await minimise.click();
+  await expect(page.getByRole('button', { name: 'Expand chat to a larger window' })).toBeHidden();
+  await page.getByRole('button', { name: 'Restore city chat' }).click();
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#chat-body')).toBeVisible();
   await page.getByRole('button', { name: 'Close fullscreen chat' }).click();

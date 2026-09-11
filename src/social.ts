@@ -202,6 +202,9 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
     panel.classList.toggle('chat-expanded', expanded);
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
+    // A collapsed chat only needs one clear way back. Hiding fullscreen here avoids two
+    // tiny controls on mobile that both appear to open the same closed panel.
+    expand.hidden = collapsed;
     expand.textContent = expanded ? '⤡' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     heading.disabled = expanded;
