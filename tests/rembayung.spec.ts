@@ -1,4 +1,20 @@
 import {test,expect} from '@playwright/test';
+import {readFileSync} from 'node:fs';
+
+test('deployed CSP permits the model decoder without enabling JavaScript eval',async({page})=>{
+  const policy=readFileSync('public/_headers','utf8').match(/Content-Security-Policy: (.*)/)![1];
+  expect(policy).toContain("'wasm-unsafe-eval'");
+  expect(policy).not.toContain("'unsafe-eval'");
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/rembayung-preview.html',async route=>{
+    const response=await route.fetch();
+    await route.fulfill({response,headers:{...response.headers(),'content-security-policy':policy}});
+  });
+  await page.goto('/rembayung-preview.html');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__rembayungPreview?.state().state),{timeout:45000}).toBe('ready');
+  expect(await page.evaluate(()=>(window as any).__rembayungPreview.state().fallbackVisible)).toBe(false);
+  expect(errors).toEqual([]);
+});
 
 test('compressed Blender asset renders outside and inside within its draw budget',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
