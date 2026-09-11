@@ -27,6 +27,7 @@ test('entering online keeps a real loading state until the welcome arrives',asyn
     await expect(page.locator('#loading')).toBeVisible();await expect(page.locator('#loading-title')).toContainText(/Entering|Connecting|Joining|Welcome/);
     await expect(page.locator('#loading-progress')).toHaveAttribute('aria-valuenow',/68|74|90|100/);
     await expect(page.locator('#multiplayer-status-text')).toHaveText('JOINING CITY');
+    await expect(page.locator('#force-refresh')).toBeHidden();
     await page.waitForTimeout(300);expect(audioRequests).toEqual([]);
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE');await expect(page.locator('#loading')).toBeHidden();
   }finally{vite.kill();for(const client of server.clients)client.terminate();await new Promise<void>(resolve=>server.close(()=>resolve()));}
@@ -45,6 +46,7 @@ test('a failed first socket reports entry failure instead of pretending to recon
   await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Retry Friend');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   await expect(page.locator('#multiplayer-status-text')).toHaveText('CONNECTION FAILED');
   await expect(page.locator('#loading')).toBeHidden();
+  await expect(page.locator('#force-refresh')).toBeHidden();
   await page.waitForTimeout(3000);
   expect(connections).toBe(1);
   await expect(page.locator('#multiplayer-status-text')).not.toContainText('RECONNECT');

@@ -562,7 +562,7 @@ async function init() {
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
     entryLoadingTimer = window.setTimeout(() => {
       entryLoadingTimer = null;
-      showLoading('Still joining the city', 'The connection is taking longer than usual. Retrying safely…', 82);
+      showLoading('Still joining the city', 'Keeping your place ready while the city responds…', 82);
     }, 7000);
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
@@ -782,8 +782,10 @@ async function init() {
   let musicContext: AudioContext | null = null;
   let musicGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
-  function startBackgroundMusic() {
-    if (!musicEnabled) return;
+  function startBackgroundMusic(force = false) {
+    // Entering the city starts the simulation before the socket has admitted the player.
+    // Do not let a click on the sign-in form turn that short interval into a music preview.
+    if (!musicEnabled || (!force && multiplayerEndpoint && !networkConnected)) return;
     try {
       if (!musicContext) {
         musicContext = new AudioContext();
@@ -953,7 +955,9 @@ async function init() {
     // The red player-count dot means the city transport is unavailable. Give the player
     // the same lower-right recovery action as a release update, while keeping auth and
     // moderation states informational because restarting cannot fix either one.
-    const restartable = shouldOfferConnectionRestart(state, label);
+    // A first join has never had a connection to "lose". Showing recovery here made a
+    // normal sign-in look broken while a realtime instance was still responding.
+    const restartable = connectedOnceThisEntry && shouldOfferConnectionRestart(state, label);
     if (restartable) refresher.showConnectionRestart();
     else if (state === 'online' || state === 'solo' || label === 'LOGIN REQUIRED' || label === 'SUSPENDED' || label === 'CITY FULL') refresher.hideConnectionRestart();
     const statusKey = `${label}:${state}:${count}`;
@@ -1301,7 +1305,9 @@ async function init() {
         else if (!connectedOnceThisEntry) { finishEntryLoading(); setNetworkStatus('CONNECTION FAILED', 'offline', 1); }
         else { finishEntryLoading(); setNetworkStatus('OFFLINE', 'offline', 1); }
         retryMultiplayer(); });
-      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; finishEntryLoading(); setNetworkStatus(connectedOnceThisEntry?'OFFLINE':'CONNECTION FAILED', 'offline', 1); });
+      // Browsers fire `error` before `close`, often without a useful reason. Let close own
+      // the visible state so the loader does not flash a failure during sign-in.
+      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; });
     } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
@@ -1566,9 +1572,9 @@ async function init() {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    if (musicEnabled && started) startBackgroundMusic(); else backgroundMusic.pause();
+    if (musicEnabled && started) startBackgroundMusic(true); else backgroundMusic.pause();
   };
-  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); startBackgroundMusic(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;stallVoiceSong.pause();if(stallVoiceGain)stallVoiceGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
+  $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;stallVoiceSong.pause();if(stallVoiceGain)stallVoiceGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
     if (renderer.shadowMap.enabled === enabled) return;
     renderer.shadowMap.enabled = enabled;
@@ -2386,7 +2392,9 @@ async function init() {
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
-    const ambienceAllowed=started&&audioEnabled&&!tableSocial.playing&&audioContext?.state==='running';
+    // Spatial loops may be near spawn. Do not request or play them until this entry has an
+    // authoritative welcome, otherwise login becomes a burst of nearby city audio.
+    const ambienceAllowed=started&&(networkConnected||!multiplayerEndpoint)&&audioEnabled&&!tableSocial.playing&&audioContext?.state==='running';
     const buskingLevel=ambienceAllowed?buskingVolume(soundDistance(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)))):0;
     const watsonsLevel=ambienceAllowed?watsonsVolume(soundDistance(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z))):0;
     const familyMartLevel=ambienceAllowed?familyMartVolume(soundDistance(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z))):0;

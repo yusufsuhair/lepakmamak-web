@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.60",
+    "date": "2026-09-11",
+    "title": "Masuk bandar lebih tenang",
+    "notes": [
+      "Loading masuk kini kekal jelas dengan progress bar besar sehingga sambungan bandar benar-benar siap.",
+      "Muzik Watson, busking, gerai dan bunyi lokasi lain tidak lagi bermain sebelum pemain berjaya masuk.",
+      "Sambungan pertama tidak lagi menunjukkan popup connection lost atau reconnect yang mengelirukan."
+    ]
+  },
+  {
     "version": "1.39.59",
     "date": "2026-09-11",
     "title": "Kawalan chat mobile lebih ringkas",
