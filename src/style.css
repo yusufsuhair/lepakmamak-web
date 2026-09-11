@@ -111,7 +111,9 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .postcard-line { width: 34px; height: 1px; background: #fff5d5; }
 .postcard strong { display: block; font: 600 24px 'Oxanium'; letter-spacing: .015em; }
 .postcard span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .15em; text-transform: uppercase; }
-#hud { background: linear-gradient(180deg, #142f2c60, transparent 110px), linear-gradient(0deg, #142f2c50, transparent 180px); position: absolute; inset: 0; pointer-events: none; text-shadow: 0 1px 9px #0e282652; }
+/* Keep HUD/chat z-indices local: Settings overlays this entire layer; native dialogs
+   use the browser top layer above both. Fullscreen chat must never outrank a modal. */
+#hud { isolation: isolate; z-index: 1; background: linear-gradient(180deg, #142f2c60, transparent 110px), linear-gradient(0deg, #142f2c50, transparent 180px); position: absolute; inset: 0; pointer-events: none; text-shadow: 0 1px 9px #0e282652; }
 .hud-top { position: absolute; top: calc(27px + var(--safe-top)); left: 30px; right: 30px; display: flex; align-items: flex-start; justify-content: space-between; }
 .hud-left { display: flex; align-items: center; gap: 16px; }
 .hud-divider { width: 1px; height: 27px; background: #fff5da55; }

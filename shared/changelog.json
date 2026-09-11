@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.62",
+    "date": "2026-09-12",
+    "title": "Settings stay above chat",
+    "notes": [
+      "Settings and other modal windows now appear above city chat, including fullscreen chat on mobile.",
+      "Closing a modal preserves your chat messages and expanded state."
+    ]
+  },
+  {
     "version": "1.39.61",
     "date": "2026-09-12",
     "title": "Smoother voice and clearer table rematches",
