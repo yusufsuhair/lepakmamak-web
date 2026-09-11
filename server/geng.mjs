@@ -73,20 +73,30 @@ export function createGengs(services = {}) {
     const guildById = new Map(guilds.map(geng => [geng.id, geng]));
     const currentMembership = memberships.find(member => member.status === 'member' && guildById.has(member.geng_id));
     const currentGuild = currentMembership ? guildById.get(currentMembership.geng_id) : null;
-    const currentMembers = currentGuild ? members.filter(member => member.geng_id === currentGuild.id && member.status === 'member') : [];
     const leader = !!currentGuild && currentGuild.leader_id === userId;
     const pending = leader
       ? members.filter(member => member.geng_id === currentGuild.id && member.status === 'pending').map(member => ({id: member.user_id, name: cleanDisplayName(member.display_name), requestedAt: member.requested_at}))
       : [];
     const memberCounts = new Map();
     for (const member of members) if (member.status === 'member') memberCounts.set(member.geng_id, (memberCounts.get(member.geng_id) || 0) + 1);
+    const membersByGeng = new Map();
+    for (const member of members) if (member.status === 'member') {
+      const roster = membersByGeng.get(member.geng_id) || [];
+      roster.push({id: member.user_id, name: cleanDisplayName(member.display_name), leader: member.user_id === guildById.get(member.geng_id)?.leader_id});
+      membersByGeng.set(member.geng_id, roster);
+    }
+    const currentRoster = currentGuild ? (membersByGeng.get(currentGuild.id) || []) : [];
+    const leaderName = currentRoster.find(member => member.leader)?.name || 'Geng leader';
     const requested = new Set(memberships.filter(member => member.status === 'pending').map(member => member.geng_id));
     return {
       balance,
-      current: currentGuild ? {id: currentGuild.id, name: currentGuild.name, leader, memberCount: memberCounts.get(currentGuild.id) || 0} : null,
-      members: currentMembers.map(member => ({id: member.user_id, name: cleanDisplayName(member.display_name), leader: member.user_id === currentGuild.leader_id})),
+      current: currentGuild ? {id: currentGuild.id, name: currentGuild.name, leaderName, leader, memberCount: memberCounts.get(currentGuild.id) || 0} : null,
+      members: currentRoster,
       pending,
-      guilds: guilds.map(geng => ({id: geng.id, name: geng.name, memberCount: memberCounts.get(geng.id) || 0, current: geng.id === currentGuild?.id, requested: requested.has(geng.id)})),
+      guilds: guilds.map(geng => {
+        const roster = membersByGeng.get(geng.id) || [];
+        return {id: geng.id, name: geng.name, leaderName: roster.find(member => member.leader)?.name || 'Geng leader', memberCount: memberCounts.get(geng.id) || 0, members: roster, current: geng.id === currentGuild?.id, requested: requested.has(geng.id)};
+      }),
     };
   }
 
@@ -134,7 +144,7 @@ export function createGengs(services = {}) {
     if (failure) throw new GengHttpError(failure.status, failure.message, failure.data);
     // A leader approving a request changes another player's badge. Let the realtime
     // server refresh connected accounts immediately so nobody has to reopen the panel.
-    await onChanged({pathname, actorId: user.id, targetId: input?.userId || null});
+    await onChanged({pathname, actorId: user.id, targetId: input?.userId || null, gengId: input?.gengId || null});
     return result;
   }
 

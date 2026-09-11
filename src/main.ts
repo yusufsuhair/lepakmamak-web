@@ -66,7 +66,7 @@ import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
-import {setupGeng, type GengState} from './geng';
+import {setupGeng, type GengEvent, type GengState} from './geng';
 import {setupFriends, type FriendEvent, type FriendState} from './friends';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
@@ -520,9 +520,22 @@ async function init() {
   const tableGamePhases:Record<string,string>={lobby:'lobi',countdown:'mula sebentar lagi',playing:'sedang dimainkan'};
   const keys = new Set<string>();
   let openShopFromGeng:()=>void = () => {};
+  let closeGeng = () => {};
   const gengUI = setupGeng(apiBase, applyGengState, () => { keys.clear(); resetStick(); dragging = false; }, action => {
     if (action === 'leave' && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'geng-leave'}));
-  }, () => openShopFromGeng());
+  }, () => openShopFromGeng(), (id, name) => {
+    closeGeng();
+    void openGengProfile(id, name);
+  }, (event: GengEvent, pending: number) => {
+    if (gengButton) {
+      const badge = gengButton.querySelector<HTMLElement>('#geng-unread');
+      if (badge) { badge.hidden = pending < 1; badge.textContent = pending > 99 ? '99+' : String(pending); }
+      gengButton.setAttribute('aria-label', pending ? `Open Geng, ${pending} pending request${pending === 1 ? '' : 's'}` : 'Open Geng');
+    }
+    const sound = event === 'request-received' ? 'notify' : event === 'accepted' ? 'success' : event === 'declined' ? 'close' : event === 'request-sent' ? 'open' : null;
+    if (sound) uiSounds.play(sound);
+  });
+  closeGeng = () => gengUI.close();
   const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
@@ -1103,6 +1116,7 @@ async function init() {
         if (message.type === 'table-invited' && message.invite) showTableInvite(message.invite as TableInvite);
         if (message.type === 'table-invite-opened' && message.invite) { hideTableInvite(); tableSocial.openInvite(message.invite as TableInvite); }
         if (message.type === 'table-invite-result' && message.ok === false) showTableInviteError(String(message.message || 'This table invitation is no longer available.'));
+        if (message.type === 'geng-updated') void gengUI.refresh();
         if (message.type === 'friends-updated') void friendsUI.refresh();
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if (message.type === 'dm-closed' && message.id) chat.closeDm(message.id);
@@ -1243,6 +1257,7 @@ async function init() {
   const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V4a4 4 0 0 1 8 0v2M5 6h14l1 15H4L5 6Z"/><path d="M8 11h8v6H8zM9 6v3m6-3v3"/></svg>';// Wall · recentre · Kedai · character · Geng · settings, reading outwards along the top bar.
   const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
   gengButton=document.createElement('button');gengButton.id='open-geng';gengButton.type='button';gengButton.setAttribute('aria-label','Open Geng');gengButton.title='Create or join a Geng';gengButton.setAttribute('aria-haspopup','dialog');gengButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.5-3.2 7.9-8 9.5-4.8-1.6-8-5-8-9.5V6l8-3Z"/><path d="m12 7.7 1.25 2.55 2.8.4-2.03 1.98.48 2.79L12 14.1l-2.5 1.32.48-2.79-2.03-1.98 2.8-.4L12 7.7Z"/></svg>';
+  gengButton.insertAdjacentHTML('beforeend','<i id="geng-unread" aria-hidden="true" hidden>0</i>');
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
   friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
   $('menu').before(shopButton,inventoryButton,gengButton,friendsButton);inventoryButton.onclick=()=>inventory.open();
@@ -1263,7 +1278,7 @@ async function init() {
     $('open-shop').hidden = !!guestName;
     if (!guestName) void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
-    if (!guestName) void friendsUI.refresh();
+    if (!guestName) { void gengUI.refresh(); void friendsUI.refresh(); }
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng, gengLeader); scene.add(localName); }
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
@@ -1508,6 +1523,24 @@ async function init() {
   profile.prepend($('close-profile'));
   let selectedName = '', selectedProfileId = '';
   function closeOptions() { options.hidden = true; }
+  async function openGengProfile(id: string, name: string) {
+    closeOptions(); selectedName = name; selectedProfileId = id;
+    $('profile-name').textContent = name; $('profile-details').replaceChildren();
+    if (!profile.open) profile.showModal();
+    $('close-profile').focus();
+    if (!apiBase) { $('profile-details').textContent = 'Reconnect to view this profile.'; return; }
+    $('profile-details').textContent = 'Loading profile…';
+    try {
+      const response = await fetch(`${apiBase}/profiles/${encodeURIComponent(id)}`);
+      const data = await response.json().catch(() => ({})) as {profile?: PlayerProfile | null; error?: string};
+      if (!response.ok) throw Error(data.error || 'Could not load this profile.');
+      if (!profile.open || selectedProfileId !== id) return;
+      if (data.profile) renderProfile($('profile-details'), data.profile);
+      else $('profile-details').textContent = 'This player has left the city.';
+    } catch (error) {
+      if (profile.open && selectedProfileId === id) $('profile-details').textContent = error instanceof Error ? error.message : 'Could not load this profile.';
+    }
+  }
   function toggleSuperman() {
     if (!riding || passengerOf || vehicle !== 'bike') return;
     const cancel = isSuperman(); localSupermanUntil = cancel ? 0 : Date.now() + 6000;

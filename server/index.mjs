@@ -149,7 +149,15 @@ async function refreshConnectedGengs() {
     if (changed) broadcast(players, {type: 'players', players: snapshot(players)});
   }
 }
-const gengs = createGengs({onChanged: () => refreshConnectedGengs()});
+const gengs = createGengs({onChanged: async () => {
+  await refreshConnectedGengs();
+  // Geng state is account-backed, so every connected member of the city should refresh
+  // after a request or approval. The leader then sees a pending badge without reopening
+  // the panel, while an applicant sees approval immediately.
+  for (const players of rooms.values()) for (const player of players.values()) {
+    if (player.userId) send(player.ws, {type: 'geng-updated'});
+  }
+}});
 function playerForUser(userId) {
   if (!userId) return null;
   for (const players of rooms.values()) for (const player of players.values()) {

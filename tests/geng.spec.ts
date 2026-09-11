@@ -103,7 +103,7 @@ test('Geng creation charges 1,000 Syiling and leader approval controls membershi
     expect(await created.json()).toMatchObject({result: {created: true, balance: 500}, state: {current: {name: 'Budak Mamak', leader: true, memberCount: 1}}});
 
     const listing = await (await call('/state', 'member-token')).json();
-    expect(listing.state.guilds).toEqual([{id: GENG, name: 'Budak Mamak', memberCount: 1, current: false, requested: false}]);
+    expect(listing.state.guilds).toEqual([{id: GENG, name: 'Budak Mamak', leaderName: 'Yusuf', memberCount: 1, members: [{id: LEADER, name: 'Yusuf', leader: true}], current: false, requested: false}]);
     expect((await call('/request', 'member-token', 'POST', {gengId: GENG})).status).toBe(200);
     const pending = await (await call('/state', 'leader-token')).json();
     expect(pending.state.pending).toEqual([expect.objectContaining({id: MEMBER, name: 'Aina'})]);
@@ -111,7 +111,7 @@ test('Geng creation charges 1,000 Syiling and leader approval controls membershi
     expect((await call('/approve', 'member-token', 'POST', {userId: LEADER, approved: true})).status).toBe(409);
     expect((await call('/approve', 'leader-token', 'POST', {userId: MEMBER, approved: true})).status).toBe(200);
     const joined = await (await call('/state', 'member-token')).json();
-    expect(joined.state.current).toMatchObject({id: GENG, name: 'Budak Mamak', leader: false, memberCount: 2});
+    expect(joined.state.current).toMatchObject({id: GENG, name: 'Budak Mamak', leaderName: 'Yusuf', leader: false, memberCount: 2});
     expect(joined.state.members).toEqual(expect.arrayContaining([{id: LEADER, name: 'Yusuf', leader: true}, {id: MEMBER, name: 'Aina', leader: false}]));
 
     expect((await call('/leave', 'leader-token', 'POST', {})).status).toBe(409);
@@ -158,4 +158,36 @@ test('an underfunded Geng creation shows a top-up action', async ({page}) => {
   await expect(page.locator('#geng-create-submit')).toBeDisabled();
   await page.getByRole('button', {name: 'Tambah Syiling'}).click();
   await expect(page.locator('body')).toHaveAttribute('data-topup', 'opened');
+});
+
+test('Open Gengs show their leader, open a clickable roster, and notify leaders about requests', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: 'export const session={access_token:"test"}; export const guestName="";' }));
+  const roster = [
+    {id: LEADER, name: 'Yusuf', leader: true},
+    {id: MEMBER, name: 'Aina', leader: false},
+  ];
+  const state = {balance: 500, current: null, members: [], pending: [], guilds: [{id: GENG, name: 'Budak Mamak', leaderName: 'Yusuf', memberCount: 2, members: roster, current: false, requested: false}]};
+  await page.route('**/geng/state', route => route.fulfill({json: {state}}));
+  await page.route('**/geng-roster-harness', route => route.fulfill({contentType: 'text/html', body: '<main></main>'}));
+  await page.goto('/geng-roster-harness');
+  await page.evaluate(async () => {
+    const {setupGeng} = await import('/src/geng.ts');
+    (window as any).geng = setupGeng(location.origin, () => {}, () => {}, () => {}, () => {}, (id: string, name: string) => { document.body.dataset.profile = `${id}|${name}`; }, (event: string, unread: number) => { document.body.dataset.gengEvent = `${event}:${unread}`; });
+    (window as any).geng.open();
+  });
+
+  await expect(page.locator('.geng-listing-info')).toContainText('Leader: Yusuf');
+  await page.getByRole('button', {name: 'View Budak Mamak roster'}).click();
+  await expect(page.getByRole('dialog', {name: 'Budak Mamak'})).toBeVisible();
+  await expect(page.locator('#geng-roster-leader')).toHaveText('Team leader · Yusuf · 2 members');
+  await page.getByRole('button', {name: 'View profile of Aina'}).click();
+  await expect(page.locator('#geng-roster')).not.toBeVisible();
+  await expect(page.locator('body')).toHaveAttribute('data-profile', `${MEMBER}|Aina`);
+
+  await page.evaluate(() => {
+    (window as any).geng.close();
+    (window as any).geng.state({balance: 500, current: {id: '00000000-0000-4000-8000-000000000101', name: 'Budak Mamak', leaderName: 'Yusuf', leader: true, memberCount: 2}, members: [{id: '00000000-0000-4000-8000-000000000001', name: 'Yusuf', leader: true}, {id: '00000000-0000-4000-8000-000000000002', name: 'Aina', leader: false}], pending: [{id: '00000000-0000-4000-8000-000000000003', name: 'Farah'}], guilds: []});
+  });
+  await expect(page.locator('body')).toHaveAttribute('data-geng-event', 'request-received:1');
 });

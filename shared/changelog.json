@@ -1,4 +1,14 @@
 [
+  {
+    "version": "1.39.42",
+    "date": "2026-09-11",
+    "title": "Open Geng ada leader dan roster",
+    "notes": [
+      "Open Gengs kini memaparkan nama team leader serta jumlah ahli.",
+      "Tekan sesebuah Geng untuk membuka roster penuh; setiap nama ahli boleh dibuka ke profile mereka, termasuk ahli yang sedang offline.",
+      "Leader menerima notification realtime apabila ada application baharu, dengan badge nombor yang menunjukkan jumlah request yang masih menunggu."
+    ]
+  },
 {
   "version": "1.39.41",
   "date": "2026-09-11",
