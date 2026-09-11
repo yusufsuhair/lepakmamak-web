@@ -1,0 +1,23 @@
+{
+  "build": "npm run build: passed",
+  "playwright": {
+    "passed": 15,
+    "failed": 0,
+    "config": "playwright.vehicles.config.ts",
+    "port": 54531
+  },
+  "gltf": {
+    "models": 13,
+    "errors": 0,
+    "warnings": 0,
+    "bytes": 2231236,
+    "triangles": 352954
+  },
+  "protectedSourceSha256": {
+    "src/taycan.ts": "8b1452639c146cd3824dd7936c97f3ee8fba6a23ecdbc5a9bed04853bd85816c",
+    "src/gt3-rs.ts": "7d90d3990e69f7cb06be6f2e0e11724d6f87208262bae105fa6b1326fdce1c3f"
+  },
+  "protectedFleetEntriesUnchanged": true,
+  "deployment": "not deployed",
+  "sharedResourceRegression": "passed: swapping a shell does not dispose geometry/materials shared by another car"
+}

@@ -258,5 +258,15 @@
   "direction": 1,
   "speed": 6,
   "npc": true
+ },
+ {
+  "id": "parked-emas",
+  "style": "emas",
+  "x": -117.2,
+  "z": 134,
+  "axis": "z",
+  "direction": 1,
+  "speed": 0,
+  "npc": false
  }
 ]
