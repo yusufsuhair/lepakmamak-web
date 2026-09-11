@@ -45,7 +45,7 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
   return {...pet,x,z,phase:i*5.3,nextSound:0,routeRadius:1.25+(i%4)*.32};
  });
  let lastSound=-10;
- return {animals,update(time:number,listener:{x:number;z:number},sound:(cat:boolean,volume:number,pan:number)=>void){
+ return {animals,update(time:number,listener:{x:number;z:number},sound:(cat:boolean,volume:number,pan:number)=>void,range=1){
   for(const [i,pet] of animals.entries()){
    const cycle=(time+pet.phase)%32,walking=cycle<18,playing=cycle>=18&&cycle<26;
    const angle=walking?cycle/18*Math.PI*2:0;
@@ -58,8 +58,8 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
    pet.legs.forEach((leg,j)=>leg.rotation.x=walking?Math.sin(time*7+(j===0||j===3?0:Math.PI))*.45:playing?Math.sin(time*5+j)*.3:0);
    const distance=Math.hypot(listener.x-pet.group.position.x,listener.z-pet.group.position.z);
    pet.group.visible=distance<68;
-   if(distance<14&&time>pet.nextSound&&time-lastSound>2.5){
-    pet.nextSound=time+9+i;lastSound=time;sound(pet.cat,Math.pow(1-distance/14,2),Math.max(-1,Math.min(1,(pet.group.position.x-listener.x)/14)));
+   if(distance<14*range&&time>pet.nextSound&&time-lastSound>2.5){
+    pet.nextSound=time+9+i;lastSound=time;const audibleDistance=distance/range;sound(pet.cat,Math.pow(1-audibleDistance/14,2),Math.max(-1,Math.min(1,(pet.group.position.x-listener.x)/(14*range))));
    }
   }
  }};

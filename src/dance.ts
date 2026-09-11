@@ -39,11 +39,11 @@ export function createDanceAudio(){
  const seen=new Map<string,number>();
  function remove(id:string){const clip=clips.get(id);if(!clip)return;clip.audio.pause();clip.audio.removeAttribute('src');clip.audio.load();clip.source.disconnect();clip.gain.disconnect();clips.delete(id);}
  return {
- update(people:{id:string;x:number;z:number;danceUntil?:number}[],pos:{x:number;z:number},ctx:AudioContext|null,out:AudioNode|null,enabled:boolean){
+ update(people:{id:string;x:number;z:number;danceUntil?:number}[],pos:{x:number;z:number},ctx:AudioContext|null,out:AudioNode|null,enabled:boolean,range=1){
   const now=Date.now();for(const [id,until] of seen)if(until<=now)seen.delete(id);
-  for(const [id,c] of clips){const p=people.find(p=>p.id===id);if(!enabled||!p||!p.danceUntil||p.danceUntil<=now){remove(id);continue;}c.gain.gain.setTargetAtTime(danceVolume(Math.hypot(p.x-pos.x,p.z-pos.z)),ctx!.currentTime,.15);}
+  for(const [id,c] of clips){const p=people.find(p=>p.id===id);if(!enabled||!p||!p.danceUntil||p.danceUntil<=now){remove(id);continue;}c.gain.gain.setTargetAtTime(danceVolume(Math.hypot(p.x-pos.x,p.z-pos.z)/range),ctx!.currentTime,.15);}
   if(!enabled||!ctx||!out||ctx.state!=='running')return;
-  for(const p of people){if(!p.danceUntil||p.danceUntil<=now||seen.get(p.id)===p.danceUntil||Math.hypot(p.x-pos.x,p.z-pos.z)>=18)continue;
+  for(const p of people){if(!p.danceUntil||p.danceUntil<=now||seen.get(p.id)===p.danceUntil||Math.hypot(p.x-pos.x,p.z-pos.z)>=18*range)continue;
    const audio=new Audio('/dance-bad.mp3');const gain=ctx.createGain();gain.gain.value=0;const source=ctx.createMediaElementSource(audio);source.connect(gain);gain.connect(out);clips.set(p.id,{audio,gain,source,until:p.danceUntil});seen.set(p.id,p.danceUntil);audio.currentTime=Math.max(0,10-(p.danceUntil-now)/1000);void audio.play().catch(()=>{remove(p.id);});
   }
  },stop(){for(const id of clips.keys())remove(id);seen.clear();}
