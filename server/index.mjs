@@ -90,7 +90,7 @@ setInterval(() => {
   for (const [name, players] of rooms) {
     party.tick(players);
     tableInvites.tick(players);
-    if (!players.size && !party.hasPending(players)) { rooms.delete(name); announcements.delete(name); }
+    if (!players.size && !party.hasPending(players)) rooms.delete(name);
   }
 }, 1000).unref();
 const pickleball = createPickleball(send);
@@ -399,7 +399,7 @@ webSocketServer.on('connection', ws => {
     ws.roomName = null;
     broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) });
     syncVoiceCodec(currentRoom.players);
-    if (!currentRoom.players.size && !party.hasPending(currentRoom.players)) { rooms.delete(currentRoom.name); announcements.delete(currentRoom.name); }
+    if (!currentRoom.players.size && !party.hasPending(currentRoom.players)) rooms.delete(currentRoom.name);
     player = null; currentRoom = null;
   }
 

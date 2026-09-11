@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.48",
+    "date": "2026-09-11",
+    "title": "Arahan GM kekal sehingga dimatikan",
+    "notes": [
+      "Mesej /gm kini kekal di HUD sehingga Game Master menggantikannya atau menggunakan /gmoff.",
+      "Banner GM tidak lagi hilang apabila city kosong dan akan dipaparkan semula kepada pemain yang masuk kemudian.",
+      "Hanya /gmoff memadam banner; teks /gm clear kini dipaparkan sebagai mesej biasa."
+    ]
+  },
+  {
     "version": "1.39.47",
     "date": "2026-09-11",
     "title": "Profile kini terus sambung ke Friends dan chat",

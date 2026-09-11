@@ -13,10 +13,12 @@ test('only a Game Master turns /gm into an announcement',()=>{
 
 test('the Game Master can take the banner down again',()=>{
  const gm={gameMaster:true};
- expect(gmAnnouncement(gm,'/gm clear')).toEqual({allowed:true,text:'clear',clear:true});
- expect(gmAnnouncement(gm,'/gm CLEAR')).toEqual({allowed:true,text:'CLEAR',clear:true});
+ expect(gmAnnouncement(gm,'/gmoff')).toEqual({allowed:true,clear:true});
+ expect(gmAnnouncement(gm,' /GMOFF ')).toEqual({allowed:true,clear:true});
  // Only the Game Master, same as sending one.
- expect(gmAnnouncement({gameMaster:false},'/gm clear')).toEqual({allowed:false,text:'clear',clear:true});
+ expect(gmAnnouncement({gameMaster:false},'/gmoff')).toEqual({allowed:false,clear:true});
+ // "clear" is valid announcement copy now; it is not a hidden second way to remove it.
+ expect(gmAnnouncement(gm,'/gm clear')).toEqual({allowed:true,text:'clear'});
 });
 
 test('ordinary chat is never mistaken for a command',()=>{
