@@ -97,3 +97,58 @@ test('e.MAS joins authoritative fleet and can be claimed and released',()=>{
   f.release(players,driver);expect(driver.fleetId).toBeNull();
   f.sync(players,driver.ws);expect(packets.at(-1).cars.find((c:any)=>c.id===seed.id).owner).toBeNull();
 });
+
+test('distance LOD reduces work and steering, brake and reverse remain independent',async({page})=>{
+  await page.goto('/vehicles-preview.html?model=myvi');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio?.presentation?.levels)).toBe(3);
+  const near=await page.evaluate(()=>(window as any).__vehicleStudio.triangles);
+  await page.click('#steer');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.steering)).toBeGreaterThan(.35);
+  await page.click('#brake');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.brake)).toBe(3.2);
+  await page.click('#reverse');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.reverse)).toBe(2);
+  await page.evaluate(()=>(window as any).__vehicleStudio.setDistance(30));
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.lod)).toBe(1);
+  const mid=await page.evaluate(()=>(window as any).__vehicleStudio.triangles);
+  expect(mid).toBeLessThan(near*.7);
+  await page.evaluate(()=>(window as any).__vehicleStudio.setDistance(60));
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.lod)).toBe(2);
+  expect(await page.evaluate(()=>(window as any).__vehicleStudio.triangles)).toBeLessThan(mid*.75);
+  // Moving back to the near level preserves all controls and wheel count.
+  await page.evaluate(()=>(window as any).__vehicleStudio.setDistance(8));
+  await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.lod)).toBe(0);
+  expect(await page.evaluate(()=>(window as any).__vehicleStudio.wheels)).toBe(4);
+});
+
+test('one vehicle braking does not illuminate another instance',async({page})=>{
+  await page.goto('/vehicles-preview.html');
+  const result=await page.evaluate(async()=>{
+    const {createDriveableCar}=await import('/src/world.ts');
+    const {updateVehiclePresentation,vehiclePresentationState}=await import('/src/vehicle-presentation.ts');
+    const THREE=await import('/node_modules/three/build/three.module.js');
+    const a=createDriveableCar('axia'),b=createDriveableCar('axia');await Promise.all([a.ready,b.ready]);
+    const scene=new THREE.Scene();scene.add(a.group,b.group);b.group.position.x=4;
+    const camera=new THREE.PerspectiveCamera();camera.position.set(0,3,8);
+    updateVehiclePresentation(scene,camera,.016,false,{group:a.group,controls:{speed:-2,steering:1,braking:true}},1);
+    return {a:vehiclePresentationState(a.group),b:vehiclePresentationState(b.group)};
+  });
+  expect(result.a?.brake).toBe(3.2);expect(result.b?.brake).toBe(.12);
+  expect(result.a?.reverse).toBe(2);expect(result.b?.reverse).toBe(0);
+});
+
+test('drivers fit inside the new hatchback and low sports-car roofs',async({page})=>{
+  await page.goto('/vehicles-preview.html');
+  const result=await page.evaluate(async()=>{
+    const {createDriveableCar}=await import('/src/world.ts');
+    const THREE=await import('/node_modules/three/build/three.module.js');
+    const result=[];
+    for (const [style,height] of [['myvi',1.515],['lamborghini',1.136],['cybertruck',1.79]]) {
+      const car=createDriveableCar(style);await car.ready;car.driver.visible=true;
+      car.group.position.y=.12;car.group.updateMatrixWorld(true);
+      result.push({style,height,top:new THREE.Box3().setFromObject(car.driver).max.y,scale:car.group.userData.driverScale});
+    }
+    return result;
+  });
+  for (const car of result) {expect(car.top).toBeLessThan(car.height);expect(car.scale).toBeGreaterThan(.3);}
+});

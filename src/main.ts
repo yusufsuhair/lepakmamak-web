@@ -9,6 +9,7 @@ import {setupChatSound} from './chat-sound';
 import {setupUiSounds} from './ui-sound';
 import {audioVolume, setAudioVolume} from './audio-preferences';
 import {setupVehicleRadio} from './vehicle-radio';
+import {updateVehiclePresentation, updateVehicleReflections} from './vehicle-presentation';
 import {setupLocationArrival} from './location-arrival';
 import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
@@ -2225,7 +2226,7 @@ async function init() {
         if (remote.riding) remote.recallUntil = 0;
         const recallProgress = remote.recallUntil > simTime ? 1 - (remote.recallUntil - simTime) / .82 : 0;
         const pulse = recallProgress > 0 ? 1 + Math.sin(recallProgress * Math.PI) * .16 : 1;
-        remote.group.scale.setScalar(remote.car.group.visible || remote.bike.group.visible ? 1 : pulse); remote.bike.rider.scale.setScalar(remote.bike.group.visible ? pulse : 1); remote.car.driver.scale.setScalar(.7 * (remote.car.group.visible ? pulse : 1));
+        remote.group.scale.setScalar(remote.car.group.visible || remote.bike.group.visible ? 1 : pulse); remote.bike.rider.scale.setScalar(remote.bike.group.visible ? pulse : 1); remote.car.driver.scale.setScalar((remote.car.group.userData.driverScale ?? .7) * (remote.car.group.visible ? pulse : 1));
       }
     }
     if (active) {
@@ -2535,6 +2536,11 @@ async function init() {
     beach.update(simTime);
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
+    updateVehiclePresentation(scene,camera,dt,mamakNight,
+      riding && vehicle==='car' ? {group:car.group,controls:{speed,
+        steering:THREE.MathUtils.clamp(Number(keys.has('KeyA')||keys.has('ArrowLeft'))-Number(keys.has('KeyD')||keys.has('ArrowRight'))-stickX,-1,1),
+        braking:keys.has('Space')}} : undefined,simTime,.12);
+    updateVehicleReflections(renderer,scene,camera,mamakNight,simTime);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

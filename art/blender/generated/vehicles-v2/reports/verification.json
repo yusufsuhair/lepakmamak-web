@@ -1,0 +1,29 @@
+{
+  "sourceModels": 13,
+  "runtimeAssets": 39,
+  "testsPassed": 18,
+  "gltfErrors": 0,
+  "gltfWarnings": 0,
+  "totalTransferBytes": 5055852,
+  "nearMaxTriangles": 41096,
+  "farMaxTriangles": 4779,
+  "protectedStyles": [
+    "taycan",
+    "gt3-rs"
+  ],
+  "checks": [
+    "Blender SOURCE/EXPORT and axle hierarchy",
+    "39 Meshopt GLB validations",
+    "desktop and mobile runtime renders",
+    "LOD reduction and hysteresis",
+    "wheel phase and driver identity",
+    "independent brake/reverse lamps",
+    "driver roof clearance",
+    "fleet claim and owner Porsche regressions",
+    "production build excludes studio"
+  ],
+  "limitations": [
+    "Original interpreted geometry, not manufacturer CAD or scans",
+    "Phone viewport emulation is not a physical-device FPS measurement"
+  ]
+}
