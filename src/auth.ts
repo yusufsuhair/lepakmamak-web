@@ -2,6 +2,7 @@ import { createClient, type Session } from '@supabase/supabase-js';
 
 import { appearance, appearanceOptions, defaultAppearance, TUDUNG_COMING_SOON } from './appearance';
 import { createAvatarPreview } from './avatar-preview';
+import { verifyRestoredSession } from './auth-session';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -89,6 +90,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   // Signing up is three steps, and the last two are the same whichever door you came in
   // through: credentials (or Google), then the name, then the character.
   let mode: 'register' | 'login' | 'recovery' | 'username' | 'looks' = 'register';
+  let recoveringLogin = false;
   const named = (value: Session | null) => String(value?.user.user_metadata?.display_name || '').trim().length >= 2;
   let busy = false;
   const enter = () => { authAvatarPreview.stop(); onEnter(); };
@@ -122,6 +124,15 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     el('auth-forgot').hidden = mode !== 'login';
     el('auth-back').hidden = signingUp;
     message.textContent = '';
+  }
+  function showLogin(reason = '') {
+    recoveringLogin = true;
+    mode = 'login';
+    render();
+    overlay.hidden = false;
+    message.textContent = reason;
+    authAvatarPreview.start();
+    email.focus();
   }
   el('auth-mode').onclick = () => { if (!busy) { mode = mode === 'register' ? 'login' : 'register'; render(); } };
   el('auth-back').onclick = () => { if (!busy) overlay.hidden = true; };
@@ -175,6 +186,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
           : await auth.auth.signInWithPassword(credentials);
         if (error) throw error;
         session = data.session;
+        recoveringLogin = false;
         // Email confirmation on: there is no session to attach a name to yet. The name step
         // is waiting for them when they log in, because entry is gated on having one.
         if (!session) { message.textContent = 'Check your inbox to confirm your email, then log in here.'; return; }
@@ -202,16 +214,24 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
         // session, so the player sees a website/auth error instead of a login form.
         mode = 'login';
         render();
-        overlay.hidden = true;
+        overlay.hidden = !recoveringLogin;
         onLeave();
         completeLogout();
+        if (recoveringLogin) email.focus();
       }
+      if (event === 'SIGNED_IN') recoveringLogin = false;
       if (event === 'SIGNED_IN' && !named(next)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); }
       if (event === 'PASSWORD_RECOVERY') { mode = 'recovery'; render(); overlay.hidden = false; password.focus(); }
     });
     try { session = (await auth.auth.getSession()).data.session; } catch { session = null; }
   }
-  return async () => {
+  const invalidate = async (reason = 'Your previous login expired. Please log in again.') => {
+    recoveringLogin = true;
+    session = null;
+    try { await auth?.auth.signOut({ scope: 'local' }); } catch { /* local state still needs recovery */ }
+    showLogin(reason);
+  };
+  const requestEntry = async () => {
     // A mobile player can tap the title screen while Supabase is still delivering the
     // SIGNED_OUT event. Wait for it so the session check below cannot auto-enter the city.
     if (logoutBarrier) await logoutBarrier;
@@ -225,6 +245,16 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
       message.textContent = 'Registration is being connected. Please try again shortly.';
       return;
     }
+    if (session) {
+      message.textContent = 'Checking your login…';
+      const checked = await verifyRestoredSession(session, accessToken => auth.auth.getUser(accessToken));
+      if (checked.state === 'valid') session = checked.session;
+      if (checked.state === 'invalid') { await invalidate(); return; }
+      if (checked.state === 'unavailable') {
+        showLogin('Could not verify your login. Check your connection and try again.');
+        return;
+      }
+    }
     // A Google account arrives named by Google. It does not get to keep that name here,
     // and it does not get into the city until it has chosen one.
     if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
@@ -232,4 +262,5 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     overlay.hidden = false;
     (mode === 'register' || mode === 'login' ? email : mode === 'recovery' ? password : mode === 'username' ? name : choices.querySelector('select'))?.focus();
   };
+  return Object.assign(requestEntry, { invalidate });
 }

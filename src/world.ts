@@ -11,6 +11,7 @@ import { appearance, tudungColour, type Appearance } from './appearance';
 import type { Solid } from './physics';
 import { masjidSpots } from './masjid';
 import {createTaycan} from './taycan';
+import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 
@@ -442,8 +443,8 @@ function createKlccLift(parent: THREE.Object3D, x: number, z: number, id: string
 }
 
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
-export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police' | 'taycan' | 'gt3-rs';
-export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police', 'taycan', 'gt3-rs'];
+export type CarStyle = 'emas' | 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police' | 'taycan' | 'gt3-rs';
+export const carStyles: CarStyle[] = ['emas', 'axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police', 'taycan', 'gt3-rs'];
 export interface VehicleFootprint { width: number; length: number }
 function setVehicleFootprint(group: THREE.Group, width: number, length: number) {
   group.userData.vehicleFootprint = {width, length} satisfies VehicleFootprint;
@@ -454,6 +455,33 @@ export function vehicleSolid(group: THREE.Group, x = group.position.x, z = group
   return {x, z, hx: width / 2, hz: length / 2, yaw, id: 'vehicle'};
 }
 export function createDriveableCar(style: CarStyle = 'myvi') {
+  const model = createProceduralCar(style === 'emas' ? 'suv' : style);
+  // The owner Porsches are intentionally untouched, including their materials/footprints.
+  const fallback = model.group.children.filter(child => child !== model.driver);
+  const ready = style === 'taycan' || style === 'gt3-rs'
+    ? Promise.resolve(false) : upgradeVehicle(model, style).then(loaded => {
+      if (loaded) {
+        // Procedural cubes/person materials are shared by the whole city. Dispose only
+        // this temporary shell's private shapes and window materials; text atlases are cached too.
+        const shared = new Set<THREE.Material>([...materials.values(), ...textMaterials.values(), carGlass]);
+        const privateGeometry = new Set<THREE.BufferGeometry>();
+        const privateMaterials = new Set<THREE.Material>();
+        for (const child of fallback) child.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          if (![cube, cylinder, sphere].includes(object.geometry)) privateGeometry.add(object.geometry);
+          for (const m of Array.isArray(object.material) ? object.material : [object.material]) {
+            if (!shared.has(m)) privateMaterials.add(m);
+          }
+        });
+        for (const geometry of privateGeometry) geometry.dispose();
+        for (const m of privateMaterials) { (m as THREE.MeshBasicMaterial).map?.dispose(); m.dispose(); }
+      }
+      return loaded;
+    });
+  return {...model, ready};
+}
+
+function createProceduralCar(style: Exclude<CarStyle, 'emas'>) {
   if(style==='gt3-rs'){
     const model=createGt3Rs(),driver=createPerson('#eeeeee',true);
     setVehicleFootprint(model.group,2.2,4.44);

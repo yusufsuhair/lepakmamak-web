@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.39.52",
+    "date": "2026-09-11",
+    "title": "Fix crash login pada skrin Retina",
+    "notes": [
+      "Preview character tersembunyi tidak lagi membesarkan canvas berulang kali pada telefon beresolusi tinggi.",
+      "Login dan logout tidak lagi mencetuskan pertumbuhan memori grafik daripada preview tersembunyi. Preview inventory kekal menggunakan character sebenar."
+    ]
+  },
+  {
+    "version": "1.39.51",
+    "date": "2026-09-11",
+    "title": "Login mobile pulih daripada sesi lama",
+    "notes": [
+      "Sesi yang tersimpan kini disahkan dengan Supabase sebelum pemain dibenarkan masuk ke bandar.",
+      "Token yang tamat atau rosak terus dibersihkan dan borang login dibuka tanpa kitaran masuk-keluar yang kelihatan seperti auto-refresh.",
+      "Jika realtime menolak sesi, pemain kini dibawa terus ke login dengan arahan yang jelas."
+    ]
+  },
+  {
     "version": "1.39.50",
     "date": "2026-09-11",
     "title": "Login mobile tidak lagi auto masuk selepas logout",

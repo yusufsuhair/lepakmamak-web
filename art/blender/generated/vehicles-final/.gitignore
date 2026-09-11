@@ -1,0 +1,3 @@
+# Rebuildable intermediates; editable Blender sources and runtime GLBs are retained.
+/exports/
+/packed/

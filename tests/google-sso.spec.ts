@@ -99,7 +99,7 @@ test('signing up is three steps: account, then name, then character',()=>{
 test('logout resets a completed onboarding flow to the login form',()=>{
  // A newly registered player finishes on `looks`. If that state survives logout, their
  // next submit attempts updateUser without a session instead of signing them back in.
- expect(auth).toMatch(/event === 'SIGNED_OUT'[\s\S]*mode = 'login';[\s\S]*render\(\);[\s\S]*overlay\.hidden = true;[\s\S]*onLeave\(\);/);
+ expect(auth).toMatch(/event === 'SIGNED_OUT'[\s\S]*mode = 'login';[\s\S]*render\(\);[\s\S]*overlay\.hidden = !recoveringLogin;[\s\S]*onLeave\(\);/);
 });
 
 test('a nameless session walks the name step then the character step',async({page})=>{
