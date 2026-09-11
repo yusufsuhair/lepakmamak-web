@@ -20,11 +20,12 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   await expect(page.locator('#camera-in,#camera-out')).toHaveCount(0);
   expect(await page.locator('#multiplayer-status-text').evaluate(el=>getComputedStyle(el).clipPath)).toBe('inset(50%)');
   const minimap=await page.locator('#minimap').boundingBox();expect(minimap!.x).toBeLessThan(viewport.width/2);
-  await page.evaluate(()=>{ document.querySelector('canvas')!.dispatchEvent(new WheelEvent('wheel',{deltaY:200,bubbles:true,cancelable:true})); });
-  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBeGreaterThan(9);
+  // The camera starts at its widest (17); the wheel and a pinch zoom in from there.
+  await page.evaluate(()=>{ document.querySelector('canvas')!.dispatchEvent(new WheelEvent('wheel',{deltaY:-200,bubbles:true,cancelable:true})); });
+  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBeLessThan(17);
   await openTray();
   await page.getByRole('button',{name:'Centre camera',exact:true}).click();
-  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(9);
+  expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(17);
   await openTray();
   for (const selector of ['#menu','#camera-reset','#chat-heading']) {
    const box=await page.locator(selector).boundingBox();
@@ -34,7 +35,7 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   }
   if (viewport.width!==1280) {
    await page.locator('#world').evaluate(el=>{el.setPointerCapture=()=>{};for(const [id,x] of [[81,100],[82,200]])el.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',clientX:x,clientY:200,bubbles:true}));el.dispatchEvent(new PointerEvent('pointermove',{pointerId:82,pointerType:'touch',clientX:250,clientY:200,bubbles:true}));for(const id of [81,82])el.dispatchEvent(new PointerEvent('pointerup',{pointerId:id,pointerType:'touch',bubbles:true}));});
-   expect(await page.evaluate(()=>(window as any).__lepak.cameraZoom)).toBeLessThan(9);
+   expect(await page.evaluate(()=>(window as any).__lepak.cameraZoom)).toBeLessThan(17);
    // The composer pill opens the input; the heading collapses the whole panel, which used
    // to be the same gesture and no longer is.
    await page.locator('#chat-compose').click();
