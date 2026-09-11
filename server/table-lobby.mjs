@@ -10,11 +10,12 @@ const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 export const ROSTER_GAMES = {werewolf: true, uno: true};
 
 export const LOBBY_RULES = {
-  lukis: {min: 2, max: 4, scope: 'table'},
+  lukis: {min: 2, max: 9, scope: 'table'},
   poker: {min: 2, max: 4, scope: 'table'},
   uno: {min: 2, max: 4, scope: 'table'},
   werewolf: {min: 5, max: 9, scope: 'city'},
 };
+const capacity = (game, key) => LOBBY_RULES[game].scope === 'city' ? LOBBY_RULES[game].max : Math.min(LOBBY_RULES[game].max, chairs.filter(c => c.tableId === key).length);
 export const COUNTDOWN = 3000;
 export const REACTIONS = ['😂', '👏', '🔥', '😱'];
 
@@ -36,7 +37,7 @@ export function createTableLobby(send, games, now = Date.now) {
   const view = (players, lobby) => ({
     lobbyId: lobby.id, key: lobby.key, game: lobby.game, scope: LOBBY_RULES[lobby.game].scope,
     phase: lobby.phase, ends: lobby.ends, serverTime: now(),
-    min: LOBBY_RULES[lobby.game].min, max: LOBBY_RULES[lobby.game].max,
+    min: LOBBY_RULES[lobby.game].min, max: capacity(lobby.game, lobby.key),
     members: lobby.members.map(member => memberView(players, member)),
   });
 
@@ -192,7 +193,7 @@ export function createTableLobby(send, games, now = Date.now) {
         const id = `${game}:${key}`;
         const lobby = map.get(id) || {id: randomUUID(), key, game, phase: 'lobby', ends: 0, members: []};
         map.set(id, lobby);
-        if (lobby.members.length >= LOBBY_RULES[game].max) { send(player.ws, {type: 'notice', message: 'Meja ini dah penuh.'}); return true; }
+        if (lobby.members.length >= capacity(game, key)) { send(player.ws, {type: 'notice', message: 'Meja ini dah penuh.'}); return true; }
         if (!lobby.members.some(member => member.id === player.id)) lobby.members.push({id: player.id, name: player.name, ready: false});
         settle(players, lobby);
         return true;
@@ -228,6 +229,7 @@ export function createTableLobby(send, games, now = Date.now) {
         // this lobby would send the next countdown back into that same role deal, because
         // werewolf-start quite correctly refuses to start a finished village. Replace the
         // private game before opening the next lobby.
+        if (lobby.game === 'uno' && typeof games.uno?.rematch === 'function' && !games.uno.rematch(players, player)) return true;
         if (lobby.game === 'werewolf' && typeof games.werewolf?.rematch === 'function' && !games.werewolf.rematch(players, player)) return true;
         lobby.phase = 'lobby'; lobby.ends = 0;
         for (const member of lobby.members) member.ready = false;

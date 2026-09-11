@@ -9,7 +9,7 @@ class VoiceCapture extends AudioWorkletProcessor {
         this.phase -= sampleRate;
         this.frame[this.index++] = Math.max(-1, Math.min(1, this.sum / this.count)) * 32767;
         this.sum = 0; this.count = 0;
-        if (this.index === 640) { this.port.postMessage(this.frame.buffer, [this.frame.buffer]); this.frame = new Int16Array(640); this.index = 0; }
+        if (this.index === 640) { this.port.postMessage({buffer:this.frame.buffer, capturedAt:currentTime}, [this.frame.buffer]); this.frame = new Int16Array(640); this.index = 0; }
       }
     }
     return true;

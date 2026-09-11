@@ -734,7 +734,7 @@ webSocketServer.on('connection', ws => {
         if (listener.speakerScope === 'party' && !together) continue;
         // Counted as a drop only down here, where this listener was going to hear it. Out of
         // earshot and backed up is not a drop, and counting it would page for silence.
-        if (listener.ws.bufferedAmount >= 65536) { metrics.countDrop(); continue; }
+        if (listener.ws.bufferedAmount >= 4096) { metrics.countDrop(); continue; }
         const volume = player.micScope === 'party' || distance <= voiceConfig.fullVolumeRadius ? 1 : (voiceConfig.hearingRadius - distance) / (voiceConfig.hearingRadius - voiceConfig.fullVolumeRadius);
         listener.ws.send(JSON.stringify({ type: 'voice-audio', id: player.id, name: player.name, audio: message.audio, volume, codec: opus ? 'opus' : 'pcm' }));
         audience.push(listener.name);

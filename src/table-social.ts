@@ -19,7 +19,7 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  document.body.append(dialog);let tables:TableState[]=[],selfId='',online=false,selected=locations[0].id,current='',playingGame='',minimized=false;let destination:TableInvite|null=null;
  const own=()=>online?tables.find(t=>t.occupants.some(p=>p.id===selfId)):undefined;
  const gameSend=(message:object)=>!!own()&&send(message);
- const lukis=setupLukis(gameSend),poker=setupPoker(gameSend),werewolf=setupWerewolf(gameSend),uno=setupUno(gameSend);
+ const lukis=setupLukis(gameSend),poker=setupPoker(gameSend),werewolf=setupWerewolf(gameSend),uno=setupUno(message => gameSend((message as {type:string}).type === 'uno-rematch' ? {type:'lobby-rematch'} : message));
  const alerts=createTableAlert(toast),onScreen=()=>dialog.open;
  const shell=createTableShell(gameSend,request=>{const tableId=own()?.id||selected;return send({type:'table-invite',game:request.game,tableId});});
  dialog.querySelector('.table-game-stage')!.append(shell.root);

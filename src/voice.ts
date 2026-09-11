@@ -166,13 +166,19 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       input = ctx.createMediaStreamSource(requested); capture = new AudioWorkletNode(ctx, 'voice-capture');
       capture.port.onmessage = event => {
         if (!mic || !online || attempt !== generation) return;
-        const bytes = new Uint8Array(event.data as ArrayBuffer);
+        // Worklet messages can accumulate while rendering blocks the main thread.
+        const packet = event.data;
+        if (packet.capturedAt !== undefined && ctx.currentTime - packet.capturedAt > .2) return;
+        const bytes = new Uint8Array(packet.buffer || packet);
+
         const active = encoderFor();
         if (!active) { sendAudio(bytes, 'pcm'); return; }
+        if (active.encodeQueueSize > 4) return;
         const pcm = new Int16Array(bytes.buffer);
         const floats = new Float32Array(pcm.length);
         for (let i = 0; i < pcm.length; i++) floats[i] = pcm[i] / 32768;
-        active.encode(new AudioData({ format: 'f32', sampleRate: 16000, numberOfFrames: floats.length, numberOfChannels: 1, timestamp: encodeAt, data: floats }));
+        const audio = new AudioData({ format: 'f32', sampleRate: 16000, numberOfFrames: floats.length, numberOfChannels: 1, timestamp: encodeAt, data: floats });
+        try { active.encode(audio); } finally { audio.close(); }
         encodeAt += FRAME_US;
       };
       input.connect(capture); capture.connect(ctx.destination); // Processor outputs silence.
@@ -235,6 +241,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
         if (codec === 'opus') {
           if (!opusCapable) return;
           const decoder = decoderFor(id);
+          if (decoder.decodeQueueSize > 4) return;
           awaitingVolume.get(id)!.push(volume);
           const at = decodeAt.get(id) ?? 0;
           decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: at, data: bytes }));

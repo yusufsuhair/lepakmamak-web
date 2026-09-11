@@ -17,3 +17,26 @@ test('an exhausted deck ends a blocked round without losing or duplicating cards
 test('mobile cards, wild picker, dealing and game-menu entry',async({page})=>{
  const f=suitable('wild');await page.setViewportSize({width:390,height:844});await page.goto('/');await page.waitForTimeout(300);await page.evaluate(async state=>{document.querySelectorAll('#table-social').forEach(e=>e.remove());const {setupTableSocial}=await import('/src/table-social.ts');const sent:any[]=[];(window as any).unoSent=sent;const ui=(window as any).ui=setupTableSocial(m=>{sent.push(m);return true;},'test',()=>{},()=>{});ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'0',name:'P0',chairId:'chair-0'}]}],'0',true);ui.uno(state);ui.open('meja-1');},f.f.state());const d=page.locator('#table-social[open]');await d.locator('[data-select="uno"]').click();await page.evaluate(g=>(window as any).ui?.lobby({key:'meja-1',game:g,scope:g==='werewolf'?'city':'table',phase:'playing',ends:0,serverTime:0,min:2,max:9,members:[{id:'self',name:'You',ready:true},{id:'p2',name:'Kawan',ready:true}]}),'uno');await expect(d.locator('.uno')).toBeVisible();await expect(d.locator('.poker')).toBeHidden();await d.locator(`.uno-hand [data-card="${f.card.id}"]`).click();await expect(d.locator('.uno-picker')).toBeVisible();await d.locator('.uno-picker [data-color="blue"]').click();expect(await page.evaluate(()=>(window as any).unoSent.at(-1))).toMatchObject({type:'uno-play',color:'blue'});expect(await d.evaluate(e=>e.scrollWidth<=e.clientWidth)).toBe(true);await d.getByRole('button',{name:'Mute card sounds'}).click();await expect(d.getByRole('button',{name:'Enable card sounds'})).toBeVisible();
 });
+
+test('finished UNO resets its private roster before returning everyone to Ready',()=>{
+ const f=fixture(123,2);
+ for(let i=0;i<20000&&f.state().phase!=='finished';i++){
+  if(f.state().phase==='round-over'){f.send(0,{type:'uno-start'});f.step(3200);}else playStep(f);
+ }
+ expect(f.state().phase).toBe('finished');
+ const oldId=f.state().id;
+ expect(f.engine.rematch(f.ps,f.ps.get('1'))).toBe(true);
+ f.send(1,{type:'uno-open'});
+ expect(f.state(1).phase).toBe('lobby');expect(f.state(1).id).not.toBe(oldId);expect(f.state(1).players).toEqual([]);
+});
+
+test('Catch survives an unrelated departure but cannot penalise the same window twice',()=>{
+ const f=fixture();for(let i=0;i<500&&!f.state().unoTarget&&f.state().phase==='playing';i++)playStep(f,false);
+ const g=f.state();expect(g.unoTarget).toBeTruthy();const target=g.unoTarget;
+ const catcher=[0,1,2].find(i=>`u${i}`!==target)!;
+ const leaving=[0,1,2].find(i=>`u${i}`!==target&&i!==catcher)!;
+ const packet={type:'uno-catch',gameId:g.id,revision:g.revision,target};
+ f.send(leaving,{type:'uno-leave'});f.send(catcher,packet);
+ expect(f.state().event.type).toBe('catch');expect(f.state(Number(target.slice(1))).hand).toHaveLength(3);
+ f.send(catcher,packet);expect(f.state(Number(target.slice(1))).hand).toHaveLength(3);
+});

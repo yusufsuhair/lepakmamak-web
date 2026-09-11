@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.39.61",
+    "date": "2026-09-12",
+    "title": "Smoother voice and clearer table rematches",
+    "notes": [
+      "Old microphone frames are discarded after a freeze, and voice queues are kept short to reduce delayed speech.",
+      "Graphics switch to Smooth when low frame rates persist. You can change quality in Settings.",
+      "UNO Catch stays usable while your own UNO is armed and tolerates unrelated roster updates without duplicate penalties.",
+      "After an UNO match, Back to Ready lobby lets everyone ready up again with a fresh game roster.",
+      "Lukis Lah supports up to 9 players at larger tables; smaller tables keep their actual seat capacity."
+    ]
+  },
+  {
     "version": "1.39.60",
     "date": "2026-09-11",
     "title": "Masuk bandar lebih tenang",

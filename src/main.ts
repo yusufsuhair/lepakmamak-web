@@ -1088,7 +1088,7 @@ async function init() {
   }
   const voice = setupVoice(message => {
     if (message.type === 'voice-state' && localName) updateNameTagVoice(localName, !!message.mic, !!message.speaker);
-    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
+    if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > (message.type === 'voice-audio' ? 4096 : 65536)) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   }, (id, name, level) => speaking.heard(id, name, level, roomPlayers.find(player=>player.id===id)?.appearance));
   voice.volume(audioVolume('voice'));
@@ -1592,7 +1592,7 @@ async function init() {
     } });
   }
   let graphicsQuality = touch ? 'low' : 'high';
-  const autoReduced = false; // Retained for existing read-only diagnostics.
+  let autoReduced = false, slowSeconds = 0;
   try {
     const saved = localStorage.getItem('lepak-graphics');
     if (saved === 'low' || saved === 'smooth') graphicsQuality = 'low';
@@ -1606,7 +1606,7 @@ async function init() {
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
   }
   $('graphics-quality').onchange = () => {
-    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value;
+    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value; slowSeconds = 0; autoReduced = false;
     try { localStorage.setItem('lepak-graphics', graphicsQuality); } catch { /* Storage is optional. */ }
     applyQuality();
   };
@@ -2119,6 +2119,10 @@ async function init() {
     const frameSeconds = (time - lastTime) / 1000;
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
+    if (started && !document.hidden && graphicsQuality === 'high' && frameSeconds < .5) {
+      slowSeconds = frameSeconds > .035 ? slowSeconds + frameSeconds : Math.max(0, slowSeconds - frameSeconds);
+      if (slowSeconds > 5) { graphicsQuality = 'low'; autoReduced = true; slowSeconds = 0; applyQuality(); }
+    }
     park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
     lrt.update(lrtNow(),pos,lrtId);
     for (const id of [0, 1]) {
