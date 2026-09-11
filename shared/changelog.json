@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.43",
+    "date": "2026-09-11",
+    "title": "Boleh login semula selepas logout",
+    "notes": [
+      "Logout kini membersihkan langkah pendaftaran lama dan membuka borang login yang betul apabila pemain masuk semula.",
+      "Pemain yang baru selesai memilih character tidak lagi terkena website error ketika cuba login kembali."
+    ]
+  },
+  {
     "version": "1.39.42",
     "date": "2026-09-11",
     "title": "Open Geng ada leader dan roster",

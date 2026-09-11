@@ -174,7 +174,15 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   if (auth) {
     auth.auth.onAuthStateChange((event, next) => {
       session = next;
-      if (event === 'SIGNED_OUT') onLeave();
+      if (event === 'SIGNED_OUT') {
+        // A completed registration leaves the local wizard on its final `looks` step.
+        // Reusing that step after logout makes the next submit call updateUser without a
+        // session, so the player sees a website/auth error instead of a login form.
+        mode = 'login';
+        render();
+        overlay.hidden = true;
+        onLeave();
+      }
       if (event === 'SIGNED_IN' && !named(next)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); }
       if (event === 'PASSWORD_RECOVERY') { mode = 'recovery'; render(); overlay.hidden = false; password.focus(); }
     });
