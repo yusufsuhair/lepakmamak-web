@@ -9,7 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test && npm --prefix admin test",
     "start": "node server/index.mjs",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
+    "deploy": "node scripts/cdn.mjs --check && npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
     "deploy:realtime": "node scripts/deploy-realtime.mjs",
     "preversion": "npm run build && npm test",
     "release:patch": "npm version patch -m \"chore(release): v%s\"",

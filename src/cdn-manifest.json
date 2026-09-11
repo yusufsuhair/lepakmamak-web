@@ -1,0 +1,21 @@
+{
+  "base": "https://assets.lepakmamak.my/",
+  "version": "781892ced6da",
+  "files": {
+    "busking.mp3": {
+      "key": "audio/busking.7a65f8ca7ca7.mp3",
+      "bytes": 15016162,
+      "etag": "d996576b12b01437862d1cfb8df6a6df"
+    },
+    "arrahman.mp3": {
+      "key": "audio/arrahman.1e8d1e540ed3.mp3",
+      "bytes": 8322135,
+      "etag": "8ff333516ae359c15b889325a9631b76"
+    },
+    "background-short.mp3": {
+      "key": "audio/background-short.2c5cbc8bad0a.mp3",
+      "bytes": 3011952,
+      "etag": "0f501e41e53a590b9d91085a57ab4fa4"
+    }
+  }
+}

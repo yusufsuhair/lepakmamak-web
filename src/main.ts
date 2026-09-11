@@ -70,6 +70,7 @@ import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
 import * as authLifecycle from './auth';
 import {preparePetronasEnvironment} from './petronas';
+import {cdnUrl} from './cdn';
 import { appearance, type Appearance } from './appearance';
 import { shoutTag, nameTag, updateNameTagName, updateNameTagGeng, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
@@ -115,7 +116,7 @@ $('app').innerHTML = `
       <small id="loading-detail">Setting the tables. Warming up the kapcai.</small>
     </div>
   </div>
-  <audio id="background-music" src="/background-short.mp3" loop preload="none" aria-hidden="true"></audio>
+  <audio id="background-music" crossorigin="anonymous" loop preload="none" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
     <div class="intro-top"><div class="brand"><img class="brand-mark" src="/icon-80.png" width="28" height="28" alt="" /> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
@@ -740,12 +741,16 @@ async function init() {
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
   const trainDoorStates = new Map<number, boolean>();
-  const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'none';
-  const buskingSong=new Audio('/busking.mp3');buskingSong.loop=true;buskingSong.preload='none';
-  const watsonsSong=new Audio('/watson.mp3');watsonsSong.loop=true;watsonsSong.preload='none';
-  const familyMartSong=new Audio('/familymart.mp3');familyMartSong.loop=true;familyMartSong.preload='none';
-  const masjidSong=new Audio('/arrahman.mp3');masjidSong.loop=true;masjidSong.preload='none';
-  const stallVoiceSong=new Audio('/duasinggit.mp3');stallVoiceSong.loop=true;stallVoiceSong.preload='none';
+  // Area loops fetch nothing until audible: setNearbyLoop attaches src on the first play. The
+  // long ones stream from the asset host, and crossOrigin must precede src there or the
+  // MediaElementSource below hands Web Audio silence instead of samples.
+  const areaLoop = (src: string) => { const song = new Audio(); song.crossOrigin = 'anonymous'; song.loop = true; song.preload = 'none'; song.dataset.src = src; return song; };
+  const iceCreamSong = areaLoop('/matkool.mp3');
+  const buskingSong=areaLoop(cdnUrl('busking.mp3'));
+  const watsonsSong=areaLoop('/watson.mp3');
+  const familyMartSong=areaLoop('/familymart.mp3');
+  const masjidSong=areaLoop(cdnUrl('arrahman.mp3'));
+  const stallVoiceSong=areaLoop('/duasinggit.mp3');
   let buskingGain:GainNode|null=null;
   let watsonsGain:GainNode|null=null;
   let familyMartGain:GainNode|null=null;
@@ -754,7 +759,7 @@ async function init() {
   let iceCreamGain: GainNode | null = null;
   // Straight-piped exhaust: it carries, so it gets a tighter radius and a quieter peak
   // than the ice-cream song, which is meant to be heard across the street.
-  const lamboSong = new Audio('/gintani.mp3'); lamboSong.loop = true; lamboSong.preload = 'none';
+  const lamboSong = areaLoop('/gintani.mp3');
   const LAMBO_REACH = 16, LAMBO_FULL = 4, LAMBO_PEAK = .3;
   let lamboGain: GainNode | null = null;
   let citySoundsGain: GainNode | null = null;
@@ -798,15 +803,23 @@ async function init() {
       }
       if (musicContext.state === 'suspended') void musicContext.resume().catch(() => {});
     } catch { /* Retain the quieter media-element fallback where supported. */ }
+    // Attached here, not in the markup, so a player with music off never downloads the track.
+    if (!backgroundMusic.hasAttribute('src')) backgroundMusic.src = cdnUrl('background-short.mp3');
     void backgroundMusic.play().catch(() => {
       // Browsers can still reject playback when the user starts with the keyboard.
       // The next user interaction will try again without interrupting the game.
     });
   }
   const nearbyLoopStarting = new WeakSet<HTMLAudioElement>();
+  // A loop whose download failed rests before retrying, instead of re-requesting every frame.
+  const nearbyLoopRetryAt = new WeakMap<HTMLAudioElement, number>();
   function setNearbyLoop(song: HTMLAudioElement, audible: boolean) {
     if (audible) {
-      if (song.paused && !nearbyLoopStarting.has(song)) {
+      if (song.paused && !nearbyLoopStarting.has(song) && (nearbyLoopRetryAt.get(song) ?? 0) <= performance.now()) {
+        if (!song.hasAttribute('src')) {
+          song.addEventListener('error', () => { song.pause(); nearbyLoopRetryAt.set(song, performance.now() + 15000); });
+          song.src = song.dataset.src!;
+        } else if (song.error) song.load();
         nearbyLoopStarting.add(song);
         void song.play().catch(() => {}).finally(() => nearbyLoopStarting.delete(song));
       }
