@@ -1,0 +1,18 @@
+[
+  {
+    "mobile": false,
+    "medianMs": 16.699999999999818,
+    "p95Ms": 16.700000000000728,
+    "meanDraws": 2786.2083333333335,
+    "quality": "high",
+    "autoReduced": false
+  },
+  {
+    "mobile": true,
+    "medianMs": 16.699999999999818,
+    "p95Ms": 16.799999999999272,
+    "meanDraws": 311.34166666666664,
+    "quality": "low",
+    "autoReduced": false
+  }
+]

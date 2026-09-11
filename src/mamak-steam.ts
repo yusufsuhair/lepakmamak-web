@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import tables from '../shared/tables.json';
+import tabletop from '../shared/mamak-tabletop.json';
 
 /** Hot-drink state cue: a single lightweight draw, no per-frame allocations. */
 export function createMamakSteam(scene: THREE.Scene) {
   const points:number[]=[];
   for(const table of tables.filter(t=>['meja-1','meja-2','meja-3','meja-4','meja-9'].includes(t.id))) {
-    for(const [dx,dz] of [[.38,.12],[-.40,-.20]]) for(let i=0;i<3;i++) points.push(table.x+dx,1.46,table.z+dz);
+    const yaw=tabletop.rotations[table.id as keyof typeof tabletop.rotations];
+    for(const [dx,dz] of tabletop.cups) for(let i=0;i<3;i++)
+      points.push(table.x+dx*Math.cos(yaw)+dz*Math.sin(yaw),tabletop.steamHeight,table.z-dx*Math.sin(yaw)+dz*Math.cos(yaw));
   }
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));

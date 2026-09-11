@@ -1,0 +1,58 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "bounds_blender_m": {
+    "max": [
+      18.5,
+      5.199999809265137,
+      9.949999809265137
+    ],
+    "min": [
+      -18.5,
+      -35.5,
+      0.0
+    ],
+    "size": [
+      37.0,
+      40.69999980926514,
+      9.949999809265137
+    ]
+  },
+  "budgets": {
+    "max_draw_calls": 9,
+    "max_glb_bytes": 2097152,
+    "max_materials": 7,
+    "max_meshes": 3,
+    "max_textures": 2,
+    "max_triangles": 24000,
+    "vertex_ao": true
+  },
+  "errors": [],
+  "glb": {
+    "bytes": 1737876,
+    "nodes": [
+      "LM_ENV_MamakMaju",
+      "LM_ENV_MamakMaju_Counter",
+      "LM_ENV_MamakMaju_Festoon"
+    ],
+    "primitives": 9,
+    "sha256": "0ceffb4493fbb787378e27be4284f4c7f5f22842dd874e196377c465f58f2a3c"
+  },
+  "materials": [
+    "LM_Counter_Steel",
+    "LM_Leaf_Green",
+    "LM_Metal_Dark",
+    "LM_Plastic_Red",
+    "LM_Roof_Red",
+    "LM_Wall_Cream",
+    "LM_Wood_Warm"
+  ],
+  "mesh_count": 3,
+  "objects": [
+    "LM_ENV_MamakMaju",
+    "LM_ENV_MamakMaju_Counter",
+    "LM_ENV_MamakMaju_Festoon"
+  ],
+  "passed": true,
+  "profile": "static-counter-baked",
+  "triangles": 23425
+}

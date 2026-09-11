@@ -9,9 +9,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const profile = JSON.parse(await fs.readFile(path.join(root, 'mamak-profile.json'), 'utf8'));
-const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju-v6/exports/LM_ENV_MamakMaju.glb'));
+const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju-v7/exports/LM_ENV_MamakMaju.glb'));
 const bytes = await fs.readFile(input);
-const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju-v6/reports'));
+const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju-v7/reports'));
 await fs.mkdir(reportDir, { recursive: true });
 const khronos = await validator.validateBytes(new Uint8Array(bytes), { uri: path.basename(input), maxIssues: 1000 });
 await fs.writeFile(path.join(reportDir, 'gltf-validator.json'), JSON.stringify(khronos, null, 2) + '\n');
@@ -72,6 +72,14 @@ gltf.scene.traverse(object => {
   assert.ok(object.material.isMeshStandardMaterial);
   assert.equal(object.material.transparent, false);
   assert.equal(object.material.side, 0);
+  if (object.material.name !== profile.counter_material && profile.version >= 7) {
+    const colors=object.geometry.attributes.color;
+    assert.ok(colors, 'portable baked vertex occlusion must survive GLB');
+    assert.ok(object.material.vertexColors, 'Three.js must use baked vertex colours');
+    assert.ok(object.material.color.r < .999, 'authored palette factor must survive vertex-colour export');
+    for(let i=0;i<colors.count;i++) for(const value of [colors.getX(i),colors.getY(i),colors.getZ(i)])
+      assert.ok(Number.isFinite(value) && value >= .579 && value <= 1.001,'bounded linear vertex AO');
+  }
   if (object.material.name === profile.counter_material) {
     assert.ok(object.geometry.attributes.tangent, 'baked tangent basis must survive export');
     const uv=object.geometry.attributes.uv;
@@ -81,7 +89,7 @@ gltf.scene.traverse(object => {
     const positions = object.geometry.attributes.position;
     const normals = object.geometry.attributes.normal;
     for (let i = 0; i < positions.count; i += 1) {
-      if (Math.abs(positions.getZ(i) - 12.50) > 1e-4) continue;
+      if (Math.abs(positions.getZ(i) - 12.50) > 1e-4 || positions.getY(i) < 3) continue;
       signVertices += 1;
       assert.ok(positions.getY(i) > 3.78 && positions.getY(i) < 4.68, 'lettering within board');
       assert.ok(normals.getZ(i) > .99, 'lettering must face the service front');
@@ -114,6 +122,17 @@ for (const chair of chairs) {
 for (const table of tables) {
   ray.set(new THREE.Vector3(table.x + 29, 3, table.z - 30), new THREE.Vector3(0, -1, 0));
   near(ray.intersectObject(gltf.scene, true)[0].point.y, 1.1425, `${table.id}: table top`);
+}
+if(profile.version>=7){
+  const tabletop=JSON.parse(await fs.readFile(path.join(gameRoot,'shared/mamak-tabletop.json'),'utf8'));
+  for(const table of tables)for(const [dx,dz] of tabletop.cups){
+    const yaw=tabletop.rotations[table.id];
+    ray.set(new THREE.Vector3(table.x+29+dx*Math.cos(yaw)+dz*Math.sin(yaw),tabletop.steamHeight,table.z-30-dx*Math.sin(yaw)+dz*Math.cos(yaw)),new THREE.Vector3(0,-1,0));
+    const hit=ray.intersectObject(gltf.scene,true)[0];
+    assert.ok(hit,`${table.id}: steam must originate over an exported drink`);
+    near(hit.point.y,1.421,`${table.id}: exported tea surface under steam`);
+    assert.equal(hit.object.material.name,'LM_Wood_Warm');
+  }
 }
 ray.set(new THREE.Vector3(0, 7, 0), new THREE.Vector3(0, 0, 1));
 assert.equal(ray.intersectObject(gltf.scene, true).filter(h => h.distance < 4.5).length, 0, 'building faces must not face inward');

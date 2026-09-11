@@ -246,6 +246,10 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, t
             check(len(mesh.loop_triangles) > 0, f"Empty geometry: {obj.name}")
             check(all(t.area > 1e-10 for t in mesh.loop_triangles), f"Degenerate triangles: {obj.name}")
             check(bool(mesh.uv_layers.active), f"Missing UVs: {obj.name}")
+            if budget_overrides and budget_overrides.get('vertex_ao') and obj.name!='LM_ENV_MamakMaju_Counter':
+                colors=mesh.color_attributes.get('LM_Baked_Occlusion')
+                check(bool(colors and colors.domain=='CORNER'),f'Missing portable vertex AO: {obj.name}')
+                if colors:check(all(math.isfinite(v) and .579<=v<=1.001 for c in colors.data for v in c.color),f'Invalid vertex AO values: {obj.name}')
             if mesh.uv_layers.active:
                 check(all(math.isfinite(v) for uv in mesh.uv_layers.active.data for v in uv.uv), f"Nonfinite UVs: {obj.name}")
             check(all(math.isfinite(c) for v in mesh.vertices for c in v.co), f"Nonfinite vertices: {obj.name}")
@@ -259,6 +263,7 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, t
     for name in sorted(materials):
         mat = bpy.data.materials[name]
         textured = bool(texture_profile and name == texture_profile["material"])
+        vertex_ao = bool(budget_overrides and budget_overrides.get('vertex_ao') and not textured)
         check(name in CONFIG["palette"] or textured, f"Material is not in shared palette: {name}")
         check(mat.use_nodes, f"Material requires nodes: {name}")
         if not mat.use_nodes:
@@ -280,7 +285,13 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, t
             check(("LM_Baked_Normal", "Color", "NORMAL_MAP", "Color") in wiring, f"Normal texture must target tangent normal map: {name}")
             check(any(n.type == "GROUP" and n.node_tree and n.node_tree.name == "glTF Material Output" for n in nodes), f"glTF occlusion group required: {name}")
         else:
-            check(len(nodes) == 2, f"Only simple Principled BSDF + Output supported: {name}")
+            check(len(nodes) == (4 if vertex_ao else 2), f"Only simple Principled BSDF + Output supported: {name}")
+            if vertex_ao:
+                attr=mat.node_tree.nodes.get('LM_Baked_Occlusion');mix=mat.node_tree.nodes.get('LM_Occlusion_Tint')
+                check(bool(attr and attr.type=='VERTEX_COLOR' and attr.layer_name=='LM_Baked_Occlusion'),f'Missing vertex AO attribute: {name}')
+                check(bool(mix and mix.type=='MIX_RGB' and mix.blend_type=='MULTIPLY' and mix.inputs[0].default_value==1),f'Invalid vertex AO multiply: {name}')
+                if attr and mix:
+                    check(any(l.from_node==attr and l.to_socket==mix.inputs[2] for l in mat.node_tree.links) and any(l.from_node==mix and l.to_socket==bsdfs[0].inputs['Base Color'] for l in mat.node_tree.links),f'Invalid vertex AO wiring: {name}')
         if len(bsdfs) == 1:
             bsdf = bsdfs[0]
             check(bsdf.inputs["Alpha"].default_value == 1 and bsdf.inputs["Base Color"].default_value[3] == 1, f"Opaque alpha required: {name}")
@@ -288,7 +299,7 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, t
             if textured:
                 check(not bsdf.inputs["Base Color"].is_linked and not bsdf.inputs["Emission Color"].is_linked, f"Baked direct lighting not in counter profile: {name}")
                 check(bsdf.inputs["Normal"].is_linked and bsdf.inputs["Normal"].links[0].from_node.type == "NORMAL_MAP", f"Tangent normal must reach shader: {name}")
-            check(len(mat.node_tree.links) == (4 if textured else 1) and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
+            check(len(mat.node_tree.links) == (4 if textured else 3 if vertex_ao else 1) and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
         check(mat.use_backface_culling, f"Single-sided material required: {name}")
     budget = {**CONFIG["budgets"], **(budget_overrides or {})}
     check(triangles <= budget["max_triangles"], "Triangle budget exceeded")
@@ -334,7 +345,16 @@ def _export_validated(path, result, budget):
     # Named collection filtering includes descendants; selection and active UI state are irrelevant.
     textured = budget.get("max_textures", 0) > 0
     copies = []
+    color_links = []
     try:
+        # ACTIVE exports COLOR_0 independently. Keep the authored palette as the
+        # glTF baseColorFactor: the exporter does not recognise legacy MixRGB.
+        if budget.get('vertex_ao'):
+            for name in result['materials']:
+                mat=bpy.data.materials[name]
+                socket=mat.node_tree.nodes['Principled BSDF'].inputs['Base Color']
+                for link in list(socket.links):
+                    color_links.append((mat,link.from_socket,socket));mat.node_tree.links.remove(link)
         # Baked tangent space belongs to the counter only. Omit unused UV/tangent
         # streams on copies of untextured meshes; the editable source retains UVs.
         if textured:
@@ -352,8 +372,10 @@ def _export_validated(path, result, budget):
             export_apply=True, export_texcoords=True, export_normals=True, export_tangents=textured,
             export_materials="EXPORT", export_cameras=False, export_lights=False,
             export_animations=False, export_extras=True, export_attributes=False,
+            export_vertex_color='ACTIVE' if budget.get('vertex_ao') else 'MATERIAL',
             export_draco_mesh_compression_enable=False)
     finally:
+        for mat,source,target in color_links:mat.node_tree.links.new(source,target)
         for obj, original, copy in copies:
             obj.data = original
             bpy.data.meshes.remove(copy)

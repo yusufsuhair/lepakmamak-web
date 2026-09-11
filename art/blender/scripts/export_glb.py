@@ -11,17 +11,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--source", type=Path, required=True)
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--scale-test", action="store_true")
-parser.add_argument("--profile", choices=["static", "mamak-v3", "mamak-v4", "mamak-v5", "mamak-v6"], default="static")
+parser.add_argument("--profile", choices=["static", "mamak-v3", "mamak-v4", "mamak-v5", "mamak-v6", "mamak-v7"], default="static")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else [])
 if args.output.suffix.lower() != ".glb" or args.output.exists():
     raise RuntimeError("Use a new .glb output path; existing files are preserved")
 bpy.ops.wm.open_mainfile(filepath=str(args.source.resolve()))
 options={}
-if args.profile in {"mamak-v3", "mamak-v4", "mamak-v5", "mamak-v6"}:
+if args.profile in {"mamak-v3", "mamak-v4", "mamak-v5", "mamak-v6", "mamak-v7"}:
     if args.scale_test: raise ValueError("Scale test and Mamak profile are mutually exclusive")
     from mamak_polish import PROFILE
     options={"budget_overrides":PROFILE["budgets"],"texture_profile":{
         "material":PROFILE["counter_material"],"resolution":PROFILE["bake"]["resolution"]}}
+    if bpy.data.objects['LM_ENV_MamakMaju'].get('lm_version',0)<7:
+        options['budget_overrides']={**PROFILE['budgets'],'vertex_ao':False}
 result = export_collection(args.output.resolve(), scale_test=args.scale_test, **options)
 write_json(args.output.with_suffix(".validation.json"), result)
 print("LM_EXPORT_PASS", result)

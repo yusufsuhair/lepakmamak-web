@@ -1,0 +1,58 @@
+{
+  "count": 13,
+  "passed": true,
+  "tests": [
+    {
+      "passed": true,
+      "test": "textures require explicit profile"
+    },
+    {
+      "passed": true,
+      "test": "wrong texture colour space"
+    },
+    {
+      "passed": true,
+      "test": "wrong texture dimensions"
+    },
+    {
+      "passed": true,
+      "test": "unexpected procedural shader"
+    },
+    {
+      "passed": true,
+      "test": "alpha steel"
+    },
+    {
+      "passed": true,
+      "test": "AO cannot darken base colour"
+    },
+    {
+      "passed": true,
+      "test": "version and required authored frontage/atmosphere parts"
+    },
+    {
+      "passed": true,
+      "test": "portable Cycles vertex bake has bounded nonflat linear occlusion"
+    },
+    {
+      "passed": true,
+      "test": "table details remain on physical tabletops and clear playable seats"
+    },
+    {
+      "passed": true,
+      "test": "festoon cables and bulbs preserve avatar head clearance"
+    },
+    {
+      "passed": true,
+      "test": "service meshes stay inside shared collision footprints"
+    },
+    {
+      "passed": true,
+      "test": "ground inlays face up and remain below paving border"
+    },
+    {
+      "passed": true,
+      "test": "normalised UVs; packed source; export isolation; source preservation; identical GLB"
+    }
+  ]
+}
