@@ -1,5 +1,5 @@
 import {clampWorldPoint,insideWorld} from '../shared/world-bounds.mjs';
-export interface Solid { x: number; z: number; hx: number; hz: number; yaw?: number; id?: string }
+export interface Solid { x: number; z: number; hx: number; hz: number; yaw?: number; id?: string; cameraTop?:number }
 export interface Point { x: number; z: number }
 export const WORLD_LIMIT = 153;
 

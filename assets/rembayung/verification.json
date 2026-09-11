@@ -1,0 +1,27 @@
+{
+  "native_mesh_objects": 160,
+  "glb_meshes": 62,
+  "glb_unique_triangles": 240602,
+  "glb_bytes": 15558216,
+  "embedded_images": 1,
+  "status": "PASS",
+  "glb_round_trip_import": "PASS",
+  "renders": {
+    "01-exterior-night": [
+      1400,
+      1100
+    ],
+    "02-interior-rear": [
+      1200,
+      1400
+    ],
+    "03-interior-front": [
+      1200,
+      1400
+    ],
+    "04-exterior-aerial": [
+      1400,
+      1100
+    ]
+  }
+}

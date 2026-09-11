@@ -68,7 +68,7 @@ test('Rembayung player enters Daddy Fizal car, drives and gets out',async({page}
   const {createFleet}=await import('../server/fleet.mjs');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   let claimedStyle:string|undefined;
-  await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export const session={access_token:'test',user:{id:'gt3-driver',user_metadata:{display_name:'Driver'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Driver';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`}));
+  await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export function beginLogout(){}export function cancelLogout(){}export const session={access_token:'test',user:{id:'gt3-driver',user_metadata:{display_name:'Driver'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Driver';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`}));
   await page.routeWebSocket('**/ws',ws=>{
     const p:any={id:'gt3-driver',ws:{},name:'Driver',x:-120,z:142,yaw:0,riding:false,speed:0};const players=new Map([[p.id,p]]);
     const send=(_w:any,m:any)=>{if(m.type==='car-claimed')claimedStyle=m.car.style;ws.send(JSON.stringify(m));};

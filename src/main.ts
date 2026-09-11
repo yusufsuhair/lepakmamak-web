@@ -13,6 +13,7 @@ import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import city from '../shared/city.json';
 import {SALOMA,salomaGround} from './bridge';
+import {rembayungGroundHeight} from './rembayung-layout';
 import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
@@ -182,6 +183,7 @@ async function init() {
       mamakAssetState = 'fallback';
       console.warn('[web-assets] Mamak Maju GLB unavailable; keeping procedural fallback', error);
     });
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakRembayung',{configurable:true,get:()=>({...world.rembayung.status,fallbackVisible:world.rembayung.fallback.visible})});
   const park = createLegoland(scene,world,{
     send:message=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify(message));},
     online:()=>networkConnected,
@@ -2213,6 +2215,7 @@ async function init() {
           }
         }
         const travelled = Math.hypot(pos.x - previousX, pos.z - previousZ);
+        if(!skyDining&&!klccLiftRide){const height=rembayungGroundHeight(pos);if(height!==null)deckY=height;}
         if (!(skyDining&&inSkyPool(pos)) && jumpHeight === 0 && travelled > .001) {
           footstepDistance += travelled;
           if (footstepDistance >= (running ? 1.65 : 1.15)) { movementSound('step', running); footstepDistance = 0; }
@@ -2245,7 +2248,8 @@ async function init() {
       // Shorten the camera arm when a building would obscure the player.
       for (let step = 1.5; !skyDining && lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
-        if (world.solids.some(s => overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
+        const cameraRayY=deckY+(riding?2:1.6)+step*cameraPitch;
+        if (world.solids.some(s => (s.cameraTop===undefined||cameraRayY<=s.cameraTop)&&overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
       }
       target.set(pos.x, (lrtId!=null?railHeight+2:riding ? 2 : 1.6) + deckY, pos.z);
       desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * (lrtId!=null?Math.max(.55,cameraPitch):cameraPitch)), pos.z - Math.cos(heading) * cameraDistance);

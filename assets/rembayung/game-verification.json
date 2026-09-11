@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-11",
+  "branch": "codex/rembayung-model",
+  "build": "PASS: tsc --noEmit and vite build",
+  "regressionTests": {
+    "passed": 10,
+    "files": ["tests/rembayung.spec.ts", "tests/collision-footprints.spec.ts", "tests/gt3-rs.spec.ts"],
+    "finalSiteAdjustment": "PASS: actual game entrance-to-mezzanine journey rechecked after moving western palm"
+  },
+  "compressedAssetBytes": 5206076,
+  "modelDrawBatches": 41,
+  "modelTrianglesBeforeShadowPass": 160271,
+  "compressionRoundTrip": "PASS: every vertex/index stream is byte-identical after decoding",
+  "checked": ["desktop exterior and interior", "390x844 mobile viewport and movement buttons", "failed-download fallback", "front doorway", "concrete aisle", "stairs and mezzanine", "camera clearance upstairs", "existing car claim/drive/exit", "existing collision-footprint regression"],
+  "mainMerged": false,
+  "deployed": false
+}

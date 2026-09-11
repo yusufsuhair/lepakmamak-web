@@ -1,0 +1,23 @@
+{
+  "estimated_dimensions_metres": {
+    "width": 18.0,
+    "depth": 34.0,
+    "eave": 7.5,
+    "ridge": 14.1
+  },
+  "mesh_objects": 160,
+  "source_faces": 189480,
+  "materials": 46,
+  "cameras": [
+    "01 Exterior \u00b7 blue hour",
+    "02 Interior \u00b7 mid-hall towards mezzanine",
+    "03 Interior \u00b7 mezzanine towards facade",
+    "04 Exterior \u00b7 aerial"
+  ],
+  "notes": [
+    "Photo-based estimated dimensions.",
+    "Native blend preserves procedural surface shaders. GLB uses portable base PBR values; procedural grain is not baked.",
+    "GLB includes site context; native scene collections allow site removal.",
+    "No deployment or game-world replacement performed."
+  ]
+}
