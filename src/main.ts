@@ -375,7 +375,9 @@ async function init() {
     if (!started || paused || park.active || seated || beachResting || riding || klccLiftRide || jumpHeight > 0 || jumpVelocity > 0) return;
     jumpVelocity = 6.5; movementSound('jump');
   }
-  let orbit = 0, cameraHeading = Math.PI, zoom = 9, cameraPitch = .35;
+  // The camera starts, and Recall returns it, at the widest view; wheel and pinch zoom in from there.
+  const ZOOM_NEAR = 5, ZOOM_FAR = 17;
+  let orbit = 0, cameraHeading = Math.PI, zoom = ZOOM_FAR, cameraPitch = .35;
   let dragging = false, lastX = 0, lastY = 0, toastRemaining = 0, simTime = 0;
   const vehicleRadio=setupVehicleRadio();
   const locationArrival=setupLocationArrival(true);
@@ -1647,7 +1649,7 @@ async function init() {
     applyQuality();
   };
   applyQuality();
-  function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = 9; }
+  function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = ZOOM_FAR; }
   $('camera-reset').onclick = () => { resetCamera(); canvas.focus(); };
   const compass = $('compass-needle'); let compassAngle = 0;
   function updateTypingLayout() {
@@ -1890,7 +1892,7 @@ async function init() {
   });
   const endDrag = () => { dragging = false; pointerId = null; };
   canvas.addEventListener('pointercancel', endDrag); canvas.addEventListener('lostpointercapture', endDrag);
-  canvas.addEventListener('wheel', event => { if (!started || paused) return; event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom + event.deltaY * .01, 5, 17); }, { passive: false });
+  canvas.addEventListener('wheel', event => { if (!started || paused) return; event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom + event.deltaY * .01, ZOOM_NEAR, ZOOM_FAR); }, { passive: false });
   // Two-finger pinch replaces the removed +/- buttons: touch has no wheel, so this is the only zoom on phones.
   const pinch = new Map<number, { x: number; y: number }>(); let pinchSpan = 0;
   const spanOf = () => { const [a, b] = [...pinch.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
@@ -1904,7 +1906,7 @@ async function init() {
     pinch.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pinch.size !== 2 || !pinchSpan) return;
     const span = spanOf();
-    if (span > 0) { zoom = THREE.MathUtils.clamp(zoom * (pinchSpan / span), 5, 17); pinchSpan = span; }
+    if (span > 0) { zoom = THREE.MathUtils.clamp(zoom * (pinchSpan / span), ZOOM_NEAR, ZOOM_FAR); pinchSpan = span; }
   });
   const releasePinch = (event: PointerEvent) => { pinch.delete(event.pointerId); if (pinch.size < 2) pinchSpan = 0; };
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(type, event => releasePinch(event as PointerEvent));
