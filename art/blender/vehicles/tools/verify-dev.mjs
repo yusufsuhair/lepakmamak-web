@@ -25,7 +25,7 @@ try {
   await page.goto(`${base}/vehicles-preview.html`,{waitUntil:'networkidle'});
   const layout=await page.evaluate(()=>({margin:getComputedStyle(document.body).margin,
     header:getComputedStyle(document.querySelector('header')).position,canvasTop:document.querySelector('canvas').getBoundingClientRect().top,
-    overflow:document.documentElement.scrollWidth>innerWidth}));
+    overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth}));
   assert.deepEqual(layout,{margin:'0px',header:'fixed',canvasTop:0,overflow:false},'Studio CSS must work under the deployed CSP');
   const styles=manifest.filter(i=>i.lod==='near').map(i=>i.style);
   const states=[];

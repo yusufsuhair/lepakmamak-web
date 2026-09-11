@@ -49,7 +49,10 @@ document.querySelector<HTMLButtonElement>('#spin')!.onclick = event => {
 const initial = new URLSearchParams(location.search).get('model') || 'myvi';
 modelSelect.value = initial in vehicleCatalog ? initial : 'myvi'; void show(modelSelect.value as RevampedCarStyle);
 function resize() {
-  renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight;
+  // Use the layout viewport, not an innerWidth inflated by the Retina canvas's
+  // initial intrinsic size on mobile. CSS owns the canvas display dimensions.
+  const width=document.documentElement.clientWidth,height=document.documentElement.clientHeight;
+  renderer.setSize(width,height,false); camera.aspect = width / height;
   camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(18)) * Math.max(1, .85 / camera.aspect)));
   camera.updateProjectionMatrix();
 }
