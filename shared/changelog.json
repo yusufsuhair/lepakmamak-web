@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.55",
+    "date": "2026-09-11",
+    "title": "Metadata kerusi Mamak diselaraskan",
+    "notes": [
+      "Asset meja 3D kini menyimpan arah semua 25 kerusi yang sama dengan data seating permainan.",
+      "Export model akan gagal jika metadata kerusi lama tertinggal, supaya arah character dan model sentiasa sepadan.",
+      "Cache key model dinaikkan supaya pemain memuatkan asset yang lengkap dan terkini."
+    ]
+  },
+  {
     "version": "1.39.54",
     "date": "2026-09-11",
     "title": "Model Meja Besar ikut arah kerusi baru",
