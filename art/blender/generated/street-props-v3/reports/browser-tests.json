@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "viewport": "desktop",
+      "state": "ready",
+      "instances": 10,
+      "draws": 10,
+      "switchableLamps": 3,
+      "fallbackVisible": false,
+      "position": {
+        "x": -43.5554511691931,
+        "z": 56.555856465781325
+      },
+      "worldDraws": 2370,
+      "pageErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "state": "ready",
+      "instances": 10,
+      "draws": 10,
+      "switchableLamps": 3,
+      "fallbackVisible": false,
+      "position": {
+        "x": -42.01225999652742,
+        "z": 56.52376291299189
+      },
+      "worldDraws": 340,
+      "pageErrors": []
+    }
+  ]
+}

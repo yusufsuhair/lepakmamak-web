@@ -11,6 +11,37 @@ test('street props load together and use instancing across repeated placements',
   await expect.poll(() => page.evaluate(() => (window as any).__lepak?.mamakMaju?.state)).toBe('ready');
 });
 
+test('V3 foliage assets expose the expected compact geometry and cache key', async ({page}) => {
+  const requests:string[]=[];
+  page.on('request',request=>{if(/LM_PROP_(Palm|Planter)Mamak\.glb/.test(request.url()))requests.push(request.url());});
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => (window as any).__lepakStreets?.state)).toBe('ready');
+  expect(requests.length).toBe(2);
+  for(const url of requests)expect(url).toContain('v=foliage-v3');
+  const stats=await page.evaluate(async()=>{
+    const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');
+    const result:any={};
+    for(const name of ['LM_PROP_PalmMamak','LM_PROP_PlanterMamak']){
+      const gltf=await new GLTFLoader().loadAsync(`/assets/models/props/${name}.glb?v=foliage-v3`);
+      let mesh:any;
+      let version:any;
+      gltf.scene.traverse((node:any)=>{
+        if(version===undefined && node.userData?.lm_foliage_version!==undefined)version=node.userData.lm_foliage_version;
+        if(!mesh && node.isMesh)mesh=node;
+      });
+      if(!mesh)throw new Error(`${name} has no mesh node`);
+      const geometry=mesh.geometry;
+      const triangles=geometry.index?geometry.index.count/3:geometry.attributes.position.count/3;
+      const box=new (await import('/node_modules/three/build/three.module.js')).Box3().setFromObject(gltf.scene);
+      result[name]={version,triangles,minY:box.min.y,maxY:box.max.y};
+    }
+    return result;
+  });
+  expect(stats.LM_PROP_PalmMamak.version).toBe(3);expect(stats.LM_PROP_PalmMamak.triangles).toBeLessThan(1200);
+  expect(stats.LM_PROP_PlanterMamak.version).toBe(3);expect(stats.LM_PROP_PlanterMamak.triangles).toBeLessThan(1200);
+  expect(stats.LM_PROP_PalmMamak.minY).toBeGreaterThanOrEqual(-1e-4);expect(stats.LM_PROP_PlanterMamak.minY).toBeGreaterThanOrEqual(-1e-4);
+});
+
 test('one missing prop leaves the whole neighbourhood fallback visible', async ({page}) => {
   await page.route('**/LM_PROP_BenchMamak.glb', route => route.abort());
   await page.goto('/');

@@ -21,6 +21,9 @@ for (const [name, expectedHash] of Object.entries(manifest.assets)) {
   for (const key of ['cameras','animations','textures','images','skins']) assert.equal(document[key]?.length ?? 0, 0);
   assert.ok(!document.extensionsUsed?.includes('KHR_lights_punctual'));
   assert.ok(document.buffers.every(buffer => !buffer.uri));
+  if (name === 'LM_PROP_PalmMamak' || name === 'LM_PROP_PlanterMamak') {
+    assert.equal(document.nodes[0].extras.lm_foliage_version, 3, `${name} foliage version`);
+  }
   const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
   const bounds = new THREE.Box3().setFromObject(gltf.scene);
   assert.ok(Math.abs(bounds.min.y) < 1e-5, `${name} base must rest on zero`);

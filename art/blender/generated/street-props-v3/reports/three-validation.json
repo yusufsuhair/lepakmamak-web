@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "assets": [
+    {
+      "name": "LM_PROP_BenchMamak",
+      "bytes": 20804,
+      "triangles": 264,
+      "primitives": 2,
+      "sha256": "d891e5b1a9145d5027b602f373dce053cc132d11159bea991ebd6bbd6702d1f2",
+      "bounds_m": {
+        "min": [
+          -1.2000000476837158,
+          0,
+          -0.36000001430511475
+        ],
+        "max": [
+          1.2000000476837158,
+          1.3300000429153442,
+          0.36000001430511475
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 2
+      }
+    },
+    {
+      "name": "LM_PROP_PalmMamak",
+      "bytes": 63720,
+      "triangles": 760,
+      "primitives": 3,
+      "sha256": "910e5f88913050583fa9062dcc34a76816bec87035fef395cf79c2974bc95b0f",
+      "bounds_m": {
+        "min": [
+          -3.6993637084960938,
+          0,
+          -3.4872584342956543
+        ],
+        "max": [
+          4.369999885559082,
+          7.062332630157471,
+          3.6643927097320557
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    },
+    {
+      "name": "LM_PROP_PlanterMamak",
+      "bytes": 61172,
+      "triangles": 720,
+      "primitives": 3,
+      "sha256": "06be171ddd83e78f7e70ca715b2353d05e4b12f0a9b960d0560d0ee658dc6863",
+      "bounds_m": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          1.719599962234497,
+          1
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    },
+    {
+      "name": "LM_PROP_StreetLamp",
+      "bytes": 10776,
+      "triangles": 132,
+      "primitives": 2,
+      "sha256": "0d13c6a60b87f3891226669dfecf45c8d45177ea284ff08702c5f4ea547f19d8",
+      "bounds_m": {
+        "min": [
+          -0.1899999976158142,
+          0,
+          -0.25999999046325684
+        ],
+        "max": [
+          1.7000000476837158,
+          5.420000076293945,
+          0.25999999046325684
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 2
+      }
+    }
+  ]
+}

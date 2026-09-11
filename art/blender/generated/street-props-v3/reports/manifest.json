@@ -1,0 +1,13 @@
+{
+  "assets": {
+    "LM_PROP_BenchMamak": "d891e5b1a9145d5027b602f373dce053cc132d11159bea991ebd6bbd6702d1f2",
+    "LM_PROP_PalmMamak": "910e5f88913050583fa9062dcc34a76816bec87035fef395cf79c2974bc95b0f",
+    "LM_PROP_PlanterMamak": "06be171ddd83e78f7e70ca715b2353d05e4b12f0a9b960d0560d0ee658dc6863",
+    "LM_PROP_StreetLamp": "0d13c6a60b87f3891226669dfecf45c8d45177ea284ff08702c5f4ea547f19d8"
+  },
+  "author_sha256": "79f085d295843e6637889b649442edc986005f49b83cc88e26e502887be56639",
+  "blender_version": "5.2.1 LTS",
+  "config_sha256": "6b4fa4ff0ff4251f7f91ff224aa6591b5a5c401e541afe3bb24aee2e3e2530ba",
+  "pipeline_sha256": "50036b3b58ca6310f11d6215f4ba3b876af7fc732770afde0ac3a49c3618f2cc",
+  "script_sha256": "0acbdc04732dc7d540aedd8eb737457809db0787edb9062f705436be9aa29883"
+}

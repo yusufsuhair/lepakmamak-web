@@ -27,8 +27,9 @@ retain the vertex bake, and recreate the runtime night-lighting shader separatel
 ## Archived runtime: Mamak Maju v6
 
 Editable source, packed/external textures, five Blender previews and local browser
-evidence live in `generated/mamak-maju-v6/`; refreshed foliage sources live in
-`generated/street-props-v2/`. Earlier generated sources remain archived unchanged.
+evidence live in `generated/mamak-maju-v6/`; the current refreshed palm and planter
+sources live in `generated/street-props-v3/` (the prior V2 set remains archived under
+`generated/street-props-v2/`). Earlier generated sources remain archived unchanged.
 See [MAMAK-V6-REPORT.md](MAMAK-V6-REPORT.md).
 
 V6 smooths festoon cable geometry, rounds bulbs, adds wall-side crates/bin/handwash

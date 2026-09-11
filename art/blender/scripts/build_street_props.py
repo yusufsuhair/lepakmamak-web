@@ -47,30 +47,75 @@ class PropAuthor(Author):
         return obj
 
 
+def _double_sided_blade(a, name, points):
+    """A thin, pointed leaf blade with a visible underside and no alpha texture."""
+    faces=[(0,1,2),(0,2,3),(2,1,0),(3,2,0)]
+    a.add(name,points,faces,GREEN,closed=False)
+
+
+def _double_sided_polygon(a, name, points):
+    """Triangulate a convex leaf outline and retain its underside."""
+    faces=[]
+    for index in range(1,len(points)-1):
+        faces.extend(((0,index,index+1),(index+1,index,0)))
+    a.add(name,points,faces,GREEN,closed=False)
+
+
+def _leaflet(a, angle, root, length, width, droop, side):
+    """Build one lanceolate palm leaflet in the radial/tangential frame."""
+    c,s=math.cos(angle),math.sin(angle)
+    tangent=(-s,c)
+    # Hold each leaflet on a slight upright fold. A purely horizontal blade
+    # disappears edge-on from player-height courtyard cameras.
+    across=(tangent[0]*.34,.94,tangent[1]*.34)
+    rx,ry,rz=root
+    # Opposite leaflets leave the rachis at a slight alternating angle, like a real frond.
+    spread=side*.08
+    tip=(rx+(length*c+spread*tangent[0]),ry-droop,rz+(length*s+spread*tangent[1]))
+    mid=(rx+(length*.52*c+spread*.55*tangent[0]),ry-droop*.45,rz+(length*.52*s+spread*.55*tangent[1]))
+    half=width*.5
+    points=[(rx+side*across[0]*half,ry+side*across[1]*half,rz+side*across[2]*half),
+            (mid[0]-across[0]*half,mid[1]-across[1]*half,mid[2]-across[2]*half),tip,
+            (mid[0]+across[0]*half,mid[1]+across[1]*half,mid[2]+across[2]*half)]
+    _double_sided_blade(a,"PalmLeaflet",points)
+
+
 def palm(a):
-    # Tapered ringed trunk and faceted closed fronds: underside stays visible without alpha.
-    for i in range(7):
-        a.cylinder("Trunk",.045*i,.5+i*.9,0,.23-i*.013,1.0,WOOD,8,.215-i*.013)
-        a.cylinder("TrunkRing",.045*i,.88+i*.9,0,.242-i*.013,.065,CREAM,8)
-    a.ico("Crown",.27,6.7,0,.4,.55,.4,GREEN)
+    # A compact, pinnate tropical palm: ringed tapered trunk, crown sheath, curved rachises
+    # and alternating pointed leaflets. Everything is opaque and batched into three palette
+    # materials, so the silhouette reads at street distance without alpha sorting.
+    for i in range(6):
+        y=.51+i*1.02; radius=.235-i*.018
+        a.cylinder("Trunk",.045*i,y,0,radius,1.02,WOOD,8,max(radius-.015,.12))
+        a.cylinder("TrunkRing",.045*i,y+.47,0,radius+.012,.055,CREAM,8)
+    a.ico("CrownSheath",.27,6.62,0,.39,.52,.39,GREEN)
     for index in range(8):
-        angle=index*math.tau/8 + .10*math.sin(index*2.7)
+        angle=index*math.tau/8+.10*math.sin(index*2.7)
         c,s=math.cos(angle),math.sin(angle)
-        points=[]
-        for j in range(7):
-            t=j/6
-            distance=.15+(3.5+.55*math.sin(index*1.7))*t
-            height=6.85+math.sin(t*math.pi)*(.65+.20*(index%3))-t*(1.1+.18*(index%3))
-            width=.018+math.sin(t*math.pi)*(.30+.06*(index%3))
-            # Rings around the X-directed frond, rotated around vertical Y.
-            for lateral,dy in ((-width,-.025),(width,-.025),(width,.025),(-width,.025)):
-                points.append((.27+distance*c-lateral*s,height+dy,distance*s+lateral*c))
-        faces=[(3,2,1,0),(24,25,26,27)]
-        for j in range(6):
-            for k in range(4): faces.append((j*4+k,j*4+(k+1)%4,(j+1)*4+(k+1)%4,(j+1)*4+k))
-        # Ring ordering makes the local X direction negative; reverse to outward winding.
-        a.add("Frond",points,[tuple(reversed(f)) for f in faces],GREEN)
-    for x,z in ((.10,.27),(.4,.19),(.25,-.25)): a.ico("Coconut",x,6.48,z,.20,.25,.20,WOOD)
+        # Five paired leaflets along each curved rachis. A narrow double-sided strip keeps
+        # the centreline readable where the leaflets overlap at player viewing distance.
+        previous=(.27,6.84,0)
+        for segment in range(7):
+            t=(segment+1)/8
+            distance=.20+(3.20+.48*math.sin(index*1.7))*t
+            height=6.84+math.sin(t*math.pi)*(.35+.12*(index%3))-t*(1.05+.13*(index%3))
+            current=(.27+distance*c,height,distance*s)
+            tangent=(-s,c);across=(tangent[0]*.34,.94,tangent[1]*.34);half=.022
+            _double_sided_blade(a,"PalmRachis",[
+                (previous[0]-across[0]*half,previous[1]-.018-across[1]*half,previous[2]-across[2]*half),
+                (current[0]-across[0]*half,current[1]-.018-across[1]*half,current[2]-across[2]*half),
+                (current[0]+across[0]*half,current[1]+.018+across[1]*half,current[2]+across[2]*half),
+                (previous[0]+across[0]*half,previous[1]+.018+across[1]*half,previous[2]+across[2]*half)])
+            leaf_length=(.72+.18*math.sin(t*math.pi))*(1-.10*(index%2))
+            leaf_width=.135+.035*math.sin(t*math.pi)
+            _leaflet(a,angle, current, leaf_length, leaf_width, .10+.10*t, -1)
+            _leaflet(a,angle, current, leaf_length*.92, leaf_width*.94, .12+.08*t, 1)
+            previous=current
+        # Two upright spear leaves fill the crown centre and stop the palm reading as a fan.
+        if index<2:
+            _leaflet(a,angle,previous,1.10,.16,.02,-1)
+            _leaflet(a,angle,previous,1.04,.15,.04,1)
+    for x,z in ((.10,.27),(.4,.19),(.25,-.25)): a.ico("Coconut",x,6.38,z,.20,.25,.20,WOOD)
 
 
 def bench(a):
@@ -97,18 +142,43 @@ def street_lamp(a):
 
 
 def planter(a):
+    # A kiln-coloured planter with a slightly inset soil tray, four feet and a double rim.
     a.box("Base",0,.07,0,1.84,.14,1.84,WOOD)
     a.box("Body",0,.50,0,1.96,.72,1.96,WOOD)
+    a.box("BodyBand",0,.78,0,2.00,.07,2.00,WOOD)
     a.box("Soil",0,.83,0,1.70,.07,1.70,WOOD)
     for side in (-1,1):
         a.box("RimX",side*.94,.89,0,.12,.14,2,CREAM)
         a.box("RimZ",0,.89,side*.94,1.76,.14,.12,CREAM)
-    # Layered tropical leaves have a directional silhouette instead of three balls.
-    for i in range(9):
-        angle=i*2.39996
-        radius=.24+.10*(i%3)
-        x,z=math.cos(angle)*radius,math.sin(angle)*radius
-        a.ico('BroadLeaf',x,1.25+.12*(i%4),z,.19,.42+.08*(i%3),.31,GREEN)
+    for x,z in ((-.72,-.72),(.72,-.72),(-.72,.72),(.72,.72)):
+        a.box("DrainageFoot",x,.19,z,.18,.24,.18,WOOD)
+    # Stems and pointed broadleaf blades replace the old cluster of faceted balls. The blades
+    # are duplicated back-to-back so they hold up from either side of the courtyard.
+    for i in range(14):
+        angle=i*2.39996+.17*math.sin(i*1.31)
+        radius=.18+.055*(i%4);x,z=math.cos(angle)*radius,math.sin(angle)*radius
+        height=1.17+.105*(i%5);length=.34+.105*((i*3)%7)/6
+        a.cylinder("LeafStem",x,(.99+height)*.5,z,.018,height-.99,GREEN,6,.012)
+        c,s=math.cos(angle),math.sin(angle);tangent=(-s,c);across=(tangent[0]*.35,.94,tangent[1]*.35)
+        root=(x,height,z);tip=(x+c*length,height+.06+.04*(i%3),z+s*length)
+        q1=(x+c*length*.30,height+.025,z+s*length*.30)
+        q2=(x+c*length*.66,height+.045,z+s*length*.66)
+        half=.075+.015*(i%3)
+        _double_sided_polygon(a,"BroadLeaf",[
+            (root[0]-.02*across[0],root[1]-.02*across[1],root[2]-.02*across[2]),
+            (q1[0]-across[0]*half*.72,q1[1]-across[1]*half*.72,q1[2]-across[2]*half*.72),
+            (q2[0]-across[0]*half,q2[1]-across[1]*half,q2[2]-across[2]*half),tip,
+            (q2[0]+across[0]*half,q2[1]+across[1]*half,q2[2]+across[2]*half),
+            (q1[0]+across[0]*half*.72,q1[1]+across[1]*half*.72,q1[2]+across[2]*half*.72)])
+    # A few folded leaflets sit inside the stems, giving the planter volume when viewed
+    # from the side and preventing the outer blades from reading as floating cards.
+    for i in range(6):
+        angle=i*math.tau/6+.35;radius=.12+.08*(i%2)
+        a.ico("LeafCluster",math.cos(angle)*radius,1.24+.08*(i%3),math.sin(angle)*radius,.15,.27,.12,GREEN)
+    # Six small soil pebbles break the perfectly flat top without introducing a texture.
+    for i in range(6):
+        angle=i*math.tau/6+.2;radius=.48+.05*(i%2)
+        a.ico("SoilPebble",math.cos(angle)*radius, .93, math.sin(angle)*radius,.055,.035,.045,WOOD)
 
 
 BUILDERS={"LM_PROP_PalmMamak":palm,"LM_PROP_BenchMamak":bench,"LM_PROP_StreetLamp":street_lamp,"LM_PROP_PlanterMamak":planter}
@@ -145,6 +215,8 @@ def main():
         a=PropAuthor()
         builder(a)
         obj=a.finish_prop(name)
+        if name in ("LM_PROP_PalmMamak","LM_PROP_PlanterMamak"):
+            obj["lm_foliage_version"]=3
         if name=="LM_PROP_StreetLamp": obj["lm_head_anchor_m"]=[.85,5.3,0]
         if name=="LM_PROP_BenchMamak": obj["lm_role"]="decorative street bench; no player seat IDs"
         bpy.context.view_layer.update()
