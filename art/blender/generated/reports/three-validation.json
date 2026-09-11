@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "asset": "LM_TEST_ScaleMeter.glb",
+  "sha256": "d59243071a55ed1264d9887d9e354fb7c8e190fbeb90641d212335069faa31b6",
+  "bytes": 3584,
+  "triangles": 12,
+  "vertices": 24,
+  "primitives": 3,
+  "materials": [
+    "LM_Leaf_Green",
+    "LM_Plastic_Red",
+    "LM_Wall_Cream"
+  ],
+  "bounds_three_m": {
+    "min": [
+      -0.5,
+      0,
+      -0.5
+    ],
+    "max": [
+      0.5,
+      1,
+      0.5
+    ],
+    "size": [
+      1,
+      1,
+      1
+    ]
+  },
+  "markerNormals": {
+    "LM_Leaf_Green": [
+      0,
+      0,
+      1
+    ],
+    "LM_Plastic_Red": [
+      1,
+      0,
+      0
+    ]
+  },
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "khronos": {
+    "errors": 0,
+    "warnings": 0,
+    "infos": 3
+  }
+}

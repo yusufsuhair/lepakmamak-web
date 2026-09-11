@@ -1,0 +1,23 @@
+{
+  "pipeline_version": 1,
+  "blender_version": [5, 2],
+  "asset_name": "LM_TEST_ScaleMeter",
+  "collections": ["REFERENCE", "EXPORT", "COLLISION_GUIDES", "LIGHTING_PREVIEW"],
+  "palette": {
+    "LM_Wall_Cream": {"hex": "#E8DCC5", "roughness": 0.8, "metallic": 0.0},
+    "LM_Roof_Red": {"hex": "#A84436", "roughness": 0.8, "metallic": 0.0},
+    "LM_Wood_Warm": {"hex": "#9F7049", "roughness": 0.85, "metallic": 0.0},
+    "LM_Metal_Dark": {"hex": "#343F42", "roughness": 0.5, "metallic": 0.7},
+    "LM_Leaf_Green": {"hex": "#538F6D", "roughness": 0.9, "metallic": 0.0},
+    "LM_Plastic_Red": {"hex": "#DC604C", "roughness": 0.65, "metallic": 0.0}
+  },
+  "budgets": {
+    "max_triangles": 1000,
+    "max_materials": 4,
+    "max_meshes": 4,
+    "max_draw_calls": 4,
+    "max_glb_bytes": 65536,
+    "max_textures": 0
+  },
+  "preview": {"resolution": 768, "samples": 32}
+}

@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "identical_glb_on_clean_rebuild": true,
+  "glb_sha256": "d59243071a55ed1264d9887d9e354fb7c8e190fbeb90641d212335069faa31b6",
+  "saved_sources_unchanged": true,
+  "preview_png_byte_matches": {
+    "LM_TEST_ScaleMeter_front.png": true,
+    "LM_TEST_ScaleMeter_iso.png": true,
+    "LM_TEST_ScaleMeter_right.png": true,
+    "LM_TEST_ScaleMeter_top.png": true
+  },
+  "note": "GLB byte reproducibility is checked on this Blender build. PNG equality is observational; GPU/driver changes can alter previews. .blend binaries are preserved, not required to be byte-identical across builds."
+}

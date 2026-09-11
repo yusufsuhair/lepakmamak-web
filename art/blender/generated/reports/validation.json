@@ -1,0 +1,70 @@
+{
+  "asset": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        0.5,
+        0.5,
+        1.0
+      ],
+      "min": [
+        -0.5,
+        -0.5,
+        0.0
+      ],
+      "size": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 4,
+      "max_glb_bytes": 65536,
+      "max_materials": 4,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1000
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 3584,
+      "nodes": [
+        "LM_TEST_ScaleMeter"
+      ],
+      "primitives": 3,
+      "sha256": "d59243071a55ed1264d9887d9e354fb7c8e190fbeb90641d212335069faa31b6"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Plastic_Red",
+      "LM_Wall_Cream"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_TEST_ScaleMeter"
+    ],
+    "passed": true,
+    "profile": "scale-test",
+    "triangles": 12
+  },
+  "template": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": null,
+    "budgets": {
+      "max_draw_calls": 4,
+      "max_glb_bytes": 65536,
+      "max_materials": 4,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1000
+    },
+    "errors": [],
+    "materials": [],
+    "mesh_count": 0,
+    "objects": [],
+    "passed": true,
+    "profile": "static-palette",
+    "triangles": 0
+  }
+}

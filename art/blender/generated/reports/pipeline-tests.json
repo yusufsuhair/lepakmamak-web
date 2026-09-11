@@ -1,0 +1,66 @@
+{
+  "count": 15,
+  "passed": true,
+  "tests": [
+    {
+      "passed": true,
+      "test": "wrong unit scale"
+    },
+    {
+      "passed": true,
+      "test": "unapplied scale"
+    },
+    {
+      "passed": true,
+      "test": "wrong physical size"
+    },
+    {
+      "passed": true,
+      "test": "floating origin"
+    },
+    {
+      "passed": true,
+      "test": "nondeterministic name"
+    },
+    {
+      "passed": true,
+      "test": "missing UVs"
+    },
+    {
+      "passed": true,
+      "test": "missing material"
+    },
+    {
+      "passed": true,
+      "test": "hidden geometry"
+    },
+    {
+      "passed": true,
+      "test": "unsupported shader"
+    },
+    {
+      "passed": true,
+      "test": "alpha material"
+    },
+    {
+      "passed": true,
+      "test": "polygon budget"
+    },
+    {
+      "passed": true,
+      "test": "lost shared palette"
+    },
+    {
+      "passed": true,
+      "test": "camera inside EXPORT"
+    },
+    {
+      "passed": true,
+      "test": "external parent"
+    },
+    {
+      "passed": true,
+      "test": "nested EXPORT only; outside mesh selected and REFERENCE active; identical GLB"
+    }
+  ]
+}

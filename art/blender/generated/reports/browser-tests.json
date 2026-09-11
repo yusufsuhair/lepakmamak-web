@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "viewport": "desktop",
+      "loaded": true,
+      "threeRevision": "185",
+      "webgl": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "bounds": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1,
+          0.5
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ]
+      },
+      "assetOnly": {
+        "drawCalls": 3,
+        "triangles": 12
+      },
+      "pixelRatio": 1,
+      "consoleErrors": [],
+      "viewsChecked": 4
+    },
+    {
+      "viewport": "mobile",
+      "loaded": true,
+      "threeRevision": "185",
+      "webgl": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+      "bounds": {
+        "min": [
+          -0.5,
+          0,
+          -0.5
+        ],
+        "max": [
+          0.5,
+          1,
+          0.5
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ]
+      },
+      "assetOnly": {
+        "drawCalls": 3,
+        "triangles": 12
+      },
+      "pixelRatio": 1.5,
+      "consoleErrors": [],
+      "viewsChecked": 4
+    }
+  ]
+}

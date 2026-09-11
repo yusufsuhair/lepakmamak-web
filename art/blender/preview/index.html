@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LepakMamak · Asset scale inspection</title>
+  <link rel="icon" href="data:,">
+  <style>
+    * { box-sizing: border-box; } body { margin: 0; background: #e7e9ec; color: #273933; font: 15px/1.5 system-ui, sans-serif; }
+    main { max-width: 1050px; padding: 28px; margin: auto; } h1 { font-size: 26px; margin: 0 0 6px; }
+    p { margin: 0 0 16px; } .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    canvas { display: block; width: 100%; height: min(66vh, 620px); border: 1px solid #bac6c1; border-radius: 12px; }
+    nav { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; } button { background: #fff; border: 1px solid #aab9b1; border-radius: 6px; padding: 9px 18px; cursor: pointer; color: inherit; }
+    button[aria-pressed="true"] { background: #244e3c; color: #fff; } #status { white-space: pre-wrap; font-size: 13px; } .legend { display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; } .red { color: #a93623; } .green { color: #246441; }
+    @media(max-width: 500px) { main { padding: 18px; } h1 { font-size: 22px; } canvas { height: 420px; } }
+  </style>
+</head>
+<body><main>
+  <p class="eyebrow">LepakMamak / asset laboratory</p>
+  <h1>One meter. Every axis.</h1>
+  <p>Actual exported GLB loaded by Three.js. Drag to orbit; scroll to zoom.</p>
+  <canvas id="preview" aria-label="Interactive one-meter GLB preview"></canvas>
+  <nav aria-label="Camera angles"><button data-view="iso" aria-pressed="true">Isometric</button><button data-view="front">Front</button><button data-view="right">Right</button><button data-view="top">Top</button></nav>
+  <p class="legend"><span class="red">Red face → +X / right</span><span class="green">Green face → +Z / forward</span><span>Cream top → +Y / up</span></p>
+  <p id="status">Loading GLB…</p>
+  <p>Grid spacing: 10 cm. Ground and grid are browser-only inspection aids. Lighting is a preview, not a Blender color-match guarantee.</p>
+</main><script type="module" src="./preview.js"></script></body>
+</html>

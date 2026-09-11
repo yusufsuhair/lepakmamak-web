@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "exports/LM_TEST_ScaleMeter.glb": "d59243071a55ed1264d9887d9e354fb7c8e190fbeb90641d212335069faa31b6",
+    "previews/LM_TEST_ScaleMeter_front.png": "b057fadac65827612cc2465c435307c5862723058cb6656763f0fa7de4eb7cc3",
+    "previews/LM_TEST_ScaleMeter_iso.png": "1b987eaa135c24d2d4e4b07aba2862e5dcaa176cf494d8411f66fed74efb9ffd",
+    "previews/LM_TEST_ScaleMeter_right.png": "cef0513aedad849abaa6f2d497eced73e54a66fb2e68533b6607fd2476db363f",
+    "previews/LM_TEST_ScaleMeter_top.png": "4efcb3410e97624c62bb7e77ebf278e451df6b9bd9d7cebd5e2469ad8cd24d10",
+    "source/LM_TEST_ScaleMeter.blend": "21a35fc93cf80f0a799b44303b08395b6402d5640e699616b893d071a1b16251",
+    "templates/lepakmamak-web-template.blend": "fdf2a2628b0f8c867a28d7341965c00e75c6166b4c771760edf3dc6a385dbb9a"
+  },
+  "blender_build_hash": "9e2066aef7ef",
+  "blender_version": "5.2.1 LTS",
+  "config_sha256": "6b4fa4ff0ff4251f7f91ff224aa6591b5a5c401e541afe3bb24aee2e3e2530ba",
+  "scripts": {
+    "build.py": "026ed719ffe0d4bc2ef89bd9c02beca6005ddcb940404f50a32f566c8e13b45d",
+    "export_glb.py": "c219fc052ae3d7dc36899058c4341dd9130262ea5fe3380f9c24bbc27ade4a9b",
+    "lm_pipeline.py": "c4cdef5ba9f2f27cfe0c0165ee58d4081568118f0543a5a3ae2edfac7e799137",
+    "test_pipeline.py": "20f06c1c2ff4c6869dc51dbce626f4ad4ce3055979b3e12c2d9277d7f49663d9",
+    "verify.py": "b155fe7c2bc3511520b0f6f4c42b58c2b0cf5b41ada38a1925aeb969ec644ea3"
+  }
+}
