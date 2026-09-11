@@ -174,6 +174,25 @@ async function init() {
   sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
+  let viewportResizeFrame = 0;
+  let viewportResizeTimer = 0;
+  function resizeGameViewport() {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  }
+  // iOS can resize the layout while its keyboard opens, then restore only visualViewport
+  // when it closes. In that case the HUD returns to full height but WebGL keeps the short
+  // keyboard-sized buffer, exposing the plain green page below the city. Resize once after
+  // the next paint and once after Safari's viewport animation has settled.
+  function scheduleGameViewportResize() {
+    cancelAnimationFrame(viewportResizeFrame);
+    viewportResizeFrame = requestAnimationFrame(() => {
+      viewportResizeFrame = requestAnimationFrame(resizeGameViewport);
+    });
+    clearTimeout(viewportResizeTimer);
+    viewportResizeTimer = window.setTimeout(resizeGameViewport, 420);
+  }
   const clouds=createClouds(scene);
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
@@ -1587,9 +1606,13 @@ async function init() {
     const viewport = window.visualViewport;
     const keyboardHeight = viewport ? Math.max(0, innerHeight - viewport.height - viewport.offsetTop) : 0;
     document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+    scheduleGameViewportResize();
   }
   document.addEventListener('focusin', updateTypingLayout);
-  document.addEventListener('focusout', () => queueMicrotask(updateTypingLayout));
+  document.addEventListener('focusout', () => {
+    queueMicrotask(updateTypingLayout);
+    window.setTimeout(updateTypingLayout, 80);
+  });
   window.visualViewport?.addEventListener('resize', updateTypingLayout);
   window.visualViewport?.addEventListener('scroll', updateTypingLayout);
   const gameKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight', 'KeyC', 'KeyR', 'KeyH']);
@@ -1839,7 +1862,7 @@ async function init() {
     button.addEventListener('pointerdown', event => { event.preventDefault(); if (paused) return; button.setPointerCapture(event.pointerId); if (button.dataset.key === 'Space') jump(); keys.add(button.dataset.key!); });
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => keys.delete(button.dataset.key!));
   });
-  window.addEventListener('resize', () => { resetStick(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+  window.addEventListener('resize', () => { resetStick(); resizeGameViewport(); scheduleGameViewportResize(); });
 
   document.querySelector('.brand-status')!.append($('vehicle-seats'));
   let selectedMapPlace='';

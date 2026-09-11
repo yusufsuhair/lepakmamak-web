@@ -59,3 +59,21 @@ test('a phone can blow the chat up to fill the screen, and close it again',async
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
  } finally { await context.close(); }
 });
+
+test('closing mobile chat restores the city canvas after the keyboard viewport closes',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const page=await context.newPage();
+ try{
+  await enter(page,'Canvas');
+  await page.locator('#chat-compose').tap();
+  await expect(page.getByLabel('Message to the city')).toBeFocused();
+  // Reproduce Safari leaving WebGL at the keyboard-height buffer even though the layout
+  // and touch HUD have already returned to the full phone viewport.
+  await page.locator('#world').evaluate((canvas:HTMLCanvasElement)=>{canvas.width=120;canvas.height=220;});
+  await page.getByRole('button',{name:'Collapse city chat'}).tap();
+  await page.evaluate(()=>window.visualViewport?.dispatchEvent(new Event('resize')));
+  await expect.poll(()=>page.locator('#world').evaluate((canvas:HTMLCanvasElement)=>canvas.height)).toBeGreaterThan(500);
+  await expect(page.locator('body')).not.toHaveClass(/chat-typing/);
+  await expect(page.locator('#chat-body')).toBeHidden();
+ } finally { await context.close(); }
+});
