@@ -1,4 +1,21 @@
 import {test,expect} from '@playwright/test';
+import {enterAt} from './city';
+
+for(const touch of [false,true])test(`Tegur puts the resident's line over their head (${touch?'tap':'click'})`,async({browser})=>{
+ const context=await browser.newContext(touch?{viewport:{width:390,height:844},hasTouch:true,isMobile:true}:{});const page=await context.newPage();
+ // Uncle Muthu idles in place at village (20,6), world (142,-126). Stand in front of him but clear
+ // of the warung tables: behind one, the camera is pulled in and his head leaves the frame.
+ await enterAt(page,140,-124.5);
+ const talk=page.getByRole('button',{name:'Tegur Uncle Muthu'});
+ await (touch?talk.tap():talk.click());
+ // Residents are parented to the village group; a bubble projected from their local position
+ // landed near the world origin, off camera, so it was created but never shown.
+ const bubble=page.locator('.speech-bubble',{hasText:'Selamat datang! Duduklah'});
+ await expect(bubble).toBeVisible();
+ const b=(await bubble.boundingBox())!,t=(await talk.boundingBox())!;
+ expect(b.y+b.height).toBeLessThan(t.y);
+ await context.close();
+});
 
 test('village residents move safely, dialogue follows them and badminton clears the net',async({page})=>{
  await page.goto('/');

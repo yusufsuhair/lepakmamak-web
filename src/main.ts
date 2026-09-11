@@ -2551,7 +2551,9 @@ async function init() {
       const villageNpc = id.startsWith('village:');
       const speakerId = afk ? id.slice(4) : id;
       const villageName = villageNpc ? speakerId.slice(8) : '';
-      const villageSpeaker = villageNpc ? village.people.find(person => person.resident.name === villageName)?.rig.group.position : undefined;
+      // Residents are parented to the village group, so their own position is village-local and
+      // projected near the world origin: off camera, which hid every "Tegur" bubble.
+      const villageSpeaker = villageNpc ? village.people.find(person => person.resident.name === villageName)?.rig.group.getWorldPosition(new THREE.Vector3()) : undefined;
       const speaker = villageSpeaker || (speakerId === 'self' || speakerId === networkPlayerId ? (lrtId==null && riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(speakerId)?.group.position);
       const remaining = bubble.expiresAt - time;
       if (!speaker || remaining <= 0 || (!networkConnected && !afk && !villageNpc)) {
