@@ -1,0 +1,182 @@
+{
+  "passed": true,
+  "base": "http://127.0.0.1:5192",
+  "results": [
+    {
+      "device": "desktop",
+      "texture": {
+        "width": 512,
+        "height": 256,
+        "partialAlphaPixels": 48585,
+        "opaquePixels": 15,
+        "colorSpace": "srgb"
+      },
+      "views": {
+        "day": {
+          "draws": 1,
+          "triangles": 18,
+          "error": 0,
+          "pixel": [
+            203,
+            213,
+            215,
+            255
+          ],
+          "state": "ready",
+          "visible": true,
+          "instances": 9,
+          "drawCalls": 1,
+          "rotation": 0,
+          "weather": {
+            "condition": "sunny",
+            "night": false
+          }
+        },
+        "night": {
+          "draws": 1,
+          "triangles": 18,
+          "error": 0,
+          "pixel": [
+            47,
+            61,
+            85,
+            255
+          ],
+          "state": "ready",
+          "visible": true,
+          "instances": 9,
+          "drawCalls": 1,
+          "rotation": 0,
+          "weather": {
+            "condition": "sunny",
+            "night": true
+          }
+        }
+      },
+      "farLandmarkOcclusion": "passed",
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "texture": {
+        "width": 512,
+        "height": 256,
+        "partialAlphaPixels": 48585,
+        "opaquePixels": 15,
+        "colorSpace": "srgb"
+      },
+      "views": {
+        "day": {
+          "draws": 1,
+          "triangles": 12,
+          "error": 0,
+          "pixel": [
+            203,
+            213,
+            215,
+            255
+          ],
+          "state": "ready",
+          "visible": true,
+          "instances": 6,
+          "drawCalls": 1,
+          "rotation": 0,
+          "weather": {
+            "condition": "sunny",
+            "night": false
+          }
+        },
+        "night": {
+          "draws": 1,
+          "triangles": 12,
+          "error": 0,
+          "pixel": [
+            47,
+            61,
+            85,
+            255
+          ],
+          "state": "ready",
+          "visible": true,
+          "instances": 6,
+          "drawCalls": 1,
+          "rotation": 0,
+          "weather": {
+            "condition": "sunny",
+            "night": true
+          }
+        }
+      },
+      "farLandmarkOcclusion": "passed",
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "game": true,
+      "night": false,
+      "status": {
+        "state": "ready",
+        "visible": true,
+        "instances": 9,
+        "drawCalls": 1,
+        "rotation": 0.0009434600000083443,
+        "weather": {
+          "condition": "sunny",
+          "night": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "game": true,
+      "night": true,
+      "status": {
+        "state": "ready",
+        "visible": true,
+        "instances": 9,
+        "drawCalls": 1,
+        "rotation": 0.00111636,
+        "weather": {
+          "condition": "sunny",
+          "night": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "game": true,
+      "night": false,
+      "status": {
+        "state": "ready",
+        "visible": true,
+        "instances": 6,
+        "drawCalls": 1,
+        "rotation": 0.0009288300000000004,
+        "weather": {
+          "condition": "sunny",
+          "night": false
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "game": true,
+      "night": true,
+      "status": {
+        "state": "ready",
+        "visible": true,
+        "instances": 6,
+        "drawCalls": 1,
+        "rotation": 0.001013389999991656,
+        "weather": {
+          "condition": "sunny",
+          "night": true
+        }
+      },
+      "errors": []
+    }
+  ]
+}

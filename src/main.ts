@@ -25,6 +25,7 @@ import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {horizontalDistance,remoteIsVisible,remoteNeedsSnap} from './remote-visibility';
 import {setupWeather} from './weather';
+import {createClouds} from './clouds';
 import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
@@ -164,6 +165,8 @@ async function init() {
   sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
+  const clouds=createClouds(scene);
+  if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
   const shopAssets = loadMamakShops(scene, world.shopFallbacks);
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
@@ -1454,7 +1457,7 @@ async function init() {
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night),value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
@@ -2265,6 +2268,7 @@ async function init() {
     for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     sky.update(elapsed,reducedMotion,skyDining);
+    clouds.update(elapsed,camera,reducedMotion,graphicsQuality==='smooth'||(graphicsQuality==='auto'&&(touch||autoReduced)));
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);

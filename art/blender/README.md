@@ -60,6 +60,26 @@ and colour-space data, then renders counter A/B comparisons with the game's dayl
 and night light intensities. It uses an isolated asset harness, not a full-city FPS benchmark.
 The runtime URL carries `?v=mamak-v4` to bypass prior immutable asset cache entries.
 
+## Blender clouds
+
+`generated/clouds-v1/` preserves a smooth cumulus mesh, a source-only noisy volume,
+packed 512×256 RGBA cloud card, proxy GLB and previews. The game uses the Cycles-rendered
+card, not live volumes or the proxy GLB: 6–12 camera-facing instances in one draw.
+Weather/night tint, reduced motion and fog/haze visibility are wired to existing controls.
+See [CLOUDS-V1-REPORT.md](CLOUDS-V1-REPORT.md) for checks and limitations.
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python-exit-code 1 --python art/blender/scripts/build_cloud_asset.py -- \
+  --output /tmp/lepakmamak-clouds-new
+node art/blender/tools/validate-clouds.mjs /tmp/lepakmamak-clouds-new
+node art/blender/tools/test-clouds-browser.mjs
+```
+
+Only the proxy mesh belongs to EXPORT. Cloud volume and preview lights/cameras stay
+in the editable source; the web atlas is a separate pre-rendered asset. The PNG and
+source mesh can also be reused in Unity with an appropriate billboard/shader setup.
+
 ## Calibration build and earlier Mamak profile
 
 Tested with Blender **5.2.1 LTS** (build `9e2066aef7ef`), Node 24, the repository's Three.js, and the pinned Khronos glTF validator. Blender Python uses only Blender's bundled libraries. Run these commands from the repository root:

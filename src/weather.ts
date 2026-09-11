@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type {CloudWeather} from './clouds';
 // Night used to sit at .22 / .7, which read as pitch black once the lamps went in.
 export const NIGHT_SUN = .34, NIGHT_AMBIENT = 1.15;
 
@@ -11,7 +12,7 @@ export function isKlNight(now = new Date()) {
   const hour = now.getUTCHours() + now.getUTCMinutes() / 60 + 101.71 / 15 + equationMinutes/60;
   return Math.sin(3.16 * Math.PI / 180) * Math.sin(declination) + Math.cos(3.16 * Math.PI / 180) * Math.cos(declination) * Math.cos((hour - 12) * Math.PI / 12) < 0;
 }
-export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, ambient: THREE.HemisphereLight, endpoint: string, setRain: (value: boolean) => void, send: (message: object) => boolean, setNight: (value: boolean) => void = () => {}) {
+export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, ambient: THREE.HemisphereLight, endpoint: string, setRain: (value: boolean) => void, send: (message: object) => boolean, setNight: (value: boolean) => void = () => {}, setClouds: (value: CloudWeather) => void = () => {}) {
   let report: {available:boolean;condition:string;source:string;observedAt?:number} = {available:false,condition:'sunny',source:'Weather unavailable · time-only fallback'};
   let clockOffset=0, gm=false;
   let override={condition:'live',daylight:'live'};
@@ -25,7 +26,7 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
   container.after(controls);
   // Live weather drives the switch until you touch it; after that it is your own setting.
   let manualRain: boolean | null = null;
-  toggle.onchange = () => { manualRain = toggle.checked; setRain(manualRain); };
+  toggle.onchange = () => { manualRain = toggle.checked; apply(); };
   const weatherSelect=controls.querySelectorAll('select')[0],daySelect=controls.querySelectorAll('select')[1];
   const status=controls.querySelector('[role="status"]')!;
   function request(condition:string,daylight:string){if(!gm)return;if(!send({type:'weather-set',condition,daylight})){status.textContent='Reconnect to change room weather.';return;}status.textContent='Applying…';}
@@ -47,6 +48,7 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
     (scene.background as THREE.Color).set(color);const fog=scene.fog as THREE.Fog;fog.color.set(color);fog.near=mist?20:wet?70:145;fog.far=mist?170:wet?300:650;
     sun.intensity=night?NIGHT_SUN:wet?.8:mist?1.1:condition==='cloudy'?1.5:2.7;ambient.intensity=night?NIGHT_AMBIENT:1.8;sun.color.set(night?'#9cb8ed':'#ffdfa3');
     setNight(night);
+    setClouds({condition:wet?'rain':condition==='rain'?'cloudy':condition,night});
     const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}).format(now);
     label.textContent=`${time} MYT · ${night?'Night':'Daytime'} · ${!fresh&&override.condition==='live'?'Weather unavailable':night&&condition==='sunny'?'Clear':condition}${manual?' · GM override':''}`;
     label.title=manual?'Game Master override · real MYT clock':fresh?`${report.source} · observed ${new Date(report.observedAt!).toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'})}`:'Weather unavailable; showing KL day/night only';

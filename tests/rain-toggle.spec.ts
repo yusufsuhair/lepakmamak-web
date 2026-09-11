@@ -16,6 +16,7 @@ test('the rain switch survives the GM weather panel and holds once you touch it'
  await expect(rain).not.toBeChecked();
  await rain.check();
  await expect.poll(async()=>(await page.evaluate(()=>(window as any).__lepak)).rain).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__lepakClouds.weather.condition)).toBe('rain');
 
  // A live-weather refresh must not quietly switch it back off again.
  await page.waitForTimeout(400);
@@ -24,6 +25,7 @@ test('the rain switch survives the GM weather panel and holds once you touch it'
 
  await rain.uncheck();
  await expect.poll(async()=>(await page.evaluate(()=>(window as any).__lepak)).rain).toBe(false);
+ await expect.poll(()=>page.evaluate(()=>(window as any).__lepakClouds.weather.condition)).toBe('sunny');
 
  // The GM panel still exists; it just sits after the switch instead of on top of it.
  await expect(page.locator('#gm-weather')).toHaveCount(1);

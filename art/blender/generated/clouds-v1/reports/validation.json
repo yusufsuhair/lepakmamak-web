@@ -1,0 +1,47 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "bounds_blender_m": {
+    "max": [
+      4.836594581604004,
+      1.676100730895996,
+      4.306171894073486
+    ],
+    "min": [
+      -5.145785808563232,
+      -1.675766110420227,
+      0.0
+    ],
+    "size": [
+      9.982380390167236,
+      3.351866841316223,
+      4.306171894073486
+    ]
+  },
+  "budgets": {
+    "max_draw_calls": 1,
+    "max_glb_bytes": 131072,
+    "max_materials": 1,
+    "max_meshes": 1,
+    "max_textures": 0,
+    "max_triangles": 1500
+  },
+  "errors": [],
+  "glb": {
+    "bytes": 38232,
+    "nodes": [
+      "LM_SKY_Cumulus"
+    ],
+    "primitives": 1,
+    "sha256": "eb7471c5974f58194549a3eff120c127fa453ac6005319713b627e39660a9194"
+  },
+  "materials": [
+    "LM_Wall_Cream"
+  ],
+  "mesh_count": 1,
+  "objects": [
+    "LM_SKY_Cumulus"
+  ],
+  "passed": true,
+  "profile": "static-palette",
+  "triangles": 1350
+}
