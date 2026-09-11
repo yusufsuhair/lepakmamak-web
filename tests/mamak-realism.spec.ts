@@ -25,10 +25,11 @@ test('actual exported chair seats, backs and tabletops match authoritative game 
     const {default:allChairs}=await import('/shared/chairs.json');const {default:allTables}=await import('/shared/tables.json');
     const ids=['meja-1','meja-2','meja-3','meja-4','meja-9'];const asset=(window as any).__mamakRealismPreview.asset();asset.updateMatrixWorld(true);
     const ray=new THREE.Raycaster();const height=(x:number,z:number)=>{ray.set(new THREE.Vector3(x,2,z),new THREE.Vector3(0,-1,0));return ray.intersectObject(asset,true)[0]?.point.y??-1;};
-    return {chairs:allChairs.filter(c=>ids.includes(c.tableId)).map(c=>({id:c.id,seat:height(c.x,c.z),back:height(c.x-Math.sin(c.yaw)*.405,c.z-Math.cos(c.yaw)*.405)})),tables:allTables.filter(t=>ids.includes(t.id)).map(t=>({id:t.id,top:height(t.x+.75,t.z)}))};
+    return {chairs:allChairs.filter(c=>ids.includes(c.tableId)).map(c=>{const table=allTables.find(t=>t.id===c.tableId)!;const dx=table.x-c.x,dz=table.z-c.z;return {id:c.id,seat:height(c.x,c.z),back:height(c.x-Math.sin(c.yaw)*.405,c.z-Math.cos(c.yaw)*.405),front:height(c.x+Math.sin(c.yaw)*.405,c.z+Math.cos(c.yaw)*.405),facing:(Math.sin(c.yaw)*dx+Math.cos(c.yaw)*dz)/Math.hypot(dx,dz)};}),tables:allTables.filter(t=>ids.includes(t.id)).map(t=>({id:t.id,top:height(t.x+.75,t.z)}))};
   });
   expect(report.chairs).toHaveLength(25);
   for(const c of report.chairs){expect(c.seat,c.id).toBeGreaterThan(.60);expect(c.seat,c.id).toBeLessThan(.67);expect(c.back,c.id).toBeGreaterThan(1.15);}
+  for(const c of report.chairs.filter(c=>c.id.startsWith('meja-9-'))){expect(c.facing,c.id).toBeGreaterThan(.999);expect(c.front,c.id+' must not have a backrest toward the table').toBeLessThan(.8);}
   for(const t of report.tables)expect(t.top,t.id).toBeCloseTo(1.145,2);
 });
 

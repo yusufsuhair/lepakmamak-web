@@ -127,6 +127,32 @@ and complete-site screenshots inspected in `/tmp/mamak-v7-combined-tests/`.
 Production deployment verification will be appended after integration into the
 latest main; future autonomous batches still remain local pending new approval.
 
+## Follow-up handoff — nine-seat orientation
+
+Game Dev 1 explicitly requested a fresh derivative from its pending nine-chair
+yaw fix (+PI for meja-9). Rebuilt using exact `shared/chairs.json` SHA-256
+`aa332a8cbe210dc50eb8aa1556fcdff49d1d4ff19fc0065dafcfa327191bdc57`.
+The old editable derivative is preserved at ignored
+`drafts/dining-v7-before-nine-chair-fix.blend`; baseline V7 source is unchanged.
+
+Fresh editable source: `mamak-realism.blend`; export:
+`public/assets/models/environment/LM_ENV_MamakMaju_Realism.glb`.
+New GLB SHA-256: `f793aa10d0e04a5193ad700ffb91b99a267df671046e695a62327696533ac0c6`.
+Budget: 139,856 triangles, 18 draws, six textures, 6,614,244 bytes; 71 lossless
+streams and zero Khronos errors/warnings. Contact AO rebaked after rotating seats.
+Source, web-budget and validator reports refreshed. Seven scoped browser tests
+pass on verified-free port 5296; actual raycasts confirm all 25 seats/backs and
+all nine big-table backrests are away from the table (front clear below .8m,
+facing dot product >.999). Screenshot/test output:
+`/tmp/mamak-nine-chair-regeneration-tests/`.
+
+This follow-up is **not deployed by this task**. Game Dev 1 owns integrating the
+asset-only commit with its JSON/gameplay fix, bumping the asset URL cache key,
+final regression tests and release. The copied chairs.json diff in this worktree
+is intentionally not included in the asset-only commit: it is Game Dev 1's change.
+Synchronize with its committed main fix before continuing autonomous modelling.
+Do not overwrite or deploy the baseline V7 source to fix this detailed derivative.
+
 ## Next batch
 
 Prioritize the two planters near the Mamak canopy and realistic broadleaf foliage,

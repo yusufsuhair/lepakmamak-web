@@ -2,7 +2,7 @@
   "uri": "LM_ENV_MamakMaju_Realism.glb",
   "mimeType": "model/gltf-binary",
   "validatorVersion": "2.0.0-dev.3.10",
-  "validatedAt": "2026-09-11T11:03:25.252Z",
+  "validatedAt": "2026-09-11T11:14:35.866Z",
   "issues": {
     "numErrors": 0,
     "numWarnings": 0,
@@ -32,7 +32,7 @@
         "pointer": "/buffers/0",
         "mimeType": "application/gltf-buffer",
         "storage": "glb",
-        "byteLength": 10119260
+        "byteLength": 10117468
       },
       {
         "pointer": "/images/0",
@@ -120,7 +120,7 @@
     "hasTextures": true,
     "hasDefaultScene": true,
     "drawCallCount": 18,
-    "totalVertexCount": 186452,
+    "totalVertexCount": 186389,
     "totalTriangleCount": 139856,
     "maxUVs": 1,
     "maxInfluences": 0,
