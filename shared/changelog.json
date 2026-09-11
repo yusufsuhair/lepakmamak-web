@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.47",
+    "date": "2026-09-11",
+    "title": "Profile kini terus sambung ke Friends dan chat",
+    "notes": [
+      "Setiap profile pemain kini mempunyai tindakan Add Friend dan Message yang mengikut status friend request serta kehadiran online mereka.",
+      "Profile yang dibuka daripada Lepak Wall kini menggunakan paparan lengkap yang sama seperti View Profile pada character.",
+      "Add Friend boleh dihantar kepada author Wall yang sedang offline; Message menunjukkan status offline dan aktif semula apabila mereka berada dalam city."
+    ]
+  },
+  {
     "version": "1.39.46",
     "date": "2026-09-11",
     "title": "Jemputan pemain kembali sebagai Party",
@@ -44,295 +54,295 @@
       "Leader menerima notification realtime apabila ada application baharu, dengan badge nombor yang menunjukkan jumlah request yang masih menunggu."
     ]
   },
-{
-  "version": "1.39.41",
-  "date": "2026-09-11",
-  "title": "Ikon Geng lebih mudah dibezakan",
-  "notes": [
-    "Ikon Geng kini menggunakan simbol crest untuk mewakili kumpulan atau guild.",
-    "Ikon Friends kekal sebagai simbol tambah kawan supaya dua fungsi ini tidak lagi kelihatan sama."
-  ]
-},
-{
-  "version": "1.39.40",
-  "date": "2026-09-11",
-  "title": "Friend List lebih jelas dan selamat",
-  "notes": [
-    "Request Add Friend, penerimaan dan perubahan Friend List kini ada bunyi ringkas supaya setiap tindakan lebih jelas.",
-    "Request baharu memaparkan badge nombor pada butang Friends dari luar panel, termasuk selepas reconnect.",
-    "Remove friend kini memerlukan pengesahan dahulu supaya tidak terpadam kerana tersalah tekan."
-  ]
-},
-{
-  "version": "1.39.39",
-  "date": "2026-09-11",
-  "title": "Chat penuh mobile lebih mudah digunakan",
-  "notes": [
-    "Paparan chat penuh di telefon kini memenuhi viewport dengan betul dan tidak menolak kotak taip keluar dari skrin.",
-    "Senarai mesej mempunyai ruang scroll sendiri, jadi mesej lama boleh dibaca dengan swipe tanpa menggerakkan seluruh paparan.",
-    "Kotak taip kekal di bahagian bawah dan bergerak ke atas keyboard apabila keyboard telefon terbuka."
-  ]
-},
-{
-  "version": "1.39.38",
-  "date": "2026-09-11",
-  "title": "Map macam whiteboard",
-  "notes": [
-    "Map kini boleh dipan dengan satu jari atau mouse supaya anda boleh meneroka kawasan tertentu tanpa kembali ke pusat default.",
-    "Pinch zoom dan wheel zoom kekal pada kawasan di bawah jari atau cursor, bukan mengubah zoom dari tengah map sahaja.",
-    "Butang reset memulangkan zoom dan kedudukan asal; behavior yang sama turut tersedia dalam map LEGOLAND."
-  ]
-},
-{
-  "version": "1.39.37",
-  "date": "2026-09-11",
-  "title": "Collision ikut bentuk sebenar",
-  "notes": [
-    "Laman terbuka Masjid Kampung Maju kini boleh dilalui; hanya dewan solat dan tapak menara menghalang pergerakan.",
-    "Semua kereta kini menggunakan footprint badan sebenar yang berpusing bersama kenderaan, jadi tiada lagi invisible wall besar di sisi kereta.",
-    "Sentuhan objek masih kukuh pada dinding dan badan kenderaan tanpa menjejaskan teleport, kerusi atau laluan bandar."
-  ]
-},
-{
-  "version": "1.39.36",
-  "date": "2026-09-11",
-  "title": "Legoland lebih jelas, game lebih selesa",
-  "notes": [
-    "Minimap dan peta penuh kini bertukar kepada peta LEGOLAND apabila anda berada di dalam park, lengkap dengan tarikan, land dan Geng yang berada berdekatan.",
-    "Panel game boleh diminimumkan di desktop dan telefon supaya chat serta voice kekal mudah dicapai ketika permainan berjalan.",
-    "Kerusi meja game biasa diseragamkan kepada empat pemain, manakala meja Werewolf sembilan kerusi kekal luas.",
-    "Ah Tong kini bergerak melalui laluan terbuka di hadapan Warung Muthu supaya tidak tersekat di pintu kedai."
-  ]
-},
-{
-  "version": "1.39.35",
-  "date": "2026-09-11",
-  "title": "Contoh Note lebih jelas",
-  "notes": [
-    "Placeholder Note kini menggunakan contoh “e.g. AFK jap” supaya fungsi ini lebih mudah difahami."
-  ]
-},
-{
-  "version": "1.39.34",
-  "date": "2026-09-11",
-  "title": "Nota pemain dipermudahkan",
-  "notes": [
-    "Label AFK note dalam Settings kini dipanggil Note supaya lebih ringkas dan mudah difahami.",
-    "Status selepas menyimpan atau mengosongkan nota turut menggunakan nama Note yang sama."
-  ]
-},
-{
-  "version": "1.39.33",
-  "date": "2026-09-11",
-  "title": "Google boleh dinyahpaut dengan selamat",
-  "notes": [
-    "Akaun yang masuk menggunakan Google kini boleh melihat dan mengurus sambungan Google dalam Security.",
-    "Sebelum Google dinyahpaut, pemain wajib menetapkan password melalui pautan reset supaya akaun masih boleh dimasuki.",
-    "Sistem menghalang unlink jika Google ialah satu-satunya kaedah login dan memaparkan status proses dengan jelas."
-  ]
-},
-{
-  "version": "1.39.32",
-  "date": "2026-09-11",
-  "title": "Forgot password tersedia dalam Security",
-  "notes": [
-    "Pemain kini boleh minta reset password terus dari modul Security.",
-    "Pautan reset dihantar ke email akaun dan akan membawa pemain kembali ke LepakMamak untuk pilih password baharu.",
-    "Status penghantaran dipaparkan dengan jelas dan butang dikunci sementara permintaan sedang diproses."
-  ]
-},
-{
-  "version": "1.39.31",
-  "date": "2026-09-11",
-  "title": "Edit Profile kini ada loading state yang lebih jelas",
-  "notes": [
-    "Edit Profile kini menunjukkan skeleton yang beranimasi sementara maklumat akaun sedang dimuatkan.",
-    "Butang dan medan dikunci dengan jelas semasa loading atau menyimpan, lengkap dengan status Loading dan Saving.",
-    "Reka bentuk ini mengekalkan susun atur yang kemas pada desktop dan mobile serta menghormati reduced motion."
-  ]
-},
-{
-  "version": "1.39.30",
-  "date": "2026-09-11",
-  "title": "Tambah Syiling terus dari Geng",
-  "notes": [
-    "Jika baki belum cukup 1,000 Syiling untuk cipta Geng, panel Geng kini tunjuk jumlah baki dan jumlah yang diperlukan dengan jelas.",
-    "Butang Tambah Syiling membuka Kedai terus supaya pemain boleh guna top up atau tuntutan harian tanpa keluar mencari menu lain.",
-    "Flow ini responsif pada desktop dan mobile, dan butang cipta kekal terkunci sehingga baki mencukupi."
-  ]
-},
-{
-  "version": "1.39.29",
-  "date": "2026-09-11",
-  "title": "Wet Deck rooftop lounge dibuka",
-  "notes": [
-    "Wet Deck di Hotel Mahkota kini boleh dinaiki melalui lif untuk sky dining dengan pemandangan KLCC, pool, bar dan lounge indoor.",
-    "Empat pengunjung bergerak di pool, lengkap dengan animasi berenang dan laluan tangga supaya pemain boleh masuk serta keluar tanpa jatuh ke jalan.",
-    "Lapan meja rooftop ditambah, termasuk meja Werewolf sembilan kerusi yang ikut lobby dan occupancy game bandar.",
-    "Lounge Wet Deck mempunyai instrumental original yang perlahan dan dikecilkan semasa game meja dibuka."
-  ]
-},
-{
-  "version": "1.39.28",
-  "date": "2026-09-11",
-  "title": "Geng optional dan jemputan meja selamat",
-  "notes": [
-    "Geng kini pilihan sosial sahaja: group chat, voice antara ahli dan marker kawan pada minimap kekal berfungsi tanpa mewajibkan Geng untuk masuk game meja.",
-    "Jemputan meja kini menunjukkan game, meja dan ruang tersedia; penerima boleh pergi ke lokasi dan memilih join serta READY sendiri.",
-    "Reconnect diberi grace 30 saat, panel Geng menunjukkan ketua, ahli dan status reconnect, dan hanya ketua boleh menghantar jemputan.",
-    "Jemputan yang penuh, tamat, game sudah bermula atau sesi sudah berubah akan ditolak dengan penjelasan yang jelas tanpa auto-seat atau auto-enrol."
-  ]
-},
-{
-  "version": "1.39.27",
-  "date": "2026-09-11",
-  "title": "Add Friend dan Friend List",
-  "notes": [
-    "Pemain berdaftar kini boleh Add Friend dari player menu, dengan request yang disimpan selamat dalam Supabase.",
-    "Friend List membezakan kawan online dan offline serta menyediakan Accept, Decline, Cancel dan Remove.",
-    "Butang Message daripada Friend List membuka private chat sedia ada terus pada desktop dan mobile."
-  ]
-},
-{
-  "version": "1.39.26",
-  "date": "2026-09-11",
-  "title": "Sambung semula bila connection terputus",
-  "notes": [
-    "Penanda online merah kini menerangkan connection error dan menawarkan butang Restart di lower right.",
-    "Kad Restart menggunakan placement yang sama seperti update, kekal di atas action HUD dan responsif untuk mobile.",
-    "Reconnect automatik terus berjalan di belakang supaya bandar cuba pulih sementara pemain boleh restart bila-bila masa."
-  ]
-},
-{
-  "version": "1.39.25",
-  "date": "2026-09-11",
-  "title": "Geng, avatar dan multiplayer dikemas kini",
-  "notes": [
-    "Cipta Geng dengan 1,000 Syiling, terima permintaan ahli, dan hanya leader boleh approve atau disband.",
-    "Preview character semasa onboarding kini menggunakan avatar 3D yang sama seperti Inventory, dengan pilihan tudung yang lebih sempurna menutup leher dan bahu.",
-    "Remote player kekal kelihatan selepas teleport, dan chat fullscreen kini berada paling depan dengan kawalan minimize atau tutup yang jelas.",
-    "Wall photo masih boleh dipos apabila OpenAI tidak tersedia; foto yang mendapat keputusan explicit tetap ditolak."
-  ]
-},
-{
-  "version": "1.39.24",
-  "date": "2026-09-11",
-  "title": "English table games and tudung wardrobe",
-  "notes": [
-    "Lukis Lah, Poker Kampung, UNO Lepak and Werewolf now use clear English across their lobbies, actions, rules and results.",
-    "Character wardrobe now includes long tudung, turban, short tudung, shawl, bawal, satin and instant styles.",
-    "dUCk Luxe and Ruffle are shown as Coming Soon while the live 3D character preview supports rotating the selected look."
-  ]
-},
-{
-  "version": "1.39.23",
-  "date": "2026-09-10",
-  "title": "Character boleh diputar dan Kedai lebih kemas",
-  "notes": [
-    "Character dalam Inventory kini boleh diputar 360° dengan drag menggunakan mouse atau swipe pada mobile.",
-    "Kedai kini menyusun butang Pakai dan Tanggalkan sejajar di bahagian bawah setiap kad item.",
-    "Butang Refresh kedai dibuang supaya paparan kekal seperti menu game dan tidak seperti halaman web."
-  ]
-},
-{
-  "version": "1.39.22",
-  "date": "2026-09-10",
-  "title": "Car finder dan akses admin lebih selamat",
-  "notes": [
-    "Map bandar kini boleh mencari Porsche Taycan Yusuf Suhair dan Porsche 911 GT3 RS Daddy Fizal menggunakan lokasi fleet secara langsung.",
-    "Car finder berfungsi dalam paparan map 2D dan 3D sambil mengekalkan kawalan zoom.",
-    "Portal admin kini menggunakan Supabase Auth dan hanya membenarkan akaun dalam allowlist admin.",
-    "Panel tarikan LEGOLAND kekal boleh ditekan pada skrin mobile walaupun City Chat terbuka."
-  ]
-},
-{
-  "version": "1.39.21",
-  "date": "2026-09-10",
-  "title": "Suasana game, DM dan busking lebih tepat",
-  "notes": [
-    "Werewolf kini ada cue malam, tidur, auman, growl, suara pemain mati, next turn dan countdown menggunakan audio percuma yang disimpan dalam game.",
-    "DM terus ditutup dan hilang apabila salah seorang pemain offline; server juga menolak mesej kepada pemain yang sudah tiada.",
-    "Busker utama kini berada di frontage PETRONAS, dengan crowd, collision dan jarak audio berkongsi koordinat yang sama.",
-    "Map bandar kekal boleh zoom in dan zoom out dengan paparan awal yang lebih luas untuk kawasan besar seperti Legoland."
-  ]
-},
-{
-  "version": "1.39.20",
-  "date": "2026-09-10",
-  "title": "Lifecycle game dan lobby lebih kemas",
-  "notes": [
-    "Countdown kini dibatalkan jika pemain berdiri pada saat akhir dan jumlah peserta jatuh bawah minimum.",
-    "Main Lagi tidak lagi boleh mengganggu UNO, Poker atau Werewolf yang masih berlangsung; Lukis Lah juga mengekalkan roster yang sudah memberi consent.",
-    "Paparan meja kini satu senarai sahaja: Lobby di atas, kemudian setiap game bersama artwork dan avatar pemain yang join dalam row yang sama."
-  ]
-},
-{
-  "version": "1.39.19",
-  "date": "2026-09-10",
-  "title": "Lobby berasingan dan alat ujian dev",
-  "notes": [
-    "Lobby Meja kini sentiasa berada paling atas dan hanya menyenaraikan pemain yang duduk tetapi belum join sebarang game.",
-    "Setiap game mempunyai senarai pemain sendiri untuk membezakan mereka yang menunggu dengan mereka yang sudah bermain.",
-    "Build dev mempunyai Developer Option untuk spawn test users berhampiran, memilih status mic dan speaker, serta membuang semua test users milik anda."
-  ]
-},
-{
-  "version": "1.39.18",
-  "date": "2026-09-10",
-  "title": "Lukis Lah lebih adil dan tahan reconnect",
-  "notes": [
-    "Timer Lukis Lah berhenti sehingga 30 saat apabila pemain terputus dan menyambung semula, jadi masa memilih atau melukis tidak hilang.",
-    "Hanya pemain yang masuk lobi dan tekan SEDIA dimasukkan ke game; pemain yang sekadar duduk tidak lagi diberi kad atau giliran.",
-    "Game Lukis Lah melalui SEDIA kini memberi pelukis tiga pilihan perkataan seperti yang dijanjikan.",
-    "Party voice dan jemputan party lama tidak lagi boleh digunakan untuk membocorkan jawapan atau menyertai party tanpa kuasa ketua."
-  ]
-},
-{
-  "version": "1.39.17",
-  "date": "2026-09-10",
-  "title": "Roster game guna wajah karakter sebenar",
-  "notes": [
-    "Pemain yang hanya duduk, menunggu di lobi dan sudah masuk game kini dipaparkan dalam kumpulan berasingan tanpa senarai nama Dalam yang mengelirukan.",
-    "Setiap indikator menggunakan wajah, warna kulit, rambut dan pakaian karakter sebenar pemain, termasuk roster Werewolf seluruh bandar.",
-    "Voice indicator kekal terang dan tajam di atas game walaupun latar bandar diblur pada desktop."
-  ]
-},
-{
-  "version": "1.39.16",
-  "date": "2026-09-10",
-  "title": "Lukis dikunci mengikut sesi game",
-  "notes": [
-    "Pemain baharu mesti tunggu game seterusnya. Kerusi kosong tidak memberi akses kepada game yang sedang berlangsung; pemain asal masih boleh sambung semula."
-  ]
-},
-{
-  "version": "1.39.15",
-  "date": "2026-09-10",
-  "title": "Meja Besar lebih mudah ditekan",
-  "notes": [
-    "Butang game mengutamakan meja tempat anda duduk, dengan kawasan sentuh lebih besar dan kedudukan yang kekal semasa ditekan."
-  ]
-},
+  {
+    "version": "1.39.41",
+    "date": "2026-09-11",
+    "title": "Ikon Geng lebih mudah dibezakan",
+    "notes": [
+      "Ikon Geng kini menggunakan simbol crest untuk mewakili kumpulan atau guild.",
+      "Ikon Friends kekal sebagai simbol tambah kawan supaya dua fungsi ini tidak lagi kelihatan sama."
+    ]
+  },
+  {
+    "version": "1.39.40",
+    "date": "2026-09-11",
+    "title": "Friend List lebih jelas dan selamat",
+    "notes": [
+      "Request Add Friend, penerimaan dan perubahan Friend List kini ada bunyi ringkas supaya setiap tindakan lebih jelas.",
+      "Request baharu memaparkan badge nombor pada butang Friends dari luar panel, termasuk selepas reconnect.",
+      "Remove friend kini memerlukan pengesahan dahulu supaya tidak terpadam kerana tersalah tekan."
+    ]
+  },
+  {
+    "version": "1.39.39",
+    "date": "2026-09-11",
+    "title": "Chat penuh mobile lebih mudah digunakan",
+    "notes": [
+      "Paparan chat penuh di telefon kini memenuhi viewport dengan betul dan tidak menolak kotak taip keluar dari skrin.",
+      "Senarai mesej mempunyai ruang scroll sendiri, jadi mesej lama boleh dibaca dengan swipe tanpa menggerakkan seluruh paparan.",
+      "Kotak taip kekal di bahagian bawah dan bergerak ke atas keyboard apabila keyboard telefon terbuka."
+    ]
+  },
+  {
+    "version": "1.39.38",
+    "date": "2026-09-11",
+    "title": "Map macam whiteboard",
+    "notes": [
+      "Map kini boleh dipan dengan satu jari atau mouse supaya anda boleh meneroka kawasan tertentu tanpa kembali ke pusat default.",
+      "Pinch zoom dan wheel zoom kekal pada kawasan di bawah jari atau cursor, bukan mengubah zoom dari tengah map sahaja.",
+      "Butang reset memulangkan zoom dan kedudukan asal; behavior yang sama turut tersedia dalam map LEGOLAND."
+    ]
+  },
+  {
+    "version": "1.39.37",
+    "date": "2026-09-11",
+    "title": "Collision ikut bentuk sebenar",
+    "notes": [
+      "Laman terbuka Masjid Kampung Maju kini boleh dilalui; hanya dewan solat dan tapak menara menghalang pergerakan.",
+      "Semua kereta kini menggunakan footprint badan sebenar yang berpusing bersama kenderaan, jadi tiada lagi invisible wall besar di sisi kereta.",
+      "Sentuhan objek masih kukuh pada dinding dan badan kenderaan tanpa menjejaskan teleport, kerusi atau laluan bandar."
+    ]
+  },
+  {
+    "version": "1.39.36",
+    "date": "2026-09-11",
+    "title": "Legoland lebih jelas, game lebih selesa",
+    "notes": [
+      "Minimap dan peta penuh kini bertukar kepada peta LEGOLAND apabila anda berada di dalam park, lengkap dengan tarikan, land dan Geng yang berada berdekatan.",
+      "Panel game boleh diminimumkan di desktop dan telefon supaya chat serta voice kekal mudah dicapai ketika permainan berjalan.",
+      "Kerusi meja game biasa diseragamkan kepada empat pemain, manakala meja Werewolf sembilan kerusi kekal luas.",
+      "Ah Tong kini bergerak melalui laluan terbuka di hadapan Warung Muthu supaya tidak tersekat di pintu kedai."
+    ]
+  },
+  {
+    "version": "1.39.35",
+    "date": "2026-09-11",
+    "title": "Contoh Note lebih jelas",
+    "notes": [
+      "Placeholder Note kini menggunakan contoh “e.g. AFK jap” supaya fungsi ini lebih mudah difahami."
+    ]
+  },
+  {
+    "version": "1.39.34",
+    "date": "2026-09-11",
+    "title": "Nota pemain dipermudahkan",
+    "notes": [
+      "Label AFK note dalam Settings kini dipanggil Note supaya lebih ringkas dan mudah difahami.",
+      "Status selepas menyimpan atau mengosongkan nota turut menggunakan nama Note yang sama."
+    ]
+  },
+  {
+    "version": "1.39.33",
+    "date": "2026-09-11",
+    "title": "Google boleh dinyahpaut dengan selamat",
+    "notes": [
+      "Akaun yang masuk menggunakan Google kini boleh melihat dan mengurus sambungan Google dalam Security.",
+      "Sebelum Google dinyahpaut, pemain wajib menetapkan password melalui pautan reset supaya akaun masih boleh dimasuki.",
+      "Sistem menghalang unlink jika Google ialah satu-satunya kaedah login dan memaparkan status proses dengan jelas."
+    ]
+  },
+  {
+    "version": "1.39.32",
+    "date": "2026-09-11",
+    "title": "Forgot password tersedia dalam Security",
+    "notes": [
+      "Pemain kini boleh minta reset password terus dari modul Security.",
+      "Pautan reset dihantar ke email akaun dan akan membawa pemain kembali ke LepakMamak untuk pilih password baharu.",
+      "Status penghantaran dipaparkan dengan jelas dan butang dikunci sementara permintaan sedang diproses."
+    ]
+  },
+  {
+    "version": "1.39.31",
+    "date": "2026-09-11",
+    "title": "Edit Profile kini ada loading state yang lebih jelas",
+    "notes": [
+      "Edit Profile kini menunjukkan skeleton yang beranimasi sementara maklumat akaun sedang dimuatkan.",
+      "Butang dan medan dikunci dengan jelas semasa loading atau menyimpan, lengkap dengan status Loading dan Saving.",
+      "Reka bentuk ini mengekalkan susun atur yang kemas pada desktop dan mobile serta menghormati reduced motion."
+    ]
+  },
+  {
+    "version": "1.39.30",
+    "date": "2026-09-11",
+    "title": "Tambah Syiling terus dari Geng",
+    "notes": [
+      "Jika baki belum cukup 1,000 Syiling untuk cipta Geng, panel Geng kini tunjuk jumlah baki dan jumlah yang diperlukan dengan jelas.",
+      "Butang Tambah Syiling membuka Kedai terus supaya pemain boleh guna top up atau tuntutan harian tanpa keluar mencari menu lain.",
+      "Flow ini responsif pada desktop dan mobile, dan butang cipta kekal terkunci sehingga baki mencukupi."
+    ]
+  },
+  {
+    "version": "1.39.29",
+    "date": "2026-09-11",
+    "title": "Wet Deck rooftop lounge dibuka",
+    "notes": [
+      "Wet Deck di Hotel Mahkota kini boleh dinaiki melalui lif untuk sky dining dengan pemandangan KLCC, pool, bar dan lounge indoor.",
+      "Empat pengunjung bergerak di pool, lengkap dengan animasi berenang dan laluan tangga supaya pemain boleh masuk serta keluar tanpa jatuh ke jalan.",
+      "Lapan meja rooftop ditambah, termasuk meja Werewolf sembilan kerusi yang ikut lobby dan occupancy game bandar.",
+      "Lounge Wet Deck mempunyai instrumental original yang perlahan dan dikecilkan semasa game meja dibuka."
+    ]
+  },
+  {
+    "version": "1.39.28",
+    "date": "2026-09-11",
+    "title": "Geng optional dan jemputan meja selamat",
+    "notes": [
+      "Geng kini pilihan sosial sahaja: group chat, voice antara ahli dan marker kawan pada minimap kekal berfungsi tanpa mewajibkan Geng untuk masuk game meja.",
+      "Jemputan meja kini menunjukkan game, meja dan ruang tersedia; penerima boleh pergi ke lokasi dan memilih join serta READY sendiri.",
+      "Reconnect diberi grace 30 saat, panel Geng menunjukkan ketua, ahli dan status reconnect, dan hanya ketua boleh menghantar jemputan.",
+      "Jemputan yang penuh, tamat, game sudah bermula atau sesi sudah berubah akan ditolak dengan penjelasan yang jelas tanpa auto-seat atau auto-enrol."
+    ]
+  },
+  {
+    "version": "1.39.27",
+    "date": "2026-09-11",
+    "title": "Add Friend dan Friend List",
+    "notes": [
+      "Pemain berdaftar kini boleh Add Friend dari player menu, dengan request yang disimpan selamat dalam Supabase.",
+      "Friend List membezakan kawan online dan offline serta menyediakan Accept, Decline, Cancel dan Remove.",
+      "Butang Message daripada Friend List membuka private chat sedia ada terus pada desktop dan mobile."
+    ]
+  },
+  {
+    "version": "1.39.26",
+    "date": "2026-09-11",
+    "title": "Sambung semula bila connection terputus",
+    "notes": [
+      "Penanda online merah kini menerangkan connection error dan menawarkan butang Restart di lower right.",
+      "Kad Restart menggunakan placement yang sama seperti update, kekal di atas action HUD dan responsif untuk mobile.",
+      "Reconnect automatik terus berjalan di belakang supaya bandar cuba pulih sementara pemain boleh restart bila-bila masa."
+    ]
+  },
+  {
+    "version": "1.39.25",
+    "date": "2026-09-11",
+    "title": "Geng, avatar dan multiplayer dikemas kini",
+    "notes": [
+      "Cipta Geng dengan 1,000 Syiling, terima permintaan ahli, dan hanya leader boleh approve atau disband.",
+      "Preview character semasa onboarding kini menggunakan avatar 3D yang sama seperti Inventory, dengan pilihan tudung yang lebih sempurna menutup leher dan bahu.",
+      "Remote player kekal kelihatan selepas teleport, dan chat fullscreen kini berada paling depan dengan kawalan minimize atau tutup yang jelas.",
+      "Wall photo masih boleh dipos apabila OpenAI tidak tersedia; foto yang mendapat keputusan explicit tetap ditolak."
+    ]
+  },
+  {
+    "version": "1.39.24",
+    "date": "2026-09-11",
+    "title": "English table games and tudung wardrobe",
+    "notes": [
+      "Lukis Lah, Poker Kampung, UNO Lepak and Werewolf now use clear English across their lobbies, actions, rules and results.",
+      "Character wardrobe now includes long tudung, turban, short tudung, shawl, bawal, satin and instant styles.",
+      "dUCk Luxe and Ruffle are shown as Coming Soon while the live 3D character preview supports rotating the selected look."
+    ]
+  },
+  {
+    "version": "1.39.23",
+    "date": "2026-09-10",
+    "title": "Character boleh diputar dan Kedai lebih kemas",
+    "notes": [
+      "Character dalam Inventory kini boleh diputar 360° dengan drag menggunakan mouse atau swipe pada mobile.",
+      "Kedai kini menyusun butang Pakai dan Tanggalkan sejajar di bahagian bawah setiap kad item.",
+      "Butang Refresh kedai dibuang supaya paparan kekal seperti menu game dan tidak seperti halaman web."
+    ]
+  },
+  {
+    "version": "1.39.22",
+    "date": "2026-09-10",
+    "title": "Car finder dan akses admin lebih selamat",
+    "notes": [
+      "Map bandar kini boleh mencari Porsche Taycan Yusuf Suhair dan Porsche 911 GT3 RS Daddy Fizal menggunakan lokasi fleet secara langsung.",
+      "Car finder berfungsi dalam paparan map 2D dan 3D sambil mengekalkan kawalan zoom.",
+      "Portal admin kini menggunakan Supabase Auth dan hanya membenarkan akaun dalam allowlist admin.",
+      "Panel tarikan LEGOLAND kekal boleh ditekan pada skrin mobile walaupun City Chat terbuka."
+    ]
+  },
+  {
+    "version": "1.39.21",
+    "date": "2026-09-10",
+    "title": "Suasana game, DM dan busking lebih tepat",
+    "notes": [
+      "Werewolf kini ada cue malam, tidur, auman, growl, suara pemain mati, next turn dan countdown menggunakan audio percuma yang disimpan dalam game.",
+      "DM terus ditutup dan hilang apabila salah seorang pemain offline; server juga menolak mesej kepada pemain yang sudah tiada.",
+      "Busker utama kini berada di frontage PETRONAS, dengan crowd, collision dan jarak audio berkongsi koordinat yang sama.",
+      "Map bandar kekal boleh zoom in dan zoom out dengan paparan awal yang lebih luas untuk kawasan besar seperti Legoland."
+    ]
+  },
+  {
+    "version": "1.39.20",
+    "date": "2026-09-10",
+    "title": "Lifecycle game dan lobby lebih kemas",
+    "notes": [
+      "Countdown kini dibatalkan jika pemain berdiri pada saat akhir dan jumlah peserta jatuh bawah minimum.",
+      "Main Lagi tidak lagi boleh mengganggu UNO, Poker atau Werewolf yang masih berlangsung; Lukis Lah juga mengekalkan roster yang sudah memberi consent.",
+      "Paparan meja kini satu senarai sahaja: Lobby di atas, kemudian setiap game bersama artwork dan avatar pemain yang join dalam row yang sama."
+    ]
+  },
+  {
+    "version": "1.39.19",
+    "date": "2026-09-10",
+    "title": "Lobby berasingan dan alat ujian dev",
+    "notes": [
+      "Lobby Meja kini sentiasa berada paling atas dan hanya menyenaraikan pemain yang duduk tetapi belum join sebarang game.",
+      "Setiap game mempunyai senarai pemain sendiri untuk membezakan mereka yang menunggu dengan mereka yang sudah bermain.",
+      "Build dev mempunyai Developer Option untuk spawn test users berhampiran, memilih status mic dan speaker, serta membuang semua test users milik anda."
+    ]
+  },
+  {
+    "version": "1.39.18",
+    "date": "2026-09-10",
+    "title": "Lukis Lah lebih adil dan tahan reconnect",
+    "notes": [
+      "Timer Lukis Lah berhenti sehingga 30 saat apabila pemain terputus dan menyambung semula, jadi masa memilih atau melukis tidak hilang.",
+      "Hanya pemain yang masuk lobi dan tekan SEDIA dimasukkan ke game; pemain yang sekadar duduk tidak lagi diberi kad atau giliran.",
+      "Game Lukis Lah melalui SEDIA kini memberi pelukis tiga pilihan perkataan seperti yang dijanjikan.",
+      "Party voice dan jemputan party lama tidak lagi boleh digunakan untuk membocorkan jawapan atau menyertai party tanpa kuasa ketua."
+    ]
+  },
+  {
+    "version": "1.39.17",
+    "date": "2026-09-10",
+    "title": "Roster game guna wajah karakter sebenar",
+    "notes": [
+      "Pemain yang hanya duduk, menunggu di lobi dan sudah masuk game kini dipaparkan dalam kumpulan berasingan tanpa senarai nama Dalam yang mengelirukan.",
+      "Setiap indikator menggunakan wajah, warna kulit, rambut dan pakaian karakter sebenar pemain, termasuk roster Werewolf seluruh bandar.",
+      "Voice indicator kekal terang dan tajam di atas game walaupun latar bandar diblur pada desktop."
+    ]
+  },
+  {
+    "version": "1.39.16",
+    "date": "2026-09-10",
+    "title": "Lukis dikunci mengikut sesi game",
+    "notes": [
+      "Pemain baharu mesti tunggu game seterusnya. Kerusi kosong tidak memberi akses kepada game yang sedang berlangsung; pemain asal masih boleh sambung semula."
+    ]
+  },
+  {
+    "version": "1.39.15",
+    "date": "2026-09-10",
+    "title": "Meja Besar lebih mudah ditekan",
+    "notes": [
+      "Butang game mengutamakan meja tempat anda duduk, dengan kawasan sentuh lebih besar dan kedudukan yang kekal semasa ditekan."
+    ]
+  },
   {
     "version": "1.39.14",
     "date": "2026-09-10",
     "title": "Main lagi game meja kekal bersama geng",
     "notes": [
-    "Butang Main lagi untuk Lukis Lah! kini mula pusingan baharu tanpa mengeluarkan semua pemain daripada game.",
-    "Roster dan kedudukan di meja kekal bersama geng, walaupun seorang pemain sahaja yang menekan Main lagi.",
-    "Werewolf juga mencipta game ID dan deal role baharu selepas kampung selesai; reset kampung kekal di bawah hos."
+      "Butang Main lagi untuk Lukis Lah! kini mula pusingan baharu tanpa mengeluarkan semua pemain daripada game.",
+      "Roster dan kedudukan di meja kekal bersama geng, walaupun seorang pemain sahaja yang menekan Main lagi.",
+      "Werewolf juga mencipta game ID dan deal role baharu selepas kampung selesai; reset kampung kekal di bawah hos."
     ]
   },
   {
     "version": "1.39.13",
     "date": "2026-09-10",
-  "title": "Chat, suara dan busking lebih kemas",
-  "notes": [
-    "City chat kini sentiasa berada di atas action prompt seperti Stand dan menggunakan teks cerah yang jelas ketika game meja dibuka.",
-    "Penanda pemain yang sedang bercakap dipindahkan ke kanan bawah, tepat di atas meter KM/H, dengan susun atur responsif.",
-    "Penanda suara kini menyala mengikut kekuatan suara dan bertukar gelap apabila pemain masih dekat tetapi sudah tidak bercakap.",
-    "Busking Santai dipindahkan ke ruang hadapan PETRONAS supaya persembahan berada di forecourt stesen."
-  ]
+    "title": "Chat, suara dan busking lebih kemas",
+    "notes": [
+      "City chat kini sentiasa berada di atas action prompt seperti Stand dan menggunakan teks cerah yang jelas ketika game meja dibuka.",
+      "Penanda pemain yang sedang bercakap dipindahkan ke kanan bawah, tepat di atas meter KM/H, dengan susun atur responsif.",
+      "Penanda suara kini menyala mengikut kekuatan suara dan bertukar gelap apabila pemain masih dekat tetapi sudah tidak bercakap.",
+      "Busking Santai dipindahkan ke ruang hadapan PETRONAS supaya persembahan berada di forecourt stesen."
+    ]
   },
   {
     "version": "1.39.12",
@@ -435,25 +445,25 @@
       "Gerai Mat Kool kini turut berada di Pantai Senja, lengkap dengan bunyi ais krim yang hanya kedengaran apabila anda menghampiri gerai."
     ]
   },
-{
-  "version": "1.39.1",
-  "date": "2026-09-10",
-  "title": "Pantai di luar court, ombak dan kelapa",
-  "notes": [
-    "Meja Pantai Senja dipindahkan keluar dari court basketball dan pickleball ke pesisir timur.",
-    "Ombak bergerak, booth kelapa dengan penjaga, NPC berjalan dan dua meja sembilan kerusi melengkapkan kawasan lepak pantai."
-  ]
-},
-{
-  "version": "1.39.0",
-  "date": "2026-09-10",
-  "title": "Jom lepak di Pantai Senja",
-  "notes": [
-    "Pantai Senja dibuka di tenggara bandar dengan pasir, laut, payung, lampu dan unggun api.",
-    "Empat meja pantai menggunakan permainan mamak yang sama, termasuk meja sembilan kerusi untuk Werewolf. Cari Pantai Senja dalam peta."
-  ]
-},
-{
+  {
+    "version": "1.39.1",
+    "date": "2026-09-10",
+    "title": "Pantai di luar court, ombak dan kelapa",
+    "notes": [
+      "Meja Pantai Senja dipindahkan keluar dari court basketball dan pickleball ke pesisir timur.",
+      "Ombak bergerak, booth kelapa dengan penjaga, NPC berjalan dan dua meja sembilan kerusi melengkapkan kawasan lepak pantai."
+    ]
+  },
+  {
+    "version": "1.39.0",
+    "date": "2026-09-10",
+    "title": "Jom lepak di Pantai Senja",
+    "notes": [
+      "Pantai Senja dibuka di tenggara bandar dengan pasir, laut, payung, lampu dan unggun api.",
+      "Empat meja pantai menggunakan permainan mamak yang sama, termasuk meja sembilan kerusi untuk Werewolf. Cari Pantai Senja dalam peta."
+    ]
+  },
+  {
     "version": "1.38.6",
     "date": "2026-09-10",
     "title": "Laungan penuh di kaunter",
@@ -477,467 +487,467 @@
       "Laungan dua singgit kini kedengaran berhampiran Air Balang Pak Din dan Pisang Goreng Mak Cik, kuat di kaunter lalu perlahan-lahan senyap apabila anda menjauh."
     ]
   },
- {
-  "version": "1.38.3",
-  "date": "2026-09-10",
-  "title": "Public health page",
-  "notes": [
-   "A public LepakMamak health page shows realtime availability, server uptime, latency, current version and live player totals without exposing memory, bandwidth or room names."
-  ]
- },
- {
-  "version": "1.38.2",
-  "date": "2026-09-10",
-  "title": "Bandar lebih hidup, voice lebih jelas",
-  "notes": [
-   "Fullscreen chat stays expanded until you restore its window size.",
-   "The chat minimise and fullscreen controls now sit together on the right side of the header.",
-   "Every Lamborghini now drives through the city. Its quieter exhaust follows the moving car and fades with distance.",
-   "Your microphone range is brighter and visible over raised floors. The distance ring hides for party speech, which reaches your party across the city.",
-   "Seated players get a warning after four and a half minutes without input. At five minutes they leave the table game and release their seat while staying in the city. Move or tap to stay.",
-   "Logging out immediately leaves UNO and Werewolf; interrupted connections keep their reconnect grace period."
-   ,"KFC and McDonald's replace repeated convenience shops, each with an open drive-through lane, order board and collection window."
-   ,"A Shell station with Shell Select, pumps and a driveable forecourt opens near the eastern LRT line."
-   ,"Malaysia's second mosque model is now Gereja Harapan. Masjid Kampung Maju remains, and the call to prayer now comes only from that mosque."
-  ]
- },
- {
-  "version": "1.38.1",
-  "date": "2026-09-10",
-  "title": "Lamborghini depan mamak",
-  "notes": [
-   "A Lamborghini is parked at the kerb outside Mamak Maju. Walk near it and you can hear the exhaust idling; it fades out as you walk away.",
-   "You cannot Cilok a Lamborghini. Walk up to one — parked or out in traffic — and the action button says Tak bole and stays greyed out."
-  ]
- },
- {
-  "version": "1.38.0",
-  "date": "2026-09-10",
-  "title": "Undi yang boleh dilihat, nota Seer, dan UNO yang tahu bila nak tamat",
-  "notes": [
-   "Werewolf: you can now watch the vote as it happens — how many have pointed at each suspect, and how many want the accused gone. It counts heads, so the Mayor's double vote stays secret until the very end.",
-   "Werewolf: the Seer keeps every night's reading instead of only the newest one, so what you learned on the first night is still in front of you on the fourth.",
-   "Werewolf: the host can now pick any village from five to nine players. Five, six and eight were always playable, but the panel only ever offered seven or nine.",
-   "UNO: a match between two players now finishes at 200 points, and three players at 300, instead of asking everyone for 500. Two people needed about eighteen rounds to get there.",
-   "UNO: when a round ends, every losing hand turns face up with what it cost, so you can see where the winner's points came from. You can also sort your hand by colour.",
-   "UNO: after someone wins a whole match, everyone can run it back from the table again. The button was there but nothing happened when you pressed it."
-  ]
- },
- {
-  "version": "1.37.2",
-  "date": "2026-09-10",
-  "title": "Butang chat balik ke penjuru",
-  "notes": [
-   "The chat window controls sit together in the top-left corner now, ahead of the title, instead of the expand button floating over the middle of the bar.",
-   "The minimise button is back, next to maximise. Clicking the chat header still works the same way."
-  ]
- },
- {
-  "version": "1.37.1",
-  "date": "2026-09-10",
-  "title": "Werewolf lapan dan sembilan orang boleh main",
-  "notes": [
-   "A Werewolf game with 8 or 9 players never actually started — the countdown finished and nothing happened. Every size from 5 to 9 works now, which also means Alpha, Knight, Princess, Hunter and Mayor are reachable for the first time."
-  ]
- },
- {
-  "version": "1.37.0",
-  "date": "2026-09-10",
-  "title": "Satu chat, dari bandar sampai ke meja",
-  "notes": [
-   "You can read and send chat while playing a table game. The chat box follows you into the game and back out again, keeping your tabs, your unread counts and where you had scrolled to.",
-   "New MEJA channel: sit at a table and your messages go to the people at that table. Stand up and you are back to city chat.",
-   "Party and private messages are now closed while a Werewolf or Lukis round is running, and a dead Werewolf player's microphone is muted until the game ends. Both were being used to give the game away."
-  ]
- },
- {
-  "version": "1.36.1",
-  "date": "2026-09-10",
-  "title": "Pembetulan kecil di ZUS",
-  "notes": [
-   "Teleporting to ZUS Coffee could drop you standing on one of the pavement tables. The tables now sit tucked against the shopfront, clear of where you arrive."
-  ]
- },
- {
-  "version": "1.36.0",
-  "date": "2026-09-10",
-  "title": "Nampak siapa ada di mana",
-  "notes": [
-   "Walk up to a table and it tells you who is sitting there by name, not just how many.",
-   "Meja Besar was telling everyone it had three seats. It has nine. Every table now counts its own chairs.",
-   "The top left shows who else is in the city at a glance, without opening anything.",
-   "In a game lobby, a player who is not ready yet says so. Before, ready showed a tick and not-ready showed nothing at all."
-  ]
- },
- {
-  "version": "1.35.0",
-  "date": "2026-09-10",
-  "title": "Lukis Lah ada gerak, semua game satu bunyi",
-  "notes": [
-   "Lukis Lah reacts at the moments between drawing: a correct guess, the word being revealed, the round results, and a score that just moved. Only the score that changed reacts, not the whole board.",
-   "All four table games now share one sound engine, so every game can have its own voice without inventing one."
-  ]
- },
- {
-  "version": "1.34.0",
-  "date": "2026-09-10",
-  "title": "Werewolf ada malam dan siang",
-  "notes": [
-   "Werewolf looks like the time of day now. Night is dark and blue, the discussion warms up, judgment turns red, and night falling or day breaking sweeps across the whole panel with a sound to match.",
-   "The ending is a proper reveal instead of one line of text: who won, and what everybody actually was. It shows roles, never who voted for whom."
-  ]
- },
- {
-  "version": "1.33.0",
-  "date": "2026-09-10",
-  "title": "Poker Kampung ada rasa",
-  "notes": [
-   "Poker moves and makes noise now. The flop, turn and river flip onto the felt instead of appearing, the pot jumps when it grows, the seat whose turn it is glows, and the showdown lands with a flourish. Cards land, chips click, and winning has a sound.",
-   "Only the cards that just turned over move — the ones already on the table stay put."
-  ]
- },
- {
-  "version": "1.32.0",
-  "date": "2026-09-10",
-  "title": "Skrin balas sentuhan",
-  "notes": [
-   "Tapping anywhere that is not a button now leaves a small ring where your finger landed, so the screen answers you even when there was nothing there to press."
-  ]
- },
- {
-  "version": "1.31.0",
-  "date": "2026-09-10",
-  "title": "Boleh jalan dalam tren",
-  "notes": [
-   "You can walk around inside the LRT carriage now instead of being stuck in your seat for the whole ride. Other passengers see you move about, and you cannot walk out through the walls."
-  ]
- },
- {
-  "version": "1.30.0",
-  "date": "2026-09-10",
-  "title": "Daftar tiga langkah",
-  "notes": [
-   "Signing up is three steps now: make the account, pick your name, then make your character. Before, the sign-up form asked for your name and your whole character before the account existed.",
-   "Signing up with Google goes through the same two steps, so everyone picks their own name and face whichever way they joined."
-  ]
- },
- {
-  "version": "1.29.0",
-  "date": "2026-09-10",
-  "title": "Nama geng atas kepala",
-  "notes": [
-   "Set a geng name in Settings and it appears in small letters just above your name, for everyone to see. It stays on your device between sessions, guests included.",
-   "The expanded chat window now sits in the middle of the screen instead of hanging off the bottom, and the padding inside the panel lines up."
-  ]
- },
- {
-  "version": "1.28.0",
-  "date": "2026-09-10",
-  "title": "Susun atur tablet dibetulkan",
-  "notes": [
-   "On tablets the chat box and the speedometer were sitting on top of the thumbstick and the action buttons. Every layout rule written for tablets was switched off on the tablets it was written for — an iPad with a keyboard attached was being treated as a desktop. Chat now sits clear above the stick, and the speed above the buttons.",
-   "Chat can be blown up to fill the screen on a phone too, not just on a computer. The same button closes it."
-  ]
- },
- {
-  "version": "1.27.0",
-  "date": "2026-09-10",
-  "title": "Tetapan lebih kemas",
-  "notes": [
-   "Settings is called Settings now, with a × in the corner to close it. The two lines of filler above it are gone; the version stays.",
-   "The settings button is a gear instead of two bars.",
-   "The keyboard hints along the bottom now really do stay off on phones and tablets. They were being hidden by an instruction the stylesheet quietly overruled, so they kept showing up on iPads."
-  ]
- },
- {
-  "version": "1.26.0",
-  "date": "2026-09-10",
-  "title": "Butang atas kanan jadi satu pada telefon",
-  "notes": [
-   "On a phone, the buttons in the top right corner now live behind one ⋮ button. Tap it and they drop down underneath; tap anything, or anywhere else, and it folds away again. On a bigger screen the row stays as it was."
-  ]
- },
- {
-  "version": "1.25.0",
-  "date": "2026-09-10",
-  "title": "Chat tunjuk siapa di mana",
-  "notes": [
-   "Every chat message now shows where the person was standing when they said it, in small letters under their name.",
-   "The minimize button has gone from the chat bar. Clicking the header does the same thing, so there was no need for both."
-  ]
- },
- {
-  "version": "1.24.0",
-  "date": "2026-09-10",
-  "title": "Tak tersangkut pada versi lama",
-  "notes": [
-   "If you leave the game open while a new version goes out, it now tells you and refreshes itself: FULL REFRESH BY SYSTEM IN 3, 2, 1. No more playing an old build without knowing.",
-   "If the refresh does not pick the new version up, it stops trying and offers you a button instead of reloading over and over."
-  ]
- },
- {
-  "version": "1.23.0",
-  "date": "2026-09-10",
-  "title": "Masuk dengan Google",
-  "notes": [
-   "You can now sign in with Google instead of making a password.",
-   "Your Google name is not used. After signing in you pick the name the city knows you by, and your character's look, exactly like anyone registering with an email. Nothing from your Google profile is copied across."
-  ]
- },
- {
-  "version": "1.22.0",
-  "date": "2026-09-10",
-  "title": "Polis senyap",
-  "notes": [
-   "The police siren is gone for good. The patrol cars still drive around with their lights on, and you can still cilok one — they just do it quietly now."
-  ]
- },
- {
-  "version": "1.21.1",
-  "date": "2026-09-10",
-  "title": "Bandar tak lebih muatan lagi",
-  "notes": [
-   "When a lot of people arrived at the same moment, a room could go past its limit — up to 120 people in a city built for 100, which is what makes everyone lag. Arrivals are now counted at the moment someone actually walks in.",
-   "Logging in twice at the same instant could also leave two of you standing in the city. The older session now steps aside properly."
-  ]
- },
- {
-  "version": "1.21.0",
-  "date": "2026-09-10",
-  "title": "ZUS Coffee buka di Kampung Maju",
-  "notes": [
-   "ZUS Coffee has opened where the nearer 99 Speedmart used to be — cobalt front, white lettering and a glazed shopfront with the counter visible inside.",
-   "Three tables with twelve seats sit on the pavement outside, in the shop's own blue and white. You can sit at any of them, and the map now points at ZUS instead of the old shop."
-  ]
- },
- {
-  "version": "1.20.0",
-  "date": "2026-09-10",
-  "title": "Papan minggu ini di Lepak Wall",
-  "notes": [
-   "The Lepak Wall now has a weekly board: the top five for basketball points and for time spent at mamak tables. It resets every Monday morning, so a quiet week is never a lost cause.",
-   "Punches, recalls, dances and logins are counted for your own profile but are not ranked. A public ranking of punches would just reward punching people, and the rest can be racked up alone in a corner."
-  ]
- },
- {
-  "version": "1.19.2",
-  "date": "2026-09-10",
-  "title": "Suis lampu lebih senang dicapai",
-  "notes": [
-   "Walking up to a street lamp gives you the switch far more reliably. You can reach it from a little further back, and a car driving past no longer takes the button away from the lamp you are standing at. All sixty lamps in the city work the same way."
-  ]
- },
- {
-  "version": "1.19.1",
-  "date": "2026-09-10",
-  "title": "Kemas kini dalaman",
-  "notes": [
-   "Housekeeping: the city server is now always published from the released code, so a change someone is still working on can no longer reach the live city by accident."
-  ]
- },
- {
-  "version": "1.19.0",
-  "date": "2026-09-10",
-  "title": "Pelayan bandar pandai lapor sendiri",
-  "notes": [
-   "Behind the scenes, the city server now reports what it is actually doing — how many people are connected, how much it is sending each second, and whether it is starting to struggle — so a busy night gets noticed before anybody's game stutters."
-  ]
- },
- {
-  "version": "1.18.0",
-  "date": "2026-09-10",
-  "title": "Satu skrin karakter, Kedai di bar atas",
-  "notes": [
-   "Inventory and wardrobe are one screen now. Your character stands in the middle, what you have equipped is on the left, and the grid on the right holds your items and your clothes together — Tops and Bottoms are just two more tabs. There is no separate wardrobe to open any more.",
-   "Picking a top or bottoms puts it on straight away and saves it. No Save button, no Cancel.",
-   "Kedai has its own button in the top bar. The row now reads Wall, centre camera, Kedai, Character, Settings."
-  ]
- },
- {
-  "version": "1.17.0",
-  "date": "2026-09-10",
-  "title": "Setiap lampu jalan ada suisnya sendiri",
-  "notes": [
-   "Street lamps are switched at the lamp now, not from a button in the corner. Walk up to any lamp and the prompt offers Turn on or Turn off.",
-   "Each lamp keeps its own state, and everybody in the city sees it change straight away. Night still lights the street by itself; a lamp somebody switched keeps whatever they left it on."
-  ]
- },
- {
-  "version": "1.16.0",
-  "date": "2026-09-10",
-  "title": "Security: tukar kata laluan, padam akaun",
-  "notes": [
-   "Settings has a Security panel now. You can change your password there — it asks for your current one first, so a browser somebody left open cannot lock you out of your own account.",
-   "You can also delete your account. It removes your account, your items, your posts, your guestbook entries and your messages, and it cannot be undone, so you have to type DELETE to confirm. Guests do not see the panel; there is no account to change."
-  ]
- },
- {
-  "version": "1.15.0",
-  "date": "2026-09-10",
-  "title": "Hujan boleh dibuka balik, tetapan senang dicapai",
-  "notes": [
-   "The Rain over KL switch is back. The Game Master weather panel had been taking its place in settings, which quietly removed the switch for everyone. Once you touch it, it stays where you put it instead of following the live weather, and the sky matches what is falling.",
-   "Apa yang baharu now shows the newest three releases with a button for the older ones. The full list had grown long enough to push Return to Mamak Maju off the bottom of a phone screen."
-  ]
- },
- {
-  "version": "1.14.0",
-  "date": "2026-09-10",
-  "title": "Scroll bar ikut gaya game",
-  "notes": [
-   "Every panel that scrolls — chat, inventory, settings, the wall, the map — now uses one brass rail that matches the game instead of the browser's plain grey bar. The cream panels get a lighter version of it, and phones and tablets get a slimmer one."
-  ]
- },
- {
-  "version": "1.13.0",
-  "date": "2026-09-10",
-  "title": "Tekan luar untuk tutup tetapan",
-  "notes": [
-   "Settings now closes when you tap the darkened city around the panel, not only on Resume or Esc. Dragging a scrollbar or selecting text inside the panel will not dismiss it."
-  ]
- },
- {
-  "version": "1.12.0",
-  "date": "2026-09-10",
-  "title": "Chakra GM tak hilang atas lantai mamak",
-  "notes": [
-   "The glowing seal under the Game Master used to disappear the moment he stepped off the road onto the mamak floor, because that floor stands a little higher than the street. It now draws on top of whatever he is standing on."
-  ]
- },
- {
-  "version": "1.11.0",
-  "date": "2026-09-10",
-  "title": "Mesej peribadi ada tempat sendiri",
-  "notes": [
-   "Private messages have moved out of the channel list into their own row above the chat log. Each conversation is a chip with the person's name and its own unread count, and you close it from there.",
-   "The channel list is now only about who sees your message: ALL and PARTY. While you are in a private conversation the box states who you are writing to and stops being a menu, so a private line cannot go to the whole city by mistake."
-  ]
- },
- {
-  "version": "1.10.0",
-  "date": "2026-09-10",
-  "title": "Suis lampu bandar, satu skrin karakter",
-  "notes": [
-   "Street lights now have a switch anyone can flip, in the top bar next to your inventory. Night still turns them on by itself, but whoever flips it, the whole city sees it straight away.",
-   "Inventory and wardrobe are one character screen now. Your items, what you have equipped and the clothes you are wearing sit together, with Wardrobe and Kedai buttons right there. The old Refresh button is gone.",
-   "Scrolling back through chat no longer snaps you to the newest line. A small arrow appears instead, and one tap brings you back to the latest."
-  ]
- },
- {
-  "version": "1.9.0",
-  "date": "2026-09-10",
-  "title": "Game Master ada sayap",
-  "notes": [
-   "The Game Master now floats just above the ground with a slow rise and fall, one dark wing and one pale one fanned behind, over a slowly turning seal. Everyone in the city sees it, not just the Game Master.",
-   "The city now holds a hundred people at once, up from forty."
-  ]
- },
- {
-  "version": "1.8.1",
-  "date": "2026-09-10",
-  "title": "Pin PETRONAS betul balik",
-  "notes": [
-   "The PETRONAS marker on the city map now sits on the forecourt itself instead of nine metres north of it on empty ground."
-  ]
- },
- {
-  "version": "1.8.0",
-  "date": "2026-09-10",
-  "title": "Werewolf lima orang pun boleh",
-  "notes": [
-   "Werewolf now plays with as few as five people instead of seven, with one wolf against four and both the seer and the doctor still in.",
-   "Any group from five to nine works, so nobody is turned away for being an awkward number.",
-   "An empty seat at a table now invites your geng straight into your party chat.",
-   "The big table at Mamak Maju sits on proper paving instead of the grass beside it."
-  ]
- },
- {
-  "version": "1.7.1",
-  "date": "2026-09-10",
-  "title": "Pembetulan meja dan pengumuman",
-  "notes": [
-   "Fixed Werewolf and UNO not starting from the table: everyone who tapped SEDIA is now actually dealt into the game.",
-   "A Game Master announcement now really does greet people who join afterwards, instead of only those already online.",
-   "The table lobby stopped chattering to every seated player twenty times a second, which was quietly eating mobile data and battery."
-  ]
- },
- {
-  "version": "1.7.0",
-  "date": "2026-09-10",
-  "title": "Meja besar untuk Werewolf",
-  "notes": [
-   "A big nine-seat table has opened at Mamak Maju, so a whole Werewolf village can sit together instead of scattering across the small tables."
-  ]
- },
- {
-  "version": "1.6.0",
-  "date": "2026-09-10",
-  "title": "Pengumuman GM kekal di atas",
-  "notes": [
-   "A Game Master announcement now stays at the top of the screen until it is replaced or taken down, and anyone who joins afterwards still sees it."
-  ]
- },
- {
-  "version": "1.5.0",
-  "date": "2026-09-09",
-  "title": "Sedap main atas iPad",
-  "notes": [
-   "The game now lays itself out properly on a tablet: bigger buttons you can actually hit with a thumb, and the joystick, chat and speedometer no longer sit on top of each other.",
-   "If you are playing on a touch screen, the game stops telling you to press keys you do not have."
-  ]
- },
- {
-  "version": "1.4.0",
-  "date": "2026-09-09",
-  "title": "Polis masuk bandar",
-  "notes": [
-   "Two police cars now patrol the city, siren and all. You only hear it when they are near — and yes, you can still cilok them.",
-   "A connection meter next to the player count shows your signal and your ping in milliseconds.",
-   "When someone talks, their name and face appear under the map, so you always know who is speaking."
-  ]
- },
- {
-  "version": "1.3.0",
-  "date": "2026-09-09",
-  "title": "Chat kemas, GM boleh bagitahu semua",
-  "notes": [
-   "Chat channels moved into the typing bar: tap the button on the left to switch between everyone, your party, or a private message.",
-   "On a computer you can now blow the chat up into a proper window instead of squinting at the corner.",
-   "The Game Master can announce something to the whole city, and it scrolls across the top before landing in chat so nobody misses it."
-  ]
- },
- {
-  "version": "1.2.0",
-  "date": "2026-09-09",
-  "title": "Meja baru, jambatan boleh jalan",
-  "notes": [
-   "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
-   "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
-   "You can walk across the Saloma Link. Take the steps up at either end — the road underneath still runs as normal.",
-   "The city now holds forty people instead of twenty-four."
-  ]
- },
- {
-  "version": "1.1.0",
-  "date": "2026-09-09",
-  "title": "Geng, suara, dan lampu jalan",
-  "notes": [
-   "Right-click anyone to invite them into your party or send them a private message.",
-   "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
-   "Everyone online shows on the map as a dot — light blue for the city, red for your party.",
-   "Street lights come on at night, and the streets are no longer pitch black.",
-   "Chat opens with Enter and tucks away after you send, so the screen stays clear."
-  ]
- },
- {
-  "version": "1.0.0",
-  "date": "2026-09-08",
-  "title": "Bandar LepakMamak",
-  "notes": [
-   "Explore a small Kuala Lumpur: the mamak, the shops, the mosque, and the neighbourhood around them.",
-   "Ride the LRT across eight stations, or take a kapcai or a car and cilok your friends.",
-   "Table games at the mamak: Lukis Lah!, Poker Kampung, UNO Lepak and Werewolf.",
-   "City chat, voice chat with whoever is nearby, and the Lepak Wall for photos and voice notes."
-  ]
- }
+  {
+    "version": "1.38.3",
+    "date": "2026-09-10",
+    "title": "Public health page",
+    "notes": [
+      "A public LepakMamak health page shows realtime availability, server uptime, latency, current version and live player totals without exposing memory, bandwidth or room names."
+    ]
+  },
+  {
+    "version": "1.38.2",
+    "date": "2026-09-10",
+    "title": "Bandar lebih hidup, voice lebih jelas",
+    "notes": [
+      "Fullscreen chat stays expanded until you restore its window size.",
+      "The chat minimise and fullscreen controls now sit together on the right side of the header.",
+      "Every Lamborghini now drives through the city. Its quieter exhaust follows the moving car and fades with distance.",
+      "Your microphone range is brighter and visible over raised floors. The distance ring hides for party speech, which reaches your party across the city.",
+      "Seated players get a warning after four and a half minutes without input. At five minutes they leave the table game and release their seat while staying in the city. Move or tap to stay.",
+      "Logging out immediately leaves UNO and Werewolf; interrupted connections keep their reconnect grace period.",
+      "KFC and McDonald's replace repeated convenience shops, each with an open drive-through lane, order board and collection window.",
+      "A Shell station with Shell Select, pumps and a driveable forecourt opens near the eastern LRT line.",
+      "Malaysia's second mosque model is now Gereja Harapan. Masjid Kampung Maju remains, and the call to prayer now comes only from that mosque."
+    ]
+  },
+  {
+    "version": "1.38.1",
+    "date": "2026-09-10",
+    "title": "Lamborghini depan mamak",
+    "notes": [
+      "A Lamborghini is parked at the kerb outside Mamak Maju. Walk near it and you can hear the exhaust idling; it fades out as you walk away.",
+      "You cannot Cilok a Lamborghini. Walk up to one — parked or out in traffic — and the action button says Tak bole and stays greyed out."
+    ]
+  },
+  {
+    "version": "1.38.0",
+    "date": "2026-09-10",
+    "title": "Undi yang boleh dilihat, nota Seer, dan UNO yang tahu bila nak tamat",
+    "notes": [
+      "Werewolf: you can now watch the vote as it happens — how many have pointed at each suspect, and how many want the accused gone. It counts heads, so the Mayor's double vote stays secret until the very end.",
+      "Werewolf: the Seer keeps every night's reading instead of only the newest one, so what you learned on the first night is still in front of you on the fourth.",
+      "Werewolf: the host can now pick any village from five to nine players. Five, six and eight were always playable, but the panel only ever offered seven or nine.",
+      "UNO: a match between two players now finishes at 200 points, and three players at 300, instead of asking everyone for 500. Two people needed about eighteen rounds to get there.",
+      "UNO: when a round ends, every losing hand turns face up with what it cost, so you can see where the winner's points came from. You can also sort your hand by colour.",
+      "UNO: after someone wins a whole match, everyone can run it back from the table again. The button was there but nothing happened when you pressed it."
+    ]
+  },
+  {
+    "version": "1.37.2",
+    "date": "2026-09-10",
+    "title": "Butang chat balik ke penjuru",
+    "notes": [
+      "The chat window controls sit together in the top-left corner now, ahead of the title, instead of the expand button floating over the middle of the bar.",
+      "The minimise button is back, next to maximise. Clicking the chat header still works the same way."
+    ]
+  },
+  {
+    "version": "1.37.1",
+    "date": "2026-09-10",
+    "title": "Werewolf lapan dan sembilan orang boleh main",
+    "notes": [
+      "A Werewolf game with 8 or 9 players never actually started — the countdown finished and nothing happened. Every size from 5 to 9 works now, which also means Alpha, Knight, Princess, Hunter and Mayor are reachable for the first time."
+    ]
+  },
+  {
+    "version": "1.37.0",
+    "date": "2026-09-10",
+    "title": "Satu chat, dari bandar sampai ke meja",
+    "notes": [
+      "You can read and send chat while playing a table game. The chat box follows you into the game and back out again, keeping your tabs, your unread counts and where you had scrolled to.",
+      "New MEJA channel: sit at a table and your messages go to the people at that table. Stand up and you are back to city chat.",
+      "Party and private messages are now closed while a Werewolf or Lukis round is running, and a dead Werewolf player's microphone is muted until the game ends. Both were being used to give the game away."
+    ]
+  },
+  {
+    "version": "1.36.1",
+    "date": "2026-09-10",
+    "title": "Pembetulan kecil di ZUS",
+    "notes": [
+      "Teleporting to ZUS Coffee could drop you standing on one of the pavement tables. The tables now sit tucked against the shopfront, clear of where you arrive."
+    ]
+  },
+  {
+    "version": "1.36.0",
+    "date": "2026-09-10",
+    "title": "Nampak siapa ada di mana",
+    "notes": [
+      "Walk up to a table and it tells you who is sitting there by name, not just how many.",
+      "Meja Besar was telling everyone it had three seats. It has nine. Every table now counts its own chairs.",
+      "The top left shows who else is in the city at a glance, without opening anything.",
+      "In a game lobby, a player who is not ready yet says so. Before, ready showed a tick and not-ready showed nothing at all."
+    ]
+  },
+  {
+    "version": "1.35.0",
+    "date": "2026-09-10",
+    "title": "Lukis Lah ada gerak, semua game satu bunyi",
+    "notes": [
+      "Lukis Lah reacts at the moments between drawing: a correct guess, the word being revealed, the round results, and a score that just moved. Only the score that changed reacts, not the whole board.",
+      "All four table games now share one sound engine, so every game can have its own voice without inventing one."
+    ]
+  },
+  {
+    "version": "1.34.0",
+    "date": "2026-09-10",
+    "title": "Werewolf ada malam dan siang",
+    "notes": [
+      "Werewolf looks like the time of day now. Night is dark and blue, the discussion warms up, judgment turns red, and night falling or day breaking sweeps across the whole panel with a sound to match.",
+      "The ending is a proper reveal instead of one line of text: who won, and what everybody actually was. It shows roles, never who voted for whom."
+    ]
+  },
+  {
+    "version": "1.33.0",
+    "date": "2026-09-10",
+    "title": "Poker Kampung ada rasa",
+    "notes": [
+      "Poker moves and makes noise now. The flop, turn and river flip onto the felt instead of appearing, the pot jumps when it grows, the seat whose turn it is glows, and the showdown lands with a flourish. Cards land, chips click, and winning has a sound.",
+      "Only the cards that just turned over move — the ones already on the table stay put."
+    ]
+  },
+  {
+    "version": "1.32.0",
+    "date": "2026-09-10",
+    "title": "Skrin balas sentuhan",
+    "notes": [
+      "Tapping anywhere that is not a button now leaves a small ring where your finger landed, so the screen answers you even when there was nothing there to press."
+    ]
+  },
+  {
+    "version": "1.31.0",
+    "date": "2026-09-10",
+    "title": "Boleh jalan dalam tren",
+    "notes": [
+      "You can walk around inside the LRT carriage now instead of being stuck in your seat for the whole ride. Other passengers see you move about, and you cannot walk out through the walls."
+    ]
+  },
+  {
+    "version": "1.30.0",
+    "date": "2026-09-10",
+    "title": "Daftar tiga langkah",
+    "notes": [
+      "Signing up is three steps now: make the account, pick your name, then make your character. Before, the sign-up form asked for your name and your whole character before the account existed.",
+      "Signing up with Google goes through the same two steps, so everyone picks their own name and face whichever way they joined."
+    ]
+  },
+  {
+    "version": "1.29.0",
+    "date": "2026-09-10",
+    "title": "Nama geng atas kepala",
+    "notes": [
+      "Set a geng name in Settings and it appears in small letters just above your name, for everyone to see. It stays on your device between sessions, guests included.",
+      "The expanded chat window now sits in the middle of the screen instead of hanging off the bottom, and the padding inside the panel lines up."
+    ]
+  },
+  {
+    "version": "1.28.0",
+    "date": "2026-09-10",
+    "title": "Susun atur tablet dibetulkan",
+    "notes": [
+      "On tablets the chat box and the speedometer were sitting on top of the thumbstick and the action buttons. Every layout rule written for tablets was switched off on the tablets it was written for — an iPad with a keyboard attached was being treated as a desktop. Chat now sits clear above the stick, and the speed above the buttons.",
+      "Chat can be blown up to fill the screen on a phone too, not just on a computer. The same button closes it."
+    ]
+  },
+  {
+    "version": "1.27.0",
+    "date": "2026-09-10",
+    "title": "Tetapan lebih kemas",
+    "notes": [
+      "Settings is called Settings now, with a × in the corner to close it. The two lines of filler above it are gone; the version stays.",
+      "The settings button is a gear instead of two bars.",
+      "The keyboard hints along the bottom now really do stay off on phones and tablets. They were being hidden by an instruction the stylesheet quietly overruled, so they kept showing up on iPads."
+    ]
+  },
+  {
+    "version": "1.26.0",
+    "date": "2026-09-10",
+    "title": "Butang atas kanan jadi satu pada telefon",
+    "notes": [
+      "On a phone, the buttons in the top right corner now live behind one ⋮ button. Tap it and they drop down underneath; tap anything, or anywhere else, and it folds away again. On a bigger screen the row stays as it was."
+    ]
+  },
+  {
+    "version": "1.25.0",
+    "date": "2026-09-10",
+    "title": "Chat tunjuk siapa di mana",
+    "notes": [
+      "Every chat message now shows where the person was standing when they said it, in small letters under their name.",
+      "The minimize button has gone from the chat bar. Clicking the header does the same thing, so there was no need for both."
+    ]
+  },
+  {
+    "version": "1.24.0",
+    "date": "2026-09-10",
+    "title": "Tak tersangkut pada versi lama",
+    "notes": [
+      "If you leave the game open while a new version goes out, it now tells you and refreshes itself: FULL REFRESH BY SYSTEM IN 3, 2, 1. No more playing an old build without knowing.",
+      "If the refresh does not pick the new version up, it stops trying and offers you a button instead of reloading over and over."
+    ]
+  },
+  {
+    "version": "1.23.0",
+    "date": "2026-09-10",
+    "title": "Masuk dengan Google",
+    "notes": [
+      "You can now sign in with Google instead of making a password.",
+      "Your Google name is not used. After signing in you pick the name the city knows you by, and your character's look, exactly like anyone registering with an email. Nothing from your Google profile is copied across."
+    ]
+  },
+  {
+    "version": "1.22.0",
+    "date": "2026-09-10",
+    "title": "Polis senyap",
+    "notes": [
+      "The police siren is gone for good. The patrol cars still drive around with their lights on, and you can still cilok one — they just do it quietly now."
+    ]
+  },
+  {
+    "version": "1.21.1",
+    "date": "2026-09-10",
+    "title": "Bandar tak lebih muatan lagi",
+    "notes": [
+      "When a lot of people arrived at the same moment, a room could go past its limit — up to 120 people in a city built for 100, which is what makes everyone lag. Arrivals are now counted at the moment someone actually walks in.",
+      "Logging in twice at the same instant could also leave two of you standing in the city. The older session now steps aside properly."
+    ]
+  },
+  {
+    "version": "1.21.0",
+    "date": "2026-09-10",
+    "title": "ZUS Coffee buka di Kampung Maju",
+    "notes": [
+      "ZUS Coffee has opened where the nearer 99 Speedmart used to be — cobalt front, white lettering and a glazed shopfront with the counter visible inside.",
+      "Three tables with twelve seats sit on the pavement outside, in the shop's own blue and white. You can sit at any of them, and the map now points at ZUS instead of the old shop."
+    ]
+  },
+  {
+    "version": "1.20.0",
+    "date": "2026-09-10",
+    "title": "Papan minggu ini di Lepak Wall",
+    "notes": [
+      "The Lepak Wall now has a weekly board: the top five for basketball points and for time spent at mamak tables. It resets every Monday morning, so a quiet week is never a lost cause.",
+      "Punches, recalls, dances and logins are counted for your own profile but are not ranked. A public ranking of punches would just reward punching people, and the rest can be racked up alone in a corner."
+    ]
+  },
+  {
+    "version": "1.19.2",
+    "date": "2026-09-10",
+    "title": "Suis lampu lebih senang dicapai",
+    "notes": [
+      "Walking up to a street lamp gives you the switch far more reliably. You can reach it from a little further back, and a car driving past no longer takes the button away from the lamp you are standing at. All sixty lamps in the city work the same way."
+    ]
+  },
+  {
+    "version": "1.19.1",
+    "date": "2026-09-10",
+    "title": "Kemas kini dalaman",
+    "notes": [
+      "Housekeeping: the city server is now always published from the released code, so a change someone is still working on can no longer reach the live city by accident."
+    ]
+  },
+  {
+    "version": "1.19.0",
+    "date": "2026-09-10",
+    "title": "Pelayan bandar pandai lapor sendiri",
+    "notes": [
+      "Behind the scenes, the city server now reports what it is actually doing — how many people are connected, how much it is sending each second, and whether it is starting to struggle — so a busy night gets noticed before anybody's game stutters."
+    ]
+  },
+  {
+    "version": "1.18.0",
+    "date": "2026-09-10",
+    "title": "Satu skrin karakter, Kedai di bar atas",
+    "notes": [
+      "Inventory and wardrobe are one screen now. Your character stands in the middle, what you have equipped is on the left, and the grid on the right holds your items and your clothes together — Tops and Bottoms are just two more tabs. There is no separate wardrobe to open any more.",
+      "Picking a top or bottoms puts it on straight away and saves it. No Save button, no Cancel.",
+      "Kedai has its own button in the top bar. The row now reads Wall, centre camera, Kedai, Character, Settings."
+    ]
+  },
+  {
+    "version": "1.17.0",
+    "date": "2026-09-10",
+    "title": "Setiap lampu jalan ada suisnya sendiri",
+    "notes": [
+      "Street lamps are switched at the lamp now, not from a button in the corner. Walk up to any lamp and the prompt offers Turn on or Turn off.",
+      "Each lamp keeps its own state, and everybody in the city sees it change straight away. Night still lights the street by itself; a lamp somebody switched keeps whatever they left it on."
+    ]
+  },
+  {
+    "version": "1.16.0",
+    "date": "2026-09-10",
+    "title": "Security: tukar kata laluan, padam akaun",
+    "notes": [
+      "Settings has a Security panel now. You can change your password there — it asks for your current one first, so a browser somebody left open cannot lock you out of your own account.",
+      "You can also delete your account. It removes your account, your items, your posts, your guestbook entries and your messages, and it cannot be undone, so you have to type DELETE to confirm. Guests do not see the panel; there is no account to change."
+    ]
+  },
+  {
+    "version": "1.15.0",
+    "date": "2026-09-10",
+    "title": "Hujan boleh dibuka balik, tetapan senang dicapai",
+    "notes": [
+      "The Rain over KL switch is back. The Game Master weather panel had been taking its place in settings, which quietly removed the switch for everyone. Once you touch it, it stays where you put it instead of following the live weather, and the sky matches what is falling.",
+      "Apa yang baharu now shows the newest three releases with a button for the older ones. The full list had grown long enough to push Return to Mamak Maju off the bottom of a phone screen."
+    ]
+  },
+  {
+    "version": "1.14.0",
+    "date": "2026-09-10",
+    "title": "Scroll bar ikut gaya game",
+    "notes": [
+      "Every panel that scrolls — chat, inventory, settings, the wall, the map — now uses one brass rail that matches the game instead of the browser's plain grey bar. The cream panels get a lighter version of it, and phones and tablets get a slimmer one."
+    ]
+  },
+  {
+    "version": "1.13.0",
+    "date": "2026-09-10",
+    "title": "Tekan luar untuk tutup tetapan",
+    "notes": [
+      "Settings now closes when you tap the darkened city around the panel, not only on Resume or Esc. Dragging a scrollbar or selecting text inside the panel will not dismiss it."
+    ]
+  },
+  {
+    "version": "1.12.0",
+    "date": "2026-09-10",
+    "title": "Chakra GM tak hilang atas lantai mamak",
+    "notes": [
+      "The glowing seal under the Game Master used to disappear the moment he stepped off the road onto the mamak floor, because that floor stands a little higher than the street. It now draws on top of whatever he is standing on."
+    ]
+  },
+  {
+    "version": "1.11.0",
+    "date": "2026-09-10",
+    "title": "Mesej peribadi ada tempat sendiri",
+    "notes": [
+      "Private messages have moved out of the channel list into their own row above the chat log. Each conversation is a chip with the person's name and its own unread count, and you close it from there.",
+      "The channel list is now only about who sees your message: ALL and PARTY. While you are in a private conversation the box states who you are writing to and stops being a menu, so a private line cannot go to the whole city by mistake."
+    ]
+  },
+  {
+    "version": "1.10.0",
+    "date": "2026-09-10",
+    "title": "Suis lampu bandar, satu skrin karakter",
+    "notes": [
+      "Street lights now have a switch anyone can flip, in the top bar next to your inventory. Night still turns them on by itself, but whoever flips it, the whole city sees it straight away.",
+      "Inventory and wardrobe are one character screen now. Your items, what you have equipped and the clothes you are wearing sit together, with Wardrobe and Kedai buttons right there. The old Refresh button is gone.",
+      "Scrolling back through chat no longer snaps you to the newest line. A small arrow appears instead, and one tap brings you back to the latest."
+    ]
+  },
+  {
+    "version": "1.9.0",
+    "date": "2026-09-10",
+    "title": "Game Master ada sayap",
+    "notes": [
+      "The Game Master now floats just above the ground with a slow rise and fall, one dark wing and one pale one fanned behind, over a slowly turning seal. Everyone in the city sees it, not just the Game Master.",
+      "The city now holds a hundred people at once, up from forty."
+    ]
+  },
+  {
+    "version": "1.8.1",
+    "date": "2026-09-10",
+    "title": "Pin PETRONAS betul balik",
+    "notes": [
+      "The PETRONAS marker on the city map now sits on the forecourt itself instead of nine metres north of it on empty ground."
+    ]
+  },
+  {
+    "version": "1.8.0",
+    "date": "2026-09-10",
+    "title": "Werewolf lima orang pun boleh",
+    "notes": [
+      "Werewolf now plays with as few as five people instead of seven, with one wolf against four and both the seer and the doctor still in.",
+      "Any group from five to nine works, so nobody is turned away for being an awkward number.",
+      "An empty seat at a table now invites your geng straight into your party chat.",
+      "The big table at Mamak Maju sits on proper paving instead of the grass beside it."
+    ]
+  },
+  {
+    "version": "1.7.1",
+    "date": "2026-09-10",
+    "title": "Pembetulan meja dan pengumuman",
+    "notes": [
+      "Fixed Werewolf and UNO not starting from the table: everyone who tapped SEDIA is now actually dealt into the game.",
+      "A Game Master announcement now really does greet people who join afterwards, instead of only those already online.",
+      "The table lobby stopped chattering to every seated player twenty times a second, which was quietly eating mobile data and battery."
+    ]
+  },
+  {
+    "version": "1.7.0",
+    "date": "2026-09-10",
+    "title": "Meja besar untuk Werewolf",
+    "notes": [
+      "A big nine-seat table has opened at Mamak Maju, so a whole Werewolf village can sit together instead of scattering across the small tables."
+    ]
+  },
+  {
+    "version": "1.6.0",
+    "date": "2026-09-10",
+    "title": "Pengumuman GM kekal di atas",
+    "notes": [
+      "A Game Master announcement now stays at the top of the screen until it is replaced or taken down, and anyone who joins afterwards still sees it."
+    ]
+  },
+  {
+    "version": "1.5.0",
+    "date": "2026-09-09",
+    "title": "Sedap main atas iPad",
+    "notes": [
+      "The game now lays itself out properly on a tablet: bigger buttons you can actually hit with a thumb, and the joystick, chat and speedometer no longer sit on top of each other.",
+      "If you are playing on a touch screen, the game stops telling you to press keys you do not have."
+    ]
+  },
+  {
+    "version": "1.4.0",
+    "date": "2026-09-09",
+    "title": "Polis masuk bandar",
+    "notes": [
+      "Two police cars now patrol the city, siren and all. You only hear it when they are near — and yes, you can still cilok them.",
+      "A connection meter next to the player count shows your signal and your ping in milliseconds.",
+      "When someone talks, their name and face appear under the map, so you always know who is speaking."
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-09-09",
+    "title": "Chat kemas, GM boleh bagitahu semua",
+    "notes": [
+      "Chat channels moved into the typing bar: tap the button on the left to switch between everyone, your party, or a private message.",
+      "On a computer you can now blow the chat up into a proper window instead of squinting at the corner.",
+      "The Game Master can announce something to the whole city, and it scrolls across the top before landing in chat so nobody misses it."
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-09-09",
+    "title": "Meja baru, jambatan boleh jalan",
+    "notes": [
+      "Every table game now works the same way: sit, pick a game, tap SEDIA, and a three-two-one count-in deals you in. Rematch without leaving your seat.",
+      "Werewolf now says plainly that it gathers the whole city instead of pretending to be your table.",
+      "You can walk across the Saloma Link. Take the steps up at either end — the road underneath still runs as normal.",
+      "The city now holds forty people instead of twenty-four."
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-09-09",
+    "title": "Geng, suara, dan lampu jalan",
+    "notes": [
+      "Right-click anyone to invite them into your party or send them a private message.",
+      "Your microphone and speakers can be set to your party only, so you can talk to your geng while still hearing the mamak.",
+      "Everyone online shows on the map as a dot — light blue for the city, red for your party.",
+      "Street lights come on at night, and the streets are no longer pitch black.",
+      "Chat opens with Enter and tucks away after you send, so the screen stays clear."
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-09-08",
+    "title": "Bandar LepakMamak",
+    "notes": [
+      "Explore a small Kuala Lumpur: the mamak, the shops, the mosque, and the neighbourhood around them.",
+      "Ride the LRT across eight stations, or take a kapcai or a car and cilok your friends.",
+      "Table games at the mamak: Lukis Lah!, Poker Kampung, UNO Lepak and Werewolf.",
+      "City chat, voice chat with whoever is nearby, and the Lepak Wall for photos and voice notes."
+    ]
+  }
 ]

@@ -1,5 +1,4 @@
 import {guestName,session} from './auth';
-import {renderProfile,type PlayerProfile} from './profile';
 
 export type WallPost={id:string;userId:string;author:string;text:string;mediaType:'image'|'audio'|null;mediaUrl:string|null;mimeType:string|null;createdAt:string;gameMaster:boolean;likeCount:number;likedByMe:boolean;replyCount:number};
 export type WallReply={id:string;postId:string;userId:string;author:string;text:string;gameMaster:boolean;createdAt:string};
@@ -8,11 +7,10 @@ function apiBase(endpoint:string){return endpoint.replace(/^ws/i,'http').replace
 function dataUrl(file:Blob){return new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error('Could not read this file.'));reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.readAsDataURL(file);});}
 function timeLabel(value:string){const date=new Date(value);return Number.isNaN(date.getTime())?'Just now':new Intl.DateTimeFormat('en-MY',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kuala_Lumpur'}).format(date);}
 
-export function setupWall(endpoint:string,releaseInput:()=>void){
+export function setupWall(endpoint:string,releaseInput:()=>void,onProfile:(userId:string,name:string)=>void=()=>{}){
  const base=apiBase(endpoint),dialog=document.createElement('dialog');dialog.id='social-wall';dialog.setAttribute('aria-labelledby','wall-title');
  dialog.innerHTML=`<div class="wall-shell"><header><div><span class="wall-kicker">LEPAKMAMAK SOCIAL</span><h2 id="wall-title">The Lepak Wall.</h2><p>What is happening around the city?</p></div><button id="wall-close" type="button" aria-label="Close wall">Close ×</button></header><section id="wall-composer"><label for="wall-text">Share with the city</label><textarea id="wall-text" maxlength="500" placeholder="Cerita sikit…"></textarea><div id="wall-media-preview" hidden></div><div class="wall-compose-actions"><label class="wall-attach">📷 Photo<input id="wall-image" type="file" accept="image/jpeg,image/png,image/webp" /></label><button id="wall-record" type="button">🎙 Voice note</button><button id="wall-post" type="button">Post</button></div><small id="wall-compose-status" role="status">Text, photo up to 4 MB, or a 30-second voice note.</small></section><section id="wall-board" aria-labelledby="wall-board-title"><h3 id="wall-board-title">Papan minggu ini</h3><p id="wall-board-week"></p><div id="wall-board-lists"></div></section><section class="wall-feed-head"><h3>City feed</h3><button id="wall-refresh" type="button">Refresh</button></section><div id="wall-feed" aria-live="polite"></div></div>`;
- const profile=document.createElement('dialog');profile.id='wall-profile';profile.setAttribute('aria-labelledby','wall-profile-name');profile.innerHTML='<h2 id="wall-profile-name">Player profile</h2><div id="wall-profile-details"></div><button id="wall-profile-close" type="button">Close</button>';
- document.body.append(dialog,profile);
+ document.body.append(dialog);
  const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
  const feed=el('wall-feed'),composer=el('wall-composer'),status=el('wall-compose-status'),text=el<HTMLTextAreaElement>('wall-text'),image=el<HTMLInputElement>('wall-image'),preview=el('wall-media-preview'),record=el<HTMLButtonElement>('wall-record'),postButton=el<HTMLButtonElement>('wall-post');
  let posts:WallPost[]=[],busy=false,unread=0,imageFile:File|null=null,voiceBlob:Blob|null=null,recorder:MediaRecorder|null=null,stream:MediaStream|null=null,recordTimer:number|null=null,recordStarted=0,previewUrl='';
@@ -76,7 +74,7 @@ export function setupWall(endpoint:string,releaseInput:()=>void){
   try{const result=await request<{reply:WallReply}>(`/wall/posts/${item.id}/replies`,{method:'POST',body:JSON.stringify({text})});const list=replyCache.get(item.id)||[];list.push(result.reply);replyCache.set(item.id,list);item.replyCount++;render();}
   catch(error){status.textContent=error instanceof Error?error.message:'Could not reply.';button.disabled=false;input.disabled=false;}
  }
- async function openProfile(item:WallPost){el('wall-profile-name').textContent=item.author;el('wall-profile-details').textContent='Loading profile…';profile.showModal();try{const result=await request<{profile:PlayerProfile}>(`/wall/profile/${item.userId}`);renderProfile(el('wall-profile-details'),result.profile);}catch(error){el('wall-profile-details').textContent=error instanceof Error?error.message:'Could not load profile.';}}
+ function openProfile(item:WallPost){close();onProfile(item.userId,item.author);}
  async function removePost(item:WallPost,button:HTMLButtonElement){button.disabled=true;try{await request(`/wall/posts/${item.id}`,{method:'DELETE'});posts=posts.filter(value=>value.id!==item.id);render();}catch(error){status.textContent=error instanceof Error?error.message:'Could not delete post.';button.disabled=false;}}
  async function refresh(){feed.setAttribute('aria-busy','true');if(!posts.length)feed.innerHTML='<div class="wall-empty"><strong>Loading the city feed…</strong></div>';try{const result=await request<{posts:WallPost[]}>('/wall/posts');posts=result.posts;render();}catch(error){feed.innerHTML='';const empty=document.createElement('div');empty.className='wall-empty';empty.textContent=error instanceof Error?error.message:'Could not load the Wall.';feed.append(empty);}finally{feed.removeAttribute('aria-busy');}}
  function stopRecording(){if(recordTimer!==null){clearTimeout(recordTimer);recordTimer=null;}if(recorder?.state==='recording')recorder.stop();stream?.getTracks().forEach(track=>track.stop());stream=null;record.textContent='🎙 Voice note';record.classList.remove('recording');}
@@ -86,7 +84,7 @@ export function setupWall(endpoint:string,releaseInput:()=>void){
  function account(){const registered=!!session&&!guestName;composer.classList.toggle('wall-guest',!registered);for(const control of composer.querySelectorAll<HTMLInputElement|HTMLTextAreaElement|HTMLButtonElement>('textarea,input,button'))control.disabled=!registered;status.textContent=registered?'Text, photo up to 4 MB, or a 30-second voice note.':'Sign in with an account to post. Guests can read the Wall.';}
  function updateBadge(){badge.textContent=unread>9?'9+':String(unread);badge.hidden=!unread;}
  function close(){stopRecording();if(dialog.open)dialog.close();}
- el('wall-close').onclick=close;el('wall-refresh').onclick=()=>void refresh();el('wall-profile-close').onclick=()=>profile.close();dialog.addEventListener('cancel',event=>{event.preventDefault();close();});dialog.addEventListener('keydown',event=>event.stopPropagation());profile.addEventListener('keydown',event=>event.stopPropagation());
+ el('wall-close').onclick=close;el('wall-refresh').onclick=()=>void refresh();dialog.addEventListener('cancel',event=>{event.preventDefault();close();});dialog.addEventListener('keydown',event=>event.stopPropagation());
  // The weekly board is read when the Wall is opened, never pushed: a number nobody is
  // looking at does not need to be live, and per-frame broadcast is what costs bandwidth.
  // Only two counters are ranked. Punches are player-versus-player and a public ranking of
@@ -112,5 +110,5 @@ export function setupWall(endpoint:string,releaseInput:()=>void){
    }
   }catch{when.textContent='Papan tidak dapat dimuatkan sekarang.';}
  }
- return{get opened(){return dialog.open||profile.open;},close,account,open(){releaseInput();account();unread=0;updateBadge();if(!dialog.open)dialog.showModal();void refresh();void loadBoard();},receive(item:WallPost){posts=[item,...posts.filter(value=>value.id!==item.id)].slice(0,30);if(dialog.open)render();else{unread++;updateBadge();}}};
+ return{get opened(){return dialog.open;},close,account,open(){releaseInput();account();unread=0;updateBadge();if(!dialog.open)dialog.showModal();void refresh();void loadBoard();},receive(item:WallPost){posts=[item,...posts.filter(value=>value.id!==item.id)].slice(0,30);if(dialog.open)render();else{unread++;updateBadge();}}};
 }

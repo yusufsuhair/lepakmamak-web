@@ -121,7 +121,7 @@ $('app').innerHTML = `
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
-  <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><button id="close-profile" type="button">Close</button></dialog>
+  <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><div id="profile-actions" hidden><button id="profile-add-friend" type="button">Add friend</button><button id="profile-message" type="button">Message</button></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
 `;
@@ -503,7 +503,7 @@ async function init() {
     networkSocket.send(JSON.stringify({type: 'table-go', tableId})); return true;
   }, () => document.getElementById('voice-panel'));
   const streetStalls=setupStalls($('hud'));
-  const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;});
+  const wall=setupWall(multiplayerEndpoint,()=>{keys.clear();resetStick();dragging=false;},(id,name)=>void openAccountProfile(id,name));
   $('open-wall').onclick=()=>wall.open();
   // Seats per table are counted from the same chair data used to render the world. Normal
   // game tables have four seats; the nine-seat tables keep their larger social layout.
@@ -525,7 +525,7 @@ async function init() {
     if (action === 'leave' && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'geng-leave'}));
   }, () => openShopFromGeng(), (id, name) => {
     closeGeng();
-    void openGengProfile(id, name);
+    void openAccountProfile(id, name);
   }, (event: GengEvent, pending: number) => {
     if (gengButton) {
       const badge = gengButton.querySelector<HTMLElement>('#geng-unread');
@@ -538,6 +538,7 @@ async function init() {
   closeGeng = () => gengUI.close();
   const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
+    renderProfileActions();
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
     friendsUI.close(); chat.openDm(playerId, name); chat.open();
   }, (event: FriendEvent, unread: number) => {
@@ -1083,7 +1084,7 @@ async function init() {
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
         if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
-        if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) renderProfile($('profile-details'), message.profile); else $('profile-details').textContent = 'This player has left the city.'; }
+        if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
@@ -1522,23 +1523,54 @@ async function init() {
   const profile = $<HTMLDialogElement>('player-profile');
   profile.prepend($('close-profile'));
   let selectedName = '', selectedProfileId = '';
+  let profileAccountId = '', profilePlayerId = '', profilePersonName = '', profileReady = false, profileRegistered = false;
+  const profileActions = $('profile-actions');
+  const profileAddFriend = $<HTMLButtonElement>('profile-add-friend');
+  const profileMessage = $<HTMLButtonElement>('profile-message');
   function closeOptions() { options.hidden = true; }
-  async function openGengProfile(id: string, name: string) {
-    closeOptions(); selectedName = name; selectedProfileId = id;
+  function renderProfileActions() {
+    const own = profileAccountId === session?.user.id || (!!profilePlayerId && profilePlayerId === networkPlayerId);
+    const available = profileReady && profileRegistered && !!session && !guestName && !own;
+    profileActions.hidden = !available;
+    if (!available) return;
+    const targetId = profileAccountId || profilePlayerId;
+    const relation = friendsUI.relationship(targetId);
+    profileAddFriend.hidden = relation === 'friend';
+    profileAddFriend.disabled = relation === 'outgoing';
+    profileAddFriend.textContent = relation === 'incoming' ? 'Accept friend request' : relation === 'outgoing' ? 'Request sent' : 'Add friend';
+    profileMessage.disabled = !networkConnected || !profilePlayerId;
+    profileMessage.textContent = profilePlayerId ? 'Message' : 'Message · Offline';
+    profileMessage.title = profilePlayerId ? `Message ${profilePersonName}` : `${profilePersonName} is offline`;
+  }
+  function beginProfile(name: string, accountId = '', playerId = '') {
+    closeOptions(); selectedName = name; selectedProfileId = playerId;
+    profileAccountId = accountId; profilePlayerId = playerId; profilePersonName = name;
+    profileReady = false; profileRegistered = false; profileActions.hidden = true;
     $('profile-name').textContent = name; $('profile-details').replaceChildren();
     if (!profile.open) profile.showModal();
     $('close-profile').focus();
+  }
+  function showLoadedProfile(value: PlayerProfile, accountId = '', playerId = '') {
+    renderProfile($('profile-details'), value);
+    profileAccountId = value.registered ? value.id : accountId;
+    profilePlayerId = playerId;
+    profilePersonName = value.name || profilePersonName;
+    profileReady = true; profileRegistered = value.registered;
+    renderProfileActions();
+  }
+  async function openAccountProfile(id: string, name: string) {
+    beginProfile(name, id);
     if (!apiBase) { $('profile-details').textContent = 'Reconnect to view this profile.'; return; }
     $('profile-details').textContent = 'Loading profile…';
     try {
       const response = await fetch(`${apiBase}/profiles/${encodeURIComponent(id)}`);
-      const data = await response.json().catch(() => ({})) as {profile?: PlayerProfile | null; error?: string};
+      const data = await response.json().catch(() => ({})) as {profile?: PlayerProfile | null; playerId?: string | null; error?: string};
       if (!response.ok) throw Error(data.error || 'Could not load this profile.');
-      if (!profile.open || selectedProfileId !== id) return;
-      if (data.profile) renderProfile($('profile-details'), data.profile);
+      if (!profile.open || profileAccountId !== id) return;
+      if (data.profile) showLoadedProfile(data.profile, id, data.playerId || '');
       else $('profile-details').textContent = 'This player has left the city.';
     } catch (error) {
-      if (profile.open && selectedProfileId === id) $('profile-details').textContent = error instanceof Error ? error.message : 'Could not load this profile.';
+      if (profile.open && profileAccountId === id) $('profile-details').textContent = error instanceof Error ? error.message : 'Could not load this profile.';
     }
   }
   function toggleSuperman() {
@@ -1587,7 +1619,7 @@ async function init() {
   }
   $('dance-action').onclick=()=>{closeOptions();if(isDancing()){if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance-cancel'}));return;}if(riding||seated||beachResting||jumpHeight>0)return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
-  function openSelectedProfile() { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; profile.showModal(); $('close-profile').focus(); }
+  function openSelectedProfile() { beginProfile(selectedName, '', selectedProfileId); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; }
   $('view-profile').onclick = openSelectedProfile;
   $<HTMLButtonElement>('add-friend').dataset.uiSound = 'none';
   $('add-friend').onclick = () => {
@@ -1596,6 +1628,21 @@ async function init() {
     closeOptions();
     if (relation === 'incoming' && relationId) void friendsUI.respond(relationId, true);
     else if (relation === 'none') void friendsUI.add(selectedProfileId, selectedName);
+  };
+  profileAddFriend.dataset.uiSound = 'none';
+  profileAddFriend.onclick = () => {
+    const targetId = profileAccountId || profilePlayerId;
+    const relation = friendsUI.relationship(targetId);
+    const relationId = friendsUI.relationshipId(targetId);
+    if (relation === 'incoming' && relationId) void friendsUI.respond(relationId, true);
+    else if (relation === 'none' && profileAccountId) void friendsUI.addAccount(profileAccountId, profilePersonName);
+    else if (relation === 'none' && profilePlayerId) void friendsUI.add(profilePlayerId, profilePersonName);
+  };
+  profileMessage.onclick = () => {
+    if (!profilePlayerId || !networkConnected) return;
+    const id = profilePlayerId, name = profilePersonName;
+    profile.close(); profileActions.hidden = true;
+    chat.openDm(id, name); chat.open();
   };
   $('invite-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'geng-invite',id:selectedProfileId})); };
   $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
@@ -1624,8 +1671,8 @@ async function init() {
     reportTargetId = ''; canvas.focus();
   });
   $('open-my-profile').onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
-  $('close-profile').onclick = () => { profile.close(); canvas.focus(); };
-  profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); canvas.focus(); });
+  $('close-profile').onclick = () => { profile.close(); profileActions.hidden = true; canvas.focus(); };
+  profile.addEventListener('cancel', event => { event.preventDefault(); profile.close(); profileActions.hidden = true; canvas.focus(); });
   document.addEventListener('pointerdown', event => { if (!options.contains(event.target as Node)) closeOptions(); });
   options.addEventListener('keydown', event => { if (event.key === 'Escape' || event.key === 'Tab') { closeOptions(); canvas.focus(); event.preventDefault(); event.stopPropagation(); } });
   canvas.addEventListener('contextmenu', event => { event.preventDefault(); openPlayerOptions(event.clientX, event.clientY); });

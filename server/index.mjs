@@ -76,7 +76,7 @@ const tableSocial = createTableSocial(send, players => tableLobby?.summary(playe
 const party = createParty(send);
 const devBots = createDevBots(maxPlayers);
 const leaderboard=createLeaderboard();
-const socialProfiles=createSocialProfiles({onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
+const socialProfiles=createSocialProfiles({playerFor:userId=>playerForUser(userId),onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
 const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);

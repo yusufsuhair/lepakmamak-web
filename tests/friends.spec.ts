@@ -97,6 +97,11 @@ test('Friend List renders safely, opens Message for online friends, and fits a p
   await page.setViewportSize({width: 390, height: 844});
   await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me',user_metadata:{display_name:'Tester'}}};export let guestName='';` }));
   await page.route('**/friends/state', route => route.fulfill({contentType: 'application/json', body: JSON.stringify({state: {friends: [{id: 'friend-id', name: '<b>Safe name</b>', online: true, playerId: 'player-2'}], incoming: [{id: 'incoming-id', name: 'Incoming'}], outgoing: []}})}));
+  let accountRequest: unknown = null;
+  await page.route('**/friends/request', async route => {
+    accountRequest = route.request().postDataJSON();
+    await route.fulfill({json: {state: {friends: [{id: 'friend-id', name: '<b>Safe name</b>', online: true, playerId: 'player-2'}], incoming: [{id: 'incoming-id', name: 'Incoming'}], outgoing: [{id: 'account-3', name: 'Offline friend'}]}}});
+  });
   await page.route('**/friends-harness', route => route.fulfill({contentType: 'text/html', body: `<main><script type="module">import {setupFriends} from '/src/friends.ts';window.friendMessages=[];window.friendApi=setupFriends('http://friends.test',()=>{},()=>{},(id,name)=>window.friendMessages.push({id,name}));window.friendApi.open();</script></main>`}));
   await page.goto('/friends-harness');
   await expect(page.getByRole('dialog', {name: 'Friends'})).toBeVisible();
@@ -104,6 +109,9 @@ test('Friend List renders safely, opens Message for online friends, and fits a p
   await expect(page.locator('#game-friends img')).toHaveCount(0);
   await page.getByRole('button', {name: 'Message'}).click();
   await expect.poll(() => page.evaluate(() => JSON.stringify((window as any).friendMessages))).toBe(JSON.stringify([{id: 'player-2', name: '<b>Safe name</b>'}]));
+  expect(await page.evaluate(() => (window as any).friendApi.relationship('friend-id'))).toBe('friend');
+  await page.evaluate(() => (window as any).friendApi.addAccount('account-3', 'Offline friend'));
+  expect(accountRequest).toEqual({id: 'account-3'});
   await expect(page.getByRole('button', {name: 'Accept'})).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

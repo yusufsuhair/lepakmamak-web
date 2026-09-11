@@ -177,22 +177,23 @@ export function setupFriends(
   }
 
   async function add(playerId: string, _name = '') { await mutate('request', {playerId}, 'Friend request sent.', 'request-sent'); }
+  async function addAccount(id: string, _name = '') { await mutate('request', {id}, 'Friend request sent.', 'request-sent'); }
   async function respond(id: string, approved: boolean) { await mutate('respond', {id, approved}, approved ? 'Friend added.' : 'Request declined.', approved ? 'accepted' : 'declined'); }
   async function cancel(id: string) { await mutate('cancel', {id}, 'Request cancelled.', 'cancelled'); }
   async function remove(id: string) { await mutate('remove', {id}, 'Friend removed.', 'removed'); }
   function relationship(playerId: string): FriendRelation {
     if (!currentState) return 'none';
-    if (currentState.friends.some(friend => friend.playerId === playerId)) return 'friend';
-    if (currentState.incoming.some(request => request.playerId === playerId)) return 'incoming';
-    if (currentState.outgoing.some(request => request.playerId === playerId)) return 'outgoing';
+    if (currentState.friends.some(friend => friend.id === playerId || friend.playerId === playerId)) return 'friend';
+    if (currentState.incoming.some(request => request.id === playerId || request.playerId === playerId)) return 'incoming';
+    if (currentState.outgoing.some(request => request.id === playerId || request.playerId === playerId)) return 'outgoing';
     return 'none';
   }
   function relationshipId(playerId: string) {
-    const friend = currentState?.friends.find(item => item.playerId === playerId);
+    const friend = currentState?.friends.find(item => item.id === playerId || item.playerId === playerId);
     if (friend) return friend.id;
-    const incoming = currentState?.incoming.find(item => item.playerId === playerId);
+    const incoming = currentState?.incoming.find(item => item.id === playerId || item.playerId === playerId);
     if (incoming) return incoming.id;
-    const outgoing = currentState?.outgoing.find(item => item.playerId === playerId);
+    const outgoing = currentState?.outgoing.find(item => item.id === playerId || item.playerId === playerId);
     return outgoing?.id || null;
   }
 
@@ -219,6 +220,7 @@ export function setupFriends(
     close() { if (dialog.open) dialog.close(); },
     refresh,
     add,
+    addAccount,
     respond,
     cancel,
     remove,
