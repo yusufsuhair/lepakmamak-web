@@ -2,7 +2,38 @@
 
 Scope: all twelve existing non-owner car styles plus Proton e.MAS 7. No motorcycles,
 other vehicles, buildings, world lighting or owner Porsche assets were authored here.
-Work is isolated on `codex/vehicle-model-revamp`; deployment belongs to Game Dev 1.
+Work is isolated on `codex/vehicle-model-revamp`. Yusuf explicitly authorized the V2
+development deployment and rebase; the branch remains available for a later merge.
+
+## Realism pass V2
+
+The current source is `../generated/vehicles-v2`; `vehicles-final` is the
+preserved first pass. `realism.py` supplies separately authored body/cabin profiles for
+the thirteen styles, compound roof curvature, an open greenhouse, curved glass,
+RHD seat/instrument geometry, optical housings, wipers, bumper sensors, panel seams,
+cast/forged/aero wheel faces and brake-disc detail. Cybertruck retains flat stainless
+facets. The original unnamed SUV, coupe and Formula styles keep their identities.
+
+The runtime adds front steering pivots, restrained acceleration/braking pitch and turn
+roll, independent brake/reverse lamps, amber turn repeaters, and day/night LED intensity.
+Automatic indicators follow steering input while moving; these are presentation effects,
+not a new networked signal command. Chassis effects never change authoritative physics.
+Each instance owns its animated lamp materials, preventing another driver's brakes from
+lighting every car of the same style.
+Existing driver avatars are seated and scaled for each cabin height; remote animations
+retain that scale. The game applies a 12 cm visual offset to match its ground anchor,
+placing tyres on the road without changing network positions or collision shapes.
+
+Three Meshopt levels retain axle pivots: near, medium at 18 m and far at 42 m, with 12%
+hysteresis. Optional lower-detail downloads can fail without removing a working near
+model. A shared 64px cube probe samples the real scene near a visible car, at most once
+every 20 seconds after significant camera movement or a lighting change. It only assigns
+vehicle materials, so the city lighting and owner Porsche materials remain untouched.
+Two pooled, shadow-free headlights illuminate the road for the nearest car at night.
+
+These are more detailed original realtime interpretations, not scan-quality factory
+replicas or a claim of photographic accuracy. Solar glass is tinted alpha glazing in
+Three.js; Blender preview lighting is intentionally a separate studio setup.
 
 ## Model coverage
 
@@ -34,16 +65,17 @@ shared fleet at (-117.2, 134), beside the existing parking row.
 
 ## Files and coordinates
 
-- `../generated/vehicles-final/source/*.blend`: 13 editable scenes. `SOURCE` contains
+- `../generated/vehicles-v2/source/*.blend`: 13 editable scenes. `SOURCE` contains
   individual authored components. `EXPORT` contains material-batched copies, four
   independent named wheel pivots, and embedded textures.
-- `../generated/vehicles-final/previews/*.png`: Cycles studio inspection renders.
-- `../generated/vehicles-final/textures`: original tyre normal, carbon twill and brushed
+- `../generated/vehicles-v2/previews/*.png`: Cycles studio inspection renders.
+- `../generated/vehicles-v2/textures`: original tyre normal, carbon twill and brushed
   steel roughness images; embedded and packed in the sources and GLBs.
-- `../generated/vehicles-final/reports`: per-model Khronos validation and manifests.
+- `../generated/vehicles-v2/reports`: per-model Khronos validation and manifests.
 - `public/assets/models/vehicles/*.glb`: validated Meshopt runtime files.
-- `vehicles-preview.html`: local interactive showroom, model chooser, wheel spin and
-  day/night lighting. This is a development entry, not part of the production Vite entry.
+- `vehicles-preview.html`: interactive showroom on local and deployed dev, with model
+  chooser, wheel spin, steering, brakes, reverse and day/night lighting. The production
+  Vite entry excludes it; `--mode dev` explicitly includes it for phone-based review.
 
 Units are metres. Blender -Y is forward / +Z up; glTF +Z is forward / +Y up.
 Wheel pivots are `wheel_FL`, `wheel_FR`, `wheel_RL`, `wheel_RR`; positive X is the
@@ -67,11 +99,11 @@ npx playwright test --config=playwright.vehicles.config.ts \
   tests/lamborghini.spec.ts tests/car-seats.spec.ts tests/cars.spec.ts
 ```
 
-The pack step requires all 13 models, preserves named pivots/materials and extras,
+The pack step requires all 13 models and creates 39 GLBs, preserving named pivots/materials and extras,
 generates tangents, uses EXT Meshopt, and verifies zero glTF errors and warnings before
 copying any model to public. Per-car limits: 45,000 triangles and 650,000 transfer bytes.
 See `runtime-manifest.json` for measured sizes, triangles and SHA-256 values. The runtime
-shares one download, geometry, material set and neutral reflection probe per style;
+shares each detail-level download, geometry and static material set per style;
 instances have independent wheel transforms. Private fallback geometry and labels are
 disposed after a successful swap. The city renderer and Porsche materials are untouched.
 
@@ -80,6 +112,9 @@ refuses an occupied port. Use a local `npm ci`, not a node_modules symlink, beca
 existing Porsche test imports Three.js through its raw filesystem path. Tests capture
 the runtime GLBs, not only the procedural fallbacks, and exercise failure handling,
 wheel-pivot invariance, transform/driver identity and e.MAS claim/release.
+V2 also verifies three-level LOD reduction, steering, reversing, braking and isolation
+of animated materials between cars. `review_sources.py --directory <build-directory>`
+reopens all editable Blender files, checks wheel/steering hierarchy and renders studios.
 
 Local showroom:
 

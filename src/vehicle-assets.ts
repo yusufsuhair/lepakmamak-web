@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import {addVehicleLevel, currentVehicleEnvironment, trackVehicleMaterial} from './vehicle-presentation';
 
 /** Deliberately excludes both owner Porsches; they never enter this asset pipeline. */
 export const vehicleCatalog = {
@@ -20,8 +21,9 @@ export const vehicleCatalog = {
 } as const;
 export type RevampedCarStyle = keyof typeof vehicleCatalog;
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-const templates = new Map<RevampedCarStyle, Promise<THREE.Group>>();
+const templates = new Map<string, Promise<THREE.Group>>();
 const wheelNames = ['wheel_FL', 'wheel_FR', 'wheel_RL', 'wheel_RR'] as const;
+const cabinHeights: Record<RevampedCarStyle, number> = {axia:1.505,myvi:1.515,emas:1.67,avanza:1.7,vellfire:1.935,suv:1.69,sport:1.3,ferrari:1.21,lamborghini:1.136,'model-y':1.624,cybertruck:1.79,police:1.69,f1:1.12};
 let reflections: THREE.DataTexture | undefined;
 
 /** A shared neutral outdoor reflection probe, scoped to vehicle materials only.
@@ -51,24 +53,31 @@ function vehicleReflections() {
   return reflections;
 }
 
-async function template(style: RevampedCarStyle) {
-  let pending = templates.get(style);
+async function template(style: RevampedCarStyle, level = '') {
+  const key = style + level;
+  let pending = templates.get(key);
   if (!pending) {
-    pending = loader.loadAsync(`/assets/models/vehicles/${style}.glb?v=vehicles-v1`).then(gltf => {
+    pending = loader.loadAsync(`/assets/models/vehicles/${key}.glb?v=vehicles-v2`).then(gltf => {
       for (const name of wheelNames) {
         if (!gltf.scene.getObjectByName(name)) throw new Error(`${style}: missing ${name}`);
       }
       gltf.scene.traverse(object => {
         if (!(object instanceof THREE.Mesh)) return;
-        object.castShadow = true; object.receiveShadow = true;
         const materials = Array.isArray(object.material) ? object.material : [object.material];
+        object.castShadow = materials.some(m => /Automotive clearcoat|Tyre rubber|Carbon twill/.test(m.name));
+        object.receiveShadow = true;
         for (const source of materials) if (source instanceof THREE.MeshStandardMaterial) {
-          source.envMap = vehicleReflections(); source.envMapIntensity = .65;
+          source.envMap = currentVehicleEnvironment() ?? vehicleReflections(); source.envMapIntensity = .85;
+          if (source.name === 'Solar glass') {
+            source.transparent = true; source.opacity = .74; source.depthWrite = false; source.side = THREE.DoubleSide;
+            object.castShadow = false;
+          }
+          trackVehicleMaterial(source);
         }
       });
       return gltf.scene;
-    }).catch(error => { templates.delete(style); throw error; });
-    templates.set(style, pending);
+    }).catch(error => { templates.delete(key); throw error; });
+    templates.set(key, pending);
   }
   return pending;
 }
@@ -93,10 +102,23 @@ export async function upgradeVehicle(model: VehicleModel, style: RevampedCarStyl
     // Preserve spin phase when a GLB finishes downloading during a drive.
     wheels.forEach((wheel, i) => { wheel.rotation.x = model.wheels[i]?.rotation.x || 0; });
     model.group.remove(...fallback);
-    model.group.add(visual);
+    addVehicleLevel(model.group, visual, 0);
     model.wheels.splice(0, model.wheels.length, ...wheels);
+    // The old shells used taller cabins. Seat the existing avatar inside the new
+    // metre-scaled greenhouse so NPC/player heads do not protrude through the roof.
+    const driverScale = style === 'f1' ? .4 : (cabinHeights[style]-.28)/2.2;
+    const front = style === 'vellfire' ? .345 : style === 'cybertruck' ? .335
+      : ['sport','ferrari','lamborghini'].includes(style) ? .255 : .295;
+    model.driver.scale.setScalar(driverScale);
+    model.driver.position.set(style==='f1'?0:spec.width*.20,style==='f1'?.10:.03,style==='f1'?-.5:spec.length*front-.85);
+    model.group.userData.driverScale=driverScale;
     model.group.userData.assetState = 'ready';
-    model.group.userData.assetVersion = 'vehicles-v1';
+    model.group.userData.assetVersion = 'vehicles-v2';
+    // Optional detail levels never invalidate a working near asset on network failure.
+    void Promise.all([template(style,'-mid'),template(style,'-far')]).then(([mid,far]) => {
+      addVehicleLevel(model.group,mid.clone(true),18);
+      addVehicleLevel(model.group,far.clone(true),42);
+    }).catch(() => { model.group.userData.lodFallback = true; });
     return true;
   } catch (error) {
     model.group.userData.assetState = 'fallback';

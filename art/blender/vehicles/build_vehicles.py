@@ -11,6 +11,7 @@ from math import sin, cos, pi, sqrt
 P = argparse.ArgumentParser()
 P.add_argument('--output', type=Path, required=True)
 P.add_argument('--only')
+P.add_argument('--skip-render', action='store_true')
 a = P.parse_args(sys.argv[sys.argv.index('--')+1:])
 OUT = a.output.resolve()
 if OUT.exists(): raise RuntimeError('Choose a fresh output directory to preserve editable sources')
@@ -135,10 +136,6 @@ def glazing(name,pts,m,axis=2,direction=1):
   for i in range(n):
    k=j*(n+1)+i;fs.append((k,k+1,k+n+2,k+n+1))
  o=mesh(name,vs,fs,m,True)
- if axis==0:
-  o.data.materials.append(M['trim'])
-  for poly in o.data.polygons:
-   if poly.index%n in [5,13]:poly.material_index=1
  return o
 
 def wheel(style,s,side,z,front):
@@ -396,9 +393,13 @@ def formula(s):
  label('Formula number','63',(0,.36,2.50),.15,.085,M['whiteletter'])
 
 
+# The second pass supplies distinct longitudinal profiles and open, curved cabins.
+# Keep this entry point and the hand-edit/export workflow stable.
+exec(compile((Path(__file__).parent/'realism.py').read_text(), 'realism.py', 'exec'))
+
 reports=[]
 for style,s in SPECS.items():
- if a.only and a.only!=style:continue
+ if a.only and style not in a.only.split(','):continue
  bpy.ops.wm.read_factory_settings(use_empty=True)
  scene=bpy.context.scene;scene.unit_settings.system='METRIC';scene.unit_settings.scale_length=1
  M={
@@ -417,8 +418,12 @@ for style,s in SPECS.items():
  'caliper':mat('Brake caliper','a91522' if s['kind'] in ['svj','super','coupe'] else '42474a',.43,.3),
  'blue':mat('Police blue','093d87',.33,.25,.5),
  'blueled':mat('Police blue LED','126cfe',.24,0,0,2),
+ 'indicatorL':mat('Indicator left','ff970a',.22,.1,0,0),
+ 'indicatorR':mat('Indicator right','ff970a',.22,.1,0,0),
+ 'reverse':mat('Reverse optics','d4d9db',.25,.1),
+ 'lens':mat('Optical lens','50616a',.12,.2,.8),
  }
- image_node(M['rubber'],tex('Tyre_tread_normal','tread'),'Normal')
+ if style!='f1':image_node(M['rubber'],tex('Tyre_tread_normal','tread'),'Normal')
  image_node(M['carbon'],tex('Carbon_twill','carbon'),'Base Color')
  if style=='cybertruck':
   M['paint'].node_tree.nodes.get('Principled BSDF').inputs['Metallic'].default_value=.92
@@ -430,6 +435,15 @@ for style,s in SPECS.items():
  pivots=[]
  for side in [-1,1]:
   for front in [False,True]:pivots.append(wheel(style,s,side,s['wb']/2*(1 if front else -1),front))
+ bpy.context.view_layer.update();finish_panels(s)
+ # Body and calipers can move with suspension independently of rolling axles.
+ chassis=bpy.data.objects.new('chassis',None);scene.collection.objects.link(chassis)
+ for o in list(scene.objects):
+  if o!=chassis and o.parent is None and o not in pivots:
+   mw=o.matrix_world.copy();o.parent=chassis;o.matrix_world=mw
+ for pivot in pivots:
+  steer=bpy.data.objects.new(pivot.name.replace('wheel_','steer_'),None);scene.collection.objects.link(steer)
+  steer.location=pivot.location.copy();pivot.parent=steer;pivot.location=(0,0,0)
  # Retain all independently editable authored components in SOURCE; merged export is a copy.
  bpy.context.view_layer.update()
  authored=list(scene.objects)
@@ -483,7 +497,8 @@ for style,s in SPECS.items():
   o=bpy.data.objects.new(name,data);scene.collection.objects.link(o);o.location=coord(loc);o.rotation_euler=(Vector(coord((0,.7,0)))-o.location).to_track_quat('-Z','Y').to_euler()
  camd=bpy.data.cameras.new('Preview');cam=bpy.data.objects.new('Preview',camd);scene.collection.objects.link(cam);cam.location=coord((7.3,4.1,8.4));cam.rotation_euler=(Vector(coord((0,.65,0)))-cam.location).to_track_quat('-Z','Y').to_euler();camd.type='ORTHO';camd.ortho_scale=7.7;scene.camera=cam
  bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'source'/f'{style}.blend'),compress=True)
- scene.render.filepath=str(OUT/'previews'/f'{style}.png');bpy.ops.render.render(write_still=True)
+ if not a.skip_render:
+  scene.render.filepath=str(OUT/'previews'/f'{style}.png');bpy.ops.render.render(write_still=True)
  report=dict(style=style,**s,triangles=triangles,bytes=glb.stat().st_size,sha256=hashlib.sha256(glb.read_bytes()).hexdigest())
  reports.append(report);(OUT/'reports'/'manifest.json').write_text(json.dumps(reports,indent=2)+'\n')
  print('VEHICLE_COMPLETE',json.dumps(report),flush=True)
