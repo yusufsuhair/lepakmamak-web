@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type {CloudWeather} from './clouds';
 // Night used to sit at .22 / .7, which read as pitch black once the lamps went in.
 export const NIGHT_SUN = .34, NIGHT_AMBIENT = 1.15;
+export type WeatherPreview = {condition: string; time: string};
 
 export function klSunAltitude(now = new Date()) {
   // Approximate local solar time for KL (101.71°E), including seasonal declination.
@@ -19,6 +20,7 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
   let report: {available:boolean;condition:string;source:string;observedAt?:number} = {available:false,condition:'sunny',source:'Weather unavailable · time-only fallback'};
   let clockOffset=0, gm=false;
   let override={condition:'live',daylight:'live'};
+  let preview: WeatherPreview = {condition:'live',time:''};
   const label=document.getElementById('weather-label')!;
   const toggle=document.getElementById('rain-toggle') as HTMLInputElement;
   const container=toggle.closest('label')!;
@@ -40,13 +42,16 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
   (container.parentElement || controls).append(credit);
   function apply() {
     const now=new Date(Date.now()+clockOffset);
+    const previewing=preview.condition!=='live'||preview.time!=='';
+    const visualNow=new Date(now);
+    if(preview.time){const [h,m]=preview.time.split(':').map(Number);visualNow.setUTCHours(h-8,m,0,0);}
     const fresh=report.available && !!report.observedAt && now.getTime()-report.observedAt<3*3600000;
     const manual=override.condition!=='live'||override.daylight!=='live';
-    const condition=override.condition!=='live'?override.condition:fresh?report.condition:'sunny';
-    const night=override.daylight==='live'?isKlNight(now):override.daylight==='night';
-    const twilight=override.daylight==='live'?klTwilight(now):0;
+    const condition=preview.condition!=='live'?preview.condition:override.condition!=='live'?override.condition:fresh?report.condition:'sunny';
+    const night=preview.time?isKlNight(visualNow):override.daylight==='live'?isKlNight(now):override.daylight==='night';
+    const twilight=preview.time?klTwilight(visualNow):override.daylight==='live'?klTwilight(now):0;
     const rain=condition==='rain', mist=condition==='haze'||condition==='fog';
-    const wet = manualRain ?? rain;
+    const wet = preview.condition!=='live'?rain:manualRain ?? rain;
     setRain(wet);toggle.checked=wet;
     const color=night?'#172535':mist?'#b7ada0':wet?'#82969f':condition==='cloudy'?'#b3c3c9':'#b9dcec';
     (scene.background as THREE.Color).set(color);const fog=scene.fog as THREE.Fog;fog.color.set(color);fog.near=mist?20:wet?70:145;fog.far=mist?170:wet?300:650;
@@ -54,11 +59,11 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
     if(!mist&&!wet&&twilight>0){sun.intensity=THREE.MathUtils.lerp(sun.intensity,1.05,twilight);ambient.intensity=THREE.MathUtils.lerp(ambient.intensity,1.3,twilight);sun.color.lerp(new THREE.Color('#ffc38f'),twilight);}
     setNight(night);
     setClouds({condition:mist?condition:wet?'rain':condition==='rain'?'cloudy':condition,night,twilight});
-    const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}).format(now);
-    label.textContent=`${time} MYT · ${night?'Night':'Daytime'} · ${!fresh&&override.condition==='live'?'Weather unavailable':night&&condition==='sunny'?'Clear':condition}${manual?' · GM override':''}`;
+    const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}).format(visualNow);
+    label.textContent=`${time} MYT · ${night?'Night':'Daytime'} · ${!fresh&&override.condition==='live'&&preview.condition==='live'?'Weather unavailable':night&&condition==='sunny'?'Clear':condition}${previewing?' · Local preview':manual?' · GM override':''}`;
     label.title=manual?'Game Master override · real MYT clock':fresh?`${report.source} · observed ${new Date(report.observedAt!).toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'})}`:'Weather unavailable; showing KL day/night only';
   }
   async function refresh(){try{const sent=Date.now();const response=await fetch(`${endpoint}/weather`,{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const value=await response.json();if(Number.isFinite(value.serverTime))clockOffset=value.serverTime+(Date.now()-sent)/2-Date.now();if(typeof value.available==='boolean'&&['sunny','cloudy','rain','haze','fog'].includes(value.condition))report=value;}catch{}apply();}
   apply();void refresh();setInterval(()=>void refresh(),10*60000);setInterval(apply,30000);
-  return {role(value:boolean){gm=value;controls.hidden=!value;},override(value:{condition:string;daylight:string}){if(!value||!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)||!['live','day','night'].includes(value.daylight))return;override=value;weatherSelect.value=value.condition;daySelect.value=value.daylight;status.textContent='Room weather updated.';apply();}};
+  return {preview(value:WeatherPreview){if(!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)|| (value.time!==''&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)))return;preview={...value};apply();},role(value:boolean){gm=value;controls.hidden=!value;},override(value:{condition:string;daylight:string}){if(!value||!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)||!['live','day','night'].includes(value.daylight))return;override=value;weatherSelect.value=value.condition;daySelect.value=value.daylight;status.textContent='Room weather updated.';apply();}};
 }

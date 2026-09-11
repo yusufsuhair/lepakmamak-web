@@ -490,7 +490,7 @@ async function init() {
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
   }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
-  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
+  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value));
   let networkPlayerId = '';
   let networkConnected = false;
   let networkSendTimer = 0, networkIdleTimer = 0;
