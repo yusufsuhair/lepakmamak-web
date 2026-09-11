@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.57",
+    "date": "2026-09-11",
+    "title": "Landing mobile lebih kemas",
+    "notes": [
+      "Tajuk landing kini mengecil dengan elok mengikut lebar telefon tanpa terpotong.",
+      "Teks, butang masuk dan postcard disusun semula supaya tidak bertindih pada skrin pendek.",
+      "Kontras latar ditambah untuk memastikan kandungan mudah dibaca pada semua saiz telefon."
+    ]
+  },
+  {
     "version": "1.39.56",
     "date": "2026-09-11",
     "title": "Entrance lebih ringan dan jelas",
