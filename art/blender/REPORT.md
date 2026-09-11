@@ -1,6 +1,43 @@
 # Validation report — 11 September 2026
 
-Completed on branch `codex/blender-web-pipeline`, created from the existing clean `develop` worktree. Blender pipeline and the first Mamak Maju runtime pilot are included; game integration files also touch `src/`, `public/` and `tests/`.
+Completed on branch `codex/blender-web-pipeline`. The current Mamak Maju asset is version 2,
+covering the complete static site; the calibration and pilot history are retained below.
+
+## Complete Mamak Maju site — current
+
+The runtime GLB includes the building, roof, striped canopy, baked signage, courtyard,
+five game tables, 20 player chairs plus one reserved NPC chair, cups/roti/tissue props,
+nasi kandar counter with five pots, tea urns, static fans/lamps, planters and welcome board.
+All authored closed solids are checked for outward winding. Named part vertex groups
+and correctly framed preview cameras are preserved in the `.blend` source.
+
+- GLB: **634,504 bytes, 10,072 triangles, six materials/primitives**, no textures, fonts,
+  cameras or lights to download. Complete-site limits: 768 KiB / 12,000 triangles / six draws.
+- Placement: `(-29, 0, 30)`; extent 37 × 9.95 × 40.7 m including the nine-seat courtyard.
+- Khronos: zero errors, zero warnings, six informational unused-UV entries.
+- Three.js: actual seat/backrest raycasts match all 20 authoritative player chair poses;
+  table-top raycasts match all five game tables. Sign lettering faces the courtyard.
+- Independent rebuild: GLB and all four Blender PNGs byte-identical; saved source hash preserved.
+- Integration: building, paving, furniture and props switch together on successful load.
+  The complete procedural fallback is separately batched and remains playable after failure.
+- Application build passed (existing large JS bundle warning remains).
+- **29 focused/regression tests passed** on isolated port 5199: asset success/failure,
+  big-table layout, sit/stand audio, quiet seating, quality modes, render detail, arrival and places.
+- Integrated desktop (1440 × 900) and touch-mobile (390 × 844) Chrome smoke checks passed,
+  with zero page errors; desktop sit/stand passed. Inspected game screenshots and Blender views.
+
+Asset SHA-256: `dcc1b5183e65fb24ee98da20f03d0398052f73bf04ec11a577af1fc719bb0c9c`.
+Evidence: [machine validation](generated/mamak-maju/reports/three-validation.json),
+[rebuild comparison](generated/mamak-maju/reports/reproducibility.json),
+[browser checks](generated/mamak-maju/reports/browser-tests.json),
+[seated game view](generated/mamak-maju/previews/game-seated.png).
+
+The six draws describe this asset only. Total-world rendering remains substantially larger;
+touch-mobile emulation is not a physical-phone FPS/thermal benchmark. Fans are static and
+the serving bays are decorative; gameplay remains the existing outdoor seating/table games.
+The full application suite was not run. No deployment was performed.
+
+## Calibration and original pilot — historical
 
 The pipeline was executed with Blender **5.2.1 LTS**, build `9e2066aef7ef`. The saved template and source asset were reopened in background Blender before validation and export. The interactive Blender session was not touched.
 

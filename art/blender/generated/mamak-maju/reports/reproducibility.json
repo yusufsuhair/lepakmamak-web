@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "sourcePreserved": true,
+  "files": [
+    {
+      "path": "exports/LM_ENV_MamakMaju.glb",
+      "sha256": "dcc1b5183e65fb24ee98da20f03d0398052f73bf04ec11a577af1fc719bb0c9c",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_ENV_MamakMaju_iso.png",
+      "sha256": "5d1a0968861dec77b7efdc41c4d01a717de3ae58ef999b85ecc6ade10850021c",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_ENV_MamakMaju_front.png",
+      "sha256": "28ea429c60c09f3b3a3bb823987f8706ae1c20aed83a547f4a14eae6243ecdd0",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_ENV_MamakMaju_right.png",
+      "sha256": "f4b52550db0a72b5c16da2b98307d1fa4ca0da834a72e1a8427b0137c4a82c4c",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_ENV_MamakMaju_top.png",
+      "sha256": "cc56300300fba337842abbca04d589f78b9c903ef0e3b2fd342ce961f9da1782",
+      "identical": true
+    }
+  ]
+}

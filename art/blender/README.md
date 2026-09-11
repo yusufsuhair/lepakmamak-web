@@ -1,6 +1,6 @@
 # LepakMamak Blender web-asset pipeline
 
-Reproducible starting point for **Blender 5.2 LTS → GLB → Three.js**. The initial profile supports small, opaque, unrigged, untextured static meshes. The first local runtime pilot is the Mamak Maju visual shell; production deployment remains a separate release step.
+Reproducible **Blender 5.2 LTS → GLB → Three.js** workflow. The calibration profile supports small, opaque, unrigged, untextured static meshes. Mamak Maju now has a complete static environment profile covering the building, courtyard, furniture, signage and serving props.
 
 ## Build and verify
 
@@ -13,13 +13,34 @@ python3 art/blender/scripts/verify.py --generated /tmp/lepakmamak-assets-v1
 
 The output directory must be absent or empty for a new build. `verify.py` can also verify an unchanged existing build. It refuses stale scripts/config or modified artifacts; use a fresh output directory when iterating. Hand-edited `.blend` files are never overwritten. The supplied completed build is in `art/blender/generated/`.
 
-The first real pilot is in `art/blender/generated/mamak-maju/`. Its runtime copy is
+The complete Mamak Maju site is in `art/blender/generated/mamak-maju/`. Its runtime copy is
 `public/assets/models/environment/LM_ENV_MamakMaju.glb`; `src/web-assets.ts` loads it at
-`(-29, 0, 30)` and hides only the Mamak Maju building-shell fallback after a successful load.
-The existing table positions, seats, collision solids and procedural fallback remain available.
+`(-29, 0, 30)` and hides the complete Mamak visual fallback after a successful load.
+The generator reads `shared/tables.json` and `shared/chairs.json` to place five game tables,
+20 player chairs and one reserved NPC chair. Existing seat logic and collision solids remain
+independent of the visuals. The fallback includes furniture and is batched by material.
 The canopy carries baked cream `MAMAK MAJU` lettering, with no runtime font or texture.
-This environment profile allows 1,500 triangles and 128 KiB; the signed asset uses
-1,020 triangles, four material primitives and 72,456 bytes. The scale-test profile is unchanged.
+The complete-site profile allows 12,000 triangles, six materials/draws and 768 KiB; the asset
+uses 10,072 triangles, six material primitives and 634,504 bytes. The scale-test profile is unchanged.
+
+For requested asset work, complete Blender authoring, local integration and visual/test
+checks without requiring a separate user review for each asset. Show the finished result
+in the local game. Keep commits on the assigned branch; deployment is a separate request.
+
+Build the Mamak site into a fresh directory, then validate before copying the GLB to its runtime path:
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python-exit-code 1 --python art/blender/scripts/build_mamak_asset.py -- \
+  --output /tmp/lepakmamak-mamak-v2
+node art/blender/tools/validate-mamak-glb.mjs \
+  /tmp/lepakmamak-mamak-v2/exports/LM_ENV_MamakMaju.glb /tmp/lepakmamak-mamak-v2/reports
+```
+
+Validation raycasts the exported chair seats/backrests and tabletops against the game
+layout, checks sign direction, and runs Khronos validation. The source retains named part
+vertex groups and properly framed preview cameras. Every closed authored solid must have
+outward winding. Layout and script hashes are recorded in the manifest.
 
 On Linux/Windows or another Blender installation, pass `--blender /path/to/blender` or set `BLENDER_BIN`. Run generation in a separate background Blender process: it resets that process's scene, without touching an open interactive Blender session.
 
@@ -48,8 +69,8 @@ For generation alone:
 | `reports/three-validation.json` | GLTFLoader dimensions, materials, normals, counts and origin |
 | `reports/reproducibility.json` | Clean-rebuild hash comparison and source preservation |
 | `reports/browser-tests.json` | Desktop/mobile viewport WebGL smoke tests, when run |
-| `mamak-maju/source/LM_ENV_MamakMaju.blend` | Editable first environment pilot |
-| `mamak-maju/exports/LM_ENV_MamakMaju.glb` | Runtime Mamak Maju building shell |
+| `mamak-maju/source/LM_ENV_MamakMaju.blend` | Editable complete site with named part vertex groups |
+| `mamak-maju/exports/LM_ENV_MamakMaju.glb` | Runtime Mamak Maju site |
 | `mamak-maju/reports/` | Pilot source, GLB and Three.js validation evidence |
 
 The saved template and asset are reopened before validation/export. Exports are staged and promoted only after validation. Saved sources, previews and reports stay under `art/`; copy only approved GLBs to `public/assets/models/...` when integrating a real game asset. The test cube is intentionally not loaded by the game or shipped through `public/`.
@@ -111,6 +132,11 @@ GLB byte reproducibility is enforced on a clean rebuild using the same Blender b
 The game integration is covered by `tests/mamak-asset.spec.ts`; it checks that the runtime GLB
 is served as a binary model and that the fallback group becomes hidden only after the asset is
 ready. If the GLB request fails, the game reports `fallback` in `window.__lepak.mamakMaju` and
-continues with the existing procedural shell.
+continues with the complete procedural fallback. It also exercises sitting with a failed
+asset request. To capture the integrated desktop/touch-mobile game and verify sit/stand:
+
+```sh
+LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-mamak-browser.mjs
+```
 
 References: [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator), [Three.js GLTFLoader](https://threejs.org/docs/#GLTFLoader). Export options were also checked against the installed Blender 5.2.1 operator API.

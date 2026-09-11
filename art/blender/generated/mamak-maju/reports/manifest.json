@@ -1,7 +1,12 @@
 {
   "asset": "LM_ENV_MamakMaju",
   "blender_version": "5.2.1 LTS",
+  "chairs_sha256": "19e5ea2bc60ee31d141bf16c8c4be9a2eaaf8ff6cf178302dc31aca6bc678867",
   "config_sha256": "6b4fa4ff0ff4251f7f91ff224aa6591b5a5c401e541afe3bb24aee2e3e2530ba",
-  "glb_sha256": "72aed470967757a1e2b44158d7ffe94cc8034ef4dc1be41d17b1e9646b9dbec4",
-  "script_sha256": "3a7232d4458f695c101d20fa672e5095cdfb8d14fd332e87fb4b4a0820516c8e"
+  "glb_sha256": "dcc1b5183e65fb24ee98da20f03d0398052f73bf04ec11a577af1fc719bb0c9c",
+  "pipeline_sha256": "303da71bf6c7d9f8fef5fac191c3cf47a32e547594f7eec6597204ca731bf6d4",
+  "script_sha256": "47f15157d8f51e99fdc0ca0c8d8986855f6f4b3155ec615b76ea4bffb1484aed",
+  "source_sha256": "4c21acdb4088b0b9937475fdeecaee8a95c6776163326951c4293fb4dc045ca3",
+  "tables_sha256": "ebbc1343c7155c393fb614deeb9c7da9e56f8f0f9ae1b1eedac39490ef0ac57f",
+  "version": 2
 }

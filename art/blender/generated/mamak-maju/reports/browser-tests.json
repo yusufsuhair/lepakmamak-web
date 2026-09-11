@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "baseURL": "http://127.0.0.1:5192",
+  "results": [
+    {
+      "viewport": "desktop",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 2106,
+      "triangles": 211734,
+      "pageErrors": [],
+      "sitStand": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 276,
+      "triangles": 69626,
+      "pageErrors": [],
+      "sitStand": "not exercised"
+    }
+  ]
+}

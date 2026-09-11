@@ -722,8 +722,8 @@ export function createWorld(scene: THREE.Scene): World {
   // Mamak, open ground floor and striped canopy, facing the courtyard to the south.
   const mx = -29, mz = 34;
   const mamakProcedural = new THREE.Group(); mamakProcedural.name = 'mamak-procedural-fallback'; group.add(mamakProcedural);
-  // Keep the fallback in its own group so the GLB replaces only the building shell while
-  // the existing table, chair, collision and social interactions remain authoritative.
+  // Building, paving, furniture and props swap together after the complete Blender site
+  // loads. Collision and authoritative chair records remain independent of the visuals.
   const mamakBox = (x: number, y: number, z: number, w: number, h: number, d: number, color: string) => box(mamakProcedural, x, y, z, w, h, d, color);
   mamakBox(mx, .08, 41, 37, .25, 30, '#d7c7a7');
     // The nine-seat table sits past the south edge of that slab, so the paving reaches out
@@ -754,36 +754,59 @@ export function createWorld(scene: THREE.Scene): World {
   {
     const big = tableLocations.find(t => t.id === 'meja-9');
     if (big) {
-      tube(group, big.x, 1.06, big.z, 1.95, .16, '#e9dfc0');
-      tube(group, big.x, .53, big.z, .18, 1.02, '#727e6b');
-      tube(group, big.x, .06, big.z, .9, .12, '#6b7663');
+      tube(mamakProcedural, big.x, 1.06, big.z, 1.95, .16, '#e9dfc0');
+      tube(mamakProcedural, big.x, .53, big.z, .18, 1.02, '#727e6b');
+      tube(mamakProcedural, big.x, .06, big.z, .9, .12, '#6b7663');
       solid(big.x, big.z, 2.4, 2.4);
       for (const seat of chairLocations.filter(c => c.tableId === 'meja-9')) {
         const chair = new THREE.Group();
-        chair.position.set(seat.x, 0, seat.z); chair.rotation.y = seat.yaw; group.add(chair);
+        chair.position.set(seat.x, 0, seat.z); chair.rotation.y = seat.yaw; mamakProcedural.add(chair);
         box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, .33, .73, .8, .1, '#be5142');
         for (const dx of [-.28, .28]) for (const dz of [-.28, .28]) box(chair, dx, .3, dz, .06, .6, .06, '#923e35');
       }
     }
   }
   const drawSmallTable=(x:number,z:number,angles:number[])=>{
-    tube(group, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(group, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
+    const furniture = x >= -39 && x <= -29 && z >= 45 && z <= 52 ? mamakProcedural : group;
+    tube(furniture, x, 1.06, z, 1.14, .14, '#e9dfc0'); tube(furniture, x, .53, z, .11, 1.02, '#727e6b'); solid(x, z, 1.8, 1.8);
     for (const a of angles) {
-      const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a + Math.PI; group.add(chair);
+      const chair = new THREE.Group(); chair.position.set(x + Math.sin(a) * 1.65, 0, z + Math.cos(a) * 1.65); chair.rotation.y = a + Math.PI; furniture.add(chair);
       box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, .33, .73, .8, .1, '#be5142');
       for (const dx of [-.28, .28]) for (const dz of [-.28, .28]) box(chair, dx, .3, dz, .06, .6, .06, '#923e35');
     }
-    tube(group, x + .35, 1.23, z, .1, .26, '#c28246');
-    tube(group, x - .35, 1.16, z + .12, .27, .04, '#f5efd4');
+    tube(furniture, x + .35, 1.23, z, .1, .26, '#c28246');
+    tube(furniture, x - .35, 1.16, z + .12, .27, .04, '#f5efd4');
   };
   const fourSeatAngles=[0,Math.PI/2,Math.PI,Math.PI*1.5];
   for (const [x, z] of [[-38, 45], [-29, 45], [-39, 51], [-29, 52], [112,-14], [-110,60]]) drawSmallTable(x,z,fourSeatAngles);
   for (const table of quietTables) drawSmallTable(table.x,table.z,[0,2.1,4.2]);
-  sign(group, 'LEPAK HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
-  for (const x of [-20, -17]) box(group, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
+  sign(mamakProcedural, 'LEPAK HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
+  for (const x of [-20, -17]) box(mamakProcedural, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
   const customer = createPerson('#829fac', true); customer.group.position.set(-29, .05, 46.7); customer.group.rotation.y = Math.PI; group.add(customer.group);
-  mamakProcedural.traverse(object => { object.userData.keepUnbatched = true; });
+  // Batch the complete fallback too, so a slow/failed asset download stays inexpensive.
+  mamakProcedural.updateMatrixWorld(true);
+  const mamakBatches = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  const mamakSources: THREE.Mesh[] = [];
+  mamakProcedural.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || Array.isArray(object.material)) return;
+    const geometry = object.geometry.clone().applyMatrix4(object.matrixWorld);
+    if (!geometry.getAttribute('uv')) geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 2), 2));
+    const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
+    if (geometry !== nonIndexed) geometry.dispose();
+    if (!mamakBatches.has(object.material)) mamakBatches.set(object.material, []);
+    mamakBatches.get(object.material)!.push(nonIndexed); mamakSources.push(object);
+  });
+  for (const object of mamakSources) object.removeFromParent();
+  for (const [material, geometries] of mamakBatches) {
+    const geometry = mergeGeometries(geometries);
+    if (geometry) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = !(material instanceof THREE.MeshBasicMaterial); mesh.receiveShadow = true;
+      mesh.userData.keepUnbatched = true; mamakProcedural.add(mesh);
+    }
+    for (const geometry of geometries) geometry.dispose();
+  }
 
   const shopColors = ['#d8ac89', '#c0c9a4', '#c6aba0', '#edcf93', '#a4baba', '#d7b9a0'];
   function shop(x: number, z: number, width: number, color: string, label: string, facing = 0) {

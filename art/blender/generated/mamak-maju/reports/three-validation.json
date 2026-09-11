@@ -1,38 +1,43 @@
 {
   "passed": true,
   "asset": "LM_ENV_MamakMaju.glb",
-  "sha256": "72aed470967757a1e2b44158d7ffe94cc8034ef4dc1be41d17b1e9646b9dbec4",
-  "bytes": 72456,
-  "triangles": 1020,
-  "primitives": 4,
+  "sha256": "dcc1b5183e65fb24ee98da20f03d0398052f73bf04ec11a577af1fc719bb0c9c",
+  "bytes": 634504,
+  "triangles": 10072,
+  "primitives": 6,
   "signVertices": 118,
   "signText": "MAMAK MAJU",
   "materials": [
+    "LM_Leaf_Green",
     "LM_Metal_Dark",
+    "LM_Plastic_Red",
     "LM_Roof_Red",
     "LM_Wall_Cream",
     "LM_Wood_Warm"
   ],
+  "tables": 5,
+  "playableChairs": 20,
+  "seatGeometryAndFacing": "passed",
   "bounds_three_m": {
     "min": [
-      -15.600000381469727,
+      -18.5,
       0,
-      -7.599999904632568
+      -5.199999809265137
     ],
     "max": [
-      15.600000381469727,
+      18.5,
       9.949999809265137,
-      7.724999904632568
+      35.5
     ],
     "size": [
-      31.200000762939453,
+      37,
       9.949999809265137,
-      15.324999809265137
+      40.69999980926514
     ]
   },
   "khronos": {
     "errors": 0,
     "warnings": 0,
-    "infos": 4
+    "infos": 6
   }
 }

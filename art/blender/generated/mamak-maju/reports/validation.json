@@ -2,40 +2,42 @@
   "blender_version": "5.2.1 LTS",
   "bounds_blender_m": {
     "max": [
-      15.600000381469727,
-      7.599999904632568,
+      18.5,
+      5.199999809265137,
       9.949999809265137
     ],
     "min": [
-      -15.600000381469727,
-      -7.724999904632568,
+      -18.5,
+      -35.5,
       0.0
     ],
     "size": [
-      31.200000762939453,
-      15.324999809265137,
+      37.0,
+      40.69999980926514,
       9.949999809265137
     ]
   },
   "budgets": {
-    "max_draw_calls": 4,
-    "max_glb_bytes": 131072,
-    "max_materials": 4,
+    "max_draw_calls": 6,
+    "max_glb_bytes": 786432,
+    "max_materials": 6,
     "max_meshes": 4,
     "max_textures": 0,
-    "max_triangles": 1500
+    "max_triangles": 12000
   },
   "errors": [],
   "glb": {
-    "bytes": 72456,
+    "bytes": 634504,
     "nodes": [
       "LM_ENV_MamakMaju"
     ],
-    "primitives": 4,
-    "sha256": "72aed470967757a1e2b44158d7ffe94cc8034ef4dc1be41d17b1e9646b9dbec4"
+    "primitives": 6,
+    "sha256": "dcc1b5183e65fb24ee98da20f03d0398052f73bf04ec11a577af1fc719bb0c9c"
   },
   "materials": [
+    "LM_Leaf_Green",
     "LM_Metal_Dark",
+    "LM_Plastic_Red",
     "LM_Roof_Red",
     "LM_Wall_Cream",
     "LM_Wood_Warm"
@@ -46,5 +48,5 @@
   ],
   "passed": true,
   "profile": "static-palette",
-  "triangles": 1020
+  "triangles": 10072
 }
