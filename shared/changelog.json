@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.54",
+    "date": "2026-09-11",
+    "title": "Model Meja Besar ikut arah kerusi baru",
+    "notes": [
+      "Model Mamak V7 telah dibina semula supaya sembilan kerusi 3D sepadan dengan arah character dan semuanya menghadap meja.",
+      "Cache key model dinaikkan supaya browser telefon memuatkan model yang telah dibaiki, bukan salinan lama.",
+      "Semakan raycast mengesahkan tempat duduk, sandaran dan ruang hadapan semua sembilan kerusi."
+    ]
+  },
+  {
     "version": "1.39.53",
     "date": "2026-09-11",
     "title": "Sembilan kerusi Meja Besar menghadap ke tengah",

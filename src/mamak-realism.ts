@@ -4,7 +4,7 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {disposeWebAsset,loadWebAsset} from './web-assets';
 
-export const MAMAK_REALISM_URL='/assets/models/environment/LM_ENV_MamakMaju_Realism.glb?v=dining-v7-2';
+export const MAMAK_REALISM_URL='/assets/models/environment/LM_ENV_MamakMaju_Realism.glb?v=dining-v7-3-nine-seat';
 export const mamakRealismStatus={state:'loading' as 'loading'|'ready'|'baseline'|'fallback',triangles:0,draws:0,textures:0};
 
 /** Validate all decoded images before the existing Mamak fallback can be hidden. */
