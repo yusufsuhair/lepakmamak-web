@@ -421,7 +421,9 @@ webSocketServer.on('connection', ws => {
     player = null; currentRoom = null;
   }
 
-  ws.on('message', async raw => {
+  // Registered below with a catch: a throw in here is an unhandled rejection, which ends the
+  // process and drops every player in every room.
+  const handleMessage = async raw => {
     if (ws.readyState !== 1) return;
     let message;
     try { message = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Send JSON messages only.' }); return; }
@@ -609,8 +611,11 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'geng-refresh') {
       if (!player.userId || player.guest || (player.gengRefreshAt && Date.now() - player.gengRefreshAt < 1000)) return;
       player.gengRefreshAt = Date.now();
+      // The socket can close during the lookup, nulling `player` and `currentRoom`. Writing to
+      // them then threw, and unhandled, restarted the server for everyone on such a login.
+      const requestingPlayer = player;
       const current = await safeGeng(player.userId);
-      if (current === undefined) return;
+      if (current === undefined || player !== requestingPlayer) return;
       player.geng = current?.name || ''; player.gengId = current?.id || null; player.gengLeader = !!current?.leader;
       broadcast(currentRoom.players, {type: 'players', players: snapshot(currentRoom.players)});
       return;
@@ -787,6 +792,7 @@ webSocketServer.on('connection', ws => {
         broadcast(currentRoom.players, banner);
         // The crawl scrolls away, so the same line is kept in city chat.
         try { await chatHistory.save(currentRoom.name, player, clean, at); } catch { /* The crawl still went out. */ }
+        if (!player || !currentRoom) return;
         broadcast(currentRoom.players, { type: 'chat', id: player.id, name: player.name, area: districtFor(player.z,player.x), text: clean, sentAt: at, gameMaster: true, channel: 'all' });
         return;
       }
@@ -915,7 +921,8 @@ webSocketServer.on('connection', ws => {
     }
     if(weatherControls.handle(currentRoom.players,player,message))return;
     if (message.type === 'ping') send(ws, { type: 'pong', now: Date.now() });
-  });
+  };
+  ws.on('message', raw => handleMessage(raw).catch(error => console.error('[ws] message handler failed:', error)));
 
   ws.on('close', removePlayer);
 });
