@@ -1,9 +1,16 @@
-#legoland-panel{position:fixed;left:16px;bottom:110px;width:285px;max-height:60vh;overflow:auto;padding:16px;border:1px solid #eee1b2;border-radius:16px;background:#fff8e9f5;color:#173c32;pointer-events:auto;z-index:10002;box-shadow:0 8px 30px #173c3233}
+/* Right side: on touch the left thumb owns the joystick, so Main tarikan, Kutip and the way out
+ * belong to the right hand. On desktop it also stops the card sitting on top of city chat. */
+#legoland-panel{position:fixed;right:16px;bottom:130px;width:285px;max-height:60vh;overflow:auto;padding:16px;border:1px solid #eee1b2;border-radius:16px;background:#fff8e9f5;color:#173c32;pointer-events:auto;z-index:10002;box-shadow:0 8px 30px #173c3233}
 #legoland-panel[hidden],#legoland-panel [hidden]{display:none!important}
 #legoland-panel h2{font-size:20px;line-height:1.2;margin:8px 0}
 #legoland-panel p{font-size:13px;line-height:1.45;margin:8px 0}
 #legoland-panel small{display:block;font-size:10px;letter-spacing:.5px}
 #legoland-panel button{font:700 13px system-ui;min-height:44px;padding:9px 12px;border:0;border-radius:9px;background:#f1ce49;color:#183c32;cursor:pointer;margin:4px 4px 4px 0}
 #legoland-panel button:focus-visible{outline:3px solid #207f7c}
-#legoland-panel .park-leave{background:#214e40;color:white}
-@media(max-width:600px){#legoland-panel{left:10px;bottom:215px;width:220px;max-height:40vh;padding:12px}#legoland-panel h2{font-size:16px}#legoland-panel .park-description{display:none}}
+#legoland-panel .park-leave,#legoland-panel .park-return{background:#214e40;color:white}
+#legoland-panel .park-played{display:inline-block;padding:3px 9px;border-radius:99px;background:#2e8b57;color:#fff;font:700 11px system-ui}
+/* Away from every attraction the card shrinks to the way out and the passport count. */
+#legoland-panel.park-compact h2,#legoland-panel.park-compact p{display:none}
+/* Tablets keep the speedometer in the lower right corner; sit above it. */
+@media(any-pointer:coarse) and (min-width:601px){#legoland-panel{bottom:240px}}
+@media(max-width:600px){#legoland-panel{right:10px;bottom:215px;width:220px;max-height:40vh;padding:12px}#legoland-panel h2{font-size:16px}#legoland-panel .park-description{display:none}}

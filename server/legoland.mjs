@@ -1,12 +1,15 @@
 import {parkAttractions,automated,parkPose,parkExit,rideDuration} from '../shared/legoland.mjs';
 export function createPark(send,now=Date.now){
- function leave(player,complete=false){const a=parkAttractions[player.parkRide?.id];if(!a)return;Object.assign(player,parkExit(a),{parkRide:null,speed:0,jumpHeight:0});if(complete)send(player.ws,{type:'park-complete',id:String(a.id)});}
+ function leave(player,complete=false,stop=null){const a=parkAttractions[player.parkRide?.id];if(!a)return;Object.assign(player,parkExit(stop||a),{parkRide:null,speed:0,jumpHeight:0});if(complete)send(player.ws,{type:'park-complete',id:String(a.id)});}
  return{
   locked(player){const a=parkAttractions[player.parkRide?.id];return a&&automated(a);},
   tick(players){let changed=false;for(const player of players.values()){const ride=player.parkRide;if(!ride)continue;const a=parkAttractions[ride.id];if(!a){player.parkRide=null;continue;}if(automated(a)){const progress=(now()-ride.startedAt)/1000/rideDuration(a);if(progress>=1)leave(player,true);else Object.assign(player,parkPose(a,progress),{speed:0,jumpHeight:0});player.updatedAt=now();changed=true;}else{const exit=parkExit(a);if(Math.hypot(player.x-exit.x,player.z-exit.z)>48){leave(player);changed=true;}}}return changed;},
   handle(players,player,message){
    if(!['park-enter','park-leave'].includes(message.type))return false;
-   if(message.type==='park-leave'){leave(player);return true;}
+   // LEGOLAND Express circles the whole park, so its rider may step off at the attraction beside
+   // the train. Every attraction exit is already a clear, walkable spot; the distance check keeps it
+   // "beside the train" (the farthest the track gets from any exit is ~48). Old clients send no stop.
+   if(message.type==='park-leave'){const stop=player.parkRide?.id===0&&Number.isInteger(message.stop)?parkAttractions[message.stop]:null,at=stop&&parkExit(stop);leave(player,false,at&&Math.hypot(player.x-at.x,player.z-at.z)<60?stop:null);return true;}
    const a=Number.isInteger(message.id)?parkAttractions[message.id]:null;
    const entrance=a&&parkExit(a);
    if(!a||!entrance||player.parkRide||player.riding||player.passengerOf||player.chairId||player.resting||player.lrtId!=null||(player.danceUntil||0)>now()||Math.hypot(player.x-entrance.x,player.z-entrance.z)>18){send(player.ws,{type:'notice',message:'Datang ke pintu tarikan dengan berjalan dahulu.'});return true;}
