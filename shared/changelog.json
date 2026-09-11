@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.50",
+    "date": "2026-09-11",
+    "title": "Login mobile tidak lagi auto masuk selepas logout",
+    "notes": [
+      "Tap pantas pada Jom, let's go selepas logout kini menunggu Supabase selesai membersihkan sesi.",
+      "Login modal dibuka dengan betul dan sesi lama tidak lagi membawa pemain masuk kemudian terkeluar semula."
+    ]
+  },
+  {
     "version": "1.39.49",
     "date": "2026-09-11",
     "title": "Loading Geng dan Friends kini terasa seperti game",

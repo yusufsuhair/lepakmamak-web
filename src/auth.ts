@@ -11,6 +11,28 @@ export let guestName = '';
 export function clearGuest() { guestName = ''; }
 export const displayName = () => guestName || String(session?.user.user_metadata?.display_name || 'Player').slice(0, 18);
 
+// Supabase resolves signOut before it notifies every auth subscriber. Keep the entry
+// button behind a small barrier during that gap, otherwise a fast mobile tap can see the
+// old in-memory session and enter the city without ever showing the login form.
+let logoutBarrier: Promise<void> | null = null;
+let releaseLogout: (() => void) | null = null;
+export function beginLogout() {
+  if (logoutBarrier) return;
+  logoutBarrier = new Promise(resolve => { releaseLogout = resolve; });
+}
+export function cancelLogout() {
+  const release = releaseLogout;
+  logoutBarrier = null;
+  releaseLogout = null;
+  release?.();
+}
+function completeLogout() {
+  const release = releaseLogout;
+  logoutBarrier = null;
+  releaseLogout = null;
+  release?.();
+}
+
 export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   // Development builds allow guests, and so does any build that asks for it explicitly —
   // the dev deployment has no Supabase project of its own, so accounts cannot work there
@@ -182,13 +204,17 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
         render();
         overlay.hidden = true;
         onLeave();
+        completeLogout();
       }
       if (event === 'SIGNED_IN' && !named(next)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); }
       if (event === 'PASSWORD_RECOVERY') { mode = 'recovery'; render(); overlay.hidden = false; password.focus(); }
     });
     try { session = (await auth.auth.getSession()).data.session; } catch { session = null; }
   }
-  return () => {
+  return async () => {
+    // A mobile player can tap the title screen while Supabase is still delivering the
+    // SIGNED_OUT event. Wait for it so the session check below cannot auto-enter the city.
+    if (logoutBarrier) await logoutBarrier;
     authAvatarPreview.start();
     // Always apply the current step before revealing the panel. Development has no auth
     // client, and previously skipped render(), exposing every later onboarding field at

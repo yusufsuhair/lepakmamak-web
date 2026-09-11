@@ -61,7 +61,7 @@ import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
-import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
+import { auth, session, guestName, clearGuest, displayName, setupAuth, beginLogout, cancelLogout } from './auth';
 import { appearance, type Appearance } from './appearance';
 import { shoutTag, nameTag, updateNameTagName, updateNameTagGeng, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
@@ -1342,7 +1342,19 @@ async function init() {
   }
   const requestEntry = await setupAuth(start, leaveCity);
   const signout = document.createElement('button'); signout.className = 'secondary'; signout.textContent = 'Log out'; signout.hidden = !auth;
-  const exitConfirmation=setupExitConfirmation(async()=>{if(guestName){leaveCity();return;}if(auth){const{error}=await auth.auth.signOut({scope:'local'});if(error)throw Error(error.message);}});
+  const exitConfirmation=setupExitConfirmation(async()=>{
+    if(guestName){leaveCity();return;}
+    if(auth){
+      beginLogout();
+      try{
+        const{error}=await auth.auth.signOut({scope:'local'});
+        if(error)throw Error(error.message);
+      }catch(error){
+        cancelLogout();
+        throw error;
+      }
+    }
+  });
   signout.onclick = () => exitConfirmation.open();
   document.querySelector('.pause-panel')!.append(signout);
   $('reset').remove();
