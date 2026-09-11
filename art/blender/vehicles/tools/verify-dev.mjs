@@ -23,6 +23,10 @@ try {
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(`${base}/vehicles-preview.html`,{waitUntil:'networkidle'});
+  const layout=await page.evaluate(()=>({margin:getComputedStyle(document.body).margin,
+    header:getComputedStyle(document.querySelector('header')).position,canvasTop:document.querySelector('canvas').getBoundingClientRect().top,
+    overflow:document.documentElement.scrollWidth>innerWidth}));
+  assert.deepEqual(layout,{margin:'0px',header:'fixed',canvasTop:0,overflow:false},'Studio CSS must work under the deployed CSP');
   const styles=manifest.filter(i=>i.lod==='near').map(i=>i.style);
   const states=[];
   for (const style of styles) {
@@ -39,7 +43,7 @@ try {
   await page.getByRole('button',{name:"Jom, let's go"}).click();
   await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Vehicle QA');
   await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
-  await page.getByText('CITY ONLINE',{exact:false}).waitFor({timeout:30000});
+  await page.getByText('CITY ONLINE',{exact:true}).waitFor({timeout:30000});
   await page.screenshot({path:path.join(output,'dev-game-mobile.png')});
   assert.deepEqual(errors,[]);
   const report={base,verifiedAssets:manifest.length,states,errors,cityOnline:true};
