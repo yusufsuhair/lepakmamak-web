@@ -2,7 +2,7 @@
   "uri": "public/assets/models/environment/LM_ENV_Petronas.glb",
   "mimeType": "model/gltf-binary",
   "validatorVersion": "2.0.0-dev.3.10",
-  "validatedAt": "2026-09-11T10:22:29.159Z",
+  "validatedAt": "2026-09-11T12:24:42.126Z",
   "issues": {
     "numErrors": 0,
     "numWarnings": 0,
@@ -35,7 +35,7 @@
         "pointer": "/buffers/0",
         "mimeType": "application/gltf-buffer",
         "storage": "glb",
-        "byteLength": 9100224
+        "byteLength": 9451608
       },
       {
         "pointer": "/images/0",
@@ -97,8 +97,8 @@
     "hasTextures": true,
     "hasDefaultScene": true,
     "drawCallCount": 27,
-    "totalVertexCount": 270511,
-    "totalTriangleCount": 235571,
+    "totalVertexCount": 282711,
+    "totalTriangleCount": 244471,
     "maxUVs": 1,
     "maxInfluences": 0,
     "maxAttributes": 4

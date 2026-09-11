@@ -11,14 +11,26 @@
   ],
   "pumps": 6,
   "materials": 27,
-  "triangles": 235571,
-  "bytes": 9128492,
+  "triangles": 244471,
+  "bytes": 9479888,
   "signs": [
     "PETRONAS",
     "KEDAI MESRA",
     "RON 95",
     "RON 97",
     "DIESEL"
+  ],
+  "detail_polish_version": 2,
+  "detail_features": [
+    "air-water-service",
+    "waste-sorting",
+    "trolley-corral",
+    "tactile-crossing",
+    "guardrails",
+    "safety-cabinet",
+    "cctv",
+    "canopy-scupper",
+    "island-hazard-stripes"
   ],
   "source": "assets/petronas/petronas.blend"
 }

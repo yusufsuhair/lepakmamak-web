@@ -1,7 +1,7 @@
 {
-  "inputBytes": 9128492,
-  "outputBytes": 5896084,
+  "inputBytes": 9479888,
+  "outputBytes": 6108516,
   "compressedStreams": 84,
   "losslessRoundTrip": "PASS",
-  "reductionPercent": 35.4
+  "reductionPercent": 35.6
 }

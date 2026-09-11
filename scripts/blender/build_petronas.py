@@ -310,7 +310,11 @@ def build():
 
 def polish():
     s=bpy.context.scene
-    if s.get('detail_polish'):return
+    # Existing V1 sources already carry the original polish pass. Migrate those files
+    # straight to the contextual V2 details without duplicating their old geometry.
+    if s.get('detail_polish'):
+        if s.get('detail_polish_version',0)<2:polish_v2()
+        return
     # Scale text using its local font bounds, never the font's unrotated dimensions.
     sizes={'Mesra illuminated name':(14,1),'Mesra shop hours':(3,.44),'Mesra coffee sign':(4,.44),'Cafe menu':(6,.4),
         'Canopy raised PETRONAS lettering':(10,.57),'LCD sale reset':(.59,.15),'LCD litres reset':(.57,.075),
@@ -353,6 +357,109 @@ def polish():
     # Soft grazing light records the stainless finish in the close-up camera.
     area('Pump photographic fill',5,5,-16,280,5,(.86,.94,1),target=(0,1.5,-9))
     s['detail_polish']=1
+    polish_v2()
+
+def polish_v2():
+    """Add the small operational details that make the forecourt read as lived-in.
+
+    The first PETRONAS pass established the shell, pumps and shop. This pass stays within
+    that same material palette and collision envelope, adding the pedestrian/service edge,
+    trolley bay, waste sorting, CCTV and safety markings visible from the Mamak approach.
+    It is intentionally geometry-only so the compressed web export remains portable.
+    """
+    s=bpy.context.scene
+    if s.get('detail_polish_version',0)>=2:return
+    white=bpy.data.materials['Porcelain white powdercoat']
+    turquoise=bpy.data.materials['PETRONAS teal enamel']
+    teal_dark=bpy.data.materials['Deep teal folded aluminium']
+    steel=bpy.data.materials['Brushed stainless steel']
+    black=bpy.data.materials['Rubber and black polymer']
+    concrete=bpy.data.materials['PBR | jointed pale forecourt concrete']
+    yellow=bpy.data.materials['Safety yellow']
+    red=bpy.data.materials['Fire extinguisher red']
+    led=bpy.data.materials['Neutral white illuminated lettering']
+    green=bpy.data.materials['Plant foliage']
+
+    # Customer service cabinet at the shop-side edge: compressed air, water and a looped
+    # hose are common petrol-station details and give the otherwise empty apron a scale cue.
+    box('Air water station body',-17.0,.96,7.15,1.18,1.82,.68,teal_dark,.055)
+    box('Air water station face',-17.0,1.48,6.79,1.02,.62,.035,turquoise,.018)
+    box('Air water station lower plinth',-17.0,.24,7.15,1.28,.16,.74,white,.025)
+    cylinder('Air pressure gauge',-17.0,1.82,6.75,.16,.055,steel,24,'front')
+    cylinder('Air pressure gauge bezel',-17.0,1.82,6.71,.19,.018,black,24,'front')
+    line('Air service hose',[(-16.72,1.35,6.84),(-16.35,1.08,6.62),(-16.32,.55,6.46),(-16.72,.42,6.30),(-16.85,.83,6.44)],.024,black)
+    box('Air hose nozzle cradle',-16.82,1.10,6.27,.14,.30,.16,black,.02)
+    box('Air hose nozzle',-16.82,1.27,6.19,.10,.20,.12,steel,.02)
+
+    # A compact waste-sorting island keeps the shop frontage grounded and gives the camera
+    # a readable scale reference without inventing brand copy or signage.
+    for index,(x,body,accent,text) in enumerate([
+        (15.00,teal_dark,turquoise,'RECYCLE'),(16.08,black,yellow,'GENERAL'),(17.16,teal_dark,green,'BOTTLES')]):
+        box('Waste sorting bin body',x,.62,8.28,.82,1.12,.72,body,.055)
+        box('Waste sorting bin lid',x,1.21,8.28,.86,.12,.76,accent,.035)
+        box('Waste sorting bin foot',x,.10,8.28,.88,.12,.78,steel,.02)
+        # Accent-colour lids carry the sorting cue; avoiding font meshes keeps the shared
+        # forecourt export within its measured triangle envelope.
+    box('Waste sorting island curb',16.08,.18,8.28,3.12,.10,.90,concrete,.03)
+
+    # Stainless trolley corral with two nested carts, positioned to the left of the entrance
+    # so it reads in both the hero render and the Mamak-facing gameplay camera.
+    for x in [-13.85,-11.25]:
+        cylinder('Trolley corral post',x,.98,8.62,.045,1.70,steel,12)
+        cylinder('Trolley corral foot',x,.14,8.62,.13,.10,steel,16)
+    line('Trolley corral top rail',[(-13.85,1.72,8.62),(-11.25,1.72,8.62)],.045,steel)
+    line('Trolley corral lower rail',[(-13.85,.64,8.62),(-11.25,.64,8.62)],.032,steel)
+    for x in [-13.42,-12.32]:
+        box('Shopping trolley basket',x,.95,8.22,.82,.55,.95,steel,.025)
+        box('Shopping trolley handle',x,1.36,7.68,.85,.10,.10,black,.02)
+        line('Shopping trolley frame',[(x-.39,.53,7.75),(x-.39,.53,8.68),(x+.39,.53,8.68),(x+.39,.53,7.75)],.022,steel)
+        for dx in [-.30,.30]:
+            cylinder('Shopping trolley wheel',x+dx,.23,7.78,.095,.08,black,12,'front')
+
+    # Tactile pedestrian approach and a short zebra crossing connect the apron to the Mesra
+    # threshold; raised dots are deliberately sparse so they stay below the export budget.
+    for x in [-12,-10,-8,-6,-4,-2,0,2,4,6,8,10,12]:
+        box('Pedestrian tactile strip',x,.19,8.95,1.38,.028,.20,yellow,0)
+        for dx in [-.38,.38]:cylinder('Tactile raised dot',x+dx,.225,8.95,.045,.035,yellow,10)
+    for x in [-5.0,-3.3,-1.6,.1,1.8,3.5,5.2]:
+        box('Pedestrian crossing stripe',x,.185,10.05,1.18,.022,.38,white,0)
+
+    # Low guard rails keep the entry path legible around the forecourt edge. The rails are
+    # decorative only; gameplay collision remains the authoritative world layout.
+    for x in [-8.9,8.9]:
+        cylinder('Pedestrian guardrail post',x,.73,9.20,.05,1.20,steel,12)
+        cylinder('Pedestrian guardrail foot',x,.14,9.20,.14,.10,steel,16)
+    line('Pedestrian guardrail top',[(-8.9,1.25,9.20),(-4.5,1.25,9.20),(-4.5,1.25,10.15)],.045,steel)
+    line('Pedestrian guardrail top',[ (8.9,1.25,9.20),(4.5,1.25,9.20),(4.5,1.25,10.15)],.045,steel)
+
+    # Emergency-stop cabinet on the right pump island and bilingual safety copy; no invented
+    # fuel prices are introduced.
+    box('Emergency stop cabinet',17.0,1.18,-1.20,.72,1.35,.20,red,.035)
+    box('Emergency stop face',17.0,1.37,-1.32,.58,.62,.025,white,.012)
+    cylinder('Emergency stop button',17.0,1.46,-1.35,.14,.065,red,20,'front')
+    box('Fire action placard',16.0,2.20,-1.36,.82,.55,.028,white,.008)
+
+    # CCTV heads and rainwater scuppers provide small vertical accents under the otherwise
+    # uninterrupted canopy; their dark housings remain visible at night without real lights.
+    for x in [-17.2,17.2]:
+        cylinder('CCTV support pole',x,4.15,.38,.055,7.90,steel,12)
+        box('CCTV camera housing',x,8.02,.20,.38,.22,.58,black,.035)
+        cylinder('CCTV lens',x,8.03,-.11,.095,.045,steel,16,'front')
+        box('CCTV sun hood',x,8.17,-.18,.32,.055,.46,black,.015)
+    for x in [-14,-7,0,7,14]:
+        box('Canopy rainwater scupper',x,6.33,.70,.46,.15,.30,steel,.025)
+        box('Canopy gutter strap',x,6.11,.66,.08,.38,.07,teal_dark,.008)
+
+    # Yellow island noses already carry the safety colour; these short black bars add the
+    # alternating hazard rhythm seen on real forecourts while using the existing polymer.
+    for x in [-11,0,11]:
+        for side in [-1,1]:
+            for offset in [-.63,0,.63]:
+                stripe=box('Pump island hazard stripe',x+side*2.43,.405,-9+offset,.06,.035,.31,black,0)
+                stripe.rotation_euler.y=side*.48
+
+    s['detail_polish_version']=2
+    s['detail_features']=['air-water-service','waste-sorting','trolley-corral','tactile-crossing','guardrails','safety-cabinet','cctv','canopy-scupper','island-hazard-stripes']
 
 def repack_textures():
     # Reload saved PNGs as fresh file images: repacking a previously packed
@@ -393,7 +500,7 @@ def export_web():
     path=PUBLIC/'LM_ENV_Petronas.glb'
     bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_tangents=True,export_cameras=False,export_lights=False)
     triangles=sum(sum(len(p.vertices)-2 for p in ob.data.polygons) for ob in outputs)
-    report={'asset':'LM_ENV_Petronas','origin':[-31,0,112],'footprint':[58,52],'pumps':6,'materials':len(outputs),'triangles':triangles,'bytes':path.stat().st_size,'signs':['PETRONAS','KEDAI MESRA','RON 95','RON 97','DIESEL'],'source':'assets/petronas/petronas.blend'}
+    report={'asset':'LM_ENV_Petronas','origin':[-31,0,112],'footprint':[58,52],'pumps':6,'materials':len(outputs),'triangles':triangles,'bytes':path.stat().st_size,'signs':['PETRONAS','KEDAI MESRA','RON 95','RON 97','DIESEL'],'detail_polish_version':bpy.context.scene.get('detail_polish_version',1),'detail_features':bpy.context.scene.get('detail_features',[]),'source':'assets/petronas/petronas.blend'}
     (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     print('PETRONAS WEB EXPORT',json.dumps(report),flush=True)
 

@@ -4,7 +4,7 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
-export const PETRONAS={x:-31,z:112,url:'/assets/models/environment/LM_ENV_Petronas.glb?v=petronas-v1'};
+export const PETRONAS={x:-31,z:112,url:'/assets/models/environment/LM_ENV_Petronas.glb?v=petronas-v2'};
 export interface PetronasSite {
   group:THREE.Group; fallback:THREE.Group; ready:Promise<void>;
   status:{state:'loading'|'ready'|'fallback';batches:number;triangles:number;textures:number;logoLoaded:boolean};

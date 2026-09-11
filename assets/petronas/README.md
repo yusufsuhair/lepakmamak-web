@@ -18,7 +18,9 @@ uses the game's lighting and is not expected to look identical to a path-traced 
 The 58 × 52 m site includes a ribbed canopy, layered fascia and illuminated branding,
 six dispensers with hose/nozzle geometry, payment panels, raised islands, bollards,
 drains, concrete joints and wear, storefront glazing, stocked shelves/chillers,
-café counter and rooftop services. Prices are deliberately not invented.
+café counter and rooftop services. The V2 detail pass adds an air/water cabinet,
+waste sorting, trolley corral, tactile crossing, guardrails, emergency-stop cabinet,
+CCTV heads, canopy scuppers and pump hazard stripes. Prices are deliberately not invented.
 
 ## Integration and limits
 
@@ -30,7 +32,8 @@ arrival marker and busker area are unchanged. Mesra's stocked interior is visibl
 through glass but remains non-enterable, matching the existing shop collider.
 
 No backend changes, merge, push or deployment are included in this asset task.
-Work is isolated on `codex/petronas-model`; main's unrelated pending work is untouched.
+Work is isolated on `codex/petronas-polish`; the original `codex/petronas-model` branch
+and main's unrelated pending work are untouched.
 
 ## Rebuild and verify
 
@@ -51,9 +54,9 @@ Re-export an edited source with `--export-only --no-render`, then validate and
 compress. Do not save the joined export over the editable source. Render one view
 with `--render-only --view 03`. Blender backup files are ignored, not deleted.
 
-Measured export: 235,571 triangles, 27 material batches, 5,896,084 bytes after
+Measured export: 244,471 triangles, 27 material batches, 6,108,516 bytes after
 lossless meshopt compression (84 streams, byte-for-byte decode verified).
-`manifest.json` records the raw 9,128,492-byte export; `web-compression.json`
+`manifest.json` records the raw 9,479,888-byte export; `web-compression.json`
 records the shipped compressed size. The raw Khronos validation has 0 errors and
 0 warnings (two informational entries: unused logo tangent and non-power-of-two
 logo image). Browser preview renders 56 calls including shadows.
