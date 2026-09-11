@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "budgets": {"max_triangles": 16000, "max_materials": 7, "max_meshes": 2, "max_draw_calls": 7, "max_glb_bytes": 1310720, "max_textures": 2},
+  "version": 6,
+  "budgets": {"max_triangles": 16000, "max_materials": 7, "max_meshes": 3, "max_draw_calls": 9, "max_glb_bytes": 1310720, "max_textures": 2},
   "counter_material": "LM_Counter_Steel",
   "roughness": {"LM_Roof_Red": 0.58, "LM_Plastic_Red": 0.40, "LM_Wall_Cream": 0.87},
   "bake": {"resolution": 512, "samples": 32, "seed": 17, "margin": 6, "ao_distance_m": 0.3, "normal_bevel_m": 0.018}

@@ -1,0 +1,40 @@
+{
+  "device": "CPU",
+  "direct_lighting_baked": false,
+  "engine": "CYCLES",
+  "images": {
+    "AO": {
+      "file": "LM_TEX_Counter_AO.png",
+      "red_range": [
+        0.0,
+        1.0
+      ],
+      "sha256": "c5a1fc7f1dec7d49047546101f49a9a3d9cf18c92be8551169cb6145c6ce5d33",
+      "size": [
+        512,
+        512
+      ]
+    },
+    "Normal": {
+      "file": "LM_TEX_Counter_Normal.png",
+      "red_range": [
+        0.13333334028720856,
+        0.847058892250061
+      ],
+      "sha256": "e64be8b3d7eb3aab23b99b628d239131e3cee7a7e692eda5bc088a7f93c4d229",
+      "size": [
+        512,
+        512
+      ]
+    }
+  },
+  "passed": true,
+  "profile": {
+    "ao_distance_m": 0.3,
+    "margin": 6,
+    "normal_bevel_m": 0.018,
+    "resolution": 512,
+    "samples": 32,
+    "seed": 17
+  }
+}

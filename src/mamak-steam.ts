@@ -1,0 +1,27 @@
+import * as THREE from 'three';
+import tables from '../shared/tables.json';
+
+/** Hot-drink state cue: a single lightweight draw, no per-frame allocations. */
+export function createMamakSteam(scene: THREE.Scene) {
+  const points:number[]=[];
+  for(const table of tables.filter(t=>['meja-1','meja-2','meja-3','meja-4','meja-9'].includes(t.id))) {
+    for(const [dx,dz] of [[.38,.12],[-.40,-.20]]) for(let i=0;i<3;i++) points.push(table.x+dx,1.46,table.z+dz);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+  geometry.setAttribute('phase',new THREE.Float32BufferAttribute(points.filter((_,i)=>i%3===0).map((_,i)=>(i%3)/3),1));
+  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+    uniforms:{time:{value:0}},
+    vertexShader:`attribute float phase; uniform float time; varying float alpha;
+      void main(){float life=fract(time*.35+phase);vec3 p=position;
+      p.y+=life*.55;p.x+=sin(life*6.2831+phase)*.035;
+      vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;
+      gl_PointSize=clamp(90./max(1.,-view.z),1.,12.);alpha=sin(life*3.14159)*.17;}`,
+    fragmentShader:`varying float alpha;void main(){float d=length(gl_PointCoord-vec2(.5));
+      gl_FragColor=vec4(.93,.94,.92,alpha*(1.-smoothstep(.1,.5,d)));}`});
+  const steam=new THREE.Points(geometry,material);steam.name='LM_Mamak_TeaSteam';
+  geometry.computeBoundingSphere();if(geometry.boundingSphere)geometry.boundingSphere.radius+=.6;
+  steam.visible=false;scene.add(steam);
+  return {update(time:number,enabled:boolean){steam.visible=enabled;if(enabled)material.uniforms.time.value=time;},
+    get visible(){return steam.visible;},count:points.length/3};
+}

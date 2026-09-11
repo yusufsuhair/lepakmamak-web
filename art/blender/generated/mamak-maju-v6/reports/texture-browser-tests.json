@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "base": "http://127.0.0.1:5252",
+  "results": [
+    {
+      "device": "desktop",
+      "textures": {
+        "ao": {
+          "width": 512,
+          "height": 512,
+          "colorSpace": ""
+        },
+        "normal": {
+          "width": 512,
+          "height": 512,
+          "colorSpace": ""
+        },
+        "tangent": true,
+        "uv": true,
+        "emissive": 0,
+        "baseColorTexture": false,
+        "roughness": 0.4300000071525574,
+        "metalness": 0.7200000286102295
+      },
+      "views": {
+        "day-plain": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 116.4119248046875,
+          "webglError": 0
+        },
+        "day-baked": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 115.93689811197916,
+          "webglError": 0
+        },
+        "night-plain": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 93.256865234375,
+          "webglError": 0
+        },
+        "night-baked": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 93.06164876302083,
+          "webglError": 0
+        },
+        "night-no-warmth": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 60.199177734375,
+          "webglError": 0
+        }
+      },
+      "pageErrors": []
+    },
+    {
+      "device": "mobile",
+      "textures": {
+        "ao": {
+          "width": 512,
+          "height": 512,
+          "colorSpace": ""
+        },
+        "normal": {
+          "width": 512,
+          "height": 512,
+          "colorSpace": ""
+        },
+        "tangent": true,
+        "uv": true,
+        "emissive": 0,
+        "baseColorTexture": false,
+        "roughness": 0.4300000071525574,
+        "metalness": 0.7200000286102295
+      },
+      "views": {
+        "day-plain": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 115.26205695305221,
+          "webglError": 0
+        },
+        "day-baked": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 114.71621501194961,
+          "webglError": 0
+        },
+        "night-plain": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 109.81958824482521,
+          "webglError": 0
+        },
+        "night-baked": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 109.6220743711265,
+          "webglError": 0
+        },
+        "night-no-warmth": {
+          "draws": 9,
+          "triangles": 15813,
+          "meanBrightness": 68.26754668448982,
+          "webglError": 0
+        }
+      },
+      "pageErrors": []
+    }
+  ]
+}

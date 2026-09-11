@@ -54,14 +54,14 @@ def palm(a):
         a.cylinder("TrunkRing",.045*i,.88+i*.9,0,.242-i*.013,.065,CREAM,8)
     a.ico("Crown",.27,6.7,0,.4,.55,.4,GREEN)
     for index in range(8):
-        angle=index*math.tau/8
+        angle=index*math.tau/8 + .10*math.sin(index*2.7)
         c,s=math.cos(angle),math.sin(angle)
         points=[]
         for j in range(7):
             t=j/6
-            distance=.15+4.15*t
-            height=6.85+math.sin(t*math.pi)*.95-t*1.4
-            width=.018+math.sin(t*math.pi)*.43
+            distance=.15+(3.5+.55*math.sin(index*1.7))*t
+            height=6.85+math.sin(t*math.pi)*(.65+.20*(index%3))-t*(1.1+.18*(index%3))
+            width=.018+math.sin(t*math.pi)*(.30+.06*(index%3))
             # Rings around the X-directed frond, rotated around vertical Y.
             for lateral,dy in ((-width,-.025),(width,-.025),(width,.025),(-width,.025)):
                 points.append((.27+distance*c-lateral*s,height+dy,distance*s+lateral*c))
@@ -103,8 +103,12 @@ def planter(a):
     for side in (-1,1):
         a.box("RimX",side*.94,.89,0,.12,.14,2,CREAM)
         a.box("RimZ",0,.89,side*.94,1.76,.14,.12,CREAM)
-    for x,y,z,r in ((0,1.58,0,.87),(-.55,1.32,.3,.60),(.55,1.34,-.25,.65)):
-        a.ico("Foliage",x,y,z,r,r*.8,r,GREEN)
+    # Layered tropical leaves have a directional silhouette instead of three balls.
+    for i in range(9):
+        angle=i*2.39996
+        radius=.24+.10*(i%3)
+        x,z=math.cos(angle)*radius,math.sin(angle)*radius
+        a.ico('BroadLeaf',x,1.25+.12*(i%4),z,.19,.42+.08*(i%3),.31,GREEN)
 
 
 BUILDERS={"LM_PROP_PalmMamak":palm,"LM_PROP_BenchMamak":bench,"LM_PROP_StreetLamp":street_lamp,"LM_PROP_PlanterMamak":planter}

@@ -57,12 +57,13 @@ import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
-import { loadWebAsset, type WebAssetState } from './web-assets';
+import { configureMamakLighting, disposeWebAsset, loadWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
-import { auth, session, guestName, clearGuest, displayName, setupAuth, beginLogout, cancelLogout } from './auth';
+import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
+import * as authLifecycle from './auth';
 import { appearance, type Appearance } from './appearance';
 import { shoutTag, nameTag, updateNameTagName, updateNameTagGeng, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
@@ -71,6 +72,7 @@ import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
+import {createMamakSteam} from './mamak-steam';
 import {setupGeng, type GengEvent, type GengState} from './geng';
 import {setupFriends, type FriendEvent, type FriendState} from './friends';
 
@@ -122,7 +124,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="auto">Auto</option><option value="smooth">Smooth</option><option value="detailed">Detailed</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Detailed shadows<input id="shadow-toggle" type="checkbox" checked /></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound range <span class="range-control"><input id="sound-range" type="range" min="0.5" max="2" step="0.1" value="1" aria-label="Sound range" /><output id="sound-range-value">100%</output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
@@ -169,12 +171,18 @@ async function init() {
   const clouds=createClouds(scene);
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
+  const mamakSteam=createMamakSteam(scene);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakSteam',{get:()=>({visible:mamakSteam.visible,count:mamakSteam.count})});
   const shopAssets = loadMamakShops(scene, world.shopFallbacks);
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
-  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v4', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+  let mamakLighting: MamakLighting | null = null, mamakNight = false;
+  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
     .then(asset => {
+      try { mamakLighting = configureMamakLighting(asset); }
+      catch (error) { scene.remove(asset); disposeWebAsset(asset); throw error; }
+      mamakLighting.setNight(mamakNight);
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';
       asset.userData.source = 'blender-glb';
@@ -184,6 +192,10 @@ async function init() {
       console.warn('[web-assets] Mamak Maju GLB unavailable; keeping procedural fallback', error);
     });
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakRembayung',{configurable:true,get:()=>({...world.rembayung.status,fallbackVisible:world.rembayung.fallback.visible})});
+  if (import.meta.env.DEV) Object.defineProperty(window, '__lepakMamakLighting', {get: () => ({
+    state: mamakAssetState, bulbCount: mamakLighting?.bulbCount ?? 0,
+    night: mamakNight, intensity: mamakLighting?.intensity ?? 0,
+  })});
   const park = createLegoland(scene,world,{
     send:message=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify(message));},
     online:()=>networkConnected,
@@ -267,7 +279,7 @@ async function init() {
   let angryBuffer:Promise<AudioBuffer|null>|null=null;
   const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;line:string;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
   function angryDriver(x:number,z:number,heading:number){
-    if(!started||Math.hypot(pos.x-x,pos.z-z)>35)return;
+    if(!started||Math.hypot(pos.x-x,pos.z-z)>35*soundRange)return;
     const npc=createPerson('#ef734c');
     const exit=safeDismount(new THREE.Vector3(x,.12,z),heading,world.solids,3);
     npc.group.position.set(exit?.x??x,.12,exit?.z??z);scene.add(npc.group);
@@ -325,8 +337,26 @@ async function init() {
   const vehicleRadio=setupVehicleRadio();
   const locationArrival=setupLocationArrival(true);
   let audioEnabled = true, rainEnabled = false, musicEnabled = true;
+  let soundRange = 1;
+  try {
+    const storedRange = localStorage.getItem('lepakmamak-sound-range');
+    const savedRange = storedRange === null ? NaN : Number(storedRange);
+    if (Number.isFinite(savedRange)) soundRange = THREE.MathUtils.clamp(savedRange, .5, 2);
+  } catch { /* Storage may be unavailable. */ }
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
+  const soundRangeInput = $<HTMLInputElement>('sound-range');
+  const soundRangeValue = $('sound-range-value');
+  function setSoundRange(value: number) {
+    soundRange = THREE.MathUtils.clamp(Number.isFinite(value) ? value : 1, .5, 2);
+    soundRangeInput.value = String(soundRange);
+    soundRangeValue.textContent = `${Math.round(soundRange * 100)}%`;
+    try { localStorage.setItem('lepakmamak-sound-range', String(soundRange)); } catch { /* Storage may be unavailable. */ }
+  }
+  setSoundRange(soundRange);
+  soundRangeInput.oninput = () => setSoundRange(Number(soundRangeInput.value));
+  // A larger value makes the same source audible farther away; 100% preserves the authored falloffs.
+  const soundDistance = (distance: number) => distance / soundRange;
   type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
   type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
@@ -484,7 +514,7 @@ async function init() {
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
   }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
-  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;});
+  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value));
   let networkPlayerId = '';
   let networkConnected = false;
   let networkSendTimer = 0, networkIdleTimer = 0;
@@ -1244,7 +1274,7 @@ async function init() {
   function triggerRecall(remoteId?: string) {
     if (remoteId) {
       const remote = remotePlayers.get(remoteId); if (!remote || remote.riding) return; if (remote) remote.recallUntil = simTime + .82;
-      if (remote && remote.target.distanceTo(pos) < 25) recallSound();
+      if (remote && remote.target.distanceTo(pos) < 25 * soundRange) recallSound();
       return;
     }
     if (!started || paused || riding || passengerOf || beachResting) return;
@@ -1347,12 +1377,12 @@ async function init() {
   const exitConfirmation=setupExitConfirmation(async()=>{
     if(guestName){leaveCity();return;}
     if(auth){
-      beginLogout();
+      authLifecycle.beginLogout?.();
       try{
         const{error}=await auth.auth.signOut({scope:'local'});
         if(error)throw Error(error.message);
       }catch(error){
-        cancelLogout();
+        authLifecycle.cancelLogout?.();
         throw error;
       }
     }
@@ -1467,11 +1497,12 @@ async function init() {
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false);
   const interactionButton = $<HTMLButtonElement>('interaction');
   interactionButton.onclick = () => { const id=pressedCarId||interactionButton.dataset.carId;pressedCarId=null;interactionPressUntil=0;interactionPointerDown=false;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  interactionButton.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&interactionButton.dataset.carId){pressedCarId=interactionButton.dataset.carId;interactionPressUntil=performance.now()+800;}});
   interactionButton.addEventListener('pointerdown',()=>{interactionPointerDown=true;pressedCarId=interactionButton.dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night),value=>clouds.setWeather(value));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;streetLights.setNight(night);mamakLighting?.setNight(night);},value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
@@ -1486,22 +1517,26 @@ async function init() {
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
       mats.forEach(m => m.needsUpdate = true);
     } });
-    $<HTMLInputElement>('shadow-toggle').checked = enabled;
   }
-  let graphicsQuality = 'auto', autoReduced = false, slowFrames = 0;
-  try { const savedQuality = localStorage.getItem('lepak-graphics'); if (['auto', 'smooth', 'detailed'].includes(savedQuality || '')) graphicsQuality = savedQuality!; } catch { /* Storage is optional. */ }
+  let graphicsQuality = touch ? 'low' : 'high';
+  const autoReduced = false; // Retained for existing read-only diagnostics.
+  try {
+    const saved = localStorage.getItem('lepak-graphics');
+    if (saved === 'low' || saved === 'smooth') graphicsQuality = 'low';
+    if (saved === 'high' || saved === 'detailed') graphicsQuality = 'high';
+    localStorage.setItem('lepak-graphics', graphicsQuality);
+  } catch { /* Storage is optional. */ }
   function applyQuality() {
-    const smooth = graphicsQuality === 'smooth' || (graphicsQuality === 'auto' && (touch || autoReduced));
+    const smooth = graphicsQuality === 'low';
     renderer.setPixelRatio(Math.min(devicePixelRatio, smooth ? 1 : 1.6));
     setShadows(!smooth);
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
   }
   $('graphics-quality').onchange = () => {
-    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value; autoReduced = false; slowFrames = 0;
+    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value;
     try { localStorage.setItem('lepak-graphics', graphicsQuality); } catch { /* Storage is optional. */ }
     applyQuality();
   };
-  $<HTMLInputElement>('shadow-toggle').onchange = event => setShadows((event.target as HTMLInputElement).checked);
   applyQuality();
   function resetCamera() { orbit = 0; cameraPitch = .35; cameraHeading = yaw; zoom = 9; }
   $('camera-reset').onclick = () => { resetCamera(); canvas.focus(); };
@@ -2005,10 +2040,6 @@ async function init() {
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
     const frameSeconds = (time - lastTime) / 1000;
-    if (started && !document.hidden && graphicsQuality === 'auto' && !autoReduced && !touch) {
-      slowFrames = frameSeconds > .025 && frameSeconds < .2 ? slowFrames + frameSeconds : Math.max(0, slowFrames - frameSeconds * .5);
-      if (slowFrames > 5) { autoReduced = true; applyQuality(); }
-    }
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
     park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
@@ -2018,7 +2049,7 @@ async function init() {
       const previous = trainDoorStates.get(id);
       if (previous !== undefined && previous !== state.doors) {
         const station = state.station >= 0 ? lrtStations[state.station] : undefined;
-        const nearby = lrtId === id || !!station && Math.hypot(pos.x - station.x, pos.z - station.z) < 28;
+        const nearby = lrtId === id || !!station && Math.hypot(pos.x - station.x, pos.z - station.z) < 28 * soundRange;
         if (nearby) trainDoorSound(state.doors, id);
       }
       trainDoorStates.set(id, state.doors);
@@ -2030,7 +2061,7 @@ async function init() {
       updateSpeakingProximity();
       streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
         if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan, citySoundsGain!);
-      });
+      }, soundRange);
       // A shared clock-based route keeps the vendor in the same area for all players.
       const vendorPhase = (Date.now() % 90000) / 90000 * Math.PI * 2;
       const vendorX = -5 * Math.cos(vendorPhase), vendorZ = 44 + 18 * Math.sin(vendorPhase);
@@ -2282,27 +2313,28 @@ async function init() {
     for(const remote of remotePlayers.values()){if(!remote.detail)continue;const until=roomPlayers.find(p=>p.id===remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
     supermanPose(bike.riderRig,isSuperman(),elapsed,reducedMotion);
     for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
-    danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
+    danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled,soundRange);
     sky.update(elapsed,reducedMotion,skyDining);
-    clouds.update(elapsed,camera,reducedMotion,graphicsQuality==='smooth'||(graphicsQuality==='auto'&&(touch||autoReduced)));
+    clouds.update(elapsed,camera,reducedMotion,graphicsQuality==='low');
+    mamakSteam.update(elapsed,started&&!paused&&!document.hidden&&!reducedMotion&&mamakAssetState==='ready'&&Math.hypot(pos.x+29,pos.z-46)<35&&graphicsQuality==='high');
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
-    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z))):0,audioContext.currentTime,.2);
-    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?watsonsVolume(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z)):0,audioContext.currentTime,.2);
-    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?familyMartVolume(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z)):0,audioContext.currentTime,.2);
-    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(nearestMasjidDistance(pos)):0,audioContext.currentTime,.25);
-    if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?stallVoiceVolume(nearestStallDistance(pos)):0,audioContext.currentTime,.2);
+    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(soundDistance(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)))):0,audioContext.currentTime,.2);
+    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?watsonsVolume(soundDistance(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z))):0,audioContext.currentTime,.2);
+    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?familyMartVolume(soundDistance(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z))):0,audioContext.currentTime,.2);
+    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(soundDistance(nearestMasjidDistance(pos))):0,audioContext.currentTime,.25);
+    if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?stallVoiceVolume(soundDistance(nearestStallDistance(pos))):0,audioContext.currentTime,.2);
     if (iceCreamGain && audioContext) {
-      const distance = Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z),Math.hypot(pos.x-beach.iceCream.position.x,pos.z-beach.iceCream.position.z));
+      const distance = soundDistance(Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z),Math.hypot(pos.x-beach.iceCream.position.x,pos.z-beach.iceCream.position.z)));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
     iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
     }
     if (lamboGain && audioContext) {
-      const distance = Math.min(...world.traffic.filter(car => car.group.userData.model === 'lamborghini').map(car => Math.hypot(pos.x-car.group.position.x, pos.z-car.group.position.z)));
+      const distance = soundDistance(Math.min(...world.traffic.filter(car => car.group.userData.model === 'lamborghini').map(car => Math.hypot(pos.x-car.group.position.x, pos.z-car.group.position.z))));
       const proximity = Math.max(0, Math.min(1, (LAMBO_REACH - distance) / (LAMBO_REACH - LAMBO_FULL)));
       lamboGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? LAMBO_PEAK * proximity * proximity : 0, audioContext.currentTime, .18);
     }
@@ -2421,7 +2453,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(),soundRange, angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

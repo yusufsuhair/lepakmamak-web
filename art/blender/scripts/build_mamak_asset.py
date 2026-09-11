@@ -86,7 +86,7 @@ class Author:
         for i, (name, start, count) in enumerate(self.parts):
             obj.vertex_groups.new(name=f"LM_PART_{i:03d}_{name}").add(list(range(start,start+count)), 1, "REPLACE")
         obj["lm_asset_id"], obj["lm_sign_text"] = ASSET, SIGN_TEXT
-        obj["lm_version"] = 4
+        obj["lm_version"] = 6
         obj["lm_origin_world"] = list(ORIGIN)
         obj["lm_tables_json"] = json.dumps([{k:t[k] for k in ("id","x","z")} for t in tables], sort_keys=True)
         obj["lm_chairs_json"] = json.dumps([{k:c[k] for k in ("id","x","z","yaw","tableId")} for c in chairs], sort_keys=True)
@@ -133,7 +133,7 @@ def build_site():
     for x in (-39,-29,-19):
         a.box("ServiceBay",x,2.2,34.68,8.2,3,.12,METAL)
         for y in (1.15,2.85): a.box("ServiceShelf",x,y,34.80,7.8,.10,.24,WOOD)
-        for j in range(5): a.cylinder("ShelfJar",x-2.6+j*1.25,3.1,34.93,.16,.40,CREAM,8)
+        for j in range(5): a.cylinder("ShelfJar",x-2.6+j*1.25,3.1,34.93,.16,.40,CREAM,6)
     # Continuous stripes and a branded courtyard-facing canopy.
     for i in range(20):
         x = -43.82+i*1.56
@@ -159,10 +159,10 @@ def build_site():
     for t in tables:
         x,z = t["x"],t["z"]
         radius=1.95 if t["id"] == "meja-9" else 1.14
-        a.cylinder("TableBase",x,.27,z,.6,.14,METAL,12)
-        a.cylinder("TableLeg",x,.64,z,.13,.70,METAL,12)
-        a.cylinder("TableRim",x,1.05,z,radius,.14,WOOD,24)
-        a.cylinder("TableTop",x,1.13,z,radius-.035,.025,CREAM,24)
+        a.cylinder("TableBase",x,.27,z,.6,.14,METAL,8)
+        a.cylinder("TableLeg",x,.64,z,.13,.70,METAL,8)
+        a.cylinder("TableRim",x,1.05,z,radius,.14,WOOD,16)
+        a.cylinder("TableTop",x,1.13,z,radius-.035,.025,CREAM,16)
         for dx,dz in ((.38,.12),(-.40,-.20)):
             a.cylinder("TeaCup",x+dx,1.29,z+dz,.105,.28,WOOD,10)
             a.cylinder("TeaFoam",x+dx,1.435,z+dz,.10,.008,CREAM,10)
@@ -195,8 +195,11 @@ def build_site():
     add_details(a,steel)
     from mamak_frontage import add_frontage
     add_frontage(a)
+    from mamak_service import add_service
+    add_service(a)
     obj=a.finish(tables,chairs)
-    return obj, make_counter(steel)
+    from mamak_atmosphere import make_atmosphere
+    return obj, make_counter(steel), make_atmosphere()
 
 
 def preview_setup():
@@ -232,7 +235,7 @@ def main():
     from mamak_polish import PROFILE, bake_counter
     for name,roughness in PROFILE["roughness"].items():
         bpy.data.materials[name].node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value=roughness
-    obj,counter=build_site()
+    obj,counter,festoon=build_site()
     bake_counter(counter,output)
     preview_setup()
     source=output/"source"/f"{ASSET}.blend"
@@ -248,7 +251,10 @@ def main():
         bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
     write_json(output/"reports"/"validation.json",result)
     write_json(output/"reports"/"manifest.json",{
-        "asset":ASSET,"version":4,"blender_version":bpy.app.version_string,
+        "asset":ASSET,"version":6,"blender_version":bpy.app.version_string,
+        "service_sha256":sha256(ROOT/"scripts/mamak_service.py"),
+        "streets_sha256":sha256(GAME_ROOT/"shared/mamak-streets.json"),
+        "atmosphere_sha256":sha256(ROOT/"scripts/mamak_atmosphere.py"),
         "frontage_sha256":sha256(ROOT/"scripts/mamak_frontage.py"),
         "profile_sha256":sha256(ROOT/"mamak-profile.json"),
         "polish_sha256":sha256(ROOT/"scripts/mamak_polish.py"),

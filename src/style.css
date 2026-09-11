@@ -173,6 +173,9 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .settings { display: grid; gap: 12px; margin: 25px 0; }
 .settings label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
 .settings input { accent-color: #365c41; width: 17px; height: 17px; }
+.settings .range-control { display: flex; align-items: center; gap: 9px; min-width: min(210px, 54vw); }
+.settings input[type="range"] { width: min(160px, 42vw); height: 6px; }
+.settings output { min-width: 42px; color: #365c41; font: 700 12px 'Oxanium'; text-align: right; }
 .pause-panel .primary { width: 100%; background: #294e3d; color: #f6f1d8; }
 .secondary { width: 100%; color: #355940; background: transparent; border: 1px solid #b6c0a6; border-radius: 4px; padding: 12px; margin-top: 10px; font-size: 11px; }
 #touch-controls { position: absolute; inset: 0; pointer-events: none; }

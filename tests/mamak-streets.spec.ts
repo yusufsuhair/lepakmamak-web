@@ -65,7 +65,7 @@ test('Blender lamp bodies preserve night overrides, lamp IDs and glow anchors', 
   expect(result.fallback).toBe(false);
 });
 
-test('new bench collision does not cover game chairs or table arrival positions', async ({page}) => {
+test('benches and service props do not cover game chairs or table arrival positions', async ({page}) => {
   await page.route('**/bench-harness', route => route.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
   await page.goto('/bench-harness');
   const result = await page.evaluate(async () => {
@@ -74,9 +74,27 @@ test('new bench collision does not cover game chairs or table arrival positions'
     const layout = (await import('/shared/mamak-streets.json')).default;
     const tables = (await import('/shared/tables.json')).default;
     const world = createWorld({add(){}} as any);
-    const benches = world.solids.filter((s:any) => layout.benches.some((b:any) => b.x===s.x && b.z===s.z));
+    const benches = world.solids.filter((s:any) => [...layout.benches,...layout.serviceProps].some((b:any) => b.x===s.x && b.z===s.z));
     return {count:benches.length, blockedChairs:world.chairs.filter((c:any) => benches.some((s:any) => overlaps(c,.4,s))).map((c:any) => c.id),
       blockedArrivals:tables.filter((t:any) => benches.some((s:any) => overlaps({x:t.arrivalX,z:t.arrivalZ},.4,s))).map((t:any) => t.id)};
   });
-  expect(result).toEqual({count:2,blockedChairs:[],blockedArrivals:[]});
+  expect(result).toEqual({count:5,blockedChairs:[],blockedArrivals:[]});
+});
+
+test('festoon poles stay on the courtyard edge and clear every game seat and arrival', async ({page}) => {
+  await page.route('**/festoon-harness', route => route.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
+  await page.goto('/festoon-harness');
+  const result = await page.evaluate(async () => {
+    const {createWorld} = await import('/src/world.ts');
+    const {overlaps} = await import('/src/physics.ts');
+    const layout = (await import('/shared/mamak-streets.json')).default;
+    const tables = (await import('/shared/tables.json')).default;
+    const world = createWorld({add(){}} as any);
+    const poles = world.solids.filter((solid:any) => layout.festoonPoles.some((point:any) => point.x===solid.x && point.z===solid.z));
+    return {count:poles.length,
+      offEdge:layout.festoonPoles.filter((point:any)=>![44,49,54].includes(point.z)||![-46.25,-11.75].includes(point.x)),
+      blockedChairs:world.chairs.filter((chair:any)=>poles.some((solid:any)=>overlaps(chair,.4,solid))).map((chair:any)=>chair.id),
+      blockedArrivals:tables.filter((table:any)=>poles.some((solid:any)=>overlaps({x:table.arrivalX,z:table.arrivalZ},.4,solid))).map((table:any)=>table.id)};
+  });
+  expect(result).toEqual({count:6,offEdge:[],blockedChairs:[],blockedArrivals:[]});
 });
