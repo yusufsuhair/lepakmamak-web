@@ -8,9 +8,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju/exports/LM_ENV_MamakMaju.glb'));
+const profile = JSON.parse(await fs.readFile(path.join(root, 'mamak-profile.json'), 'utf8'));
+const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju-v3/exports/LM_ENV_MamakMaju.glb'));
 const bytes = await fs.readFile(input);
-const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju/reports'));
+const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju-v3/reports'));
 await fs.mkdir(reportDir, { recursive: true });
 const khronos = await validator.validateBytes(new Uint8Array(bytes), { uri: path.basename(input), maxIssues: 1000 });
 await fs.writeFile(path.join(reportDir, 'gltf-validator.json'), JSON.stringify(khronos, null, 2) + '\n');
@@ -20,13 +21,42 @@ assert.equal(bytes.readUInt32LE(0), 0x46546c67);
 assert.equal(bytes.readUInt32LE(4), 2);
 assert.equal(bytes.readUInt32LE(8), bytes.length);
 const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
-assert.deepEqual(json.nodes.map(node => node.name), ['LM_ENV_MamakMaju']);
+assert.deepEqual(json.nodes.map(node => node.name).sort(), ['LM_ENV_MamakMaju', 'LM_ENV_MamakMaju_Counter']);
 assert.equal(json.nodes[0].extras.lm_sign_text, 'MAMAK MAJU');
-assert.equal(json.nodes[0].extras.lm_version, 2);
-for (const field of ['cameras', 'animations', 'skins', 'images', 'textures']) assert.equal(json[field]?.length ?? 0, 0, field);
+assert.equal(json.nodes[0].extras.lm_version, 3);
+for (const field of ['cameras', 'animations', 'skins']) assert.equal(json[field]?.length ?? 0, 0, field);
 assert.ok(!json.extensionsUsed?.includes('KHR_lights_punctual'));
 assert.ok(json.buffers.every(buffer => !buffer.uri));
-const gltf = await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
+assert.equal(json.images.length, 2);
+assert.equal(json.textures.length, 2);
+const counterMaterial = json.materials.find(m => m.name === profile.counter_material);
+assert.ok(counterMaterial.normalTexture && counterMaterial.occlusionTexture);
+assert.ok(!counterMaterial.pbrMetallicRoughness.baseColorTexture, 'no baked direct lighting in base colour');
+assert.ok(!counterMaterial.emissiveTexture && !counterMaterial.emissiveFactor, 'steel must not glow at night');
+const binStart = 20 + bytes.readUInt32LE(12) + 8;
+const textureReport = json.images.map(image => {
+  assert.equal(image.mimeType, 'image/png');
+  assert.ok(!image.uri);
+  const view = json.bufferViews[image.bufferView];
+  const png = bytes.subarray(binStart + (view.byteOffset ?? 0), binStart + (view.byteOffset ?? 0) + view.byteLength);
+  assert.equal(png.subarray(0,8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(png.readUInt32BE(16), profile.bake.resolution);
+  assert.equal(png.readUInt32BE(20), profile.bake.resolution);
+  return {name:image.name,width:png.readUInt32BE(16),height:png.readUInt32BE(20),bytes:png.length};
+});
+// Node lacks a browser image decoder. Inspect real texture wiring above, then raycast
+// the unchanged geometry through GLTFLoader; browser validation decodes the actual GLB.
+const geometryDocument = structuredClone(json);
+delete geometryDocument.images; delete geometryDocument.textures; delete geometryDocument.samplers;
+for (const material of geometryDocument.materials) { delete material.normalTexture; delete material.occlusionTexture; }
+const geometryJson = Buffer.from(JSON.stringify(geometryDocument));
+const jsonPadding = Buffer.alloc((4 - geometryJson.length % 4) % 4, 0x20);
+const jsonHeader = Buffer.alloc(8);
+jsonHeader.writeUInt32LE(geometryJson.length + jsonPadding.length, 0);
+jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+const geometryBytes = Buffer.concat([bytes.subarray(0,12),jsonHeader,geometryJson,jsonPadding,bytes.subarray(binStart-8)]);
+geometryBytes.writeUInt32LE(geometryBytes.length,8);
+const gltf = await new GLTFLoader().parseAsync(geometryBytes.buffer.slice(geometryBytes.byteOffset,geometryBytes.byteOffset+geometryBytes.byteLength), '');
 gltf.scene.updateMatrixWorld(true);
 const bounds = new THREE.Box3().setFromObject(gltf.scene);
 const size = bounds.getSize(new THREE.Vector3());
@@ -42,6 +72,11 @@ gltf.scene.traverse(object => {
   assert.ok(object.material.isMeshStandardMaterial);
   assert.equal(object.material.transparent, false);
   assert.equal(object.material.side, 0);
+  if (object.material.name === profile.counter_material) {
+    assert.ok(object.geometry.attributes.tangent, 'baked tangent basis must survive export');
+    const uv=object.geometry.attributes.uv;
+    for (let i=0;i<uv.count;i++) assert.ok(uv.getX(i)>=0 && uv.getX(i)<=1 && uv.getY(i)>=0 && uv.getY(i)<=1, 'counter UVs must fit atlas');
+  }
   if (object.material.name === 'LM_Wall_Cream') {
     const positions = object.geometry.attributes.position;
     const normals = object.geometry.attributes.normal;
@@ -53,11 +88,11 @@ gltf.scene.traverse(object => {
     }
   }
 });
-assert.ok(triangles <= 12000, 'complete site triangle budget');
-assert.ok(bytes.length <= 786432, 'complete site byte budget');
+assert.ok(triangles <= profile.budgets.max_triangles, 'complete site triangle budget');
+assert.ok(bytes.length <= profile.budgets.max_glb_bytes, 'complete site byte budget');
 assert.ok(signVertices > 100, 'baked sign lettering is present');
-assert.equal(primitives, 6);
-assert.deepEqual([...materials].sort(), ['LM_Leaf_Green', 'LM_Metal_Dark', 'LM_Plastic_Red', 'LM_Roof_Red', 'LM_Wall_Cream', 'LM_Wood_Warm']);
+assert.equal(primitives, 7);
+assert.deepEqual([...materials].sort(), ['LM_Counter_Steel', 'LM_Leaf_Green', 'LM_Metal_Dark', 'LM_Plastic_Red', 'LM_Roof_Red', 'LM_Wall_Cream', 'LM_Wood_Warm']);
 const gameRoot = path.resolve(root, '../..');
 const tableIds = new Set(['meja-1', 'meja-2', 'meja-3', 'meja-4', 'meja-9']);
 const tables = JSON.parse(await fs.readFile(path.join(gameRoot, 'shared/tables.json'), 'utf8')).filter(t => tableIds.has(t.id));
@@ -88,6 +123,7 @@ const report = {
   tables: tables.length, playableChairs: chairs.length, seatGeometryAndFacing: 'passed',
   bounds_three_m: { min: bounds.min.toArray(), max: bounds.max.toArray(), size: size.toArray() },
   khronos: { errors: khronos.issues.numErrors, warnings: khronos.issues.numWarnings, infos: khronos.issues.numInfos },
+  textures: textureReport, textureDecoding: 'separate browser check required',
 };
 await fs.writeFile(path.join(reportDir, 'three-validation.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));

@@ -1,8 +1,61 @@
 # LepakMamak Blender web-asset pipeline
 
-Reproducible **Blender 5.2 LTS → GLB → Three.js** workflow. The calibration profile supports small, opaque, unrigged, untextured static meshes. Mamak Maju now has a complete static environment profile covering the building, courtyard, furniture, signage and serving props.
+Reproducible **Blender 5.2 LTS → GLB → Three.js** workflow. The calibration profile supports small, opaque, unrigged, untextured static meshes. Mamak Maju v3 adds a separately validated Cycles AO/normal bake for its serving counter. All other assets keep their existing untextured profiles.
 
-## Build and verify
+## Current runtime: Mamak Maju v3
+
+Editable source, packed/external textures, five Blender previews and local browser
+evidence live in `generated/mamak-maju-v3/`. Earlier `generated/mamak-maju/` sources
+remain archived unchanged. See [MAMAK-V3-REPORT.md](MAMAK-V3-REPORT.md).
+
+V3 adds open lauk trays, a chamfered steel counter, tile joints, menu lettering,
+service frames, a gutter/downpipes and tea-station props. Mamak-only roughness values
+differentiate roof, plaster and plastic without altering the shared prop/shop palette.
+The current shared layout supplies five tables and **25** playable chairs.
+
+Measured runtime asset: **13,287 triangles, 7 primitives, 1,042,308 bytes**. The two
+embedded 512×512 PNGs hold short-range AO and tangent-space bevel normals; base colour
+has no baked sunlight or emission. Estimated RGBA8 texture memory including mipmaps
+is about 2.67 MiB. This is not a physical-phone performance measurement.
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python-exit-code 1 --python art/blender/scripts/build_mamak_asset.py -- \
+  --output /tmp/lepakmamak-mamak-v3-new
+node art/blender/tools/validate-mamak-glb.mjs \
+  /tmp/lepakmamak-mamak-v3-new/exports/LM_ENV_MamakMaju.glb /tmp/lepakmamak-mamak-v3-new/reports
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python-exit-code 1 --python art/blender/scripts/test_mamak_profile.py -- \
+  --generated /tmp/lepakmamak-mamak-v3-new
+```
+
+Run the builder again with another fresh directory, then compare GLB, both baked maps
+and all five Blender previews with `node art/blender/tools/compare-mamak-builds.mjs FIRST SECOND`.
+`mamak-profile.json` fixes budgets, bake dimensions, samples and CPU seed. The saved
+`.blend` is reopened before export. The counter is triangulated before baking and
+exports its tangent basis; untextured mesh UV streams are omitted from GLB copies only.
+Source UVs and named parts remain editable. Normal/AO colour space, packed images,
+shader wiring, mesh boundaries, budgets and actual furniture geometry are validated.
+
+Re-export a hand-edited v3 source with `scripts/export_glb.py --source SOURCE.blend
+--output NEW.glb --profile mamak-v3` using Blender's background Python invocation.
+Changing counter geometry or UVs requires a rebake with `mamak_polish.bake_counter`
+before saving; re-export alone does not update the baked textures.
+
+After copying the validated GLB to `public/assets/models/environment/LM_ENV_MamakMaju.glb`:
+
+```sh
+LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-mamak-browser.mjs
+LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-mamak-polish-browser.mjs
+```
+
+The first checks the actual city in day/night at desktop/mobile viewport sizes and
+exercises sit/stand. The second decodes the real embedded images, checks tangent/UV
+and colour-space data, then renders counter A/B comparisons with the game's daylight
+and night light intensities. It uses an isolated asset harness, not a full-city FPS benchmark.
+The runtime URL carries `?v=mamak-v3` to bypass prior immutable asset cache entries.
+
+## Calibration build and earlier Mamak profile
 
 Tested with Blender **5.2.1 LTS** (build `9e2066aef7ef`), Node 24, the repository's Three.js, and the pinned Khronos glTF validator. Blender Python uses only Blender's bundled libraries. Run these commands from the repository root:
 
@@ -13,10 +66,10 @@ python3 art/blender/scripts/verify.py --generated /tmp/lepakmamak-assets-v1
 
 The output directory must be absent or empty for a new build. `verify.py` can also verify an unchanged existing build. It refuses stale scripts/config or modified artifacts; use a fresh output directory when iterating. Hand-edited `.blend` files are never overwritten. The supplied completed build is in `art/blender/generated/`.
 
-The complete Mamak Maju site is in `art/blender/generated/mamak-maju/`. Its runtime copy is
+The archived v2 Mamak Maju site is in `art/blender/generated/mamak-maju/`. Its runtime successor is
 `public/assets/models/environment/LM_ENV_MamakMaju.glb`; `src/web-assets.ts` loads it at
 `(-29, 0, 30)` and hides the complete Mamak visual fallback after a successful load.
-The generator reads `shared/tables.json` and `shared/chairs.json` to place five game tables,
+The v2 generator read `shared/tables.json` and `shared/chairs.json` to place five game tables,
 20 player chairs and one reserved NPC chair. Existing seat logic and collision solids remain
 independent of the visuals. The fallback includes furniture and is batched by material.
 The canopy carries baked cream `MAMAK MAJU` lettering, with no runtime font or texture.
@@ -27,14 +80,14 @@ For requested asset work, complete Blender authoring, local integration and visu
 checks without requiring a separate user review for each asset. Show the finished result
 in the local game. Keep commits on the assigned branch; deployment is a separate request.
 
-Build the Mamak site into a fresh directory, then validate before copying the GLB to its runtime path:
+The current builder produces v3; build into a fresh directory and validate before copying the GLB:
 
 ```sh
 /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
   --python-exit-code 1 --python art/blender/scripts/build_mamak_asset.py -- \
-  --output /tmp/lepakmamak-mamak-v2
+  --output /tmp/lepakmamak-mamak-v3
 node art/blender/tools/validate-mamak-glb.mjs \
-  /tmp/lepakmamak-mamak-v2/exports/LM_ENV_MamakMaju.glb /tmp/lepakmamak-mamak-v2/reports
+  /tmp/lepakmamak-mamak-v3/exports/LM_ENV_MamakMaju.glb /tmp/lepakmamak-mamak-v3/reports
 ```
 
 Validation raycasts the exported chair seats/backrests and tabletops against the game

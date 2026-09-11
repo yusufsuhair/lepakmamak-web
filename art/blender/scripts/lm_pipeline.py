@@ -206,7 +206,7 @@ def add_scale_guides():
     guide.hide_render = True
 
 
-def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None):
+def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, texture_profile=None):
     """Fail closed for the initial opaque, unrigged, untextured static-mesh profile."""
     require_version()
     errors = []
@@ -258,18 +258,37 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None):
             evaluated.to_mesh_clear()
     for name in sorted(materials):
         mat = bpy.data.materials[name]
-        check(name in CONFIG["palette"], f"Material is not in shared palette: {name}")
+        textured = bool(texture_profile and name == texture_profile["material"])
+        check(name in CONFIG["palette"] or textured, f"Material is not in shared palette: {name}")
         check(mat.use_nodes, f"Material requires nodes: {name}")
         if not mat.use_nodes:
             continue
         nodes = list(mat.node_tree.nodes)
         bsdfs = [n for n in nodes if n.type == "BSDF_PRINCIPLED"]
-        check(len(nodes) == 2 and len(bsdfs) == 1 and any(n.type == "OUTPUT_MATERIAL" for n in nodes), f"Only simple Principled BSDF + Output supported: {name}")
+        check(len(bsdfs) == 1 and any(n.type == "OUTPUT_MATERIAL" for n in nodes), f"Principled BSDF + Output required: {name}")
+        if textured:
+            check(len(nodes) == 6 and sorted(n.type for n in nodes) == sorted(["BSDF_PRINCIPLED", "OUTPUT_MATERIAL", "TEX_IMAGE", "TEX_IMAGE", "NORMAL_MAP", "GROUP"]), f"Unexpected baked material graph: {name}")
+            for node in nodes:
+                if node.type != "TEX_IMAGE": continue
+                img = node.image
+                check(bool(img and img.packed_file), f"Packed image required: {name}")
+                if img:
+                    check(list(img.size) == [texture_profile["resolution"]]*2, f"Texture dimensions exceed profile: {img.name}")
+                    check(img.colorspace_settings.name == "Non-Color", f"AO/normal must use Non-Color: {img.name}")
+            wiring = {(link.from_node.name, link.from_socket.name, link.to_node.type, link.to_socket.name) for link in mat.node_tree.links}
+            check(("LM_Baked_AO", "Color", "GROUP", "Occlusion") in wiring, f"AO must target glTF occlusion: {name}")
+            check(("LM_Baked_Normal", "Color", "NORMAL_MAP", "Color") in wiring, f"Normal texture must target tangent normal map: {name}")
+            check(any(n.type == "GROUP" and n.node_tree and n.node_tree.name == "glTF Material Output" for n in nodes), f"glTF occlusion group required: {name}")
+        else:
+            check(len(nodes) == 2, f"Only simple Principled BSDF + Output supported: {name}")
         if len(bsdfs) == 1:
             bsdf = bsdfs[0]
             check(bsdf.inputs["Alpha"].default_value == 1 and bsdf.inputs["Base Color"].default_value[3] == 1, f"Opaque alpha required: {name}")
             check(bsdf.inputs["Transmission Weight"].default_value == 0, f"Transmission not in mobile profile: {name}")
-            check(len(mat.node_tree.links) == 1 and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
+            if textured:
+                check(not bsdf.inputs["Base Color"].is_linked and not bsdf.inputs["Emission Color"].is_linked, f"Baked direct lighting not in counter profile: {name}")
+                check(bsdf.inputs["Normal"].is_linked and bsdf.inputs["Normal"].links[0].from_node.type == "NORMAL_MAP", f"Tangent normal must reach shader: {name}")
+            check(len(mat.node_tree.links) == (4 if textured else 1) and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
         check(mat.use_backface_culling, f"Single-sided material required: {name}")
     budget = {**CONFIG["budgets"], **(budget_overrides or {})}
     check(triangles <= budget["max_triangles"], "Triangle budget exceeded")
@@ -290,15 +309,15 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None):
     result = {"passed": not errors, "errors": errors, "blender_version": bpy.app.version_string,
               "objects": [obj.name for obj in objects], "mesh_count": mesh_count,
               "triangles": triangles, "materials": sorted(materials), "bounds_blender_m": bbox,
-              "budgets": budget, "profile": "scale-test" if scale_test else "static-palette"}
+              "budgets": budget, "profile": "static-counter-baked" if texture_profile else "scale-test" if scale_test else "static-palette"}
     if errors:
         raise ValueError(json.dumps(result, indent=2))
     return result
 
 
-def export_collection(path, scale_test=False, budget_overrides=None):
+def export_collection(path, scale_test=False, budget_overrides=None, texture_profile=None):
     budget = {**CONFIG["budgets"], **(budget_overrides or {})}
-    result = validate_scene(scale_test=scale_test, budget_overrides=budget)
+    result = validate_scene(scale_test=scale_test, budget_overrides=budget, texture_profile=texture_profile)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -313,12 +332,31 @@ def export_collection(path, scale_test=False, budget_overrides=None):
 
 def _export_validated(path, result, budget):
     # Named collection filtering includes descendants; selection and active UI state are irrelevant.
-    bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", collection="EXPORT",
-        use_selection=False, use_active_collection=False, export_yup=True,
-        export_apply=True, export_texcoords=True, export_normals=True,
-        export_materials="EXPORT", export_cameras=False, export_lights=False,
-        export_animations=False, export_extras=True, export_attributes=False,
-        export_draco_mesh_compression_enable=False)
+    textured = budget.get("max_textures", 0) > 0
+    copies = []
+    try:
+        # Baked tangent space belongs to the counter only. Omit unused UV/tangent
+        # streams on copies of untextured meshes; the editable source retains UVs.
+        if textured:
+            for obj in bpy.data.collections["EXPORT"].all_objects:
+                if obj.type != "MESH": continue
+                if any(n.type == "TEX_IMAGE" for mat in obj.data.materials if mat and mat.use_nodes for n in mat.node_tree.nodes): continue
+                original = obj.data
+                copy = original.copy()
+                copy.name = original.name + "_Export"
+                for layer in list(copy.uv_layers): copy.uv_layers.remove(layer)
+                obj.data = copy
+                copies.append((obj, original, copy))
+        bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", collection="EXPORT",
+            use_selection=False, use_active_collection=False, export_yup=True,
+            export_apply=True, export_texcoords=True, export_normals=True, export_tangents=textured,
+            export_materials="EXPORT", export_cameras=False, export_lights=False,
+            export_animations=False, export_extras=True, export_attributes=False,
+            export_draco_mesh_compression_enable=False)
+    finally:
+        for obj, original, copy in copies:
+            obj.data = original
+            bpy.data.meshes.remove(copy)
     data = path.read_bytes()
     magic, version, length = struct.unpack_from("<III", data)
     if (magic, version, length) != (0x46546C67, 2, len(data)):
@@ -330,8 +368,18 @@ def _export_validated(path, result, budget):
     exported_names = sorted(node["name"] for node in document.get("nodes", []))
     if exported_names != result["objects"]:
         raise ValueError(f"EXPORT collection boundary mismatch: {exported_names}")
-    if document.get("cameras") or document.get("animations") or document.get("skins") or document.get("textures") or "KHR_lights_punctual" in document.get("extensionsUsed", []):
+    if document.get("cameras") or document.get("animations") or document.get("skins") or "KHR_lights_punctual" in document.get("extensionsUsed", []):
         raise ValueError("Unexpected camera/light/animation/skin/texture in static GLB")
+    if len(document.get("textures", [])) > budget.get("max_textures", 0):
+        raise ValueError("Texture budget exceeded")
+    for mesh in document.get("meshes", []):
+        for primitive in mesh["primitives"]:
+            mat = document["materials"][primitive["material"]]
+            if mat.get("normalTexture") and "TANGENT" not in primitive["attributes"]:
+                raise ValueError("Normal-mapped primitive requires exported tangent space")
+    for image in document.get("images", []):
+        if "uri" in image or image.get("mimeType") != "image/png" or "bufferView" not in image:
+            raise ValueError("Baked textures must be embedded PNGs")
     if len(data) > budget["max_glb_bytes"]:
         raise ValueError("GLB byte budget exceeded")
     primitives = sum(len(document["meshes"][node["mesh"]]["primitives"]) for node in document.get("nodes", []) if "mesh" in node)

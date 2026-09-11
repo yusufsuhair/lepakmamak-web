@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "asset": "LM_ENV_MamakMaju.glb",
+  "sha256": "aab12c550bfadce0a6ddae4812e75e0705e93f25d675efbd82d9d80c1d90d504",
+  "bytes": 1042308,
+  "triangles": 13287,
+  "primitives": 7,
+  "signVertices": 118,
+  "signText": "MAMAK MAJU",
+  "materials": [
+    "LM_Counter_Steel",
+    "LM_Leaf_Green",
+    "LM_Metal_Dark",
+    "LM_Plastic_Red",
+    "LM_Roof_Red",
+    "LM_Wall_Cream",
+    "LM_Wood_Warm"
+  ],
+  "tables": 5,
+  "playableChairs": 25,
+  "seatGeometryAndFacing": "passed",
+  "bounds_three_m": {
+    "min": [
+      -18.5,
+      0,
+      -5.199999809265137
+    ],
+    "max": [
+      18.5,
+      9.949999809265137,
+      35.5
+    ],
+    "size": [
+      37,
+      9.949999809265137,
+      40.69999980926514
+    ]
+  },
+  "khronos": {
+    "errors": 0,
+    "warnings": 0,
+    "infos": 0
+  },
+  "textures": [
+    {
+      "name": "LM_TEX_Counter_Normal",
+      "width": 512,
+      "height": 512,
+      "bytes": 137340
+    },
+    {
+      "name": "LM_TEX_Counter_AO",
+      "width": 512,
+      "height": 512,
+      "bytes": 173806
+    }
+  ],
+  "textureDecoding": "separate browser check required"
+}

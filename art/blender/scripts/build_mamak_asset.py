@@ -17,7 +17,6 @@ TABLE_IDS = {"meja-1", "meja-2", "meja-3", "meja-4", "meja-9"}
 GAME_ROOT = ROOT.parents[1]
 PALETTE = ("LM_Wall_Cream", "LM_Roof_Red", "LM_Wood_Warm", "LM_Metal_Dark", "LM_Leaf_Green", "LM_Plastic_Red")
 CREAM, TILE, WOOD, METAL, GREEN, RED = range(6)
-BUDGET = {"max_triangles": 12000, "max_materials": 6, "max_draw_calls": 6, "max_glb_bytes": 786432}
 
 
 class Author:
@@ -87,7 +86,7 @@ class Author:
         for i, (name, start, count) in enumerate(self.parts):
             obj.vertex_groups.new(name=f"LM_PART_{i:03d}_{name}").add(list(range(start,start+count)), 1, "REPLACE")
         obj["lm_asset_id"], obj["lm_sign_text"] = ASSET, SIGN_TEXT
-        obj["lm_version"] = 2
+        obj["lm_version"] = 3
         obj["lm_origin_world"] = list(ORIGIN)
         obj["lm_tables_json"] = json.dumps([{k:t[k] for k in ("id","x","z")} for t in tables], sort_keys=True)
         obj["lm_chairs_json"] = json.dumps([{k:c[k] for k in ("id","x","z","yaw","tableId")} for c in chairs], sort_keys=True)
@@ -150,15 +149,8 @@ def build_site():
     a.text("MamakName",SIGN_TEXT,-29,4.23,42.50,15.6,.68)
     a.text("MenuHeading","ROTI CANAI   /   TEH TARIK   /   NASI KANDAR",-29,5.08,34.86,26,.36,WOOD)
     a.box("Counter",-39,1.05,37,7,1.8,1.8,GREEN)
-    a.box("CounterTop",-39,2.02,37,7.3,.14,2.1,CREAM)
     a.box("CounterTrim",-39,.75,37.92,6.65,.12,.05,WOOD)
     a.text("CounterLabel","NASI KANDAR",-39,1.35,37.93,5.8,.38)
-    for i in range(5):
-        x=-41.55+i*1.26
-        a.cylinder("CurryPot",x,2.28,37,.43,.35,METAL,12)
-        a.cylinder("PotLid",x,2.47,37,.46,.05,CREAM,12,.28)
-        a.cylinder("LidKnob",x,2.54,37,.09,.09,WOOD,8)
-        for dx in (-.5,.5): a.box("PotHandle",x+dx,2.36,37,.16,.07,.16,METAL)
     a.box("TeaShelf",-18.7,1.85,34.94,5.8,.14,.5,WOOD)
     for x in (-20.5,-19.3):
         a.cylinder("TeaUrn",x,2.44,35.0,.43,1.0,METAL,12)
@@ -199,7 +191,11 @@ def build_site():
     for x in (-20,-17): a.box("WelcomeLeg",x,.67,43.3,.10,1.34,.12,WOOD)
     a.text("WelcomeTitle","LEPAK SINI",-18.5,1.65,43.39,3.0,.37)
     a.text("WelcomeCaption","MAKAN / BORAK / MAIN",-18.5,1.08,43.39,2.9,.18)
-    return a.finish(tables,chairs)
+    from mamak_polish import add_details, make_counter
+    steel=Author()
+    add_details(a,steel)
+    obj=a.finish(tables,chairs)
+    return obj, make_counter(steel)
 
 
 def preview_setup():
@@ -215,6 +211,12 @@ def preview_setup():
         point_at(light,(0,-10,0))
     bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value=.65
     bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
+    data=bpy.data.cameras.new("LM_PREVIEW_Counter_CameraData")
+    data.type,data.lens="PERSP",28
+    camera=bpy.data.objects.new("LM_PREVIEW_Counter_Camera",data)
+    bpy.data.collections["LIGHTING_PREVIEW"].objects.link(camera)
+    camera.location=(-5.5,-10.8,3.6)
+    point_at(camera,(-10,-7,2.15))
 
 
 def main():
@@ -226,16 +228,28 @@ def main():
     if output.exists() and any(output.iterdir()): raise RuntimeError(f"Output is nonempty: {output}")
     output.mkdir(parents=True,exist_ok=True)
     setup_template()
-    build_site()
+    from mamak_polish import PROFILE, bake_counter
+    for name,roughness in PROFILE["roughness"].items():
+        bpy.data.materials[name].node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value=roughness
+    obj,counter=build_site()
+    bake_counter(counter,output)
     preview_setup()
     source=output/"source"/f"{ASSET}.blend"
     save_source(source)
     bpy.ops.wm.open_mainfile(filepath=str(source))
-    result=export_collection(output/"exports"/f"{ASSET}.glb",budget_overrides=BUDGET)
-    if not args.skip_renders: render_previews(output/"previews",asset_name=ASSET)
+    result=export_collection(output/"exports"/f"{ASSET}.glb",budget_overrides=PROFILE["budgets"],
+        texture_profile={"material":PROFILE["counter_material"],"resolution":PROFILE["bake"]["resolution"]})
+    if not args.skip_renders:
+        render_previews(output/"previews",asset_name=ASSET)
+        bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Counter_Camera"]
+        bpy.context.scene.render.filepath=str(output/"previews"/"counter-close.png")
+        bpy.ops.render.render(write_still=True)
+        bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
     write_json(output/"reports"/"validation.json",result)
     write_json(output/"reports"/"manifest.json",{
-        "asset":ASSET,"version":2,"blender_version":bpy.app.version_string,
+        "asset":ASSET,"version":3,"blender_version":bpy.app.version_string,
+        "profile_sha256":sha256(ROOT/"mamak-profile.json"),
+        "polish_sha256":sha256(ROOT/"scripts/mamak_polish.py"),
         "config_sha256":sha256(ROOT/"config.json"),"script_sha256":sha256(Path(__file__)),
         "pipeline_sha256":sha256(ROOT/"scripts/lm_pipeline.py"),
         "tables_sha256":sha256(GAME_ROOT/"shared/tables.json"),"chairs_sha256":sha256(GAME_ROOT/"shared/chairs.json"),
