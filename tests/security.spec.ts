@@ -8,6 +8,7 @@ test('Cloudflare security headers enforce a strict content policy',()=>{
  expect(headers).toContain("default-src 'self'");
  expect(headers).toContain("object-src 'none'");
  expect(headers).toContain("frame-ancestors 'none'");
+ expect(headers).toMatch(/connect-src[^;]*blob:/);
  expect(headers).toContain('X-Content-Type-Options: nosniff');
  expect(headers).not.toContain("'unsafe-eval'");
  expect(headers).not.toContain("'unsafe-inline'");

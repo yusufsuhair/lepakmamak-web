@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 test('deployed CSP permits the model decoder without enabling JavaScript eval',async({page})=>{
   const policy=readFileSync('public/_headers','utf8').match(/Content-Security-Policy: (.*)/)![1];
   expect(policy).toContain("'wasm-unsafe-eval'");
+  expect(policy).toMatch(/connect-src[^;]*blob:/);
   expect(policy).not.toContain("'unsafe-eval'");
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/rembayung-preview.html',async route=>{
