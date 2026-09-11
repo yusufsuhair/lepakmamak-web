@@ -107,10 +107,11 @@ $('app').innerHTML = `
       <strong>LEPAK<span>MAMAK.</span></strong>
       <p id="loading-title">Getting the city ready</p>
       <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8"><i></i></div>
+      <div class="loading-meta"><span id="loading-stage">WORLD</span><span id="loading-percent">8%</span></div>
       <small id="loading-detail">Setting the tables. Warming up the kapcai.</small>
     </div>
   </div>
-  <audio id="background-music" src="/background-short.mp3" loop preload="auto" aria-hidden="true"></audio>
+  <audio id="background-music" src="/background-short.mp3" loop preload="none" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
     <div class="intro-top"><div class="brand"><img class="brand-mark" src="/icon-80.png" width="28" height="28" alt="" /> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
@@ -143,7 +144,10 @@ function showLoading(title: string, detail: string, progress: number) {
   const value = Math.max(0, Math.min(100, progress));
   $('loading-title').textContent = title; $('loading-detail').textContent = detail;
   const bar = $('loading-progress'); bar.setAttribute('aria-valuenow', String(value));
+  bar.setAttribute('aria-valuetext', detail);
   (bar.firstElementChild as HTMLElement).style.width = `${value}%`;
+  $('loading-percent').textContent = `${Math.round(value)}%`;
+  $('loading-stage').textContent = value < 60 ? 'WORLD' : value < 100 ? 'CITY LINK' : 'READY';
   $('loading').hidden = false; $('loading').setAttribute('aria-busy', 'true');
 }
 function hideLoading() { $('loading').hidden = true; $('loading').setAttribute('aria-busy', 'false'); }
@@ -279,7 +283,7 @@ async function init() {
   const personalCar=car;
   let fleetId:string|null=null, claimPendingUntil=0;
   let pressedCarId:string|null=null,interactionPressUntil=0,interactionPointerDown=false;
-  const angryVoice=fetch('/audio/angry.mp3').then(r=>r.arrayBuffer()).catch(()=>null);
+  let angryVoice:Promise<ArrayBuffer|null>|null=null;
   const ANGRY_LINES=['Woi! Kereta aku tu!','Eh, cilok kereta aku?!','Woi! Turun sekarang!'];
   let angryBuffer:Promise<AudioBuffer|null>|null=null;
   const angryDrivers:{person:ReturnType<typeof createPerson>;until:number;line:string;gain?:GainNode;source?:AudioBufferSourceNode}[]=[];
@@ -292,7 +296,7 @@ async function init() {
     npc.group.add(shoutTag(line));
     const actor:typeof angryDrivers[number]={person:npc,until:simTime+8,line};angryDrivers.push(actor);
     if(audioEnabled&&audioContext&&citySoundsGain){
-      const ctx=audioContext;angryBuffer??=angryVoice.then(data=>data?ctx.decodeAudioData(data):null).catch(()=>null);
+      const ctx=audioContext;angryVoice??=fetch('/audio/angry.mp3').then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);angryBuffer??=angryVoice.then(data=>data?ctx.decodeAudioData(data):null).catch(()=>null);
       void angryBuffer.then(buffer=>{if(!buffer||!started||simTime>=actor.until||!audioEnabled)return;
         actor.gain=ctx.createGain();actor.gain.gain.value=0;actor.gain.connect(citySoundsGain!);
         actor.source=ctx.createBufferSource();actor.source.buffer=buffer;actor.source.connect(actor.gain);actor.source.start();
@@ -524,17 +528,23 @@ async function init() {
   let rejection: { code?: string } | null = null;
   let retryDelay = 2500;
   let entryLoadingTimer: number | null = null;
+  let connectedOnceThisEntry = false, connectionAttempts = 0;
   function finishEntryLoading() {
     if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
     hideLoading();
   }
+  function completeEntryLoading() {
+    if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
+    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); }, 320);
+  }
   function beginEntryLoading() {
+    connectedOnceThisEntry = false; connectionAttempts = 0;
     showLoading('Entering Kampung Maju', 'Starting your character and joining the city…', 68);
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
     entryLoadingTimer = window.setTimeout(() => {
-      entryLoadingTimer = null; hideLoading();
-      toast('Still connecting', 'You can explore while the city reconnects.', 4);
-    }, 12000);
+      entryLoadingTimer = null;
+      showLoading('Still joining the city', 'The connection is taking longer than usual. Retrying safely…', 82);
+    }, 7000);
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
   function punch() {
@@ -709,12 +719,12 @@ async function init() {
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
   const trainDoorStates = new Map<number, boolean>();
-  const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'auto';
-  const buskingSong=new Audio('/busking.mp3');buskingSong.loop=true;buskingSong.preload='metadata';
-  const watsonsSong=new Audio('/watson.mp3');watsonsSong.loop=true;watsonsSong.preload='metadata';
-  const familyMartSong=new Audio('/familymart.mp3');familyMartSong.loop=true;familyMartSong.preload='metadata';
-  const masjidSong=new Audio('/arrahman.mp3');masjidSong.loop=true;masjidSong.preload='metadata';
-  const stallVoiceSong=new Audio('/duasinggit.mp3');stallVoiceSong.loop=true;stallVoiceSong.preload='metadata';
+  const iceCreamSong = new Audio('/matkool.mp3'); iceCreamSong.loop = true; iceCreamSong.preload = 'none';
+  const buskingSong=new Audio('/busking.mp3');buskingSong.loop=true;buskingSong.preload='none';
+  const watsonsSong=new Audio('/watson.mp3');watsonsSong.loop=true;watsonsSong.preload='none';
+  const familyMartSong=new Audio('/familymart.mp3');familyMartSong.loop=true;familyMartSong.preload='none';
+  const masjidSong=new Audio('/arrahman.mp3');masjidSong.loop=true;masjidSong.preload='none';
+  const stallVoiceSong=new Audio('/duasinggit.mp3');stallVoiceSong.loop=true;stallVoiceSong.preload='none';
   let buskingGain:GainNode|null=null;
   let watsonsGain:GainNode|null=null;
   let familyMartGain:GainNode|null=null;
@@ -723,7 +733,7 @@ async function init() {
   let iceCreamGain: GainNode | null = null;
   // Straight-piped exhaust: it carries, so it gets a tighter radius and a quieter peak
   // than the ice-cream song, which is meant to be heard across the street.
-  const lamboSong = new Audio('/gintani.mp3'); lamboSong.loop = true; lamboSong.preload = 'metadata';
+  const lamboSong = new Audio('/gintani.mp3'); lamboSong.loop = true; lamboSong.preload = 'none';
   const LAMBO_REACH = 16, LAMBO_FULL = 4, LAMBO_PEAK = .3;
   let lamboGain: GainNode | null = null;
   let citySoundsGain: GainNode | null = null;
@@ -754,13 +764,6 @@ async function init() {
   let musicGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
   function startBackgroundMusic() {
-    if(audioEnabled&&started&&buskingGain)void buskingSong.play().catch(()=>{});
-    if(audioEnabled&&started&&watsonsGain)void watsonsSong.play().catch(()=>{});
-    if(audioEnabled&&started&&familyMartGain)void familyMartSong.play().catch(()=>{});
-    if(audioEnabled&&started&&masjidGain)void masjidSong.play().catch(()=>{});
-    if(audioEnabled&&started&&stallVoiceGain)void stallVoiceSong.play().catch(()=>{});
-    if (audioEnabled && started && iceCreamGain) void iceCreamSong.play().catch(() => {});
-    if (audioEnabled && started && lamboGain) void lamboSong.play().catch(() => {});
     if (!musicEnabled) return;
     try {
       if (!musicContext) {
@@ -777,8 +780,17 @@ async function init() {
       // The next user interaction will try again without interrupting the game.
     });
   }
+  const nearbyLoopStarting = new WeakSet<HTMLAudioElement>();
+  function setNearbyLoop(song: HTMLAudioElement, audible: boolean) {
+    if (audible) {
+      if (song.paused && !nearbyLoopStarting.has(song)) {
+        nearbyLoopStarting.add(song);
+        void song.play().catch(() => {}).finally(() => nearbyLoopStarting.delete(song));
+      }
+    } else if (!song.paused) song.pause();
+  }
   document.addEventListener('pointerdown', () => {
-    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && (iceCreamSong.paused || lamboSong.paused || buskingSong.paused || watsonsSong.paused || familyMartSong.paused || masjidSong.paused || stallVoiceSong.paused || audioContext?.state === 'suspended')))) { ensureAudio(); startBackgroundMusic(); }
+    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && audioContext?.state === 'suspended'))) { ensureAudio(); startBackgroundMusic(); }
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
@@ -1041,7 +1053,7 @@ async function init() {
       if (visibleIds.has(id)) continue;
       disposeRemote(entity); remotePlayers.delete(id);
     }
-    setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? 'RECONNECTING' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
+    setNetworkStatus(networkConnected ? 'CITY ONLINE' : multiplayerEndpoint ? connectedOnceThisEntry ? 'RECONNECTING…' : 'JOINING CITY' : 'SOLO MODE', networkConnected ? 'online' : multiplayerEndpoint ? 'connecting' : 'solo', players.length || 1);
   }
   const voice = setupVoice(message => {
     if (message.type === 'voice-state' && localName) updateNameTagVoice(localName, !!message.mic, !!message.speaker);
@@ -1100,7 +1112,9 @@ async function init() {
     $('session-replaced-message').hidden = false;
   }
   function retryMultiplayer() {
-    if (!started || !multiplayerEndpoint || networkReconnectTimer !== null) return;
+    // Reconnect is meaningful only after this entry has been online once. A failed first
+    // connection gets a clear restart action instead of pretending it is reconnecting.
+    if (!started || !connectedOnceThisEntry || !multiplayerEndpoint || networkReconnectTimer !== null) return;
     networkReconnectTimer = window.setTimeout(() => { networkReconnectTimer = null; connectMultiplayer(); }, retryDelay);
     // A full city refuses everyone at once, and each retry costs a fresh auth check, so
     // backing off keeps a crowd from hammering the server at a fixed 2.5s forever.
@@ -1122,9 +1136,17 @@ async function init() {
     return await new Response(stream).text();
   }
   async function connectMultiplayer() {
-    if (!multiplayerEndpoint) { setNetworkStatus('SOLO MODE', 'solo', 1); finishEntryLoading(); return; }
+    if (!multiplayerEndpoint) {
+      setNetworkStatus('SOLO MODE', 'solo', 1);
+      startBackgroundMusic();
+      showLoading('Welcome to LepakMamak', 'The city is ready.', 100);
+      completeEntryLoading();
+      return;
+    }
     rejection = null;
-    setNetworkStatus('CONNECTING…', 'connecting', 1);
+    connectionAttempts++;
+    setNetworkStatus(connectedOnceThisEntry ? 'RECONNECTING…' : 'JOINING CITY', 'connecting', 1);
+    if (!connectedOnceThisEntry) showLoading(connectionAttempts > 1 ? 'Still joining the city' : 'Connecting to LepakMamak', connectionAttempts > 1 ? `Connection attempt ${connectionAttempts}…` : 'Opening a secure connection to the city…', connectionAttempts > 1 ? 80 : 74);
     try {
       const accessToken = auth && !guestName ? (await auth.auth.getSession()).data.session?.access_token : undefined;
       if (!started) return;
@@ -1132,7 +1154,7 @@ async function init() {
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
-        showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 86);
+        if (!connectedOnceThisEntry) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         carFinder.clear();
         socket.send(JSON.stringify({ type: 'join', deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
@@ -1160,7 +1182,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100); finishEntryLoading(); }
+        if (message.type === 'welcome' && message.id) { const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
@@ -1247,19 +1269,20 @@ async function init() {
         const data = event.data;
         frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); finishEntryLoading(); if (event.code === 4002) { sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite
         // it with RECONNECTING…, so a full city and an expired login both looked like a
         // reconnect that never finished. Keep the reason the server gave.
-        if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4001) { setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
+        if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4001) { finishEntryLoading(); setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
         // No retry loop: reconnecting cannot lift a suspension, it just hammers the server.
-        if (rejection?.code === 'BANNED' || event.code === 4003) { setNetworkStatus('SUSPENDED', 'offline', 1); return; }
+        if (rejection?.code === 'BANNED' || event.code === 4003) { finishEntryLoading(); setNetworkStatus('SUSPENDED', 'offline', 1); return; }
         // Keep a real transport failure red and actionable while the background retry runs.
         // A full room has its own orange state and does not ask the player to restart.
-        if (rejection?.code === 'ROOM_FULL') setNetworkStatus('CITY FULL', 'connecting', 1);
-        else setNetworkStatus('OFFLINE', 'offline', 1);
+        if (rejection?.code === 'ROOM_FULL') { finishEntryLoading(); setNetworkStatus('CITY FULL', 'connecting', 1); }
+        else if (!connectedOnceThisEntry) { finishEntryLoading(); setNetworkStatus('CONNECTION FAILED', 'offline', 1); }
+        else { finishEntryLoading(); setNetworkStatus('OFFLINE', 'offline', 1); }
         retryMultiplayer(); });
-      socket.addEventListener('error', () => { if (socket !== networkSocket) return; finishEntryLoading(); voice.connected(false); networkConnected = false; setNetworkStatus('OFFLINE', 'offline', 1); });
+      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; finishEntryLoading(); setNetworkStatus(connectedOnceThisEntry?'OFFLINE':'CONNECTION FAILED', 'offline', 1); });
     } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
   }
   function sendNetworkState(dt: number) {
@@ -1360,7 +1383,7 @@ async function init() {
     if (!guestName) void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     if (!guestName) { void gengUI.refresh(); void friendsUI.refresh(); }
-    ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
+    ensureAudio(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng, gengLeader); scene.add(localName); }
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
   }
@@ -2340,20 +2363,29 @@ async function init() {
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
-    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?buskingVolume(soundDistance(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)))):0,audioContext.currentTime,.2);
-    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?watsonsVolume(soundDistance(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z))):0,audioContext.currentTime,.2);
-    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?familyMartVolume(soundDistance(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z))):0,audioContext.currentTime,.2);
-    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?masjidVolume(soundDistance(nearestMasjidDistance(pos))):0,audioContext.currentTime,.25);
-    if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(started&&audioEnabled&&!tableSocial.playing?stallVoiceVolume(soundDistance(nearestStallDistance(pos))):0,audioContext.currentTime,.2);
+    const ambienceAllowed=started&&audioEnabled&&!tableSocial.playing&&audioContext?.state==='running';
+    const buskingLevel=ambienceAllowed?buskingVolume(soundDistance(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)))):0;
+    const watsonsLevel=ambienceAllowed?watsonsVolume(soundDistance(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z))):0;
+    const familyMartLevel=ambienceAllowed?familyMartVolume(soundDistance(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z))):0;
+    const masjidLevel=ambienceAllowed?masjidVolume(soundDistance(nearestMasjidDistance(pos))):0;
+    const stallVoiceLevel=ambienceAllowed?stallVoiceVolume(soundDistance(nearestStallDistance(pos))):0;
+    if(buskingGain&&audioContext)buskingGain.gain.setTargetAtTime(buskingLevel,audioContext.currentTime,.2);
+    if(watsonsGain&&audioContext)watsonsGain.gain.setTargetAtTime(watsonsLevel,audioContext.currentTime,.2);
+    if(familyMartGain&&audioContext)familyMartGain.gain.setTargetAtTime(familyMartLevel,audioContext.currentTime,.2);
+    if(masjidGain&&audioContext)masjidGain.gain.setTargetAtTime(masjidLevel,audioContext.currentTime,.25);
+    if(stallVoiceGain&&audioContext)stallVoiceGain.gain.setTargetAtTime(stallVoiceLevel,audioContext.currentTime,.2);
+    setNearbyLoop(buskingSong,buskingLevel>.001);setNearbyLoop(watsonsSong,watsonsLevel>.001);setNearbyLoop(familyMartSong,familyMartLevel>.001);setNearbyLoop(masjidSong,masjidLevel>.001);setNearbyLoop(stallVoiceSong,stallVoiceLevel>.001);
     if (iceCreamGain && audioContext) {
       const distance = soundDistance(Math.min(Math.hypot(pos.x - iceCreamBike.position.x, pos.z - iceCreamBike.position.z),Math.hypot(pos.x-rembayungIceCream.position.x,pos.z-rembayungIceCream.position.z),Math.hypot(pos.x-beach.iceCream.position.x,pos.z-beach.iceCream.position.z)));
       const proximity = Math.max(0, Math.min(1, (24 - distance) / 20));
-    iceCreamGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? 1.2 * proximity * proximity : 0, audioContext.currentTime, .18);
+      const level=ambienceAllowed?1.2*proximity*proximity:0;
+      iceCreamGain.gain.setTargetAtTime(level, audioContext.currentTime, .18);setNearbyLoop(iceCreamSong,level>.001);
     }
     if (lamboGain && audioContext) {
       const distance = soundDistance(Math.min(...world.traffic.filter(car => car.group.userData.model === 'lamborghini').map(car => Math.hypot(pos.x-car.group.position.x, pos.z-car.group.position.z))));
       const proximity = Math.max(0, Math.min(1, (LAMBO_REACH - distance) / (LAMBO_REACH - LAMBO_FULL)));
-      lamboGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? LAMBO_PEAK * proximity * proximity : 0, audioContext.currentTime, .18);
+      const level=ambienceAllowed?LAMBO_PEAK*proximity*proximity:0;
+      lamboGain.gain.setTargetAtTime(level, audioContext.currentTime, .18);setNearbyLoop(lamboSong,level>.001);
     }
     if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:deckY) + 3.34 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);

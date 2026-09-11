@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.56",
+    "date": "2026-09-11",
+    "title": "Entrance lebih ringan dan jelas",
+    "notes": [
+      "Loading screen kini menunjukkan fasa dan peratus sebenar sehingga bandar benar-benar bersedia.",
+      "Sambungan pertama memaparkan status sedang masuk; status reconnect hanya muncul selepas sambungan yang pernah berjaya terputus.",
+      "Muzik lokasi seperti busking, masjid, gerai dan kenderaan kini hanya dimuatkan apabila pemain berada cukup dekat."
+    ]
+  },
+  {
     "version": "1.39.55",
     "date": "2026-09-11",
     "title": "Metadata kerusi Mamak diselaraskan",

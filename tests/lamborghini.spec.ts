@@ -34,7 +34,8 @@ test('the moving exhaust is quieter than the ice cream',async({page})=>{
  await page.locator('#guest-name').fill('Revhead');
  await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
  const lambo=()=>page.evaluate(()=>(window as any).__lepak.lambo);
- await expect.poll(async()=>(await lambo()).playing).toBe(true);
+ // The car is far from the spawn point, so its MP3 stays unloaded and paused at entry.
+ await expect.poll(async()=>(await lambo()).playing).toBe(false);
  // Reduced, as asked: the ice-cream song peaks at 1.2 through the same city bus.
  const {peak,reach}=await lambo();
  expect(peak).toBeLessThan(1.2/3);

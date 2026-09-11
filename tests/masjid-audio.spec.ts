@@ -12,11 +12,12 @@ test('the remaining mosque has one smooth location-based audio fade',async({page
   for(let distance=7;distance<=32;distance++)expect(result.volumes[distance]).toBeLessThan(result.volumes[distance-1]);
 });
 
-test('mosque audio starts after entry and obeys City sounds',async({page})=>{
+test('mosque audio loads only nearby and obeys City sounds',async({page})=>{
+  await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{if(JSON.parse(String(raw)).type==='join')ws.send(JSON.stringify({type:'welcome',id:'masjid-player',players:[{id:'masjid-player',name:'Tester',color:'#72c8ba',x:54,z:129,yaw:Math.PI,riding:false,speed:0,guest:true}]}));}));
   await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__lepak.masjid);
   await expect.poll(async()=>(await state()).playing).toBe(true);
-  await expect.poll(async()=>(await state()).gain).toBeLessThan(.001);
+  await expect.poll(async()=>(await state()).gain).toBeGreaterThan(.35);
   await page.getByRole('button',{name:'Open settings'}).click();await page.getByLabel('City sounds',{exact:true}).uncheck();
   expect((await state()).playing).toBe(false);expect((await state()).gain).toBe(0);
   await page.getByLabel('City sounds',{exact:true}).check();await expect.poll(async()=>(await state()).playing).toBe(true);

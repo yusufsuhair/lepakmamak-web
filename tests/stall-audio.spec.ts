@@ -11,7 +11,8 @@ test('booth voice fades smoothly away from the nearest stall',async({page})=>{
   for(let distance=2;distance<=result.reach;distance++)expect(result.volumes[distance]).toBeLessThan(result.volumes[distance-1]);
 });
 
-test('booth voice loops after entry and obeys City sounds',async({page})=>{
+test('booth voice loads only at the counter and obeys City sounds',async({page})=>{
+  await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{if(JSON.parse(String(raw)).type==='join')ws.send(JSON.stringify({type:'welcome',id:'stall-player',players:[{id:'stall-player',name:'Tester',color:'#72c8ba',x:-12,z:60,yaw:Math.PI,riding:false,speed:0,guest:true}]}));}));
   await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   const state=()=>page.evaluate(()=>(window as any).__lepak.stallVoice);
   await expect.poll(async()=>(await state()).playing).toBe(true);
