@@ -70,6 +70,7 @@ import { setupExitConfirmation, setupPageExitWarning } from './exit-confirm';
 import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
+import {createMamakSteam} from './mamak-steam';
 import {setupGeng, type GengEvent, type GengState} from './geng';
 import {setupFriends, type FriendEvent, type FriendState} from './friends';
 
@@ -168,6 +169,8 @@ async function init() {
   const clouds=createClouds(scene);
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
+  const mamakSteam=createMamakSteam(scene);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakSteam',{get:()=>({visible:mamakSteam.visible,count:mamakSteam.count})});
   const shopAssets = loadMamakShops(scene, world.shopFallbacks);
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
@@ -2277,6 +2280,7 @@ async function init() {
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled);
     sky.update(elapsed,reducedMotion,skyDining);
     clouds.update(elapsed,camera,reducedMotion,graphicsQuality==='smooth'||(graphicsQuality==='auto'&&(touch||autoReduced)));
+    mamakSteam.update(elapsed,started&&!paused&&!document.hidden&&!reducedMotion&&mamakAssetState==='ready'&&Math.hypot(pos.x+29,pos.z-46)<35&&graphicsQuality!=='smooth'&&!autoReduced);
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
