@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.39.46",
+    "date": "2026-09-11",
+    "title": "Jemputan pemain kembali sebagai Party",
+    "notes": [
+      "Pilihan pada menu pemain kini dinamakan semula kepada Invite to Party."
+    ]
+  },
+  {
     "version": "1.39.45",
     "date": "2026-09-11",
     "title": "Name tag pemain lain lebih kemas",
