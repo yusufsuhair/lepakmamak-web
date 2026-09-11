@@ -1,0 +1,77 @@
+{
+  "passed": true,
+  "assets": [
+    {
+      "name": "LM_TREE_RainTree",
+      "bytes": 31516,
+      "triangles": 356,
+      "draws": 2,
+      "bounds_m": {
+        "min": [
+          -3.9574737548828125,
+          0,
+          -3.299999952316284
+        ],
+        "max": [
+          4.007473945617676,
+          7.247524738311768,
+          3.25
+        ]
+      },
+      "sha256": "73a9498480d67856e4275efa3a9998edf5ac3d2c6e4eda3bd39a33824b6d481d",
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 2
+      }
+    },
+    {
+      "name": "LM_TREE_CoconutPalm",
+      "bytes": 103220,
+      "triangles": 1392,
+      "draws": 3,
+      "bounds_m": {
+        "min": [
+          -4.05031681060791,
+          0,
+          -4.899753570556641
+        ],
+        "max": [
+          5.640000343322754,
+          7.259345531463623,
+          4.901338577270508
+        ]
+      },
+      "sha256": "262e59e7a8fb7755ed8f5e01a7dac515690c156356364adedeef831207d513c1",
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    },
+    {
+      "name": "LM_PROP_PalmMamak",
+      "bytes": 110948,
+      "triangles": 1496,
+      "draws": 3,
+      "bounds_m": {
+        "min": [
+          -3.272756576538086,
+          0,
+          -3.3418467044830322
+        ],
+        "max": [
+          3.8423848152160645,
+          7.062332630157471,
+          3.413996458053589
+        ]
+      },
+      "sha256": "a38a2fae5e5220fd9535316a12909bda49804ced7bd89b2368c42918f3e00f24",
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    }
+  ]
+}

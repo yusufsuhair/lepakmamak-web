@@ -300,7 +300,9 @@ def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None, t
                 check(not bsdf.inputs["Base Color"].is_linked and not bsdf.inputs["Emission Color"].is_linked, f"Baked direct lighting not in counter profile: {name}")
                 check(bsdf.inputs["Normal"].is_linked and bsdf.inputs["Normal"].links[0].from_node.type == "NORMAL_MAP", f"Tangent normal must reach shader: {name}")
             check(len(mat.node_tree.links) == (4 if textured else 3 if vertex_ao else 1) and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
-        check(mat.use_backface_culling, f"Single-sided material required: {name}")
+        allowed_double_sided = set((budget_overrides or {}).get("allow_double_sided_materials", []))
+        check(mat.use_backface_culling or name in allowed_double_sided,
+              f"Single-sided material required unless explicitly budgeted: {name}")
     budget = {**CONFIG["budgets"], **(budget_overrides or {})}
     check(triangles <= budget["max_triangles"], "Triangle budget exceeded")
     check(mesh_count <= budget["max_meshes"], "Mesh budget exceeded")

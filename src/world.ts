@@ -14,6 +14,7 @@ import {createTaycan} from './taycan';
 import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
+import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {loadPetronas, type PetronasSite} from './petronas';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
@@ -316,6 +317,7 @@ function tree(parent: THREE.Object3D, x: number, z: number, scale = 1) {
   for (const [dx, dy, dz, r] of [[0, 5.4, 0, 2.4], [-1.5, 4.6, .6, 1.8], [1.3, 5, -.6, 1.9]]) {
     const b = ball(group, dx, dy, dz, r, dy > 5 ? '#658853' : '#53764d'); b.scale.y *= .85;
   }
+  queueFoliage(parent,'rain-tree',{x,y:0,z,yaw:foliageYaw(x,z),scale},group);
 }
 export function palm(parent: THREE.Object3D, x: number, z: number, size = 1) {
   const group = new THREE.Group(); group.position.set(x, 0, z); group.scale.setScalar(size); parent.add(group);
@@ -334,6 +336,7 @@ export function palm(parent: THREE.Object3D, x: number, z: number, size = 1) {
     const mat = material(j % 2 ? '#577a3c' : '#6f9046'); mat.side = THREE.DoubleSide;
     const leaf = new THREE.Mesh(geometry, mat); leaf.position.set(.35, 7, 0); leaf.rotation.y = j * Math.PI * 2 / 9; leaf.castShadow = true; group.add(leaf);
   }
+  queueFoliage(parent,'coconut-palm',{x,y:0,z,yaw:foliageYaw(x,z),scale:size},group);
 }
 
 /** Rahim’s ice-cream kapcai, with a seated vendor and animated wheels. */
@@ -666,7 +669,7 @@ function createProceduralCar(style: Exclude<CarStyle, 'emas'>) {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; rembayung:RembayungSite; petronas:PetronasSite }
+export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; foliage:typeof foliageStatus; rembayung:RembayungSite; petronas:PetronasSite }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -1467,7 +1470,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, rembayung, petronas };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, foliage:foliageStatus, rembayung, petronas };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can

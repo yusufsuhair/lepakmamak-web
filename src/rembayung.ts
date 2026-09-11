@@ -45,7 +45,9 @@ function proceduralFallback():THREE.Group {
   for(const f of REMBAYUNG.furniture)box(f.x,f.floor+(f.id.startsWith('Dining table')?.76:.46),f.d,f.hx*2,.09,f.hd*2,mats.wood);
   box(-2.75,.7,2.1,3.73,1.4,.86,mats.wood);
   box(0,2.3,15.9,.20,4.6,.20,mats.wood);
-  const tree=new THREE.Mesh(new THREE.IcosahedronGeometry(2.3,1),mats.leaf);tree.position.set(0,4.8,-15.9);group.add(tree);
+  for(const [x,y,d,sx,sy,sz] of [[0,5.1,15.9,2.1,1.15,1.8],[-1.45,4.7,15.55,1.4,.85,1.25],[1.35,4.9,16.2,1.5,.9,1.25],[-.4,5.45,14.8,1.35,.75,1.15],[.55,5.5,17,1.35,.75,1.15]] as const){
+    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),mats.leaf);crown.position.set(x,y,-d);crown.scale.set(sx,sy,sz);group.add(crown);
+  }
   for(const x of [-9,-6,-3,0,3,6,9]){
     const height=14.1-Math.abs(x)/9*6.6;
     box(x,(height+2.8)/2,0,.065,height-2.8,.09,mats.steel);

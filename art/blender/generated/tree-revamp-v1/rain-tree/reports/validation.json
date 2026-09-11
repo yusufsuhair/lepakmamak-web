@@ -1,0 +1,51 @@
+{
+  "LM_TREE_RainTree": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        4.007473945617676,
+        3.299999952316284,
+        7.247524738311768
+      ],
+      "min": [
+        -3.9574737548828125,
+        -3.25,
+        0.0
+      ],
+      "size": [
+        7.964947700500488,
+        6.549999952316284,
+        7.247524738311768
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 3,
+      "max_glb_bytes": 131072,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1800
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 31516,
+      "nodes": [
+        "LM_TREE_RainTree"
+      ],
+      "primitives": 2,
+      "sha256": "73a9498480d67856e4275efa3a9998edf5ac3d2c6e4eda3bd39a33824b6d481d"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_TREE_RainTree"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "27efbe0376e8c0aa6ce7b93e06f7c862ce6dbe9ec34bdd42be0f6effa334cd62",
+    "triangles": 356
+  }
+}

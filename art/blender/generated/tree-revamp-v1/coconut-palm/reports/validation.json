@@ -1,0 +1,55 @@
+{
+  "LM_TREE_CoconutPalm": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        5.640000343322754,
+        4.899753570556641,
+        7.259345531463623
+      ],
+      "min": [
+        -4.05031681060791,
+        -4.901338577270508,
+        0.0
+      ],
+      "size": [
+        9.690317153930664,
+        9.801092147827148,
+        7.259345531463623
+      ]
+    },
+    "budgets": {
+      "allow_double_sided_materials": [
+        "LM_Leaf_Green"
+      ],
+      "max_draw_calls": 3,
+      "max_glb_bytes": 131072,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1800
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 103220,
+      "nodes": [
+        "LM_TREE_CoconutPalm"
+      ],
+      "primitives": 3,
+      "sha256": "262e59e7a8fb7755ed8f5e01a7dac515690c156356364adedeef831207d513c1"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Wall_Cream",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_TREE_CoconutPalm"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "d5250c1139c92adc20769a93d773b2b31fdbe5580666be4e2e317acd31ca6c2a",
+    "triangles": 1392
+  }
+}

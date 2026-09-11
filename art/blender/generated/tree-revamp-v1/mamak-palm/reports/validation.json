@@ -1,0 +1,55 @@
+{
+  "LM_PROP_PalmMamak": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        3.8423848152160645,
+        3.3418467044830322,
+        7.062332630157471
+      ],
+      "min": [
+        -3.272756576538086,
+        -3.413996458053589,
+        0.0
+      ],
+      "size": [
+        7.11514139175415,
+        6.755843162536621,
+        7.062332630157471
+      ]
+    },
+    "budgets": {
+      "allow_double_sided_materials": [
+        "LM_Leaf_Green"
+      ],
+      "max_draw_calls": 3,
+      "max_glb_bytes": 131072,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1800
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 110948,
+      "nodes": [
+        "LM_PROP_PalmMamak"
+      ],
+      "primitives": 3,
+      "sha256": "a38a2fae5e5220fd9535316a12909bda49804ced7bd89b2368c42918f3e00f24"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Wall_Cream",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_PROP_PalmMamak"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "4a5972fa51c034b7b3045bf4f11d6ee08cc9227dc4d83138479d4f4e4f3b04aa",
+    "triangles": 1496
+  }
+}

@@ -200,6 +200,7 @@ async function init() {
   const clouds=createClouds(scene);
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakFoliage',{get:()=>({...world.foliage})});
   void preparePetronasEnvironment(renderer,world.petronas);
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakPetronas',{get:()=>({...world.petronas.status,fallbackVisible:world.petronas.fallback.visible})});
   const mamakSteam=createMamakSteam(scene);
