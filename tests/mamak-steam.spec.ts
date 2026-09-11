@@ -10,7 +10,7 @@ for(const reduced of [false,true])test(`tea steam respects reduced motion (${red
  expect(await page.evaluate(()=>(window as any).__lepakMamakSteam.count)).toBeGreaterThan(0);
  await page.locator('#menu').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakSteam.visible)).toBe(false);
- await page.selectOption('#graphics-quality','smooth');
+ await page.selectOption('#graphics-quality','low');
  await page.keyboard.press('Escape');
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakMamakSteam.visible)).toBe(false);
  expect(errors).toEqual([]);
