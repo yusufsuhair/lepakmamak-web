@@ -44,6 +44,7 @@ try {
   await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Vehicle QA');
   await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   await page.getByText('CITY ONLINE',{exact:true}).waitFor({timeout:30000});
+  await page.locator('#loading').waitFor({state:'hidden',timeout:30000});
   await page.screenshot({path:path.join(output,'dev-game-mobile.png')});
   assert.deepEqual(errors,[]);
   const report={base,verifiedAssets:manifest.length,states,errors,cityOnline:true};
