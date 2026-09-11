@@ -49,6 +49,7 @@
 #game-geng .geng-member-copy strong{overflow-wrap:anywhere}
 #game-geng .geng-member-copy small{margin:0;color:#718372;font-size:8px;font-weight:800;letter-spacing:.08em}
 #game-geng .geng-member-leader{flex:none;padding:4px 6px;border-radius:5px;background:#f0d18b;color:#644716;font:800 8px 'Oxanium';letter-spacing:.08em}
+#game-geng .geng-request .geng-member-profile{flex:1;width:auto;min-width:0}
 #game-geng .geng-request-actions{display:flex;gap:5px}
 #game-geng .geng-request-actions button:first-child{background:#2d674f;color:#f4f2d9;border-color:#2d674f}
 #game-geng .geng-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}

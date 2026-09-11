@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.44",
+    "date": "2026-09-11",
+    "title": "Profile pemohon Geng boleh dibuka",
+    "notes": [
+      "Geng leader kini boleh menekan nama pengguna dalam Join Requests untuk melihat profile mereka sebelum membuat keputusan.",
+      "Butang Approve dan Decline kekal berasingan supaya membuka profile tidak menerima atau menolak permohonan secara tidak sengaja."
+    ]
+  },
+  {
     "version": "1.39.43",
     "date": "2026-09-11",
     "title": "Boleh login semula selepas logout",

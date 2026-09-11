@@ -186,8 +186,9 @@ test('Open Gengs show their leader, open a clickable roster, and notify leaders 
   await expect(page.locator('body')).toHaveAttribute('data-profile', `${MEMBER}|Aina`);
 
   await page.evaluate(() => {
-    (window as any).geng.close();
     (window as any).geng.state({balance: 500, current: {id: '00000000-0000-4000-8000-000000000101', name: 'Budak Mamak', leaderName: 'Yusuf', leader: true, memberCount: 2}, members: [{id: '00000000-0000-4000-8000-000000000001', name: 'Yusuf', leader: true}, {id: '00000000-0000-4000-8000-000000000002', name: 'Aina', leader: false}], pending: [{id: '00000000-0000-4000-8000-000000000003', name: 'Farah'}], guilds: []});
   });
   await expect(page.locator('body')).toHaveAttribute('data-geng-event', 'request-received:1');
+  await page.getByRole('button', {name: 'View profile of Farah'}).click();
+  await expect(page.locator('body')).toHaveAttribute('data-profile', '00000000-0000-4000-8000-000000000003|Farah');
 });

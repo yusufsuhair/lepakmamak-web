@@ -118,15 +118,15 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
     const pendingWrap = el('geng-pending-wrap'), pending = el('geng-pending'); pending.replaceChildren();
     pendingWrap.hidden = !state.current?.leader || !state.pending.length;
     for (const applicant of state.pending) {
-      const row = document.createElement('li');
-      const name = document.createElement('strong'); name.textContent = applicant.name;
+      const row = memberRow({id: applicant.id, name: applicant.name, leader: false});
+      row.classList.add('geng-request');
       const actions = document.createElement('span'); actions.className = 'geng-request-actions';
       for (const [approved, label] of [[true, 'Approve'], [false, 'Decline']] as const) {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.dataset.userId = applicant.id; button.dataset.approved = String(approved); button.disabled = busy;
         button.onclick = () => void decide(applicant.id, approved);
         actions.append(button);
       }
-      row.append(name, actions); pending.append(row);
+      row.append(actions); pending.append(row);
     }
   }
 
