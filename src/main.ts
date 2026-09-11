@@ -55,6 +55,7 @@ import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
+import { loadWebAsset, type WebAssetState } from './web-assets';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -162,6 +163,17 @@ async function init() {
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   const world = createWorld(scene);
+  let mamakAssetState: WebAssetState = 'loading';
+  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+    .then(asset => {
+      world.mamakProcedural.visible = false;
+      mamakAssetState = 'ready';
+      asset.userData.source = 'blender-glb';
+    })
+    .catch(error => {
+      mamakAssetState = 'fallback';
+      console.warn('[web-assets] Mamak Maju GLB unavailable; keeping procedural fallback', error);
+    });
   const park = createLegoland(scene,world,{
     send:message=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify(message));},
     online:()=>networkConnected,
@@ -2373,7 +2385,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(), angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
   showLoading('Ready to lepak', 'The city is ready.', 100);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));

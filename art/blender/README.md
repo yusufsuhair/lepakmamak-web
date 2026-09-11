@@ -1,6 +1,6 @@
 # LepakMamak Blender web-asset pipeline
 
-Reproducible starting point for **Blender 5.2 LTS → GLB → Three.js**. The initial profile supports small, opaque, unrigged, untextured static meshes. It does not replace any game asset or change the live game.
+Reproducible starting point for **Blender 5.2 LTS → GLB → Three.js**. The initial profile supports small, opaque, unrigged, untextured static meshes. The first local runtime pilot is the Mamak Maju visual shell; production deployment remains a separate release step.
 
 ## Build and verify
 
@@ -12,6 +12,11 @@ python3 art/blender/scripts/verify.py --generated /tmp/lepakmamak-assets-v1
 ```
 
 The output directory must be absent or empty for a new build. `verify.py` can also verify an unchanged existing build. It refuses stale scripts/config or modified artifacts; use a fresh output directory when iterating. Hand-edited `.blend` files are never overwritten. The supplied completed build is in `art/blender/generated/`.
+
+The first real pilot is in `art/blender/generated/mamak-maju/`. Its runtime copy is
+`public/assets/models/environment/LM_ENV_MamakMaju.glb`; `src/web-assets.ts` loads it at
+`(-29, 0, 30)` and hides only the Mamak Maju building-shell fallback after a successful load.
+The existing table positions, seats, collision solids and procedural fallback remain available.
 
 On Linux/Windows or another Blender installation, pass `--blender /path/to/blender` or set `BLENDER_BIN`. Run generation in a separate background Blender process: it resets that process's scene, without touching an open interactive Blender session.
 
@@ -40,6 +45,9 @@ For generation alone:
 | `reports/three-validation.json` | GLTFLoader dimensions, materials, normals, counts and origin |
 | `reports/reproducibility.json` | Clean-rebuild hash comparison and source preservation |
 | `reports/browser-tests.json` | Desktop/mobile viewport WebGL smoke tests, when run |
+| `mamak-maju/source/LM_ENV_MamakMaju.blend` | Editable first environment pilot |
+| `mamak-maju/exports/LM_ENV_MamakMaju.glb` | Runtime Mamak Maju building shell |
+| `mamak-maju/reports/` | Pilot source, GLB and Three.js validation evidence |
 
 The saved template and asset are reopened before validation/export. Exports are staged and promoted only after validation. Saved sources, previews and reports stay under `art/`; copy only approved GLBs to `public/assets/models/...` when integrating a real game asset. The test cube is intentionally not loaded by the game or shipped through `public/`.
 
@@ -96,5 +104,10 @@ Save a copy of the template, model under EXPORT and reuse the palette. This comm
 Add `--scale-test` only for the calibration cube. `tools/validate-glb.mjs` currently adds cube-specific assertions to Khronos validation; adapt those assertions when introducing another asset profile. Never auto-apply transforms to a rig with this static pipeline.
 
 GLB byte reproducibility is enforced on a clean rebuild using the same Blender build/config/scripts. `.blend` files may contain file paths/session data and are not promised to be byte-identical. Preview PNGs omit timestamp, render-duration and source-path metadata. Their hash matches are recorded but may differ across GPU/driver/Blender versions.
+
+The game integration is covered by `tests/mamak-asset.spec.ts`; it checks that the runtime GLB
+is served as a binary model and that the fallback group becomes hidden only after the asset is
+ready. If the GLB request fails, the game reports `fallback` in `window.__lepak.mamakMaju` and
+continues with the existing procedural shell.
 
 References: [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator), [Three.js GLTFLoader](https://threejs.org/docs/#GLTFLoader). Export options were also checked against the installed Blender 5.2.1 operator API.

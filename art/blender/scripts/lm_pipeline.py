@@ -206,7 +206,7 @@ def add_scale_guides():
     guide.hide_render = True
 
 
-def validate_scene(scale_test=False, allow_empty=False):
+def validate_scene(scale_test=False, allow_empty=False, budget_overrides=None):
     """Fail closed for the initial opaque, unrigged, untextured static-mesh profile."""
     require_version()
     errors = []
@@ -271,7 +271,7 @@ def validate_scene(scale_test=False, allow_empty=False):
             check(bsdf.inputs["Transmission Weight"].default_value == 0, f"Transmission not in mobile profile: {name}")
             check(len(mat.node_tree.links) == 1 and any(l.from_node == bsdf and l.to_node.type == "OUTPUT_MATERIAL" and l.to_socket.name == "Surface" for l in mat.node_tree.links), f"Invalid surface connection: {name}")
         check(mat.use_backface_culling, f"Single-sided material required: {name}")
-    budget = CONFIG["budgets"]
+    budget = {**CONFIG["budgets"], **(budget_overrides or {})}
     check(triangles <= budget["max_triangles"], "Triangle budget exceeded")
     check(mesh_count <= budget["max_meshes"], "Mesh budget exceeded")
     check(mesh_count > 0 or allow_empty, "EXPORT requires at least one mesh")
@@ -296,8 +296,9 @@ def validate_scene(scale_test=False, allow_empty=False):
     return result
 
 
-def export_collection(path, scale_test=False):
-    result = validate_scene(scale_test=scale_test)
+def export_collection(path, scale_test=False, budget_overrides=None):
+    budget = {**CONFIG["budgets"], **(budget_overrides or {})}
+    result = validate_scene(scale_test=scale_test, budget_overrides=budget)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -305,12 +306,12 @@ def export_collection(path, scale_test=False):
     # Export and verify in staging; failed exports never become accepted artifacts.
     with tempfile.TemporaryDirectory(prefix=".staging-", dir=path.parent) as directory:
         staged = Path(directory) / path.name
-        result = _export_validated(staged, result)
+        result = _export_validated(staged, result, budget)
         staged.replace(path)
     return result
 
 
-def _export_validated(path, result):
+def _export_validated(path, result, budget):
     # Named collection filtering includes descendants; selection and active UI state are irrelevant.
     bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", collection="EXPORT",
         use_selection=False, use_active_collection=False, export_yup=True,
@@ -331,23 +332,23 @@ def _export_validated(path, result):
         raise ValueError(f"EXPORT collection boundary mismatch: {exported_names}")
     if document.get("cameras") or document.get("animations") or document.get("skins") or document.get("textures") or "KHR_lights_punctual" in document.get("extensionsUsed", []):
         raise ValueError("Unexpected camera/light/animation/skin/texture in static GLB")
-    if len(data) > CONFIG["budgets"]["max_glb_bytes"]:
+    if len(data) > budget["max_glb_bytes"]:
         raise ValueError("GLB byte budget exceeded")
     primitives = sum(len(document["meshes"][node["mesh"]]["primitives"]) for node in document.get("nodes", []) if "mesh" in node)
-    if primitives > CONFIG["budgets"]["max_draw_calls"]:
+    if primitives > budget["max_draw_calls"]:
         raise ValueError("GLB draw-call budget exceeded")
     result["glb"] = {"bytes": len(data), "sha256": sha256(path), "nodes": exported_names,
                      "primitives": primitives}
     return result
 
 
-def render_previews(output):
+def render_previews(output, asset_name=ASSET):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     scene = bpy.context.scene
     for angle in ("Iso", "Front", "Right", "Top"):
         scene.camera = bpy.data.objects[f"LM_PREVIEW_{angle}_Camera"]
-        scene.render.filepath = str(output / f"{ASSET}_{angle.lower()}.png")
+        scene.render.filepath = str(output / f"{asset_name}_{angle.lower()}.png")
         bpy.ops.render.render(write_still=True)
     scene.camera = bpy.data.objects["LM_PREVIEW_Iso_Camera"]
 

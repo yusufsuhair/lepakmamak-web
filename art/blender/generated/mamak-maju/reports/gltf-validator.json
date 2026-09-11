@@ -1,12 +1,12 @@
 {
-  "uri": "LM_TEST_ScaleMeter.glb",
+  "uri": "LM_ENV_MamakMaju.glb",
   "mimeType": "model/gltf-binary",
   "validatorVersion": "2.0.0-dev.3.10",
-  "validatedAt": "2026-09-11T04:32:27.068Z",
+  "validatedAt": "2026-09-11T04:31:16.673Z",
   "issues": {
     "numErrors": 0,
     "numWarnings": 0,
-    "numInfos": 3,
+    "numInfos": 4,
     "numHints": 0,
     "messages": [
       {
@@ -26,6 +26,12 @@
         "message": "This object may be unused.",
         "severity": 2,
         "pointer": "/meshes/0/primitives/2/attributes/TEXCOORD_0"
+      },
+      {
+        "code": "UNUSED_OBJECT",
+        "message": "This object may be unused.",
+        "severity": 2,
+        "pointer": "/meshes/0/primitives/3/attributes/TEXCOORD_0"
       }
     ],
     "truncated": false
@@ -38,18 +44,18 @@
         "pointer": "/buffers/0",
         "mimeType": "application/gltf-buffer",
         "storage": "glb",
-        "byteLength": 828
+        "byteLength": 62832
       }
     ],
     "animationCount": 0,
-    "materialCount": 3,
+    "materialCount": 4,
     "hasMorphTargets": false,
     "hasSkins": false,
     "hasTextures": false,
     "hasDefaultScene": true,
-    "drawCallCount": 3,
-    "totalVertexCount": 24,
-    "totalTriangleCount": 12,
+    "drawCallCount": 4,
+    "totalVertexCount": 1824,
+    "totalTriangleCount": 912,
     "maxUVs": 1,
     "maxInfluences": 0,
     "maxAttributes": 3

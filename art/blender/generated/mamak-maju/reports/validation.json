@@ -1,0 +1,50 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "bounds_blender_m": {
+    "max": [
+      15.600000381469727,
+      7.599999904632568,
+      9.949999809265137
+    ],
+    "min": [
+      -15.600000381469727,
+      -7.724999904632568,
+      0.0
+    ],
+    "size": [
+      31.200000762939453,
+      15.324999809265137,
+      9.949999809265137
+    ]
+  },
+  "budgets": {
+    "max_draw_calls": 4,
+    "max_glb_bytes": 131072,
+    "max_materials": 4,
+    "max_meshes": 4,
+    "max_textures": 0,
+    "max_triangles": 1000
+  },
+  "errors": [],
+  "glb": {
+    "bytes": 66732,
+    "nodes": [
+      "LM_ENV_MamakMaju"
+    ],
+    "primitives": 4,
+    "sha256": "0bca42bed0e73c96796807dd35597d78af1a696e25875a089544da67c6e46f26"
+  },
+  "materials": [
+    "LM_Metal_Dark",
+    "LM_Roof_Red",
+    "LM_Wall_Cream",
+    "LM_Wood_Warm"
+  ],
+  "mesh_count": 1,
+  "objects": [
+    "LM_ENV_MamakMaju"
+  ],
+  "passed": true,
+  "profile": "static-palette",
+  "triangles": 912
+}

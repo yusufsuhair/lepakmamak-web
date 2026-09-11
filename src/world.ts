@@ -607,7 +607,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[] }
+export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -721,29 +721,33 @@ export function createWorld(scene: THREE.Scene): World {
 
   // Mamak, open ground floor and striped canopy, facing the courtyard to the south.
   const mx = -29, mz = 34;
-  box(group, mx, .08, 41, 37, .25, 30, '#d7c7a7');
+  const mamakProcedural = new THREE.Group(); mamakProcedural.name = 'mamak-procedural-fallback'; group.add(mamakProcedural);
+  // Keep the fallback in its own group so the GLB replaces only the building shell while
+  // the existing table, chair, collision and social interactions remain authoritative.
+  const mamakBox = (x: number, y: number, z: number, w: number, h: number, d: number, color: string) => box(mamakProcedural, x, y, z, w, h, d, color);
+  mamakBox(mx, .08, 41, 37, .25, 30, '#d7c7a7');
     // The nine-seat table sits past the south edge of that slab, so the paving reaches out
     // to meet it rather than leaving it stranded on bare ground.
-    box(group, -34, .08, 59, 15, .25, 13, '#d7c7a7');
-  block(mx, mz - 4, 30, 8.8, 9, '#e7c78c');
-  box(group, mx, 8.95, mz - 4, 31, .4, 10, '#ab8d66');
+    mamakBox(-34, .08, 59, 15, .25, 13, '#d7c7a7');
+  mamakBox(mx, 4.4, mz - 4, 30, 8.8, 9, '#e7c78c'); solid(mx, mz - 4, 30, 9); mapBuildings.push({ x: mx, z: mz - 4, w: 30, d: 9, color: '#e7c78c' });
+  mamakBox(mx, 8.95, mz - 4, 31, .4, 10, '#ab8d66');
   for (const x of [-39, -29, -19]) {
-    box(group, x, 6.65, 34.6, 3.2, 2.5, .16, '#446e65');
-    box(group, x, 6.65, 34.72, .12, 2.5, .12, '#dfcea4');
-    box(group, x, 6.65, 34.72, 3.2, .12, .12, '#dfcea4');
-    box(group, x, 5.22, 34.9, 3.7, .16, .62, '#f5dbae');
+    mamakBox(x, 6.65, 34.6, 3.2, 2.5, .16, '#446e65');
+    mamakBox(x, 6.65, 34.72, .12, 2.5, .12, '#dfcea4');
+    mamakBox(x, 6.65, 34.72, 3.2, .12, .12, '#dfcea4');
+    mamakBox(x, 5.22, 34.9, 3.7, .16, .62, '#f5dbae');
   }
-  for (const x of [-44, -14]) { box(group, x, 1.9, 40, .36, 3.8, .36, '#d7c4a0'); solid(x, 40, .36, .36); }
+  for (const x of [-44, -14]) { mamakBox(x, 1.9, 40, .36, 3.8, .36, '#d7c4a0'); solid(x, 40, .36, .36); }
   for (let i = 0; i < 20; i++) {
-    const awning = box(group, -43.5 + i * 1.53, 4.3, 38.3, 1.54, .17, 8, i % 2 ? '#eee2bd' : '#427863'); awning.rotation.x = .12;
-    box(group, -43.5 + i * 1.53, 3.64, 42.2, 1.54, .53, .12, i % 2 ? '#eee2bd' : '#427863');
+    const awning = mamakBox(-43.5 + i * 1.53, 4.3, 38.3, 1.54, .17, 8, i % 2 ? '#eee2bd' : '#427863'); awning.rotation.x = .12;
+    mamakBox(-43.5 + i * 1.53, 3.64, 42.2, 1.54, .53, .12, i % 2 ? '#eee2bd' : '#427863');
   }
-  sign(group, 'MAMAK MAJU', mx, 4.96, 35, 20, 2.05, '#255846', '#f9e7b2');
-  sign(group, 'RESTORAN • BUKA 24 JAM', mx, 8.03, 34.72, 18, .8, '#e7c78c', '#654c32');
-  sign(group, 'ROTI CANAI   ·   TEH TARIK   ·   NASI KANDAR', mx, 3.36, 34.69, 25, .73, '#efdbad', '#3b6555');
-  box(group, -39, 1.04, 37, 7, 1.8, 1.8, '#b3c3b6'); solid(-39, 37, 7, 1.8);
-  box(group, -39, 2.02, 37, 7.3, .13, 2.1, '#e2ddc5');
-  for (let i = 0; i < 5; i++) { tube(group, -41.3 + i * 1.14, 2.19, 37, .43, .23, '#899f99'); tube(group, -41.3 + i * 1.14, 2.34, 37, .1, .09, '#485f56'); }
+  sign(mamakProcedural, 'MAMAK MAJU', mx, 4.96, 35, 20, 2.05, '#255846', '#f9e7b2');
+  sign(mamakProcedural, 'RESTORAN • BUKA 24 JAM', mx, 8.03, 34.72, 18, .8, '#e7c78c', '#654c32');
+  sign(mamakProcedural, 'ROTI CANAI   ·   TEH TARIK   ·   NASI KANDAR', mx, 3.36, 34.69, 25, .73, '#efdbad', '#3b6555');
+  mamakBox(-39, 1.04, 37, 7, 1.8, 1.8, '#b3c3b6'); solid(-39, 37, 7, 1.8);
+  mamakBox(-39, 2.02, 37, 7.3, .13, 2.1, '#e2ddc5');
+  for (let i = 0; i < 5; i++) { tube(mamakProcedural, -41.3 + i * 1.14, 2.19, 37, .43, .23, '#899f99'); tube(mamakProcedural, -41.3 + i * 1.14, 2.34, 37, .1, .09, '#485f56'); }
   // The big table: nine seats, so a full Werewolf village can sit at one table instead of
   // scattering across the mamak. Its chairs are drawn from chairs.json, so the seat you
   // can see is the seat the server will sit you in.
@@ -779,6 +783,7 @@ export function createWorld(scene: THREE.Scene): World {
   for (const x of [-20, -17]) box(group, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
   const customer = createPerson('#829fac', true); customer.group.position.set(-29, .05, 46.7); customer.group.rotation.y = Math.PI; group.add(customer.group);
+  mamakProcedural.traverse(object => { object.userData.keepUnbatched = true; });
 
   const shopColors = ['#d8ac89', '#c0c9a4', '#c6aba0', '#edcf93', '#a4baba', '#d7b9a0'];
   function shop(x: number, z: number, width: number, color: string, label: string, facing = 0) {
@@ -1309,7 +1314,7 @@ export function createWorld(scene: THREE.Scene): World {
   const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const sources: THREE.Mesh[] = [];
   group.traverse(obj => {
-    if (!(obj instanceof THREE.Mesh) || Array.isArray(obj.material)) return;
+    if (!(obj instanceof THREE.Mesh) || Array.isArray(obj.material) || obj.userData.keepUnbatched) return;
     const geometry = obj.geometry.clone().applyMatrix4(obj.matrixWorld);
     if (!geometry.getAttribute('uv')) geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(geometry.getAttribute('position').count * 2), 2));
     const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
@@ -1347,7 +1352,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can
