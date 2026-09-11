@@ -54,7 +54,7 @@ import * as THREE from 'three';
 import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, type CarStyle, type KlccLift } from './world';
+import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -1376,7 +1376,7 @@ async function init() {
     if (lift) { startKlccLift(lift, klccLiftRide?.phase === 'top' ? 'down' : 'up'); return; }
     if (riding) {
       if (Math.abs(speed) > 1.5) { toast('Slow down dulu', 'Hold Space to brake before getting off.', 2); return; }
-      const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => ({ x: c.x, z: c.z, hx: 1.8, hz: 1.8 }))], vehicle === 'car' ? 2.7 : 2.2);
+      const exit = safeDismount(pos, yaw, [...world.solids, ...world.traffic.map(c => vehicleSolid(c.group,c.x,c.z,c.yaw))], vehicle === 'car' ? 2.7 : 2.2);
       if (!exit) { toast('A little more room', 'Move the bike to an open spot before getting off.', 2); return; }
       riding = false; localSupermanUntil=0; speed = 0; pos.set(exit.x, .12, exit.z); player.group.visible = true; bike.rider.visible = false; car.driver.visible = false; return;
     }
@@ -1913,11 +1913,11 @@ async function init() {
       if (!paused) updateKlccLift(dt);
       const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
       const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
-      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => ({ x: c.x, z: c.z, hx: 1.2+Math.abs(Math.sin(c.yaw))*1.1, hz: 1.2+Math.abs(Math.cos(c.yaw))*1.1 }));
+      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => vehicleSolid(c.group,c.x,c.z,c.yaw));
       const solids = [...world.solids, ...dynamicSolids];
       if(skyDining){solids.length=0;solids.push(...sky.solids);}
       if (!skyDining && (!riding || vehicle !== 'bike')) solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
-      if (!skyDining && (!riding || vehicle !== 'car'||car!==personalCar)) solids.push({ x: personalCar.group.position.x, z: personalCar.group.position.z, hx: 1.8, hz: 1.8 });
+      if (!skyDining && (!riding || vehicle !== 'car'||car!==personalCar)) solids.push(vehicleSolid(personalCar.group));
       if(klccLiftRide?.phase === 'moving'){
         walkSpeed=0;
       } else {

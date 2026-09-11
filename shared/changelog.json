@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.37",
+  "date": "2026-09-11",
+  "title": "Collision ikut bentuk sebenar",
+  "notes": [
+    "Laman terbuka Masjid Kampung Maju kini boleh dilalui; hanya dewan solat dan tapak menara menghalang pergerakan.",
+    "Semua kereta kini menggunakan footprint badan sebenar yang berpusing bersama kenderaan, jadi tiada lagi invisible wall besar di sisi kereta.",
+    "Sentuhan objek masih kukuh pada dinding dan badan kenderaan tanpa menjejaskan teleport, kerusi atau laluan bandar."
+  ]
+},
+{
   "version": "1.39.36",
   "date": "2026-09-11",
   "title": "Legoland lebih jelas, game lebih selesa",

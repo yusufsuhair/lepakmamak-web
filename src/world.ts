@@ -414,14 +414,25 @@ function createKlccLift(parent: THREE.Object3D, x: number, z: number, id: string
 const carGlass = new THREE.MeshStandardMaterial({ color: '#93c5cf', transparent: true, opacity: .3, roughness: .2 });
 export type CarStyle = 'axia' | 'myvi' | 'avanza' | 'vellfire' | 'suv' | 'sport' | 'ferrari' | 'lamborghini' | 'f1' | 'model-y' | 'cybertruck' | 'police' | 'taycan' | 'gt3-rs';
 export const carStyles: CarStyle[] = ['axia', 'myvi', 'avanza', 'vellfire', 'suv', 'sport', 'ferrari', 'lamborghini', 'f1', 'model-y', 'cybertruck', 'police', 'taycan', 'gt3-rs'];
+export interface VehicleFootprint { width: number; length: number }
+function setVehicleFootprint(group: THREE.Group, width: number, length: number) {
+  group.userData.vehicleFootprint = {width, length} satisfies VehicleFootprint;
+}
+export function vehicleSolid(group: THREE.Group, x = group.position.x, z = group.position.z, yaw = group.rotation.y): Solid {
+  const footprint = group.userData.vehicleFootprint as VehicleFootprint | undefined;
+  const width = footprint?.width || 1.9, length = footprint?.length || 4;
+  return {x, z, hx: width / 2, hz: length / 2, yaw, id: 'vehicle'};
+}
 export function createDriveableCar(style: CarStyle = 'myvi') {
   if(style==='gt3-rs'){
     const model=createGt3Rs(),driver=createPerson('#eeeeee',true);
+    setVehicleFootprint(model.group,2.2,4.44);
     driver.group.scale.setScalar(.54);driver.group.position.set(.32,.15,-.18);driver.group.visible=false;model.group.add(driver.group);
     return{...model,driver:driver.group};
   }
   if(style==='taycan'){
     const model=createTaycan(),driver=createPerson('#e9d8c3',true);
+    setVehicleFootprint(model.group,2.16,4.44);
     driver.group.scale.setScalar(.58);driver.group.position.set(.32,.18,-.15);driver.group.visible=false;model.group.add(driver.group);
     return{...model,driver:driver.group};
   }
@@ -430,6 +441,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   const driverShirt = style === 'police' ? '#1f3f78' : '#ef734c';
   if(style==='model-y'||style==='cybertruck'){
     const truck=style==='cybertruck',w=truck?2.05:1.92,l=truck?4.8:4.25,color=truck?'#a5adb1':'#eceeea';
+    setVehicleFootprint(group,w,l);
     group.userData.model=style;
     const shell=new THREE.Shape();shell.moveTo(-l/2,.55);shell.lineTo(l/2,.55);shell.lineTo(l/2,1.02);
     if(truck){shell.lineTo(.2,2.05);shell.lineTo(-l/2,1.35);}else{shell.quadraticCurveTo(1.65,1.2,1.1,1.22);shell.bezierCurveTo(.65,2.18,-.95,2.05,-1.4,1.4);shell.quadraticCurveTo(-2.1,1.25,-l/2,1.05);}shell.closePath();
@@ -467,6 +479,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
   if (style === 'f1') {
     const red = '#d9272e', carbon = '#20292c', silver = '#d7dedb';
     group.userData.model = style;
+    setVehicleFootprint(group,1.9,4.35);
     // Low open-wheel body, long nose, cockpit and front/rear aero wings.
     box(group, 0, .43, -.15, 1.08, .36, 2.85, red);
     box(group, 0, .38, 1.6, .48, .24, 1.35, red);
@@ -501,6 +514,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
     police: { color: '#f3f5f6', roof: 2.02, cabin: 2.22, length: 3.65, width: 1.9 },
   };
   const { color, roof, cabin, length, width } = styles[style];
+  setVehicleFootprint(group,width,length);
   const sport = style === 'sport' || style === 'ferrari' || style === 'lamborghini', van = style === 'vellfire';
   const bodyY = sport ? .65 : .8, belt = sport ? .88 : 1.09;
   group.userData.model = style;
@@ -798,7 +812,14 @@ export function createWorld(scene: THREE.Scene): World {
     const mosque = createWorshipLandmark('mosque', 'MASJID KAMPUNG MAJU');
     const spot = masjidSpots[0];
     mosque.group.position.set(spot.x, 0, spot.z); mosque.group.rotation.y = Math.PI; group.add(mosque.group);
-    solid(spot.x, spot.z, mosque.width, 28);
+    // The 36 × 28 landmark bounds include the open courtyard and the air between both
+    // minarets. Treating that whole rectangle as a wall stopped players several metres
+    // before anything visible. Only the prayer hall and the two minaret bases are solid.
+    solids.push(
+      {x: spot.x, z: spot.z, hx: 12.5, hz: 7.5, id: 'masjid-prayer-hall'},
+      {x: spot.x - 15, z: spot.z, hx: 1.25, hz: 1.25, id: 'masjid-minaret-west'},
+      {x: spot.x + 15, z: spot.z, hx: 1.25, hz: 1.25, id: 'masjid-minaret-east'},
+    );
     mapBuildings.push({ x: spot.x, z: spot.z, w: mosque.width, d: 28, color: '#438d7b' });
   }
   // Neighbourhood retail fronts, with displays visible from the pavement.

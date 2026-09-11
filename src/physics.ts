@@ -1,11 +1,19 @@
 import {clampWorldPoint,insideWorld} from '../shared/world-bounds.mjs';
-export interface Solid { x: number; z: number; hx: number; hz: number }
+export interface Solid { x: number; z: number; hx: number; hz: number; yaw?: number; id?: string }
 export interface Point { x: number; z: number }
 export const WORLD_LIMIT = 153;
 
 export function overlaps(point: Point, radius: number, solid: Solid): boolean {
-  const dx = point.x - Math.max(solid.x - solid.hx, Math.min(point.x, solid.x + solid.hx));
-  const dz = point.z - Math.max(solid.z - solid.hz, Math.min(point.z, solid.z + solid.hz));
+  // Solids are stored in their object's local footprint. Static city blocks omit yaw,
+  // while cars carry their live rotation so their wide side never behaves like their
+  // long bonnet. Transforming the player into that local space keeps the same cheap
+  // circle-vs-box test without inflating a turned object to a large world-space AABB.
+  const worldX = point.x - solid.x, worldZ = point.z - solid.z;
+  const yaw = solid.yaw || 0, cos = Math.cos(yaw), sin = Math.sin(yaw);
+  const localX = worldX * cos - worldZ * sin;
+  const localZ = worldX * sin + worldZ * cos;
+  const dx = localX - Math.max(-solid.hx, Math.min(localX, solid.hx));
+  const dz = localZ - Math.max(-solid.hz, Math.min(localZ, solid.hz));
   return dx * dx + dz * dz < radius * radius;
 }
 

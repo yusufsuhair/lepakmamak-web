@@ -21,6 +21,21 @@ test('world boundaries and blocked dismounts remain safe', () => {
   expect(exit?.x).toBeLessThan(0);
 });
 
+test('a rotated object blocks at its body, not at its axis-aligned bounding square', () => {
+  const yaw = Math.PI / 4;
+  const car = {x: 0, z: 0, hx: 1, hz: 2.2, yaw};
+  const worldPoint = (localX: number, localZ: number) => ({
+    x: localX * Math.cos(yaw) + localZ * Math.sin(yaw),
+    z: -localX * Math.sin(yaw) + localZ * Math.cos(yaw),
+  });
+
+  // A character centre 47cm off the body still has a visible sliver of space; one
+  // 44cm away has reached it. Both points sat inside the old inflated AABB at 45°.
+  expect(overlaps(worldPoint(1.47, 0), .46, car)).toBe(false);
+  expect(overlaps(worldPoint(1.44, 0), .46, car)).toBe(true);
+  expect(overlaps(worldPoint(0, 2.64), .46, car)).toBe(true);
+});
+
 test('delivery only pays after pickup, within range, and on foot', () => {
   const mission = new DeliveryMission();
   expect(mission.interact(7, false)).toBeNull();
