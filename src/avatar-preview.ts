@@ -36,26 +36,31 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   const draw = () => { avatar.group.rotation.y = yaw; renderOnce(); };
   const resize = () => {
     const rect = canvas.getBoundingClientRect();
-    const nextWidth = Math.max(1, Math.round(rect.width || canvas.width || 280));
-    const nextHeight = Math.max(1, Math.round(rect.height || canvas.height || 360));
-    if (nextWidth === width && nextHeight === height) return;
+    // canvas.width/height are device pixels, not layout dimensions. Feeding them
+    // back through setPixelRatio doubles a hidden Retina canvas on every frame.
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    const nextWidth = Math.max(1, Math.round(rect.width));
+    const nextHeight = Math.max(1, Math.round(rect.height));
+    if (nextWidth === width && nextHeight === height) return true;
     width = nextWidth; height = nextHeight;
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    return true;
   };
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   observer?.observe(canvas);
 
   const paint = () => {
     if (!running) return;
-    resize();
-    avatar.group.rotation.y = yaw;
-    renderer.render(scene, camera);
+    if (resize()) {
+      avatar.group.rotation.y = yaw;
+      renderer.render(scene, camera);
+    }
     frame = requestAnimationFrame(paint);
   };
-  const renderOnce = () => { resize(); renderer.render(scene, camera); };
+  const renderOnce = () => { if (resize()) renderer.render(scene, camera); };
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || pointerId !== null) return;
     event.preventDefault();
