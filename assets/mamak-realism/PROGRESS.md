@@ -4,7 +4,9 @@
 
 Yusuf authorized continued autonomous hyper-realistic modelling of Mamak and its
 immediate surroundings on 11 September 2026 while AFK. No asset-by-asset approval
-is needed. This does **not** authorize merging, pushing or deploying. No agents.
+is needed. He subsequently explicitly authorized merging and production deployment
+of dining batch 01; that release is recorded below. Future batches still require
+new authorization before merging, pushing or deploying. No agents.
 
 Worktree: `/Users/yusufsuhair/Downloads/astra-mamak-realism`
 Branch: `codex/mamak-realism`, based on main `9f83fc5` (includes Mamak V6).
@@ -70,6 +72,34 @@ notice is caused by the test's closed mock socket, not an asset failure.
 An initial run accidentally targeted an unrelated pre-existing main server on
 5202. That run was discarded; **do not use port 5202**. Verify a test port is free
 before starting because the shared Playwright config permits server reuse.
+
+## Batch 01 production release — 11 September 2026
+
+User request: "cntik. merge to main deploy to prod".
+Main was fast-forwarded from `9f83fc5` to `1df4b73`. Production build and 14
+Mamak/realism/Rembayung tests passed on main using a verified-free port 5293.
+The same immutable dist snapshot was uploaded to both Cloudflare Pages projects:
+
+- `lepakmamak`: `e82defa5-0c81-48b8-834f-87d07835a304`
+- `lepak-city`: `c6967c43-0308-4e62-8ea2-0c2ac9bd9552`
+- Build ID: `46ca91b9-bae6-41b7-9028-bde0a907426a`
+- Model SHA-256: `c3106a781f6e4a91b49d488a254905df3db9c7d3da4bf315e0af487bd27d8f4b`
+- Previous production: `8694f478-cb4e-4c41-b4cf-c0629b664255` (lepakmamak),
+  `53b9c7a7-1176-459d-b29d-0ef01064be48` (lepak-city), both source `9f83fc5`.
+
+No Railway/backend changes, remote git push or PETRONAS integration were included.
+The unrelated untracked `graphify-out/` in main was preserved and not deployed.
+Release snapshot and live verification script/report are in
+`/tmp/mamak-prod-release-smFHHO/`. Future batch work continues here on the task
+branch; the user's release approval does not authorize recurring automatic deploys.
+
+Live verification passed on `lepakmamak.my`, `lepakmamak.pages.dev` and
+`lepak-city.pages.dev`: HTTP 200, identical build IDs, matching JavaScript bundle
+and byte-identical new model SHA-256. Desktop and mobile browsers loaded the new
+GLB without fallback or texture/page errors under the live CSP. Production remains
+account-only; browser checks stopped at the login screen without creating an
+account or changing production data. Sit/stand gameplay was verified locally in
+the 14-test main run, not inside a signed-in production session.
 
 ## Next batch
 

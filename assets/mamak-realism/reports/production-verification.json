@@ -1,0 +1,35 @@
+[
+  {
+    "base": "https://lepakmamak.my",
+    "status": 200,
+    "buildId": "46ca91b9-bae6-41b7-9028-bde0a907426a",
+    "assetBytes": 6688140,
+    "assetSHA256": "c3106a781f6e4a91b49d488a254905df3db9c7d3da4bf315e0af487bd27d8f4b"
+  },
+  {
+    "base": "https://lepakmamak.pages.dev",
+    "status": 200,
+    "buildId": "46ca91b9-bae6-41b7-9028-bde0a907426a",
+    "assetBytes": 6688140,
+    "assetSHA256": "c3106a781f6e4a91b49d488a254905df3db9c7d3da4bf315e0af487bd27d8f4b"
+  },
+  {
+    "base": "https://lepak-city.pages.dev",
+    "status": 200,
+    "buildId": "46ca91b9-bae6-41b7-9028-bde0a907426a",
+    "assetBytes": 6688140,
+    "assetSHA256": "c3106a781f6e4a91b49d488a254905df3db9c7d3da4bf315e0af487bd27d8f4b"
+  },
+  {
+    "browser": "desktop",
+    "loaded": true,
+    "baseline": false,
+    "errors": []
+  },
+  {
+    "browser": "mobile",
+    "loaded": true,
+    "baseline": false,
+    "errors": []
+  }
+]
