@@ -1,0 +1,12 @@
+/public
+/art
+/unity
+/admin
+/ios
+/android
+/dist
+/node_modules
+/graphify-out
+/test-results*
+/playwright-report
+/.git
