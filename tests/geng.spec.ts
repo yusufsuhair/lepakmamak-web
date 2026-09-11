@@ -168,6 +168,25 @@ test('an underfunded Geng creation shows a top-up action', async ({page}) => {
   await expect(page.locator('body')).toHaveAttribute('data-topup', 'opened');
 });
 
+test('Geng uses game skeletons while its state is loading', async ({page}) => {
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: 'export const session={access_token:"test"}; export const guestName="";'}));
+  await page.route('**/geng/state', async route => {
+    await new Promise(resolve => setTimeout(resolve, 450));
+    await route.fulfill({json: {state: {balance: 1200, current: null, members: [], pending: [], guilds: []}}});
+  });
+  await page.route('**/geng-loading-harness', route => route.fulfill({contentType: 'text/html', body: '<main></main>'}));
+  await page.goto('/geng-loading-harness');
+  await page.evaluate(async () => {
+    const {setupGeng} = await import('/src/geng.ts');
+    setupGeng(location.origin, () => {}).open();
+  });
+  await expect(page.locator('#game-geng')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#game-geng .social-skeleton-row')).toHaveCount(4);
+  await expect(page.locator('#geng-message')).not.toContainText('Loading');
+  await expect(page.locator('#game-geng .social-skeleton-row')).toHaveCount(0);
+  await expect(page.locator('#game-geng')).toHaveAttribute('aria-busy', 'false');
+});
+
 test('Open Gengs show their leader, open a clickable roster, and notify leaders about requests', async ({page}) => {
   await page.setViewportSize({width: 390, height: 844});
   await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: 'export const session={access_token:"test"}; export const guestName="";' }));

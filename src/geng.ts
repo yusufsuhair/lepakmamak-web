@@ -1,4 +1,5 @@
 import {guestName, session} from './auth';
+import {fillSocialSkeleton} from './social-skeleton';
 import './geng.css';
 
 export type GengMember = {id: string; name: string; leader: boolean};
@@ -38,7 +39,7 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
   const rosterLeader = roster.querySelector<HTMLElement>('#geng-roster-leader')!;
   const rosterMembers = roster.querySelector<HTMLElement>('#geng-roster-members')!;
   const rosterClose = roster.querySelector<HTMLButtonElement>('#geng-roster-close')!;
-  let currentState: GengState | null = null, liveState: LiveGengState | null = null, busy = false;
+  let currentState: GengState | null = null, liveState: LiveGengState | null = null, busy = false, loading = false;
   const unreadPending = new Set<string>();
   const base = endpoint.replace(/^ws/, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
   const loggedIn = () => !!session && !guestName;
@@ -161,7 +162,17 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
   function render() {
     const state = currentState;
     renderLive();
+    dialog.setAttribute('aria-busy', String(loading || busy));
     balance.textContent = state ? `${Number(state.balance || 0).toLocaleString('en-MY')} Syiling` : '—';
+    if (loading) {
+      currentSection.hidden = true;
+      createSection.hidden = true;
+      balance.textContent = '';
+      balance.classList.add('is-loading');
+      fillSocialSkeleton(list, 4);
+      return;
+    }
+    balance.classList.remove('is-loading');
     const hasCurrent = !!state?.current;
     currentSection.hidden = !hasCurrent;
     createSection.hidden = hasCurrent || !state;
@@ -204,15 +215,15 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
   async function refresh(announce = true) {
     if (busy) return;
     if (!loggedIn()) { applyState(null); message.textContent = 'Log in to create or join a Geng.'; return; }
-    busy = true; render(); message.textContent = 'Loading Gengs…';
+    busy = true; loading = true; message.textContent = ''; render();
     try { const data = await request('state'); applyState(data.state, announce); message.textContent = ''; }
     catch (error) { message.textContent = error instanceof Error ? error.message : 'Could not load Gengs.'; }
-    finally { busy = false; render(); }
+    finally { loading = false; busy = false; render(); }
   }
 
   async function mutate(path: string, body: unknown | undefined, success = '', event?: GengEvent) {
     if (busy) return;
-    busy = true; render(); message.textContent = 'Updating Geng…';
+    busy = true; message.textContent = ''; render();
     try {
       const data = await request(path, body, 'POST'); applyState(data.state, false); message.textContent = success;
       const id = typeof body === 'object' && body && 'userId' in body && typeof body.userId === 'string' ? body.userId : '';

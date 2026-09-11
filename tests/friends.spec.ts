@@ -116,6 +116,21 @@ test('Friend List renders safely, opens Message for online friends, and fits a p
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test('Friend List uses game skeletons while its state is loading', async ({page}) => {
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test'};export let guestName='';`}));
+  await page.route('**/friends/state', async route => {
+    await new Promise(resolve => setTimeout(resolve, 450));
+    await route.fulfill({json: {state: {friends: [], incoming: [], outgoing: []}}});
+  });
+  await page.route('**/friends-loading-harness', route => route.fulfill({contentType: 'text/html', body: `<main><script type="module">import {setupFriends} from '/src/friends.ts';setupFriends(location.origin,()=>{}).open();</script></main>`}));
+  await page.goto('/friends-loading-harness');
+  await expect(page.locator('#game-friends')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#game-friends .social-skeleton-row')).toHaveCount(7);
+  await expect(page.locator('#friends-message')).not.toContainText('Loading');
+  await expect(page.locator('#game-friends .social-skeleton-row')).toHaveCount(0);
+  await expect(page.locator('#game-friends')).toHaveAttribute('aria-busy', 'false');
+});
+
 test('Friend List announces new requests and confirms friend removal', async ({page}) => {
   await page.setViewportSize({width: 390, height: 844});
   await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me',user_metadata:{display_name:'Tester'}}};export let guestName='';` }));

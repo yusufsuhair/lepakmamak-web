@@ -1,4 +1,5 @@
 import {guestName, session} from './auth';
+import {fillSocialSkeleton} from './social-skeleton';
 import './friends.css';
 
 export type Friend = {id: string; name: string; online: boolean; playerId: string | null};
@@ -37,6 +38,7 @@ export function setupFriends(
   const confirmationApprove = el<HTMLButtonElement>('friends-remove-approve');
   let currentState: FriendState | null = null;
   let busy = false;
+  let loading = false;
   let pendingRemoval: {id: string; name: string} | null = null;
   const unreadIncoming = new Set<string>();
   const base = endpoint.replace(/^ws/i, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
@@ -53,6 +55,13 @@ export function setupFriends(
     const outgoing = el('friends-outgoing'); outgoing.replaceChildren();
     el('friends-login').hidden = loggedIn();
     el('friends-count').textContent = String(state?.friends.length || 0);
+    dialog.setAttribute('aria-busy', String(loading || busy));
+    if (loading) {
+      fillSocialSkeleton(list, 3);
+      fillSocialSkeleton(incoming, 2);
+      fillSocialSkeleton(outgoing, 2);
+      return;
+    }
     if (!state) {
       list.append(empty(loggedIn() ? 'Connect to load your Friend List.' : 'Log in to see your friends.'));
       incoming.append(empty('No requests waiting.'));
@@ -157,15 +166,15 @@ export function setupFriends(
     if (busy) return;
     if (!loggedIn()) { applyState(null, false); message.textContent = 'Log in to add friends and keep your list.'; return; }
     if (!base) { applyState(null, false); message.textContent = 'Friends are not available in this build yet.'; return; }
-    busy = true; render(); message.textContent = 'Loading Friend List…';
+    busy = true; loading = true; message.textContent = ''; render();
     try { const data = await request('state'); applyState(data.state, announce); message.textContent = ''; }
     catch (error) { message.textContent = error instanceof Error ? error.message : 'Could not load Friends.'; }
-    finally { busy = false; render(); }
+    finally { loading = false; busy = false; render(); }
   }
 
   async function mutate(path: string, body: unknown, success: string, event: FriendEvent) {
     if (busy) return;
-    busy = true; render(); message.textContent = 'Updating Friends…';
+    busy = true; message.textContent = ''; render();
     try {
       const data = await request(path, body); applyState(data.state, false); message.textContent = success;
       const id = typeof body === 'object' && body && 'id' in body && typeof body.id === 'string' ? body.id : '';

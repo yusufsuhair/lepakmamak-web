@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.49",
+    "date": "2026-09-11",
+    "title": "Loading Geng dan Friends kini terasa seperti game",
+    "notes": [
+      "Teks loading dalam panel Geng dan Friend List diganti dengan skeleton avatar, nama, status dan action yang berkilau lembut.",
+      "Skeleton menyesuaikan susun atur telefon dan desktop, kemudian hilang sebaik sahaja data atau mesej ralat sebenar tersedia.",
+      "Animasi loading menghormati tetapan reduced motion dan semua tindakan kekal dikunci dengan jelas semasa request diproses."
+    ]
+  },
+  {
     "version": "1.39.48",
     "date": "2026-09-11",
     "title": "Arahan GM kekal sehingga dimatikan",
