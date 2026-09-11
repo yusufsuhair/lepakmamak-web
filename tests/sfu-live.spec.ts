@@ -7,6 +7,7 @@ import {spawn} from 'node:child_process';
 test('real SFU carries audio, revokes distant listeners and restores a returning listener',async()=>{
  test.skip(process.env.RUN_SFU_LIVE!=='true','Needs an isolated SFU credential');
  test.setTimeout(180000);
+ const socketUrl=process.env.RUN_SFU_DEV==='true'?'wss://lepak-city-realtime-dev-development.up.railway.app/ws':'ws://127.0.0.1:18994/ws';
  const peerCount=Math.max(2,Math.min(10,Number(process.env.SFU_LIVE_PEERS)||2));
  const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'18994',ALLOW_GUESTS:'true',SUPABASE_URL:'',SUPABASE_PUBLISHABLE_KEY:'',SUPABASE_SERVICE_ROLE_KEY:''},stdio:['ignore','ignore','pipe']});let errors='';server.stderr.on('data',b=>errors+=b);
  const pages:any[]=[];
@@ -22,10 +23,10 @@ test('real SFU carries audio, revokes distant listeners and restores a returning
    await page.route('**/sfu-harness',r=>r.fulfill({contentType:'text/html',body:`<div id="hud"></div><script type="module">
 import{setupVoice}from'/src/voice.ts';
 window.events=[];window.activity=[];window.sent=[];
-const ws=new WebSocket('ws://127.0.0.1:18994/ws');window.ws=ws;
+const ws=new WebSocket('${socketUrl}');window.ws=ws;
 const voice=setupVoice(m=>{window.sent.push(m.type);if(ws.readyState!==1)return false;ws.send(JSON.stringify(m));return true;},(id,name,level)=>window.activity.push({id,name,level}));window.voice=voice;
 document.querySelector('#voice-panel').hidden=false;
-ws.onopen=()=>ws.send(JSON.stringify({type:'join',room:'sfu-live',name:'Probe${i}',sfu:true}));
+ws.onopen=()=>ws.send(JSON.stringify({type:'join',room:'sfu-release-test',guest:true,name:'SFUProbe${i}',sfu:true}));
 ws.onmessage=e=>{const m=JSON.parse(e.data);window.events.push(m);if(m.type==='welcome'){voice.transport(m.voiceTransport);voice.connected(true);}voice.signal(m);};
 </script>`}));
    page.on('console',m=>{if(m.type()==='error')console.log('browser error',m.text());});page.on('pageerror',e=>console.log('page error',e.message));

@@ -40,3 +40,18 @@ test('large SFU signalling is accepted; oversized socket payload cannot crash th
   ws.send('x'.repeat(70000));await expect.poll(()=>ws.readyState).toBe(WebSocket.CLOSED);expect((await fetch('http://127.0.0.1:18997/health')).ok).toBe(true);
  }finally{for(const ws of clients)ws.terminate();server.kill();}
 });
+
+test('wire protocol mixes modern delta and legacy clients and resynchronizes after teleport',async()=>{
+ const {spawn}=await import('node:child_process');const {default:WebSocket}=await import('ws');
+ const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'18998',ALLOW_GUESTS:'true',CF_SFU_APP_ID:'',CF_SFU_APP_SECRET:'',SUPABASE_URL:'',SUPABASE_PUBLISHABLE_KEY:'',SUPABASE_SERVICE_ROLE_KEY:''},stdio:'ignore'});const clients:any[]=[];
+ try{
+  await expect.poll(async()=>{try{return(await fetch('http://127.0.0.1:18998/health')).ok;}catch{return false;}}).toBe(true);
+  const stream=new PlayerStateStream<any>();let modernRows:any[]=[],modernId='',legacyId='';const modernMessages:any[]=[],legacyMessages:any[]=[];
+  for(const modern of [true,false]){const ws=new WebSocket('ws://127.0.0.1:18998/ws');clients.push(ws);ws.on('message',data=>{const m=JSON.parse(String(data));(modern?modernMessages:legacyMessages).push(m);if(m.type==='welcome'){if(modern)modernId=m.id;else legacyId=m.id;}if(modern&&m.type==='players')modernRows=stream.full(m.players,m.revision);if(modern&&m.type==='players-delta')modernRows=stream.delta(m)||[];});await new Promise(r=>ws.on('open',r));ws.send(JSON.stringify({type:'join',guest:true,name:modern?'DeltaProbe':'LegacyProbe',room:'wire-test',delta:modern}));await expect.poll(()=>(modern?modernId:legacyId)).not.toBe('');}
+  await expect.poll(()=>modernRows.length).toBe(2);
+  clients[1].send(JSON.stringify({type:'state',x:20,z:30,yaw:0}));await expect.poll(()=>modernRows.find(p=>p.id===legacyId)?.x).toBe(20);
+  expect(modernMessages.some(m=>m.type==='players-delta')).toBe(true);expect(legacyMessages.some(m=>m.type==='players-delta')).toBe(false);
+  const fullCount=modernMessages.filter(m=>m.type==='players').length;clients[0].send(JSON.stringify({type:'players-resync'}));await expect.poll(()=>modernMessages.filter(m=>m.type==='players').length).toBeGreaterThan(fullCount);
+  clients[1].close();await expect.poll(()=>modernRows.map(p=>p.id)).toEqual([modernId]);
+ }finally{for(const ws of clients)ws.terminate();server.kill();}
+});
