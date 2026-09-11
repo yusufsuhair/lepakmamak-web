@@ -1,3 +1,4 @@
+// Historical v1 cloud-card harness (runtime b524b56). Current sky: test-sky-browser.mjs.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';

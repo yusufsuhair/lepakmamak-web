@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 import {parseWeather,createWeather} from '../server/weather.mjs';
-import {isKlNight} from '../src/weather';
+import {isKlNight,klTwilight} from '../src/weather';
 test('rain haze and stale observations are distinguished; KL solar day and night',async()=>{
  const row={icaoId:'WMSA',obsTime:Date.now()/1000,cover:'FEW'};
  expect(parseWeather({...row,wxString:'RA'}).condition).toBe('rain');
@@ -10,6 +10,9 @@ test('rain haze and stale observations are distinguished; KL solar day and night
  expect(()=>parseWeather({...row,obsTime:0})).toThrow();
  expect(isKlNight(new Date('2026-09-09T04:00:00Z'))).toBe(false);
  expect(isKlNight(new Date('2026-09-09T16:00:00Z'))).toBe(true);
+ expect(klTwilight(new Date('2026-09-11T11:00:00Z'))).toBeGreaterThan(.7);
+ expect(klTwilight(new Date('2026-09-11T06:00:00Z'))).toBe(0);
+ expect(klTwilight(new Date('2026-09-11T15:00:00Z'))).toBe(0);
  let calls=0;const weather=createWeather(async()=>{calls++;return {ok:true,json:async()=>[row]};});await Promise.all([weather(),weather()]);expect(calls).toBe(1);
  expect((await createWeather(async()=>{throw Error();})()).available).toBe(false);
 });

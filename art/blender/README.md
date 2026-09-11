@@ -60,10 +60,26 @@ and colour-space data, then renders counter A/B comparisons with the game's dayl
 and night light intensities. It uses an isolated asset harness, not a full-city FPS benchmark.
 The runtime URL carries `?v=mamak-v4` to bypass prior immutable asset cache entries.
 
-## Blender clouds
+## Current sky: procedural atmosphere v2
+
+`src/clouds.ts` now renders a continuous gradient sky with warped multi-octave noise
+and layered clouds. This replaces the repeated Blender cloud cards. One dome draw,
+960 triangles, a deterministic 128×128 RGBA lookup generated in memory (64 KiB), and
+no cloud image downloads. Smooth mode uses one layer/three octaves; detailed uses
+two layers/five octaves. KL solar altitude drives dawn/dusk tones and warm lighting;
+fog shares the horizon colour. See [SKY-V2-REPORT.md](SKY-V2-REPORT.md).
+
+```sh
+node art/blender/tools/test-sky-browser.mjs
+```
+
+Screenshots and checks are in `generated/sky-v2/`. The v1 Blender sources below remain
+available for reuse; its runtime PNG was removed from public, not from source/history.
+
+## Archived Blender clouds v1
 
 `generated/clouds-v1/` preserves a smooth cumulus mesh, a source-only noisy volume,
-packed 512×256 RGBA cloud card, proxy GLB and previews. The game uses the Cycles-rendered
+packed 512×256 RGBA cloud card, proxy GLB and previews. The v1 game used the Cycles-rendered
 card, not live volumes or the proxy GLB: 6–12 camera-facing instances in one draw.
 Weather/night tint, reduced motion and fog/haze visibility are wired to existing controls.
 See [CLOUDS-V1-REPORT.md](CLOUDS-V1-REPORT.md) for checks and limitations.
@@ -73,7 +89,7 @@ See [CLOUDS-V1-REPORT.md](CLOUDS-V1-REPORT.md) for checks and limitations.
   --python-exit-code 1 --python art/blender/scripts/build_cloud_asset.py -- \
   --output /tmp/lepakmamak-clouds-new
 node art/blender/tools/validate-clouds.mjs /tmp/lepakmamak-clouds-new
-node art/blender/tools/test-clouds-browser.mjs
+# The historical test-clouds-browser.mjs harness requires the v1 runtime (b524b56).
 ```
 
 Only the proxy mesh belongs to EXPORT. Cloud volume and preview lights/cameras stay

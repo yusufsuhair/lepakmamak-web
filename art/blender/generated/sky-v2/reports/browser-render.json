@@ -1,0 +1,306 @@
+{
+  "passed": true,
+  "base": "http://127.0.0.1:5192",
+  "results": [
+    {
+      "device": "desktop",
+      "views": {
+        "day": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 199.86001204427083,
+          "pixel": [
+            180,
+            199,
+            210,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "detailed",
+          "layers": 2,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": false,
+            "twilight": 0
+          }
+        },
+        "dusk": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 159.0905302734375,
+          "pixel": [
+            189,
+            152,
+            140,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "detailed",
+          "layers": 2,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": false,
+            "twilight": 1
+          }
+        },
+        "night": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 44.7305234375,
+          "pixel": [
+            12,
+            28,
+            53,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "detailed",
+          "layers": 2,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": true,
+            "twilight": 0
+          }
+        }
+      },
+      "occlusion": "passed",
+      "timing": {
+        "medianSynchronizedRenderMs": null,
+        "samples": 15,
+        "note": "Timer precision insufficient (zero median); no usable performance measurement"
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "views": {
+        "day": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 196.9417264147122,
+          "pixel": [
+            180,
+            199,
+            210,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "smooth",
+          "layers": 1,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": false,
+            "twilight": 0
+          }
+        },
+        "dusk": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 156.6457852310933,
+          "pixel": [
+            189,
+            152,
+            140,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "smooth",
+          "layers": 1,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": false,
+            "twilight": 1
+          }
+        },
+        "night": {
+          "draws": 1,
+          "triangles": 960,
+          "error": 0,
+          "mean": 41.474213148620734,
+          "pixel": [
+            12,
+            28,
+            53,
+            255
+          ],
+          "state": "ready",
+          "mode": "procedural-sky-v2",
+          "visible": true,
+          "drawCalls": 1,
+          "rotation": 0,
+          "quality": "smooth",
+          "layers": 1,
+          "noiseSize": 128,
+          "weather": {
+            "condition": "sunny",
+            "night": true,
+            "twilight": 0
+          }
+        }
+      },
+      "occlusion": "passed",
+      "timing": {
+        "medianSynchronizedRenderMs": null,
+        "samples": 15,
+        "note": "Timer precision insufficient (zero median); no usable performance measurement"
+      },
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "time": "day",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.16124400000214578,
+        "quality": "detailed",
+        "layers": 2,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": false,
+          "twilight": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "time": "dusk",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.150384,
+        "quality": "detailed",
+        "layers": 2,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": false,
+          "twilight": 0.8839413731580937
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "desktop",
+      "time": "night",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.1485839999992847,
+        "quality": "detailed",
+        "layers": 2,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": true,
+          "twilight": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "time": "day",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.13110000000000002,
+        "quality": "smooth",
+        "layers": 1,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": false,
+          "twilight": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "time": "dusk",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.13901999999999995,
+        "quality": "smooth",
+        "layers": 1,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": false,
+          "twilight": 0.8839413699876119
+        }
+      },
+      "errors": []
+    },
+    {
+      "device": "mobile",
+      "time": "night",
+      "game": true,
+      "status": {
+        "state": "ready",
+        "mode": "procedural-sky-v2",
+        "visible": true,
+        "drawCalls": 1,
+        "rotation": 0.13436400000071522,
+        "quality": "smooth",
+        "layers": 1,
+        "noiseSize": 128,
+        "weather": {
+          "condition": "sunny",
+          "night": true,
+          "twilight": 0
+        }
+      },
+      "errors": []
+    }
+  ]
+}
