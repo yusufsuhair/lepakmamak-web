@@ -4,6 +4,20 @@ import {createFleet} from '../server/fleet.mjs';
 
 const styles=['axia','myvi','emas','avanza','vellfire','suv','sport','ferrari','lamborghini','model-y','cybertruck','police','f1'];
 
+test('Retina mobile studio keeps the canvas and touch controls inside the viewport',async({browser,baseURL})=>{
+  const context=await browser.newContext({baseURL,viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+  try {
+    const page=await context.newPage();await page.goto('/vehicles-preview.html');
+    await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio?.state)).toBe('ready');
+    const layout=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,
+      canvas:document.querySelector('canvas')!.getBoundingClientRect().width,pixels:document.querySelector('canvas')!.width}));
+    expect(layout).toEqual({width:390,scroll:390,canvas:390,pixels:780});
+    await page.tap('#lighting');await page.tap('#brake');await page.tap('#reverse');
+    await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.brake)).toBe(3.2);
+    await expect.poll(()=>page.evaluate(()=>(window as any).__vehicleStudio.presentation.reverse)).toBe(2);
+  } finally {await context.close();}
+});
+
 test('all 13 Blender vehicles render on desktop and mobile with animated wheels',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/vehicles-preview.html');
