@@ -35,6 +35,9 @@ test('health reports what the instance is actually doing, and saturation reaches
    // One mouth, everybody else listening: the fan-out is the number that costs money.
    ws.send(JSON.stringify({type:'voice-state',mic:i===0,speaker:true}));
   }
+  clients[0].send(JSON.stringify({type:'network-telemetry',rttP95Ms:123,frameP95Ms:18,decodeQueueAgeMs:2,voiceJitterMs:7,voicePacketsLost:2,voicePacketsReceived:100,secret:'must-not-be-returned'}));
+  await expect.poll(async()=>(await health()).clientQuality.reportingClients).toBe(1);
+  const quality=(await health()).clientQuality;expect(quality.p95ClientRttMs).toBe(123);expect(quality.maxVoiceJitterMs).toBe(7);expect(JSON.stringify(await health())).not.toContain('must-not-be-returned');
   let tick=0;
   timer=setInterval(()=>{tick++;
    clients.forEach((ws,i)=>ws.send(JSON.stringify({type:'state',x:-18+Math.sin(tick*.1)+i*.2,z:52,yaw:0,speed:3,riding:false})));

@@ -1,3 +1,4 @@
+import {monitorEventLoopDelay} from 'node:perf_hooks';
 // What one running instance is doing right now. Every counter here dies with the process,
 // which is correct: these numbers describe this instance, not the city's history.
 //
@@ -19,6 +20,9 @@ export function createMetrics({ env = process.env, send = deliver, log = console
   // The sample being collected right now.
   let inBytes = 0, outBytes = 0, voiceIn = 0, voiceOut = 0, drops = 0, sampledAt = Date.now();
   const roomOut = new Map();
+  const loop=monitorEventLoopDelay({resolution:20});loop.enable();
+  const clientQuality=new Map();
+  const qualityFields=['frameP95Ms','rttP50Ms','rttP95Ms','rttSamples','decodeQueueMax','decodeQueueAgeMs','voiceJitterMs','voicePacketsLost','voicePacketsReceived'];
   // The last completed second. /health reports this, never the half-finished sample.
   let rates = { bytesInPerSecond: 0, bytesOutPerSecond: 0, voicePacketsInPerSecond: 0, voicePacketsOutPerSecond: 0, droppedFramesPerSecond: 0 };
   let roomRates = new Map();
@@ -90,6 +94,11 @@ export function createMetrics({ env = process.env, send = deliver, log = console
   process.on('unhandledRejection', error => { log(error); farewell(`unhandled rejection: ${error?.message || error}`, 1); });
 
   return {
+    clientSample(id,message){
+      const old=clientQuality.get(id);if(old&&Date.now()-old.at<10000)return;
+      const row={at:Date.now()};for(const k of qualityFields)if(Number.isFinite(message[k]))row[k]=Math.max(0,Math.min(1000000,message[k]));
+      clientQuality.set(id,row);if(clientQuality.size>1000)clientQuality.delete(clientQuality.keys().next().value);
+    },
     countIn(bytes) { inBytes += bytes; },
     countOut(bytes, room) { outBytes += bytes; if (room) roomOut.set(room, (roomOut.get(room) || 0) + bytes); },
     countVoiceIn() { voiceIn++; },
@@ -97,6 +106,8 @@ export function createMetrics({ env = process.env, send = deliver, log = console
     countDrop() { drops++; },
     report({ rooms, sockets, version }) {
       return {
+        clientQuality: (()=>{const rows=[...clientQuality.values()].filter(r=>Date.now()-r.at<60000);for(const [id,r]of clientQuality)if(Date.now()-r.at>=60000)clientQuality.delete(id);const values=rows.map(r=>r.rttP95Ms||0).sort((a,b)=>a-b);return {reportingClients:rows.length,p95ClientRttMs:values[Math.floor(values.length*.95)]||0,maxClientFrameP95Ms:Math.max(0,...rows.map(r=>r.frameP95Ms||0)),maxDecodeQueueAgeMs:Math.max(0,...rows.map(r=>r.decodeQueueAgeMs||0)),maxVoiceJitterMs:Math.max(0,...rows.map(r=>r.voiceJitterMs||0)),reportedVoicePacketsLost:rows.reduce((n,r)=>n+(r.voicePacketsLost||0),0),reportedVoicePacketsReceived:rows.reduce((n,r)=>n+(r.voicePacketsReceived||0),0)};})(),
+        eventLoop: {p95Ms:Math.round(loop.percentile(95)/1e6),maxMs:Math.round(loop.max/1e6)},
         // Always served with HTTP 200. The whole test suite treats a non-200 here as "not up
         // yet", and Railway restarts an instance that fails a health check it has been given,
         // which would wipe the very rooms the 503 was complaining about. (healthcheckPath is

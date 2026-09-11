@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.40.0",
+    "date": "2026-09-12",
+    "title": "Dedicated voice and stronger city connections",
+    "notes": [
+      "Voice now uses a dedicated WebRTC connection, keeping microphone traffic away from gameplay updates.",
+      "Silent microphone audio is suppressed to reduce unnecessary traffic.",
+      "Player movement updates use less data while keeping appearances and table rosters in sync.",
+      "Stalled connections recover automatically, and stale updates no longer build up without a limit.",
+      "Voice can reconnect independently, with existing proximity, Party and game privacy rules preserved.",
+      "Added connection-quality measurements to help diagnose high ping and voice problems."
+    ]
+  },
+  {
     "version": "1.39.62",
     "date": "2026-09-12",
     "title": "Settings stay above chat",

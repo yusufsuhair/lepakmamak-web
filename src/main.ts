@@ -1,3 +1,4 @@
+import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
 import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
 import {createSkyDining,swimPose} from './sky-dining';
 import {createSkyMusic} from './sky-music';
@@ -532,14 +533,6 @@ async function init() {
   createWhatsNew(document.querySelector('.pause-panel') as HTMLElement);
   const netStatus=createNetStatus(document.querySelector('.brand-status') as HTMLElement);
   const speaking=createSpeakingList($('hud'));
-  let pingSentAt=0;
-  // A stamp out and the same stamp back is the whole measurement.
-  window.setInterval(() => {
-    if (networkConnected && networkSocket?.readyState === WebSocket.OPEN) {
-      pingSentAt = Date.now();
-      networkSocket.send(JSON.stringify({type: 'ping', t: pingSentAt}));
-    } else netStatus.offline();
-  }, 3000);
   const chat = setupChat((text, channel, to) => {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
@@ -1161,6 +1154,7 @@ async function init() {
     writeLocation(activeLocationKey,skyDining?{...SKY.entry,yaw}:{x,z,yaw});
   }
   // Old browsers without DecompressionStream keep getting plain JSON.
+  const recentFrameTimes:number[]=[];
   const canInflate = typeof DecompressionStream === 'function';
   async function inflateFrame(buffer: ArrayBuffer): Promise<string> {
     const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('deflate'));
@@ -1183,12 +1177,27 @@ async function init() {
       if (!started) return;
       const endpoint = multiplayerEndpoint.startsWith('ws') ? multiplayerEndpoint : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${multiplayerEndpoint}`;
       const socket = new WebSocket(`${endpoint}/ws`); networkSocket = socket;
+      const playerStates = new PlayerStateStream<any>();
+      let pendingPlayers:Parameters<typeof syncRemotePlayers>[0]|null=null, renderPlayers=0;
+      const queuePlayers=(players:Parameters<typeof syncRemotePlayers>[0])=>{pendingPlayers=players;if(!renderPlayers)renderPlayers=requestAnimationFrame(()=>{renderPlayers=0;if(socket===networkSocket&&pendingPlayers){syncRemotePlayers(pendingPlayers);pendingPlayers=null;}});};
+
+      const heartbeat = createHeartbeat();
+      let telemetryAt = performance.now();
+      const heartbeatTimer = window.setInterval(() => {
+        if (socket !== networkSocket) { clearInterval(heartbeatTimer); return; }
+        if (heartbeat.tick(document.hidden)) { socket.close(4000, 'Heartbeat timeout'); return; }
+        if (networkConnected && socket.readyState === WebSocket.OPEN && !document.hidden) {
+          socket.send(JSON.stringify({type:'ping',t:heartbeat.probe()}));
+          if(performance.now()-telemetryAt>15000){telemetryAt=performance.now();void voice.stats().then(stats=>{if(socket===networkSocket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'network-telemetry',...heartbeat.stats(),...frames.stats(),frameP95Ms:Math.round([...recentFrameTimes].sort((a,b)=>a-b)[Math.floor(recentFrameTimes.length*.95)]||0),...stats}));}).catch(()=>{});}
+        }
+      },3000);
+      socket.addEventListener('close',()=>{clearInterval(heartbeatTimer);frames.close();cancelAnimationFrame(renderPlayers);pendingPlayers=null;});
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
         if (!connectedOnceThisEntry) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         carFinder.clear();
-        socket.send(JSON.stringify({ type: 'join', deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
+        socket.send(JSON.stringify({ type: 'join', sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
@@ -1213,7 +1222,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
+        if (message.type === 'welcome' && message.id) { voice.transport((message as any).voiceTransport || 'legacy'); const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
@@ -1229,7 +1238,7 @@ async function init() {
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
         if (message.type === 'tables' && message.tables) { roomTables=message.tables; tableSocial.state(roomTables,networkPlayerId,networkConnected); }
         if(message.type==='stall-action'&&message.id&&message.name&&message.text)showSpeechBubble(message.id,message.name,message.text);
-        if (message.type === 'pong' && message.t === pingSentAt) netStatus.sample(Date.now() - pingSentAt);
+        if (message.type === 'pong' && typeof message.t === 'number') { const rtt=heartbeat.reply(message.t);if(rtt!==null)netStatus.sample(rtt); }
         if (message.type === 'gm-announce' && typeof message.text === 'string') { if (message.text) announcer.show(message.text, message.name); else announcer.clear(); }
         if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
         if (message.type === 'lobby-react') tableSocial.react(message);
@@ -1252,7 +1261,8 @@ async function init() {
         if (message.type === 'chat-history' && Array.isArray(message.messages)) chat.history(message.messages);
         if (message.type === 'dm-closed' && message.id) chat.closeDm(message.id);
         if(message.type==='wall-new'&&message.post)wall.receive(message.post);
-        if ((message.type === 'welcome' || message.type === 'players') && message.players) syncRemotePlayers(message.players);
+        if ((message.type === 'welcome' || message.type === 'players') && message.players) queuePlayers(playerStates.full(message.players, (message as any).revision));
+        if (message.type === 'players-delta') { const players=playerStates.delta(message as any);if(players)queuePlayers(players);else if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'players-resync'})); }
         if (message.type === 'horn' && message.id && message.id !== networkPlayerId) {
           const remote = remotePlayers.get(message.id);
           if (remote) hornSound(remote.vehicle, Math.max(0, 1 - Math.hypot(remote.target.x - pos.x, remote.target.z - pos.z) / 35));
@@ -1269,6 +1279,7 @@ async function init() {
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
+        if(message.type==='voice-rpc-result'||message.type==='voice-peers'||message.type==='voice-warning')voice.signal(message);
         if (message.type === 'voice-audio' && message.id && typeof message.audio === 'string') voice.receive(message.id, message.name || 'Player', message.audio, message.volume, message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-codec')voice.codec(message.codec === 'opus' ? 'opus' : 'pcm');
         if(message.type==='voice-audience')voice.audience(Number(message.count)||0,Array.isArray(message.names)?message.names:[]);
@@ -1294,11 +1305,18 @@ async function init() {
       // WebSocket's own compression. Inflating is asynchronous, so every frame goes through
       // one queue: without it a slow inflate could apply an older snapshot after a newer one.
       socket.binaryType = 'arraybuffer';
-      let frames: Promise<void> = Promise.resolve();
+      const frames = createFrameQueue<string|ArrayBuffer>(
+        data => typeof data === 'string' ? Promise.resolve(data) : inflateFrame(data),
+        processMessage,
+        () => socket.close(4000,'Incoming queue exceeded latency budget'),
+      );
       socket.addEventListener('message', event => {
         if (socket !== networkSocket) return;
-        const data = event.data;
-        frames = frames.then(async () => processMessage(typeof data === 'string' ? data : await inflateFrame(data as ArrayBuffer))).catch(() => {});
+        // Ping bypasses decompression but gameplay messages retain reliable ordering.
+        if(typeof event.data==='string'){
+          try{const m=JSON.parse(event.data);if(m.type==='pong'){const rtt=heartbeat.reply(m.t);if(rtt!==null)netStatus.sample(rtt);return;}}catch{/* queue handles invalid messages */}
+        }
+        frames.push(event.data);
       });
       socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // The close lands milliseconds after the server's explanation and used to overwrite
@@ -2117,6 +2135,7 @@ async function init() {
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
     const frameSeconds = (time - lastTime) / 1000;
+    if(started&&!document.hidden){recentFrameTimes.push(frameSeconds*1000);if(recentFrameTimes.length>300)recentFrameTimes.shift();}
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
     if (started && !document.hidden && graphicsQuality === 'high' && frameSeconds < .5) {

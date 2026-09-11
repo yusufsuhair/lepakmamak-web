@@ -1,3 +1,6 @@
+import {createSocketHeartbeat} from './socket-heartbeat.mjs';
+import {createSfu,voiceAudience} from './sfu.mjs';
+import {createPlayerStream} from './player-stream.mjs';
 import {createWeather} from './weather.mjs';
 import {createPark} from './legoland.mjs';
 import {insideWorld,clampWorldPoint} from '../shared/world-bounds.mjs';
@@ -65,6 +68,7 @@ const BEACH_REST_SPOTS = [
 ];
 const metrics = createMetrics();
 const dirtyRooms = new Set();
+const playerStream = createPlayerStream();
 // Coalesce movement from all players into at most one snapshot per room per tick.
 setInterval(() => {
   const pending = [...dirtyRooms]; dirtyRooms.clear();
@@ -81,6 +85,8 @@ const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
+const sfu=createSfu({send,allowed:(ps,p,q)=>voiceAudience(ps,p,q,{party,werewolf,lukis,radius:voiceConfig.hearingRadius})});
+setInterval(()=>{for(const ps of rooms.values())sfu.tick(ps);},500).unref();
 // The lobby starts the games; the games keep their own rules once running.
 tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
 const tableInvites = createTableInvites(send, {party, tableLobby});
@@ -252,7 +258,7 @@ function releasePassenger(passenger, reset = false) {
   Object.assign(passenger,reset?{x:-18,z:52}:clampWorldPoint(passenger.x+Math.cos(passenger.yaw)*2.4,passenger.z-Math.sin(passenger.yaw)*2.4,1));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, gengRefreshAt: _gengRefreshAt, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, gengRefreshAt: _gengRefreshAt, resyncAt: _resyncAt, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -277,16 +283,22 @@ function syncVoiceCodec(players) {
 }
 function broadcast(players, message) {
   if (message.type === 'players') tableSocial.sync(players);
-  const payload = JSON.stringify(message);
-  let packed;
+  const frame = message.type === 'players' ? playerStream.frame(players, message.players) : null;
+  // Encode each variant once per room, not once per recipient.
+  const encoded = new Map();
   for (const player of players.values()) {
     if (player.ws.readyState !== 1) continue;
-    if(message.type==='fleet'&&player.ws.bufferedAmount>=65536){metrics.countDrop();continue;}
-    if (message.type === 'players' && player.ws.bufferedAmount >= 65536) { metrics.countDrop(); dirtyRooms.add(players); continue; }
-    if (player.deflate && payload.length >= PACK_THRESHOLD) {
-      packed ||= zlib.deflateSync(payload, { level: 1 });
-      player.ws.send(packed);
-    } else player.ws.send(payload);
+    if ((message.type === 'fleet' || frame) && player.ws.bufferedAmount >= 16384) {
+      metrics.countDrop(); if (frame) dirtyRooms.add(players); continue;
+    }
+    const value = frame && player.delta ? frame.forSocket(player.ws) : message;
+    let pair = encoded.get(value);
+    if (!pair) { const json = JSON.stringify(value); pair = {json}; encoded.set(value, pair); }
+    if (player.deflate && pair.json.length >= PACK_THRESHOLD) {
+      pair.packed ||= zlib.deflateSync(pair.json, {level:1});
+      player.ws.send(pair.packed);
+    } else player.ws.send(pair.json);
+    if (frame && player.delta) frame.sent(player.ws);
   }
 }
 
@@ -329,14 +341,14 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.url === '/health' || request.url === '/') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(JSON.stringify(metrics.report({ rooms, sockets: webSocketServer.clients.size, version })));
+    response.end(JSON.stringify({...metrics.report({ rooms, sockets: webSocketServer.clients.size, version }),voiceTransport:sfu.enabled?'sfu':'legacy'}));
     return;
   }
   response.writeHead(404, { 'content-type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify({ error: 'Not found' }));
 });
 
-const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
+const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 65536 });
 // The total is the real protection and holds whatever the headers claim. The per-address
 // share must stay clear of a legitimately full city: every player shares one key when the
 // proxy stops forwarding addresses, and they already do on localhost, so anything near
@@ -359,7 +371,12 @@ server.on('upgrade', (request, socket, head) => {
   webSocketServer.handleUpgrade(request, socket, head, ws => webSocketServer.emit('connection', ws, request));
 });
 
+const socketHeartbeat=createSocketHeartbeat();
+setInterval(()=>socketHeartbeat.tick(webSocketServer.clients),30000).unref();
 webSocketServer.on('connection', ws => {
+  socketHeartbeat.track(ws);
+  // A malformed/oversized client frame closes that connection, not the city process.
+  ws.on('error',()=>ws.terminate());
   // Every byte this process sends leaves through ws.send, so it gets counted once, here,
   // rather than at each of the three places that call it.
   const sendFrame = ws.send.bind(ws);
@@ -388,6 +405,7 @@ webSocketServer.on('connection', ws => {
     for (const peer of currentRoom.players.values()) {
       if (peer.id !== player.id) send(peer.ws, {type: 'dm-closed', id: player.id});
     }
+    sfu.remove(player);
     fleet.release(currentRoom.players,player);
     if (accountConnections.get(player.userId)?.ws === ws) accountConnections.delete(player.userId);
     for (const passenger of currentRoom.players.values()) if (passenger.passengerOf === player.id) releasePassenger(passenger);
@@ -405,10 +423,10 @@ webSocketServer.on('connection', ws => {
 
   ws.on('message', async raw => {
     if (ws.readyState !== 1) return;
-    if (raw.length > 4096) return;
     let message;
     try { message = JSON.parse(raw.toString()); } catch { send(ws, { type: 'error', message: 'Send JSON messages only.' }); return; }
     if (!message || typeof message.type !== 'string') return;
+    if(raw.length>4096 && !(player&&message.type==='voice-rpc'))return;
 
     if (message.type === 'join') {
       if (player || joining) return;
@@ -458,6 +476,7 @@ webSocketServer.on('connection', ws => {
         jumpHeight: 0, seated: false, chairId: null, resting: null, restSpotId: null,
         mic: false, speaker: false,
         deflate: message.deflate === true,
+        delta: message.delta === true,
         opus: message.opus === true,
         supermanUntil: 0,
         updatedAt: Date.now(),
@@ -489,7 +508,7 @@ webSocketServer.on('connection', ws => {
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       // The version travels with the welcome so a page left open across a deploy finds out
       // it is stale without polling anything.
-      send(ws, { type: 'welcome', id, room: room.name, version, players: snapshot(room.players) });
+      send(ws, { type: 'welcome', id, room: room.name, version, voiceTransport:sfu.enabled?'sfu':'legacy', players: snapshot(room.players) });
       if (reconnectedGeng) { const gengState = party.state(room.players, player); if (gengState) send(ws, {type: 'party-state', party: gengState, geng: gengState}); }
       weatherControls.sync(room.players,ws);
       lamps.sync(room.players,ws);
@@ -687,6 +706,9 @@ webSocketServer.on('connection', ws => {
       });
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
+    if(message.type==='network-telemetry'){metrics.clientSample(player.id,message);return;}
+    if(message.type==='voice-rpc'){void sfu.handle(currentRoom.players,player,message);return;}
+    if (message.type === 'players-resync') { if (!player.resyncAt || Date.now()-player.resyncAt>1000) { player.resyncAt=Date.now(); playerStream.reset(ws); dirtyRooms.add(currentRoom.players); } return; }
     if (message.type === 'ping') { send(ws, { type: 'pong', t: message.t }); return; }
     if (message.type === 'voice-state') {
       player.mic = message.mic === true; player.speaker = message.speaker === true;
@@ -696,6 +718,7 @@ webSocketServer.on('connection', ws => {
       return;
     }
     if (message.type === 'voice-audio') {
+      if(sfu.enabled)return; // SFU audio never shares the gameplay socket.
       // A dead villager who keeps talking hands the game away, and no filter can read
       // speech. Their microphone is closed for the rest of the match, and they are told.
       if (werewolf.silenced(currentRoom.players, player)) {

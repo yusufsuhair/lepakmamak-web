@@ -1,10 +1,11 @@
+import {createSfuVoice} from './voice-sfu';
 import voiceConfig from '../shared/voice.json';
 
 const micIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 const speakerIcon = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/><path class="voice-off-slash" d="M3 3l18 18"/></svg>`;
 type VoiceScope = 'all' | 'party';
 type VoiceCodec = 'pcm' | 'opus';
-type VoiceMessage = { type: string; mic?: boolean; speaker?: boolean; audio?: string; codec?: VoiceCodec; micScope?: VoiceScope; speakerScope?: VoiceScope };
+type VoiceMessage = { [key:string]:unknown; type: string; mic?: boolean; speaker?: boolean; audio?: string; codec?: VoiceCodec; micScope?: VoiceScope; speakerScope?: VoiceScope };
 export type VoiceActivity = (id: string, name: string, level: number) => void;
 // Opus at 24 kbps carries a 40 ms frame in about 120 bytes where the raw PCM took 1280.
 export const OPUS = { codec: 'opus', sampleRate: 16000, numberOfChannels: 1, bitrate: 24000, opus: { frameDuration: 40000 } };
@@ -22,6 +23,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
   const speakerButton = panel.querySelector<HTMLButtonElement>('#voice-speaker')!;
   const status = panel.querySelector<HTMLElement>('#voice-status')!;
   const audience = panel.querySelector<HTMLElement>('#voice-audience')!;
+  const sfu=createSfuVoice(send,(id,name,level)=>onActivity?.(id,name,level),text=>{status.textContent=text;});
   let online = false, mic = false, speaker = false, generation = 0, busy = false, playbackVolume = 1;
   let micScope: VoiceScope = 'all', speakerScope: VoiceScope = 'all', inParty = false;
   const micScopeButton = panel.querySelector<HTMLButtonElement>('#mic-scope')!;
@@ -142,6 +144,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
   }
   function stopMic() {
     generation++; busy = false; mic = false;
+    if(sfu.enabled)sfu.stopMic();
     audience.hidden = true; audience.textContent = 'No one nearby';
     stream?.getTracks().forEach(track => track.stop()); stream = undefined;
     input?.disconnect(); input = undefined;
@@ -160,6 +163,14 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       const requested = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }, video: false });
       if (attempt !== generation || !online) { requested.getTracks().forEach(track => track.stop()); return; }
       stream = requested;
+      if(sfu.enabled){
+        mic=true;speaker=true;announce();
+        await sfu.microphone(requested);
+        if(attempt!==generation||!online)return;
+        await sfu.speakers(true);busy=false;announce();status.textContent='Mic and speakers on · Nearby players can hear you';
+        requested.getAudioTracks()[0].onended=()=>{if(attempt===generation)stopMic();};return;
+      }
+
       moduleReady ??= ctx.audioWorklet.addModule('/voice-capture.js').catch(error => { moduleReady = undefined; throw error; });
       await moduleReady;
       if (attempt !== generation || !online) return;
@@ -192,18 +203,18 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
     }
   };
   speakerButton.onclick = async () => {
-    if (speaker) { speaker = false; if (output) output.gain.value = 0; stopPlayback(); announce(); status.textContent = 'Other players muted'; return; }
+    if (speaker) { speaker = false; if(sfu.enabled)void sfu.speakers(false); if (output) output.gain.value = 0; stopPlayback(); announce(); status.textContent = 'Other players muted'; return; }
     const attempt = generation;
     try {
       await audioContext(); if (!online || attempt !== generation) return;
-      speaker = true; output!.gain.value = 0.8 * playbackVolume; announce(); status.textContent = `Speakers on · Listening within ${voiceConfig.hearingRadius} metres`;
+      speaker = true; output!.gain.value = 0.8 * playbackVolume; announce(); if(sfu.enabled)await sfu.speakers(true); status.textContent = `Speakers on · Listening within ${voiceConfig.hearingRadius} metres`;
     } catch { status.textContent = 'Could not enable speakers. Tap again to retry.'; }
   };
   render();
   return {
     get micActive(){return mic;},
     get partyOnly(){return micScope === 'party';},
-    volume(value:number){playbackVolume=Math.max(0,Math.min(1,value));if(output&&speaker)output.gain.value=.8*playbackVolume;},
+    volume(value:number){sfu.volume(value);playbackVolume=Math.max(0,Math.min(1,value));if(output&&speaker)output.gain.value=.8*playbackVolume;},
     party(value: boolean) {
       if (inParty === value) return;
       inParty = value;
@@ -212,7 +223,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       renderScopes();
     },
     connected(value: boolean) {
-      online = value;
+      online = value; sfu.connected(value);
       if (!value) { stopMic(); speaker = false; if (output) output.gain.value = 0; stopPlayback(); status.textContent = 'Voice offline · Re-enable after reconnecting'; }
       else status.textContent = 'Turn on speakers to listen · Mic asks permission';
       announce();
@@ -226,6 +237,9 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       audience.textContent=safeCount===0?'No one nearby can hear you':safeCount===1?`${safeNames[0]||'1 person'} can hear you`:`${safeNames[0]?`${safeNames[0]} + ${safeCount-1}`:`${safeCount} people`} can hear you`;
       status.textContent=audience.textContent;
     },
+    transport(kind:string){sfu.configure(kind==='sfu');},
+    signal(message:any){if(message.type==='voice-rpc-result')sfu.receive(message);if(message.type==='voice-peers')sfu.peers(message.peers||[]);if(message.type==='voice-warning')status.textContent=message.message;},
+    stats:()=>sfu.stats(),
     opusCapable,
     // A joiner without Opus drops the whole room to PCM, and a leaver can restore it.
     codec(next: VoiceCodec) {
@@ -234,7 +248,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       if (encoder) { try { encoder.close(); } catch { /* already gone */ } encoder = undefined; }
     },
     receive(id: string, name: string, encoded: string, volume = 1, codec: VoiceCodec = 'pcm') {
-      if (!speaker || !context || context.state !== 'running' || !output) return;
+      if (sfu.enabled || !speaker || !context || context.state !== 'running' || !output) return;
       speakerNames.set(id, name);
       try {
         const bytes = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
