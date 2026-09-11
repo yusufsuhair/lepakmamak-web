@@ -58,9 +58,10 @@ import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
-import { configureMamakLighting, disposeWebAsset, loadWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
+import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
+import {loadMamakRealism,mamakRealismStatus} from './mamak-realism';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -179,7 +180,8 @@ async function init() {
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
   let mamakLighting: MamakLighting | null = null, mamakNight = false;
-  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakRealism',{get:()=>mamakRealismStatus});
+  void loadMamakRealism(scene,renderer)
     .then(asset => {
       try { mamakLighting = configureMamakLighting(asset); }
       catch (error) { scene.remove(asset); disposeWebAsset(asset); throw error; }

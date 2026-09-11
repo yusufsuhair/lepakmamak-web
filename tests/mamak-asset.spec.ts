@@ -27,7 +27,7 @@ test('Mamak festoons remain cheap by day and glow without real-time lights at ni
 });
 
 test('failed Mamak download retains the complete procedural site and playable seating', async ({ page }) => {
-  await page.route('**/LM_ENV_MamakMaju.glb*', route => route.abort());
+  await page.route('**/LM_ENV_MamakMaju*.glb*', route => route.abort());
   await page.goto('/');
   await expect.poll(() => page.evaluate(() => (window as any).__lepak?.mamakMaju)).toEqual({ state: 'fallback', fallbackVisible: true });
   await page.getByRole('button', { name: "Jom, let's go" }).click();

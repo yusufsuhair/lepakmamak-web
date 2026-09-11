@@ -1,0 +1,11 @@
+{
+  "triangles": 134900,
+  "draws": 18,
+  "textures": 6,
+  "rawBytes": 10240212,
+  "webBytes": 6688140,
+  "streams": 78,
+  "losslessDecode": "PASS",
+  "khronosErrors": 0,
+  "khronosWarnings": 0
+}
