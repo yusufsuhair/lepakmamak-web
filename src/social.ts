@@ -1,15 +1,21 @@
 import * as THREE from 'three';
 
+export const NAME_TAG_LAYOUT = Object.freeze({
+  voice: {top: 5, bottom: 67},
+  geng: {top: 76, bottom: 108},
+  name: {top: 120, bottom: 200},
+});
+
 export function nameTag(name: string, interactiveVoice = false) {
-  const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 164;
+  const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 228;
   const ctx = canvas.getContext('2d')!;
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
   const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-  label.scale.set(3.8, 1.22, 1); label.position.y = 3.15;
+  label.scale.set(3.8, 1.69, 1); label.position.y = 3.39;
   label.userData.name = name;
   label.userData.drawVoice = (mic: boolean, speaker: boolean) => {
     label.userData.mic = mic; label.userData.speaker = speaker;
-    ctx.clearRect(0, 0, 512, 164);
+    ctx.clearRect(0, 0, 512, 228);
     ctx.font = label.userData.gameMaster ? '700 30px "Oxanium", sans-serif' : '600 36px "Oxanium", sans-serif';
     const shownName=String(label.userData.name||'Player').slice(0,18);
     const nameWidth = ctx.measureText(shownName).width;
@@ -19,25 +25,25 @@ export function nameTag(name: string, interactiveVoice = false) {
     const left = (512 - width) / 2;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (!label.userData.gameMaster) {
-      ctx.fillStyle = '#173c3280'; ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill();
+      ctx.fillStyle = '#173c3280'; ctx.beginPath(); ctx.roundRect(left, 120, width, 80, 20); ctx.fill();
     }
     ctx.font = '600 36px "Oxanium", sans-serif'; ctx.fillStyle = '#ddf69a';
     if (label.userData.gameMaster) {
       ctx.save();
       ctx.shadowColor = '#ffc94a'; ctx.shadowBlur = 14;
       ctx.fillStyle = '#30200f80'; ctx.strokeStyle = '#ffd978'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.roundRect(left, 76, width, 80, 20); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(left, 120, width, 80, 20); ctx.fill(); ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.font = '700 16px "Oxanium", sans-serif'; ctx.fillStyle = '#ffe8a3';
-      ctx.fillText('✦  GAME MASTER  ✦', 256, 94);
+      ctx.fillText('✦  GAME MASTER  ✦', 256, 138);
       ctx.font = '700 30px "Oxanium", sans-serif'; ctx.fillStyle = '#fff5d1';
-      ctx.fillText(shownName, 256, 128, 440);
-      ctx.beginPath(); ctx.roundRect(left + 2, 78, width - 4, 76, 18); ctx.clip();
+      ctx.fillText(shownName, 256, 172, 440);
+      ctx.beginPath(); ctx.roundRect(left + 2, 122, width - 4, 76, 18); ctx.clip();
       const x = left - 80 + (label.userData.shine || 0) * (width + 160);
-      const shine = ctx.createLinearGradient(x - 70, 76, x + 70, 156);
+      const shine = ctx.createLinearGradient(x - 70, 120, x + 70, 200);
       shine.addColorStop(0, '#ffffff00'); shine.addColorStop(.5, '#fff4ba66'); shine.addColorStop(1, '#ffffff00');
-      ctx.fillStyle = shine; ctx.fillRect(left, 76, width, 80); ctx.restore();
-    } else ctx.fillText(shownName, 256, 117, 460);
+      ctx.fillStyle = shine; ctx.fillRect(left, 120, width, 80); ctx.restore();
+    } else ctx.fillText(shownName, 256, 161, 460);
     // The geng sits above the name, small and quiet: it says who you run with, it is not
     // your name. Drawn last so it is never clipped by the pill it sits over.
     const geng = String(label.userData.geng || '').slice(0, 18);
@@ -48,10 +54,10 @@ export function nameTag(name: string, interactiveVoice = false) {
       const leader = !!label.userData.gengLeader;
       ctx.fillStyle = leader ? '#b98235e8' : '#12312bb3';
       if (leader) { ctx.strokeStyle = '#ffe39a'; ctx.lineWidth = 2; }
-      ctx.beginPath(); ctx.roundRect((512 - tagWidth) / 2, 34, tagWidth, 32, 10); ctx.fill();
+      ctx.beginPath(); ctx.roundRect((512 - tagWidth) / 2, 76, tagWidth, 32, 10); ctx.fill();
       if (leader) ctx.stroke();
       ctx.fillStyle = leader ? '#fff3c4' : '#f0cf8e';
-      ctx.fillText(geng, 256, 51, 400);
+      ctx.fillText(geng, 256, 93, 400);
     }
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;
@@ -95,7 +101,7 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
   if (label.userData.gameMaster === enabled && (!enabled || label.userData.shineFrame === frame)) return;
   label.userData.gameMaster = enabled; label.userData.shineFrame = frame;
   label.userData.shine = reducedMotion ? .5 : (time % 3) / 3;
-  label.scale.set(enabled ? 4.3 : 3.8, enabled ? 1.38 : 1.22, 1);
+  label.scale.set(enabled ? 4.3 : 3.8, enabled ? 1.91 : 1.69, 1);
   label.userData.drawVoice(!!label.userData.mic, !!label.userData.speaker);
 }
 

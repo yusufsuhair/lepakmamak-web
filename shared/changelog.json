@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.45",
+    "date": "2026-09-11",
+    "title": "Name tag pemain lain lebih kemas",
+    "notes": [
+      "Icon mic dan speaker, nama Geng, dan nama pemain lain kini menggunakan baris berasingan supaya tulisan tidak lagi bertindih.",
+      "Keseluruhan name tag dinaikkan sedikit agar susunannya kemas seperti name tag pemain sendiri dan tidak menutup kepala character."
+    ]
+  },
+  {
     "version": "1.39.44",
     "date": "2026-09-11",
     "title": "Profile pemohon Geng boleh dibuka",

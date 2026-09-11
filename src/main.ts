@@ -2211,7 +2211,7 @@ async function init() {
       const proximity = Math.max(0, Math.min(1, (LAMBO_REACH - distance) / (LAMBO_REACH - LAMBO_FULL)));
       lamboGain.gain.setTargetAtTime(started && audioEnabled && !tableSocial.playing ? LAMBO_PEAK * proximity * proximity : 0, audioContext.currentTime, .18);
     }
-    if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:deckY) + 3.1 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
+    if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:deckY) + 3.34 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);
     for (const remote of roomPlayers) {
       const entity = remotePlayers.get(remote.id);

@@ -137,6 +137,14 @@ test('the Geng leader badge redraws only when its value or leadership changes', 
   expect(result).toEqual({first: 1, draws: 3, stored: '', leader: false});
 });
 
+test('remote voice, Geng and player name occupy separate name-tag rows', async ({page}) => {
+  await page.route('**/geng-tag-harness', route => route.fulfill({contentType: 'text/html', body: '<main></main>'}));
+  await page.goto('/geng-tag-harness');
+  const layout = await page.evaluate(async () => (await import('/src/social.ts')).NAME_TAG_LAYOUT);
+  expect(layout.voice.bottom).toBeLessThan(layout.geng.top);
+  expect(layout.geng.bottom).toBeLessThan(layout.name.top);
+});
+
 test('an underfunded Geng creation shows a top-up action', async ({page}) => {
   await page.route('**/src/auth.ts*', route => route.fulfill({
     contentType: 'application/javascript',
