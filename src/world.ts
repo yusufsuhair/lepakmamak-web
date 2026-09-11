@@ -10,6 +10,7 @@ import type { Solid } from './physics';
 import { masjidSpots } from './masjid';
 import {createTaycan} from './taycan';
 import {createGt3Rs} from './gt3-rs';
+import {createRembayung, type RembayungSite} from './rembayung';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -607,7 +608,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[] }
+export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; rembayung:RembayungSite }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -1221,34 +1222,18 @@ export function createWorld(scene: THREE.Scene): World {
   }
   // Mid-rise skyline, deterministically placed away from the road grid.
   createDurianVillage({group,solids,mapBuildings});
-  // Rembayung's warm glazed gable faces a busy forecourt in the southwest block.
+  // The Blender restaurant loads outside the static city batch so its fallback can swap atomically.
+  const rembayung=createRembayung(scene,solids);
   {
     const r=new THREE.Group();r.position.set(-121,0,101);group.add(r);
-    box(r,0,.08,20,56,.14,62,'#b7aa91');
-    box(r,0,5,0,30,10,22,'#372f2b');
-    const glow=new THREE.MeshBasicMaterial({color:'#d99538'});
-    box(r,0,5,11.08,28,9.4,.1,glow);
-    // Warm dining-room silhouettes behind the window grid.
-    for(const x of [-10.5,-7,7,10.5]){
-      box(r,x,1.5,11.19,2.3,.14,.06,'#66503a');box(r,x,.85,11.19,.12,1.3,.06,'#66503a');
-      for(const dx of [-1,1])box(r,x+dx,1,11.2,.4,1.5,.05,'#584936');
-      box(r,x,8,11.21,.04,2,.03,'#403d30');box(r,x,6.9,11.22,.8,.28,.04,'#fff0a1');
-    }
-    const gable=new THREE.BufferGeometry();gable.setAttribute('position',new THREE.Float32BufferAttribute([-15,10,11.1,15,10,11.1,0,20,11.1],3));gable.computeVertexNormals();r.add(new THREE.Mesh(gable,new THREE.MeshBasicMaterial({color:'#c78935',side:THREE.DoubleSide})));
-    for(const side of [-1,1]){const roof=box(r,side*7.8,15,0,18.8,.65,24,'#202c2c');roof.rotation.z=-side*Math.atan2(10,15);}
-    for(let x=-14;x<=14;x+=3.5){const h=20-Math.abs(x)*2/3;box(r,x,h/2,11.3,.15,h,.18,'#263632');}
-    for(const y of [3,6,9,12,15])box(r,0,y,11.32,Math.min(28,(20-y)*3),.12,.18,'#263632');
-    const wordmark=new THREE.TextureLoader().load('/rembayung-wordmark.png');wordmark.colorSpace=THREE.SRGBColorSpace;
-    const lettering=new THREE.Mesh(new THREE.PlaneGeometry(20,20/3),new THREE.MeshBasicMaterial({map:wordmark,transparent:true,alphaTest:.05,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
-    lettering.position.set(0,11.7,11.55);r.add(lettering);
-    box(r,0,2,11.5,3.5,4,.12,'#624f37');
-    for(const x of [-12,-8,8,12]){box(r,x,.5,12.5,2.4,1,1.4,'#4b5040');ball(r,x,1.3,12.5,.9,'#55774c');}
-    solid(-121,101,30,22);mapBuildings.push({x:-121,z:101,w:30,d:22,color:'#be8c45'});
+    box(r,0,.035,20,56,.1,62,'#b7aa91');
+    mapBuildings.push({x:-136,z:108,w:18,d:34,color:'#be8c45'});
     // Parked Malaysian cars and premium MPVs leave the central approach open.
     for(let i=0;i<10;i++){const x=-146+(i%5)*4.8,z=134+Math.floor(i/5)*8;box(group,x,.04,z,3.8,.03,6.4,'#d6cbb1');}
     box(group,-122,.04,134,3.8,.03,6.4,'#d6cbb1');
     box(group,-122,.04,142,3.8,.03,6.4,'#d6cbb1');
-    for(const x of [-147,-94])palm(group,x,119,.8);
+    // Keep the western palm's fronds outside the taller, deeper restaurant shell.
+    for(const x of [-147,-94])palm(group,x,x===-147?128:119,.8);
   }
   let seed = 37; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const x of [-127, -106, 105, 129]) for (const z of [-128, -95, -37, 37, 113]) {
@@ -1347,7 +1332,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, rembayung };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can

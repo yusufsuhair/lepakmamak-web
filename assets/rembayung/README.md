@@ -43,4 +43,4 @@ Use `--views=01,03,04` to render selected viewpoints. Validate the complete full
 
 ## Integration boundary
 
-This package is an independent modelling deliverable on `codex/rembayung-model`. It does not replace the existing procedural Rembayung in `src/world.ts`, change gameplay collisions, or deploy a frontend. Its physical footprint differs from the old placeholder. A later integration must reconcile world placement, collision geometry, walkable entrances and the mobile rendering budget. The GLB is a review/interchange asset, not yet a profiled mobile LOD.
+This package preserves the independent detailed modelling deliverable. Following Yusuf's “proceed”, the same branch now also contains a separate optimized web export and game integration with walkable stairs and collision geometry. See [integration notes](../../docs/rembayung.md). The detailed GLB in this folder remains the interchange asset; the city uses the compressed model under `public/assets/models/environment/`. No merge into main or deployment has been performed.
