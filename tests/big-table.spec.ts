@@ -27,6 +27,16 @@ test('its chairs ring the table without landing on each other',()=>{
  }
 });
 
+test('all nine seats face into the table',()=>{
+ const table=tables.find(t=>t.id===BIG)!;
+ for(const seat of chairs.filter(c=>c.tableId===BIG)){
+  const dx=table.x-seat.x,dz=table.z-seat.z;
+  const distance=Math.hypot(dx,dz);
+  const facing={x:Math.sin(seat.yaw),z:Math.cos(seat.yaw)};
+  expect((facing.x*dx+facing.z*dz)/distance,seat.id).toBeGreaterThan(.98);
+ }
+});
+
 test('every chair in the city still has its own id and its own spot',()=>{
  expect(new Set(chairs.map(c=>c.id)).size).toBe(chairs.length);
  for(let i=0;i<chairs.length;i++) for(let j=i+1;j<chairs.length;j++){

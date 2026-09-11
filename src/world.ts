@@ -821,7 +821,9 @@ export function createWorld(scene: THREE.Scene): World {
       for (const seat of chairLocations.filter(c => c.tableId === 'meja-9')) {
         const chair = new THREE.Group();
         chair.position.set(seat.x, 0, seat.z); chair.rotation.y = seat.yaw; mamakProcedural.add(chair);
-        box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, .33, .73, .8, .1, '#be5142');
+        // The chair yaw is the direction the seated player faces. Keep the backrest
+        // behind that direction so the mesh and seated avatar both face the tabletop.
+        box(chair, 0, .6, 0, .73, .1, .73, '#be5142'); box(chair, 0, 1.04, -.33, .73, .8, .1, '#be5142');
         for (const dx of [-.28, .28]) for (const dz of [-.28, .28]) box(chair, dx, .3, dz, .06, .6, .06, '#923e35');
       }
     }

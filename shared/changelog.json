@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.39.53",
+    "date": "2026-09-11",
+    "title": "Sembilan kerusi Meja Besar menghadap ke tengah",
+    "notes": [
+      "Arah duduk semua kerusi Meja Besar kini menghadap permukaan meja untuk Werewolf dan permainan berkumpulan.",
+      "Sandaran kerusi turut diselaraskan dengan arah character supaya visual kerusi dan posisi pemain tidak lagi bercanggah."
+    ]
+  },
+  {
     "version": "1.39.52",
     "date": "2026-09-11",
     "title": "Fix crash login pada skrin Retina",
