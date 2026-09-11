@@ -2387,7 +2387,7 @@ async function init() {
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';
     rembayungBuskers.update(elapsed,reducedMotion||Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)>65);
-    const ambienceAllowed=started&&audioEnabled&&!tableSocial.playing&&audioContext?.state==='running';
+    const ambienceAllowed=started&&(!multiplayerEndpoint||connectedOnceThisEntry)&&audioEnabled&&!tableSocial.playing&&audioContext?.state==='running';
     const buskingLevel=ambienceAllowed?buskingVolume(soundDistance(Math.min(Math.hypot(pos.x-buskingSpot.x,pos.z-buskingSpot.z),Math.hypot(pos.x-rembayungBuskingSpot.x,pos.z-rembayungBuskingSpot.z)))):0;
     const watsonsLevel=ambienceAllowed?watsonsVolume(soundDistance(Math.hypot(pos.x-watsonsSpot.x,pos.z-watsonsSpot.z))):0;
     const familyMartLevel=ambienceAllowed?familyMartVolume(soundDistance(Math.hypot(pos.x-familyMartSpot.x,pos.z-familyMartSpot.z))):0;
