@@ -429,6 +429,21 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 .shop-art.batik i,.shop-art.harimau i { width:72px; height:67px; clip-path:polygon(20% 0,36% 10%,64% 10%,80% 0,100% 20%,84% 39%,75% 29%,75% 100%,25% 100%,25% 29%,16% 39%,0 20%); }
 .shop-art.batik i { background:repeating-linear-gradient(55deg,#244f75 0 10px,#e2b94e 11px 15px,#244f75 16px 24px); }
 .shop-art.harimau i { background:repeating-linear-gradient(70deg,#efc62f 0 12px,#202b2d 13px 18px,#efc62f 19px 29px); }
+/* Cuba sits beside Beli where the card is wide enough, and above it where it is not. */
+.shop-item-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:10px; }
+#shop-items .shop-item-actions > * { flex:1 1 auto; width:auto; margin:0; }
+.shop-try-toggle { min-height:44px; padding:0 14px; border:1px solid #8da28c; border-radius:10px; background:transparent; color:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.shop-try-toggle:hover { background:#e6ecd6; }
+.shop-try-toggle[aria-pressed=true] { background:#173f35; border-color:#173f35; color:#fff7d4; }
+.shop-try { display:grid; grid-template-columns:minmax(0,150px) 1fr; gap:14px; align-items:center; margin:0 0 16px; padding:12px; border-radius:14px; background:#173f35; color:#fff7d4; }
+.shop-try[hidden] { display:none; }
+.shop-try canvas { display:block; width:100%; height:auto; aspect-ratio:280/360; border-radius:10px; background:radial-gradient(circle at 50% 28%,#2c584b,#102825 72%); cursor:grab; touch-action:pan-y; }
+.shop-try small { color:#b8d5bd; font-size:9px; font-weight:700; letter-spacing:.12em; }
+.shop-try h3 { margin:4px 0 6px; font:700 24px/1.1 'Oxanium'; }
+#item-shop .shop-try p { margin:0 0 12px; color:#cfe0cf; }
+.shop-try .primary { width:100%; margin-bottom:8px; padding:12px; font-size:13px; justify-content:center; }
+.shop-try .primary:disabled { opacity:.5; cursor:default; }
+#shop-try-end { width:100%; min-height:44px; border:1px solid #ffffff45; border-radius:10px; background:transparent; color:inherit; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
 #shop-message { min-height:20px; }
 @media(max-width:420px){#item-shop{padding:18px;}#shop-items{gap:8px;}#shop-items article{padding:9px;}.shop-wallet{align-items:stretch;flex-direction:column;}#shop-daily{width:100%;}#coin-packs{grid-template-columns:1fr;}#coin-packs button{min-height:58px;flex-direction:row;justify-content:space-between;padding:8px 12px;}#coin-packs span{width:58px;text-align:left;}}
 

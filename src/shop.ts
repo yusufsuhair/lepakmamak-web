@@ -2,13 +2,16 @@ import { session } from './auth';
 import catalog from '../shared/shop.json';
 import currencyPacks from '../shared/currency-packs.json';
 import {skeleton, settled} from './skeleton';
+import {defaultAppearance, type Appearance} from './appearance';
+import {createAvatarPreview} from './avatar-preview';
+import {applyAccessories} from './world';
 
 type InventoryItem = { sku: string; equipped: boolean };
 type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: boolean; nextDailyAt?: string | null };
 
-export function setupShop(onEquip: (items: string[]) => void, endpoint?: string) {
+export function setupShop(onEquip: (items: string[]) => void, endpoint?: string, look: () => Appearance = () => defaultAppearance) {
   const dialog = document.createElement('dialog'); dialog.id = 'item-shop'; dialog.setAttribute('aria-labelledby', 'shop-title');
-  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan item anda akan terus muncul di sini.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
+  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan item anda akan terus muncul di sini.</p><section class="shop-try" aria-labelledby="shop-try-name" hidden><canvas width="280" height="360" aria-label="Pratonton 3D character anda. Seret untuk pusing"></canvas><div><small>CUBA DULU · HANYA ANDA NAMPAK</small><h3 id="shop-try-name"></h3><p>Pratonton sahaja: tidak dipakai, tidak disimpan dan pemain lain tidak nampak.</p><button type="button" class="primary" id="shop-try-buy"></button><button type="button" id="shop-try-end">Tamat cuba</button></div></section><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog);
   const message = dialog.querySelector<HTMLElement>('#shop-message')!;
   const balanceLabel = dialog.querySelector<HTMLElement>('#shop-balance')!;
@@ -38,8 +41,23 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
     const hours = Math.max(1, Math.ceil((Date.parse(nextDailyAt) - Date.now()) / 3600000));
     return `Lagi ${hours} jam`;
   }
+  // Cuba dresses a copy of the character inside this dialog, never the one in the city. Nothing
+  // is equipped, saved or sent, so ending a try has nothing to undo: it only hides the copy.
+  const tryPanel = dialog.querySelector<HTMLElement>('.shop-try')!, tryCanvas = tryPanel.querySelector('canvas')!, tryBuy = dialog.querySelector<HTMLButtonElement>('#shop-try-buy')!;
+  let trying = '', fitting: ReturnType<typeof createAvatarPreview> | null = null;
+  const isSkin = (sku: string) => catalog.find(item => item.id === sku)?.type === 'skin';
+  function tryOn(sku: string) {
+    // Skins replace each other, as equipping one does on the server.
+    const items = [...equipped().filter(id => !(isSkin(sku) && isSkin(id))), sku];
+    fitting ||= createAvatarPreview(tryCanvas);
+    fitting.setLook(look()); applyAccessories(fitting.avatar, items); tryCanvas.dataset.accessories = items.join(',');
+    trying = sku; tryPanel.hidden = false; fitting.start(); draw(); tryPanel.scrollIntoView({block: 'nearest'});
+  }
+  function endTry() { trying = ''; tryPanel.hidden = true; fitting?.stop(); }
   function draw() {
     const loading = busy && !ready, unknown = !busy && !ready;
+    // Bought, it is theirs to Pakai; there is nothing left to try.
+    if (owned.some(entry => entry.sku === trying)) endTry();
     // A balance of zero is a fact about the account, not a stand-in for one nobody has fetched.
     if (loading) skeleton(balanceLabel, 'Memuatkan baki', '104px', '26px');
     else settled(balanceLabel, unknown ? '🪙 —' : `🪙 ${balance.toLocaleString('en-MY')}`);
@@ -82,7 +100,17 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
           message.textContent = failure.message || 'Please try again.';
         } finally { busy = false; draw(); }
       };
-      card.append(preview, kind, title, description, button); list.append(card);
+      const actions = document.createElement('div'); actions.className = 'shop-item-actions';
+      // Cuba needs no account, wallet or connection, because it never leaves this dialog.
+      if (!loading && !record) {
+        const tryButton = document.createElement('button'); tryButton.type = 'button'; tryButton.className = 'shop-try-toggle'; tryButton.textContent = 'Cuba';
+        tryButton.setAttribute('aria-label', `Cuba ${item.name}`); tryButton.setAttribute('aria-pressed', String(trying === item.id));
+        tryButton.onclick = () => { if (trying === item.id) { endTry(); draw(); } else tryOn(item.id); };
+        actions.append(tryButton);
+      }
+      // The try-on's Beli is this card's Beli: same handler, same checks, same request.
+      if (item.id === trying) { dialog.querySelector('#shop-try-name')!.textContent = item.name; tryBuy.textContent = button.textContent; tryBuy.disabled = button.disabled; tryBuy.onclick = button.onclick; }
+      actions.append(button); card.append(preview, kind, title, description, actions); list.append(card);
     }
   }
   async function refresh() {
@@ -112,6 +140,9 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string)
     finally { busy = false; draw(); }
   };
   dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
+  dialog.querySelector('#shop-try-end')!.addEventListener('click', () => { endTry(); draw(); });
+  // However Kedai closes (the button, Escape, logging out) a try ends with it.
+  dialog.addEventListener('close', endTry);
   dialog.addEventListener('keydown', event => event.stopPropagation());
   return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }

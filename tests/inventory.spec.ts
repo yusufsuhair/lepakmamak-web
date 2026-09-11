@@ -57,6 +57,8 @@ test('the top bar reads wall, recentre, Kedai, character, settings',async({page}
  const friendIcon=await page.locator('#open-friends svg').innerHTML();
  expect(gengIcon).toContain('M12 3 20 6');
  expect(gengIcon).not.toBe(friendIcon);
+ // Character is a wardrobe, so it is a hanger: a backpack beside Kedai's bag read as a second shop.
+ expect(await page.locator('#open-inventory svg').innerHTML()).toContain('M9.6 6.2a2.4');
  // Neither Kedai nor the wardrobe is buried in settings any more, and the wardrobe is
  // not a dialog of its own at all.
  await expect(page.locator('#pause #open-shop,#pause #open-wardrobe')).toHaveCount(0);
