@@ -22,7 +22,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
   const speakerButton = panel.querySelector<HTMLButtonElement>('#voice-speaker')!;
   const status = panel.querySelector<HTMLElement>('#voice-status')!;
   const audience = panel.querySelector<HTMLElement>('#voice-audience')!;
-  let online = false, mic = false, speaker = false, generation = 0, busy = false;
+  let online = false, mic = false, speaker = false, generation = 0, busy = false, playbackVolume = 1;
   let micScope: VoiceScope = 'all', speakerScope: VoiceScope = 'all', inParty = false;
   const micScopeButton = panel.querySelector<HTMLButtonElement>('#mic-scope')!;
   const speakerScopeButton = panel.querySelector<HTMLButtonElement>('#speaker-scope')!;
@@ -177,7 +177,7 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
       };
       input.connect(capture); capture.connect(ctx.destination); // Processor outputs silence.
       requested.getAudioTracks()[0].onended = () => { if (attempt === generation) { stopMic(); status.textContent = 'Microphone disconnected. Tap the microphone icon to retry.'; } };
-      busy = false; mic = true; speaker = true; output!.gain.value = 0.8;
+      busy = false; mic = true; speaker = true; output!.gain.value = 0.8 * playbackVolume;
       announce(); status.textContent = 'Mic and speakers on · Nearby players can hear you';
     } catch (error) {
       if (attempt !== generation) return;
@@ -190,13 +190,14 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
     const attempt = generation;
     try {
       await audioContext(); if (!online || attempt !== generation) return;
-      speaker = true; output!.gain.value = 0.8; announce(); status.textContent = `Speakers on · Listening within ${voiceConfig.hearingRadius} metres`;
+      speaker = true; output!.gain.value = 0.8 * playbackVolume; announce(); status.textContent = `Speakers on · Listening within ${voiceConfig.hearingRadius} metres`;
     } catch { status.textContent = 'Could not enable speakers. Tap again to retry.'; }
   };
   render();
   return {
     get micActive(){return mic;},
     get partyOnly(){return micScope === 'party';},
+    volume(value:number){playbackVolume=Math.max(0,Math.min(1,value));if(output&&speaker)output.gain.value=.8*playbackVolume;},
     party(value: boolean) {
       if (inParty === value) return;
       inParty = value;

@@ -7,6 +7,7 @@ import type {ParkRide} from '../shared/legoland.mjs';
 import {createIdleGuard} from './idle';
 import {setupChatSound} from './chat-sound';
 import {setupUiSounds} from './ui-sound';
+import {audioVolume, setAudioVolume} from './audio-preferences';
 import {setupVehicleRadio} from './vehicle-radio';
 import {setupLocationArrival} from './location-arrival';
 import {createMapOverview} from './map-overview';
@@ -124,7 +125,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound range <span class="range-control"><input id="sound-range" type="range" min="0.5" max="2" step="0.1" value="1" aria-label="Sound range" /><output id="sound-range-value">100%</output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
@@ -345,16 +346,11 @@ async function init() {
   } catch { /* Storage may be unavailable. */ }
   try { musicEnabled = localStorage.getItem('lepakmamak-music') !== 'off'; } catch { /* Storage may be unavailable. */ }
   $<HTMLInputElement>('music-toggle').checked = musicEnabled;
-  const soundRangeInput = $<HTMLInputElement>('sound-range');
-  const soundRangeValue = $('sound-range-value');
   function setSoundRange(value: number) {
     soundRange = THREE.MathUtils.clamp(Number.isFinite(value) ? value : 1, .5, 2);
-    soundRangeInput.value = String(soundRange);
-    soundRangeValue.textContent = `${Math.round(soundRange * 100)}%`;
     try { localStorage.setItem('lepakmamak-sound-range', String(soundRange)); } catch { /* Storage may be unavailable. */ }
   }
   setSoundRange(soundRange);
-  soundRangeInput.oninput = () => setSoundRange(Number(soundRangeInput.value));
   // A larger value makes the same source audible farther away; 100% preserves the authored falloffs.
   const soundDistance = (distance: number) => distance / soundRange;
   type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
@@ -514,7 +510,7 @@ async function init() {
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
   }, () => { keys.clear(); resetStick(); dragging = false; });
   let networkSocket: WebSocket | null = null;
-  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value));
+  if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value),{get:()=>soundRange,set:setSoundRange});
   let networkPlayerId = '';
   let networkConnected = false;
   let networkSendTimer = 0, networkIdleTimer = 0;
@@ -732,7 +728,7 @@ async function init() {
     try {
       if (!audioContext) {
         audioContext = new AudioContext();
-        citySoundsGain = audioContext.createGain(); citySoundsGain.gain.value = .5; citySoundsGain.connect(audioContext.destination);
+        citySoundsGain = audioContext.createGain(); citySoundsGain.gain.value = .5 * audioVolume('sfx'); citySoundsGain.connect(audioContext.destination);
         buskingGain=audioContext.createGain();buskingGain.gain.value=0;audioContext.createMediaElementSource(buskingSong).connect(buskingGain);buskingGain.connect(citySoundsGain!);
         watsonsGain=audioContext.createGain();watsonsGain.gain.value=0;audioContext.createMediaElementSource(watsonsSong).connect(watsonsGain);watsonsGain.connect(citySoundsGain!);
         familyMartGain=audioContext.createGain();familyMartGain.gain.value=0;audioContext.createMediaElementSource(familyMartSong).connect(familyMartGain);familyMartGain.connect(citySoundsGain!);
@@ -751,6 +747,7 @@ async function init() {
   // Table games have their own foley; songs would fight it. Duck them while one is open.
   let musicDuck = 1;
   let musicContext: AudioContext | null = null;
+  let musicGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
   function startBackgroundMusic() {
     if(audioEnabled&&started&&buskingGain)void buskingSong.play().catch(()=>{});
@@ -765,7 +762,7 @@ async function init() {
       if (!musicContext) {
         musicContext = new AudioContext();
         skyMusic = createSkyMusic(musicContext);
-        const musicGain = musicContext.createGain(); musicGain.gain.value = .06;
+        musicGain = musicContext.createGain(); musicGain.gain.value = .06 * audioVolume('music');
         musicContext.createMediaElementSource(backgroundMusic).connect(musicGain); musicGain.connect(musicContext.destination);
         backgroundMusic.volume = 1;
       }
@@ -1047,6 +1044,19 @@ async function init() {
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN || networkSocket.bufferedAmount > 65536) return false;
     networkSocket.send(JSON.stringify(message)); return true;
   }, (id, name, level) => speaking.heard(id, name, level, roomPlayers.find(player=>player.id===id)?.appearance));
+  voice.volume(audioVolume('voice'));
+  vehicleRadio.setVolume(audioVolume('music'));
+  for (const channel of ['sfx','music','voice'] as const) {
+    const input=$<HTMLInputElement>(`${channel}-volume`),output=$<HTMLOutputElement>(`${channel}-volume-value`);
+    const render=()=>{const value=audioVolume(channel);input.value=String(value);output.value=`${Math.round(value*100)}%`;};
+    render();
+    input.oninput=()=>{
+      const value=setAudioVolume(channel,Number(input.value));output.value=`${Math.round(value*100)}%`;
+      if(channel==='sfx'&&citySoundsGain)citySoundsGain.gain.value=.5*value;
+      if(channel==='music'){if(musicGain)musicGain.gain.value=.06*value;vehicleRadio.setVolume(value);}
+      if(channel==='voice')voice.volume(value);
+    };
+  }
   const voiceRadius=new THREE.Mesh(new THREE.RingGeometry(voiceConfig.hearingRadius-.5,voiceConfig.hearingRadius,72),new THREE.MeshBasicMaterial({color:'#ddf69a',transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false,depthTest:false}));
   voiceRadius.renderOrder=10;voiceRadius.rotation.x=-Math.PI/2;voiceRadius.position.y=.035;voiceRadius.visible=false;scene.add(voiceRadius);
   function updateSpeakingProximity() {
@@ -2003,8 +2013,8 @@ async function init() {
     locationArrival.update(pos.x,pos.z,started&&lrtId==null,audioEnabled);
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
     musicDuck += ((tableSocial.playing || skyDining ? 0 : 1) - musicDuck) * .08;
-    skyMusic?.update(started && !paused && skyDining && musicEnabled, tableSocial.playing);
-    backgroundMusic.volume=(musicContext?1:.06)*((riding||passengerOf)? .15:1)*musicDuck;
+    skyMusic?.update(started && !paused && skyDining && musicEnabled, tableSocial.playing, audioVolume('music'));
+    backgroundMusic.volume=(musicContext?1:.06*audioVolume('music'))*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
     const area = districtFor(pos.z,pos.x);

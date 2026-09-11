@@ -1,3 +1,5 @@
+import {audioVolume, onAudioVolumeChange} from './audio-preferences';
+
 // The procedural foley UNO proved, with the game-specific part lifted out: swish and note
 // are the only two sounds a table game needs, and every voice is built from them. No
 // downloads, no licensing. UNO keeps its own copy for now — dressing a broken game is not
@@ -12,6 +14,9 @@ export function createGameAudio(name: string, voices: Record<string, (tools: Too
   const loading = new Map<string, Promise<AudioBuffer | null>>();
   const active = new Map<string, Set<AudioBufferSourceNode>>();
   try { muted = localStorage.getItem(key) === 'true'; } catch { /* private window */ }
+  onAudioVolumeChange((channel, value) => {
+    if (channel === 'sfx' && master) master.gain.value = muted ? 0 : value;
+  });
 
   function sampleSpec(kind: string) {
     const value = samples[kind];
@@ -33,7 +38,7 @@ export function createGameAudio(name: string, voices: Record<string, (tools: Too
   function unlock() {
     try {
       context ??= new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
-      if (!master) { master = context.createGain(); master.gain.value = muted ? 0 : 1; master.connect(context.destination); }
+      if (!master) { master = context.createGain(); master.gain.value = muted ? 0 : audioVolume('sfx'); master.connect(context.destination); }
       if (context.state === 'suspended') void context.resume();
       for (const kind of Object.keys(samples)) void loadSample(kind);
     } catch { /* audio is a nicety, never a requirement */ }
@@ -95,7 +100,7 @@ export function createGameAudio(name: string, voices: Record<string, (tools: Too
     get muted() { return muted; },
     toggle() {
       muted = !muted;
-      if (master) master.gain.value = muted ? 0 : 1;
+      if (master) master.gain.value = muted ? 0 : audioVolume('sfx');
       try { localStorage.setItem(key, String(muted)); } catch { /* private window */ }
       return muted;
     },

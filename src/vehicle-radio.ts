@@ -1,6 +1,6 @@
 /** Original procedural instrumental, composed for LepakMamak; no sampled recordings. */
 export function setupVehicleRadio(){
- let context:AudioContext|undefined,gain:GainNode|undefined,source:AudioBufferSourceNode|undefined,active=false,timer:ReturnType<typeof setTimeout>|undefined;
+ let context:AudioContext|undefined,gain:GainNode|undefined,source:AudioBufferSourceNode|undefined,active=false,volume=1,timer:ReturnType<typeof setTimeout>|undefined;
  const notice=document.createElement('div');notice.id='vehicle-radio';notice.setAttribute('role','status');notice.innerHTML='<small>LEPAK FM · NOW PLAYING</small><strong>Jalan Malam</strong><span>LepakMamak Original · Instrumental</span>';document.body.append(notice);
  function init(){
   if(context)return;
@@ -16,13 +16,13 @@ export function setupVehicleRadio(){
    for(const offset of [.0,.5])for(let i=0;i<rate*.035;i++){const index=Math.floor((b+offset)*beat*rate)+i;if(index<data.length)data[index]+=(Math.random()*2-1)*.018*Math.exp(-i/rate*130);}
   }
   source=context.createBufferSource();source.buffer=buffer;source.loop=true;source.connect(gain);source.start();
-  if(active)gain.gain.setTargetAtTime(.32,context.currentTime,.35);
+  if(active)gain.gain.setTargetAtTime(.32*volume,context.currentTime,.35);
  }
  const unlock=()=>{try{init();void context?.resume().catch(()=>{});}catch{/* Browser audio unavailable. */}};
  document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
- return{update(playing:boolean){
+ return{setVolume(value:number){volume=Math.max(0,Math.min(1,value));if(gain&&context&&active)gain.gain.setTargetAtTime(.32*volume,context.currentTime,.08);},update(playing:boolean){
   if(playing===active)return;active=playing;
-  if(gain&&context){gain.gain.cancelScheduledValues(context.currentTime);gain.gain.setTargetAtTime(playing?.32:0,context.currentTime,.35);}
+  if(gain&&context){gain.gain.cancelScheduledValues(context.currentTime);gain.gain.setTargetAtTime(playing?.32*volume:0,context.currentTime,.35);}
   clearTimeout(timer);notice.classList.remove('visible');
   if(playing&&context?.state==='running'){notice.classList.add('visible');timer=setTimeout(()=>notice.classList.remove('visible'),4500);}
  }};

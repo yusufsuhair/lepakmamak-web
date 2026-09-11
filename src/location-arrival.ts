@@ -1,5 +1,6 @@
 import places from '../shared/places.json';
 import {districtFor} from '../shared/districts.mjs';
+import {audioVolume} from './audio-preferences';
 
 const kinds:Record<string,string>={mercu:'Landmark',zoo:'City attraction',kedai:'Shop',bank:'Bank',hotel:'Hotel',civic:'Community',lepak:'Hangout',gerai:'Street food',minyak:'Petrol station',ibadah:'Place of worship',sukan:'Sports'};
 
@@ -22,7 +23,7 @@ function createArrivalSting(){
   [523.25,784,1046.5].forEach((frequency,index)=>{
    const at=now+index*.1,oscillator=context!.createOscillator(),gain=context!.createGain();
    oscillator.type='triangle';oscillator.frequency.value=frequency;
-   gain.gain.setValueAtTime(.001,at);gain.gain.exponentialRampToValueAtTime(.055,at+.02);gain.gain.exponentialRampToValueAtTime(.001,at+.42);
+   gain.gain.setValueAtTime(.001,at);gain.gain.exponentialRampToValueAtTime(.055*audioVolume('sfx'),at+.02);gain.gain.exponentialRampToValueAtTime(.001,at+.42);
    oscillator.connect(gain);gain.connect(context!.destination);oscillator.start(at);oscillator.stop(at+.44);
    oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
   });

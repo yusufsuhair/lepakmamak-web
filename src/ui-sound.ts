@@ -1,3 +1,5 @@
+import {audioVolume} from './audio-preferences';
+
 // Tiny interface sounds keep menus feeling like part of the game without adding a
 // download or competing with the city, vehicle, or table-game audio.
 type SoundKind = 'tap' | 'open' | 'close' | 'reset' | 'notify' | 'success';
@@ -32,7 +34,7 @@ export function setupUiSounds(soundToggle?: HTMLInputElement) {
       oscillator.frequency.setValueAtTime(frequency, start);
       oscillator.frequency.exponentialRampToValueAtTime(frequency * (kind === 'close' ? .94 : 1.05), start + .08);
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(kind === 'tap' ? .024 : kind === 'notify' ? .028 : .032, start + .008);
+      gain.gain.linearRampToValueAtTime((kind === 'tap' ? .024 : kind === 'notify' ? .028 : .032) * audioVolume('sfx'), start + .008);
       gain.gain.exponentialRampToValueAtTime(.001, start + duration);
       oscillator.connect(gain); gain.connect(context!.destination);
       oscillator.start(start); oscillator.stop(start + duration + .01);

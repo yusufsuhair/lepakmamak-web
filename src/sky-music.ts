@@ -18,8 +18,8 @@ export function createSkyMusic(context: AudioContext) {
   }
   const chords = [[57,60,64,67], [53,57,60,64], [48,52,55,59], [55,59,62,65]];
   return {
-    update(active: boolean, playing: boolean) {
-      output.gain.setTargetAtTime(active ? (playing ? .015 : .12) : 0, context.currentTime, .35);
+    update(active: boolean, playing: boolean, volume = 1) {
+      output.gain.setTargetAtTime(active ? (playing ? .015 : .12) * volume : 0, context.currentTime, .35);
       if (!active || context.state !== 'running') { next = 0; return; }
       if (next < context.currentTime) next = context.currentTime + .03;
       while (next < context.currentTime + .15) {

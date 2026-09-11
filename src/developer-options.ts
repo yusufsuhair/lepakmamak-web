@@ -1,10 +1,18 @@
 import './developer-options.css';
 import type {WeatherPreview} from './weather';
 
-export function setupDeveloperOptions(send:(message:object)=>boolean, preview?:(value:WeatherPreview)=>void){
+export function setupDeveloperOptions(send:(message:object)=>boolean, preview?:(value:WeatherPreview)=>void, soundRange?:{get:()=>number;set:(value:number)=>void}){
  const root=document.createElement('section');root.id='developer-options';
  root.innerHTML='<header><small>DEV BUILD ONLY</small><h3>Developer Option</h3></header><label>Nearby test users<input id="dev-user-count" type="number" min="1" max="30" value="4" inputmode="numeric"></label><div class="dev-checks"><label><input id="dev-bot-mic" type="checkbox"> Open mic</label><label><input id="dev-bot-speaker" type="checkbox" checked> Open speaker</label></div><div class="dev-actions"><button id="dev-spawn" type="button">Spawn users</button><button id="dev-remove" type="button">Remove all users</button></div><p id="dev-options-status" role="status"></p>';
  document.querySelector('.pause-panel')!.append(root);
+ if(soundRange){
+  const panel=document.createElement('fieldset');panel.className='dev-environment';
+  panel.innerHTML='<legend>Audio diagnostics</legend><p>Local listening-distance multiplier for testing spatial audio.</p><label>Sound range <span class="range-control"><input id="sound-range" type="range" min="0.5" max="2" step="0.1" aria-label="Sound range"><output id="sound-range-value"></output></span></label>';
+  root.append(panel);
+  const input=panel.querySelector<HTMLInputElement>('#sound-range')!,output=panel.querySelector<HTMLOutputElement>('#sound-range-value')!;
+  const apply=()=>{soundRange.set(Number(input.value));output.value=`${Math.round(soundRange.get()*100)}%`;};
+  input.value=String(soundRange.get());output.value=`${Math.round(soundRange.get()*100)}%`;input.oninput=apply;
+ }
  if(preview){
   const panel=document.createElement('fieldset');panel.className='dev-environment';
   panel.innerHTML=`<legend>Environment preview</legend><p>Local only · does not change room weather. Tropical season presets, not snow or seasonal foliage.</p>
