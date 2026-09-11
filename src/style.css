@@ -702,6 +702,9 @@ html, body, #app { touch-action: manipulation; }
 #open-friends:hover { background: #255647; }
 #open-friends:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
 #open-friends[hidden] { display: none; }
+#open-friends { position: relative; overflow: visible; }
+#open-friends #friends-unread { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border: 2px solid #173c32; border-radius: 999px; background: #e5644f; color: #fff5dc; font: 800 9px/1 'Oxanium'; font-style: normal; letter-spacing: 0; box-shadow: 0 2px 8px #0006; }
+#open-friends #friends-unread[hidden] { display: none; }
 
 /* The weekly board reads on open and never pushes, so it is plain markup with no state.
    The Wall is a cream panel, so this matches the feed cards rather than the dark HUD. */

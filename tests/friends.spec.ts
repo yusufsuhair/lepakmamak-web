@@ -107,3 +107,32 @@ test('Friend List renders safely, opens Message for online friends, and fits a p
   await expect(page.getByRole('button', {name: 'Accept'})).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
+
+test('Friend List announces new requests and confirms friend removal', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me',user_metadata:{display_name:'Tester'}}};export let guestName='';` }));
+  let state = {friends: [{id: 'friend-id', name: 'Aina', online: false, playerId: null}], incoming: [], outgoing: []};
+  await page.route('**/friends/state', route => route.fulfill({contentType: 'application/json', body: JSON.stringify({state})}));
+  await page.route('**/friends/remove', route => {
+    state = {friends: [], incoming: [], outgoing: []};
+    return route.fulfill({contentType: 'application/json', body: JSON.stringify({result: {removed: true}, state})});
+  });
+  await page.route('**/friends-harness-events', route => route.fulfill({contentType: 'text/html', body: `<main><script type="module">import {setupFriends} from '/src/friends.ts';window.friendEvents=[];window.friendApi=setupFriends('http://friends.test',()=>{},()=>{},()=>{},(event,unread)=>window.friendEvents.push({event,unread}));window.friendApi.open();</script></main>`}));
+  await page.goto('/friends-harness-events');
+
+  await expect(page.getByRole('button', {name: 'Remove', exact: true})).toBeVisible();
+  await page.getByRole('button', {name: 'Remove', exact: true}).click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Remove Aina?'})).toBeVisible();
+  await page.getByRole('button', {name: 'Keep friend'}).click();
+  await expect(page.getByRole('alertdialog')).toBeHidden();
+  await page.getByRole('button', {name: 'Remove', exact: true}).click();
+  await page.getByRole('button', {name: 'Remove friend'}).click();
+  await expect(page.getByText('No friends yet. Add someone from the city.')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).friendEvents.map((item: any) => item.event))).toContain('removed');
+
+  await page.evaluate(() => (window as any).friendApi.close());
+  await page.evaluate(() => (window as any).friendApi.state({friends: [], incoming: [{id: 'request-id', name: 'Farah'}], outgoing: []}));
+  await expect.poll(() => page.evaluate(() => JSON.stringify((window as any).friendEvents))).toContain('request-received');
+  await expect.poll(() => page.evaluate(() => (window as any).friendEvents.at(-1))).toEqual({event: 'request-received', unread: 1});
+});

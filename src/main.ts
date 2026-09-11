@@ -67,7 +67,7 @@ import voiceConfig from '../shared/voice.json';
 import './ui-polish.css';
 import {setupDeveloperOptions} from './developer-options';
 import {setupGeng, type GengState} from './geng';
-import {setupFriends, type FriendState} from './friends';
+import {setupFriends, type FriendEvent, type FriendState} from './friends';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -433,6 +433,7 @@ async function init() {
   $('clear-afk').onclick = () => publishAfk('');
   let localName: THREE.Sprite | null = null;
   const chatPop=setupChatSound();
+  const uiSounds=setupUiSounds($<HTMLInputElement>('sound-toggle'));
   const announcer=createAnnouncer($('hud'));
   createWhatsNew(document.querySelector('.pause-panel') as HTMLElement);
   const netStatus=createNetStatus(document.querySelector('.brand-status') as HTMLElement);
@@ -526,6 +527,17 @@ async function init() {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
     friendsUI.close(); chat.openDm(playerId, name); chat.open();
+  }, (event: FriendEvent, unread: number) => {
+    if (friendsButton) {
+      const badge = friendsButton.querySelector<HTMLElement>('#friends-unread');
+      if (badge) { badge.hidden = unread < 1; badge.textContent = unread > 99 ? '99+' : String(unread); }
+      friendsButton.setAttribute('aria-label', unread ? `Open friends, ${unread} new notification${unread === 1 ? '' : 's'}` : 'Open friends');
+    }
+    const sound = event === 'request-received' ? 'notify'
+      : event === 'accepted' ? 'success'
+      : event === 'declined' || event === 'cancelled' || event === 'removed' ? 'close'
+      : event === 'request-sent' ? 'open' : null;
+    if (sound) uiSounds.play(sound);
   });
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
@@ -554,7 +566,6 @@ async function init() {
   document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   createRipples(document.body, {reducedMotion});
-  setupUiSounds($<HTMLInputElement>('sound-toggle'));
   $('touch-controls').hidden = !touch;
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
@@ -1233,6 +1244,7 @@ async function init() {
   const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
   gengButton=document.createElement('button');gengButton.id='open-geng';gengButton.type='button';gengButton.setAttribute('aria-label','Open Geng');gengButton.title='Create or join a Geng';gengButton.setAttribute('aria-haspopup','dialog');gengButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 1.8 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/></svg>';
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
+  friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
   $('menu').before(shopButton,inventoryButton,gengButton,friendsButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
   friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!session||!!guestName;
@@ -1251,6 +1263,7 @@ async function init() {
     $('open-shop').hidden = !!guestName;
     if (!guestName) void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
+    if (!guestName) void friendsUI.refresh();
     ensureAudio(); startBackgroundMusic(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
     if (!localName) { localName = nameTag(displayName(), true); updateNameTagGeng(localName, geng, gengLeader); scene.add(localName); }
     if (!guestName && new URLSearchParams(location.search).has('coins')) window.setTimeout(() => itemShop.open(), 0);
@@ -1543,6 +1556,7 @@ async function init() {
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
   function openSelectedProfile() { closeOptions(); $('profile-name').textContent = selectedName; $('profile-details').replaceChildren(); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; profile.showModal(); $('close-profile').focus(); }
   $('view-profile').onclick = openSelectedProfile;
+  $<HTMLButtonElement>('add-friend').dataset.uiSound = 'none';
   $('add-friend').onclick = () => {
     const relation = friendsUI.relationship(selectedProfileId);
     const relationId = friendsUI.relationshipId(selectedProfileId);

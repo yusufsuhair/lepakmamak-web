@@ -1,6 +1,6 @@
 // Tiny interface sounds keep menus feeling like part of the game without adding a
 // download or competing with the city, vehicle, or table-game audio.
-type SoundKind = 'tap' | 'open' | 'close' | 'reset';
+type SoundKind = 'tap' | 'open' | 'close' | 'reset' | 'notify' | 'success';
 
 export function setupUiSounds(soundToggle?: HTMLInputElement) {
   let context: AudioContext | undefined;
@@ -21,19 +21,21 @@ export function setupUiSounds(soundToggle?: HTMLInputElement) {
     if (now - lastPlayed < 55) return;
     lastPlayed = now;
     const at = context.currentTime;
-    const notes = kind === 'close' ? [720, 470] : kind === 'reset' ? [520, 780, 1040] : kind === 'open' ? [520, 780] : [650];
+    const notes = kind === 'close' ? [720, 470] : kind === 'reset' ? [520, 780, 1040] : kind === 'notify' ? [880, 1180] : kind === 'success' ? [660, 880, 1180] : kind === 'open' ? [520, 780] : [650];
+    const spacing = kind === 'reset' ? .065 : kind === 'notify' ? .07 : kind === 'success' ? .08 : .045;
+    const duration = kind === 'tap' ? .11 : kind === 'notify' ? .15 : kind === 'success' ? .18 : .17;
     notes.forEach((frequency, index) => {
       const oscillator = context!.createOscillator();
       const gain = context!.createGain();
-      const start = at + index * (kind === 'reset' ? .065 : .045);
-      oscillator.type = kind === 'tap' ? 'sine' : 'triangle';
+      const start = at + index * spacing;
+      oscillator.type = kind === 'tap' || kind === 'notify' ? 'sine' : 'triangle';
       oscillator.frequency.setValueAtTime(frequency, start);
       oscillator.frequency.exponentialRampToValueAtTime(frequency * (kind === 'close' ? .94 : 1.05), start + .08);
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(kind === 'tap' ? .024 : .032, start + .008);
-      gain.gain.exponentialRampToValueAtTime(.001, start + (kind === 'tap' ? .11 : .17));
+      gain.gain.linearRampToValueAtTime(kind === 'tap' ? .024 : kind === 'notify' ? .028 : .032, start + .008);
+      gain.gain.exponentialRampToValueAtTime(.001, start + duration);
       oscillator.connect(gain); gain.connect(context!.destination);
-      oscillator.start(start); oscillator.stop(start + (kind === 'tap' ? .12 : .18));
+      oscillator.start(start); oscillator.stop(start + duration + .01);
       oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
     });
   }

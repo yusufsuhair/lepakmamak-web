@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.40",
+  "date": "2026-09-11",
+  "title": "Friend List lebih jelas dan selamat",
+  "notes": [
+    "Request Add Friend, penerimaan dan perubahan Friend List kini ada bunyi ringkas supaya setiap tindakan lebih jelas.",
+    "Request baharu memaparkan badge nombor pada butang Friends dari luar panel, termasuk selepas reconnect.",
+    "Remove friend kini memerlukan pengesahan dahulu supaya tidak terpadam kerana tersalah tekan."
+  ]
+},
+{
   "version": "1.39.39",
   "date": "2026-09-11",
   "title": "Chat penuh mobile lebih mudah digunakan",
