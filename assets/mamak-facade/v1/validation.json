@@ -1,0 +1,58 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "bounds_blender_m": {
+    "max": [
+      15.699999809265137,
+      -4.40000057220459,
+      5.21999979019165
+    ],
+    "min": [
+      -15.699999809265137,
+      -12.875,
+      0.0
+    ],
+    "size": [
+      31.399999618530273,
+      8.47499942779541,
+      5.21999979019165
+    ]
+  },
+  "budgets": {
+    "max_draw_calls": 6,
+    "max_glb_bytes": 700000,
+    "max_materials": 4,
+    "max_meshes": 6,
+    "max_textures": 0,
+    "max_triangles": 12000
+  },
+  "errors": [],
+  "glb": {
+    "bytes": 277504,
+    "nodes": [
+      "LM_ENV_MamakFacade_Lamps",
+      "LM_ENV_MamakFacade_Leaf_Green",
+      "LM_ENV_MamakFacade_Metal_Dark",
+      "LM_ENV_MamakFacade_Wall_Cream",
+      "LM_ENV_MamakFacade_Wood_Warm"
+    ],
+    "primitives": 5,
+    "sha256": "1dce4e5bf46bd55dd6d127ba6f84cc84be4faa2e5860c3990b647f0224a659bd"
+  },
+  "materials": [
+    "LM_Leaf_Green",
+    "LM_Metal_Dark",
+    "LM_Wall_Cream",
+    "LM_Wood_Warm"
+  ],
+  "mesh_count": 5,
+  "objects": [
+    "LM_ENV_MamakFacade_Lamps",
+    "LM_ENV_MamakFacade_Leaf_Green",
+    "LM_ENV_MamakFacade_Metal_Dark",
+    "LM_ENV_MamakFacade_Wall_Cream",
+    "LM_ENV_MamakFacade_Wood_Warm"
+  ],
+  "passed": true,
+  "profile": "static-palette",
+  "triangles": 3732
+}

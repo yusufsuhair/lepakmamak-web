@@ -1,0 +1,30 @@
+{
+  "asset": "LM_ENV_MamakFacade",
+  "baseline_sha256": "6b206d8d62a3fc4acf8380c9599d7c5a236aa0c2d532ab210fa4cb6dc72f2949",
+  "budgets": {
+    "max_draw_calls": 6,
+    "max_glb_bytes": 700000,
+    "max_materials": 4,
+    "max_meshes": 6,
+    "max_textures": 0,
+    "max_triangles": 12000
+  },
+  "collision": "none",
+  "glb_sha256": "1dce4e5bf46bd55dd6d127ba6f84cc84be4faa2e5860c3990b647f0224a659bd",
+  "lamp_count": 4,
+  "minimum_world_height": 3.5,
+  "origin_world": [
+    -29,
+    3.555,
+    30
+  ],
+  "placement": {
+    "scale": 1,
+    "x": -29,
+    "y": 3.555,
+    "yaw": 0,
+    "z": 30
+  },
+  "source_sha256": "76b4fdfd96bbe560d27d244157e2abb1261d2bc9d25dbdef39017449e01c84b9",
+  "version": 1
+}

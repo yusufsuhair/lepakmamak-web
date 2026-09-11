@@ -62,6 +62,7 @@ import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAs
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
 import {loadMamakRealism,mamakRealismStatus} from './mamak-realism';
+import {createMamakFacade} from './mamak-facade';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -205,6 +206,8 @@ async function init() {
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
+  const mamakFacade = createMamakFacade(scene);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakFacade',{get:()=>({...mamakFacade.status})});
   let mamakLighting: MamakLighting | null = null, mamakNight = false;
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakRealism',{get:()=>mamakRealismStatus});
   void loadMamakRealism(scene,renderer)
@@ -216,6 +219,7 @@ async function init() {
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';
       asset.userData.source = 'blender-glb';
+      void mamakFacade.load();
     })
     .catch(error => {
       mamakAssetState = 'fallback';
@@ -1570,7 +1574,7 @@ async function init() {
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;streetLights.setNight(night);mamakLighting?.setNight(night);},value=>clouds.setWeather(value));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;streetLights.setNight(night);mamakLighting?.setNight(night);mamakFacade.setNight(night);},value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }

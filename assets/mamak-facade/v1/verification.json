@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "fe40dc20c2d80d4e529fd3bf300150173555ef1e",
+  "branch": "codex/mamak-facade",
+  "glb_sha256": "1dce4e5bf46bd55dd6d127ba6f84cc84be4faa2e5860c3990b647f0224a659bd",
+  "source_sha256": "76b4fdfd96bbe560d27d244157e2abb1261d2bc9d25dbdef39017449e01c84b9",
+  "build": "passed",
+  "focused_tests": {"passed": 17, "failed": 0, "duration_minutes_rounded": 2.4, "port": 5293, "output": "test-results/mamak-facade-release"},
+  "actual_game": {"sit_stand": "passed", "quality": ["low", "high"], "existing_seat_geometry_checked": 25},
+  "preview": {"desktop_day_night": "passed", "mobile_viewport_day_night": "passed", "console_shader_errors": 0, "page_errors": 0},
+  "khronos": {"errors": 0, "warnings": 0, "informational_unused_uvs": 5},
+  "reproducibility": {"fresh_build_matches": true, "saved_source_reexport_matches": true},
+  "production_build_glb_matches": true,
+  "existing_realism_source_glb_chairs_tables_collision_unchanged": true,
+  "full_application_regression": "not run",
+  "physical_phone_gpu_benchmark": "not run",
+  "merged_pushed_or_deployed": false
+}
