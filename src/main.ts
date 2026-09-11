@@ -34,7 +34,7 @@ import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
 import {setupCityDirectory,drawPlaceLabels} from './city-directory';
-import {drawLegolandMap,isInLegoland,LEGOLAND_MAP_BOUNDS} from './legoland-map';
+import {drawLegolandMap,isInLegoland,LEGOLAND_MAP_BOUNDS,LEGOLAND_MAX_ZOOM} from './legoland-map';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
@@ -1943,6 +1943,7 @@ async function init() {
   let mapZoom=defaultMapZoom;
   let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
+  const mapMaxZoom=()=>expandedCanvas.dataset.scope==='legoland'?LEGOLAND_MAX_ZOOM:maxMapZoom;
   expandedCanvas.dataset.mode=mapMode;
   const selectMapPlace=(id:string)=>{carFinder.deselect();selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
   const mapDirectory=setupCityDirectory($('city-directory'),expandedCanvas,selectMapPlace);
@@ -1995,10 +1996,10 @@ async function init() {
     clampParkPan();
   }
   function publishMapZoom(){
-    expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=maxMapZoom;zoomOut.disabled=mapZoom<=minMapZoom;
+    expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=mapMaxZoom();zoomOut.disabled=mapZoom<=minMapZoom;
   }
   function setMapZoom(next:number,point?:MapPoint){
-    const clamped=clamp(Math.round(next*100)/100,minMapZoom,maxMapZoom);
+    const clamped=clamp(Math.round(next*100)/100,minMapZoom,mapMaxZoom());
     if(point&&clamped!==mapZoom){
       if(expandedCanvas.dataset.scope==='legoland')focusPark(point,clamped);
       else if(mapMode==='3d')overview.zoomAt(point.x,point.y,clamped);
@@ -2050,8 +2051,10 @@ async function init() {
   setMapZoom(defaultMapZoom);
 
   function syncMapScope(inPark:boolean){
-    const scope=inPark?'legoland':'city';
+    const scope=inPark?'legoland':'city',changed=expandedCanvas.dataset.scope!==scope;
     expandedCanvas.dataset.scope=scope;
+    // Only the park zooms past the city's limit, so leaving it brings the zoom back in range.
+    if(changed){mapZoom=Math.min(mapZoom,mapMaxZoom());publishMapZoom();}
     $('minimap').dataset.scope=scope;
     cityMap.classList.toggle('park-map',inPark);
     $('open-map').setAttribute('aria-label',inPark?'Open Legoland map':'Open city map');
@@ -2065,8 +2068,8 @@ async function init() {
     syncMapScope(inPark);
     if(inPark){
       const map=$<HTMLCanvasElement>(expanded?'expanded-map':'minimap');
-      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86,expanded?{panX:parkMapPanX,panZ:parkMapPanZ}:undefined);
-      if(expanded)$('map-place-info').textContent='LEGOLAND MAP · Park lands, attractions and Geng are shown here.';
+      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86,expanded?{panX:parkMapPanX,panZ:parkMapPanZ}:undefined,park.played);
+      if(expanded)$('map-place-info').textContent=`LEGOLAND MAP · ${park.summary}`;
       return;
     }
     const carPin=expanded?carFinder.update(networkConnected,pos,roomPlayers):undefined;
