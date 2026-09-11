@@ -11,3 +11,9 @@ test('a fast mobile tap cannot auto-enter while logout is settling',()=>{
   expect(main).toMatch(/authLifecycle\.beginLogout\?\.\(\);[\s\S]*auth\.auth\.signOut\(\{scope:'local'\}\)/);
   expect(main).toMatch(/catch\(error\)\{[\s\S]*authLifecycle\.cancelLogout\?\.\(\);/);
 });
+
+test('an invalid restored login opens the form instead of entering then leaving',()=>{
+  expect(auth).toContain('verifyRestoredSession(session');
+  expect(auth).toMatch(/checked\.state === 'invalid'[\s\S]*await invalidate\(\); return;/);
+  expect(main).toMatch(/message\.code === 'AUTH_REQUIRED'[\s\S]*requestEntry\.invalidate\('Your login expired/);
+});

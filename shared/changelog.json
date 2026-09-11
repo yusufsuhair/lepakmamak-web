@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.39.51",
+    "date": "2026-09-11",
+    "title": "Login mobile pulih daripada sesi lama",
+    "notes": [
+      "Sesi yang tersimpan kini disahkan dengan Supabase sebelum pemain dibenarkan masuk ke bandar.",
+      "Token yang tamat atau rosak terus dibersihkan dan borang login dibuka tanpa kitaran masuk-keluar yang kelihatan seperti auto-refresh.",
+      "Jika realtime menolak sesi, pemain kini dibawa terus ke login dengan arahan yang jelas."
+    ]
+  },
+  {
     "version": "1.39.50",
     "date": "2026-09-11",
     "title": "Login mobile tidak lagi auto masuk selepas logout",

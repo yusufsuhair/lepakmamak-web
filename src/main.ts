@@ -1229,7 +1229,10 @@ async function init() {
           rejection = { code: message.code };
           setNetworkStatus(message.code === 'AUTH_REQUIRED' ? 'LOGIN REQUIRED' : 'UNAVAILABLE', 'offline');
           toast('Could not join', message.message || 'Please try again.');
-          if (message.code === 'AUTH_REQUIRED') { leaveCity(); void auth?.auth.signOut({ scope: 'local' }); }
+          if (message.code === 'AUTH_REQUIRED') {
+            leaveCity();
+            void requestEntry.invalidate('Your login expired. Please log in again.');
+          }
         }
       };
       // Snapshots arrive deflated from the server because Railway's edge strips the
