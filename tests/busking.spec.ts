@@ -1,12 +1,14 @@
 import {test,expect,type Page} from '@playwright/test';
 // Enters as a guest at (x,z). The returned function moves the player: a later welcome restores
-// a spot the same way a reconnect does, so tests can arrive and leave without walking.
+// a spot the same way a reconnect does, so tests can arrive and leave without walking. The fake
+// city answers the heartbeat; otherwise the client drops it as stale after ~13 s, which mutes
+// ambience and would pass for a "pause".
 async function enterAt(page:Page,x:number,z:number){
- let city:any;const welcome=(x:number,z:number)=>JSON.stringify({type:'welcome',id:'loop-player',players:[{id:'loop-player',name:'Tester',color:'#72c8ba',x,z,yaw:Math.PI,riding:false,speed:0,guest:true}]});
- await page.routeWebSocket('**/ws',ws=>{city=ws;ws.onMessage(raw=>{if(JSON.parse(String(raw)).type==='join')ws.send(welcome(x,z));});});
+ let city:any,spot=[x,z];const welcome=([x,z]:number[])=>JSON.stringify({type:'welcome',id:'loop-player',players:[{id:'loop-player',name:'Tester',color:'#72c8ba',x,z,yaw:Math.PI,riding:false,speed:0,guest:true}]});
+ await page.routeWebSocket('**/ws',ws=>{city=ws;ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join')ws.send(welcome(spot));if(m.type==='ping')ws.send(JSON.stringify({type:'pong',t:m.t}));});});
  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak?.position.z)).toBe(z);
- return (x:number,z:number)=>city.send(welcome(x,z));
+ return (x:number,z:number)=>{spot=[x,z];city.send(welcome(spot));};
 }
 test('main busker is in front of PETRONAS, away from Mamak Maju',async({page})=>{
  await page.goto('/');
