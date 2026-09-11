@@ -66,6 +66,7 @@ import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
 import * as authLifecycle from './auth';
+import {preparePetronasEnvironment} from './petronas';
 import { appearance, type Appearance } from './appearance';
 import { shoutTag, nameTag, updateNameTagName, updateNameTagGeng, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
@@ -196,6 +197,8 @@ async function init() {
   const clouds=createClouds(scene);
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
+  void preparePetronasEnvironment(renderer,world.petronas);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakPetronas',{get:()=>({...world.petronas.status,fallbackVisible:world.petronas.fallback.visible})});
   const mamakSteam=createMamakSteam(scene);
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakSteam',{get:()=>({visible:mamakSteam.visible,count:mamakSteam.count})});
   const shopAssets = loadMamakShops(scene, world.shopFallbacks);

@@ -14,6 +14,7 @@ import {createTaycan} from './taycan';
 import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
+import {loadPetronas, type PetronasSite} from './petronas';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -665,7 +666,7 @@ function createProceduralCar(style: Exclude<CarStyle, 'emas'>) {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; rembayung:RembayungSite }
+export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; rembayung:RembayungSite; petronas:PetronasSite }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -1135,9 +1136,10 @@ export function createWorld(scene: THREE.Scene): World {
 
   // A recognisably Malaysian PETRONAS forecourt: Mesra shop, turquoise canopy,
   // six pumps and a roadside fuel pylon. The open forecourt remains driveable.
+  let petronas:PetronasSite;
   {
     const px = -31, pz = 112;
-    const station = new THREE.Group(); station.position.set(px, 0, pz); group.add(station);
+    const station = new THREE.Group(); station.position.set(px, 0, pz); scene.add(station);
     const stationSolid = (x: number, z: number, w: number, d: number) => solid(px + x, pz + z, w, d);
     const green = '#00a58f', darkGreen = '#087565', white = '#f5f4e9', charcoal = '#293d3b';
 
@@ -1194,6 +1196,7 @@ export function createWorld(scene: THREE.Scene): World {
     sign(station, 'DIESEL', 23, 4.15, -24.66, 3.2, 1.05, '#f5f4e9', darkGreen, Math.PI);
     box(station, 23, 2.65, -24.62, 3.5, .7, .12, green);
     stationSolid(23, -24, 3.8, 1.1);
+    petronas=loadPetronas(scene,station);
   }
 
   for(const [x,z,label] of [[112,-14,'DATARAN SANTAI'],[-110,60,'LAMAN LEPAK']] as const){
@@ -1464,7 +1467,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, rembayung };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, rembayung, petronas };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can

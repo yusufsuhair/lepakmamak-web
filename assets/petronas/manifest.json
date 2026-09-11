@@ -1,0 +1,24 @@
+{
+  "asset": "LM_ENV_Petronas",
+  "origin": [
+    -31,
+    0,
+    112
+  ],
+  "footprint": [
+    58,
+    52
+  ],
+  "pumps": 6,
+  "materials": 27,
+  "triangles": 235571,
+  "bytes": 9128492,
+  "signs": [
+    "PETRONAS",
+    "KEDAI MESRA",
+    "RON 95",
+    "RON 97",
+    "DIESEL"
+  ],
+  "source": "assets/petronas/petronas.blend"
+}
