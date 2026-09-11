@@ -10,6 +10,45 @@ from lm_pipeline import (ROOT, setup_template, save_source, validate_scene,
 
 
 ASSET = "LM_ENV_MamakMaju"
+SIGN_TEXT = "MAMAK MAJU"
+
+
+def append_sign(mesh):
+    """Bake a readable canopy sign into the shared mesh: no font or texture at runtime."""
+    vertices = [tuple(vertex.co) for vertex in mesh.vertices]
+    faces = [tuple(polygon.vertices) for polygon in mesh.polygons]
+    material_indices = [polygon.material_index for polygon in mesh.polygons]
+    # A front-facing plane sits just ahead of the canopy, avoiding hidden lettering.
+    start = len(vertices)
+    vertices.extend([(-10.25, -3.61, 5.04), (10.25, -3.61, 5.04),
+                     (10.25, -3.61, 6.06), (-10.25, -3.61, 6.06)])
+    faces.append(tuple(range(start, start + 4)))
+    material_indices.append(2)  # shared warm wood
+    curve = bpy.data.curves.new("LM_SIGN_MamakMaju_Font", "FONT")
+    curve.body = SIGN_TEXT
+    curve.resolution_u = 2
+    curve.fill_mode = "BOTH"
+    text = bpy.data.objects.new("LM_SIGN_MamakMaju_Authoring", curve)
+    bpy.context.scene.collection.objects.link(text)
+    bpy.context.view_layer.update()
+    letters = bpy.data.meshes.new_from_object(text.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    min_x, max_x = min(v.co.x for v in letters.vertices), max(v.co.x for v in letters.vertices)
+    min_y, max_y = min(v.co.y for v in letters.vertices), max(v.co.y for v in letters.vertices)
+    scale = min(17 / (max_x - min_x), .76 / (max_y - min_y))
+    start = len(vertices)
+    vertices.extend(((v.co.x - (min_x + max_x) / 2) * scale,
+                     -3.63, 5.55 + (v.co.y - (min_y + max_y) / 2) * scale)
+                    for v in letters.vertices)
+    faces.extend(tuple(start + index for index in polygon.vertices) for polygon in letters.polygons)
+    material_indices.extend([0] * len(letters.polygons))  # shared cream lettering
+    bpy.data.meshes.remove(letters)
+    bpy.data.objects.remove(text, do_unlink=True)
+    bpy.data.curves.remove(curve)
+    mesh.clear_geometry()
+    mesh.from_pydata(vertices, [], faces)
+    for polygon, index in zip(mesh.polygons, material_indices):
+        polygon.material_index = index
+    mesh.update()
 
 
 def cuboid(vertices, faces, materials, x, y, z, width, height, depth, material_index):
@@ -91,11 +130,13 @@ def build_mesh():
         mesh.materials.append(bpy.data.materials[name])
     for polygon, (_, material_index) in zip(mesh.polygons, faces):
         polygon.material_index = material_index
+    append_sign(mesh)
     uv = mesh.uv_layers.new(name="UVMap")
     for polygon in mesh.polygons:
         for loop_index in polygon.loop_indices:
             uv.data[loop_index].uv = (0, 0)
     obj["lm_asset_id"] = ASSET
+    obj["lm_sign_text"] = SIGN_TEXT
     obj["lm_footprint_m"] = [30.8, 11.6]
     obj["lm_forward"] = "Blender -Y / glTF +Z: open service front"
     # Match the scale-test collection topology, so collection filtering is exercised here too.
@@ -121,8 +162,8 @@ def main():
     save_source(source)
     bpy.ops.wm.open_mainfile(filepath=str(source))
     # The environment facade is larger than a one-prop calibration asset. It still remains
-    # deliberately small for mobile: 1,000 evaluated triangles, four draws and 128 KiB.
-    result = export_collection(output / "exports" / f"{ASSET}.glb", budget_overrides={"max_glb_bytes": 131072})
+    # Includes baked sign lettering, retaining four draws and no texture downloads.
+    result = export_collection(output / "exports" / f"{ASSET}.glb", budget_overrides={"max_triangles": 1500, "max_glb_bytes": 131072})
     if not args.skip_renders:
         scene = bpy.context.scene
         targets = {"Iso": (34, -44, 28), "Front": (0, -46, 5), "Right": (46, 0, 5), "Top": (0, 0, 46)}

@@ -38,3 +38,16 @@ Generated files: [template](generated/templates/lepakmamak-web-template.blend), 
 Run instructions and authoring/export conventions are in [README.md](README.md). The local viewer is available while Vite is running at `http://127.0.0.1:5192/art/blender/preview/`.
 
 This is the initial static, opaque, palette-material profile. Physical-phone FPS/memory/thermal testing and whole-world performance are not measured. Animation, textured assets and LOD/compression need dedicated profiles. Only the Mamak Maju visual shell was replaced; gameplay interactions, seats, collision and the procedural fallback remain. No deployment was performed.
+
+## Mamak Maju sign update — 2026-09-11
+
+Added baked `MAMAK MAJU` lettering to a front-facing canopy board, reusing cream and wood
+materials. Rebuilt source, GLB and four Blender previews. The new asset is 72,456 bytes,
+1,020 triangles and four primitives, with no font/texture dependency. Its environment-only
+triangle cap is now 1,500; the calibration asset budget is unchanged.
+
+Khronos validation: zero errors/warnings. Three.js validation checks sign metadata, actual
+letter vertices, board height and front-facing normals. Application build and the focused
+Mamak asset browser test passed. Inspected the front render and the local game screenshot:
+the name is readable on the canopy. Existing bundle-size warning remains. Full regression
+was not rerun for this asset-only update; no production deployment was performed.

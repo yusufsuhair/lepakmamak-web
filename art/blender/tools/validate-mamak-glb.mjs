@@ -21,6 +21,7 @@ assert.equal(bytes.readUInt32LE(4), 2);
 assert.equal(bytes.readUInt32LE(8), bytes.length);
 const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
 assert.deepEqual(json.nodes.map(node => node.name), ['LM_ENV_MamakMaju']);
+assert.equal(json.nodes[0].extras.lm_sign_text, 'MAMAK MAJU');
 for (const field of ['cameras', 'animations', 'skins', 'images', 'textures']) assert.equal(json[field]?.length ?? 0, 0, field);
 assert.ok(!json.extensionsUsed?.includes('KHR_lights_punctual'));
 assert.ok(json.buffers.every(buffer => !buffer.uri));
@@ -31,7 +32,7 @@ const size = bounds.getSize(new THREE.Vector3());
 const near = (value, expected, label) => assert.ok(Math.abs(value - expected) < 1e-4, `${label}: ${value} !== ${expected}`);
 near(bounds.min.y, 0, 'base'); near(size.x, 31.2, 'width'); near(size.y, 9.95, 'height');
 assert.ok(size.z > 15 && size.z < 16, `depth: ${size.z}`);
-let triangles = 0, primitives = 0; const materials = new Set();
+let triangles = 0, primitives = 0, signVertices = 0; const materials = new Set();
 gltf.scene.traverse(object => {
   if (!object.isMesh) return;
   primitives += 1;
@@ -40,13 +41,24 @@ gltf.scene.traverse(object => {
   assert.ok(object.material.isMeshStandardMaterial);
   assert.equal(object.material.transparent, false);
   assert.equal(object.material.side, 0);
+  if (object.material.name === 'LM_Wall_Cream') {
+    const positions = object.geometry.attributes.position;
+    const normals = object.geometry.attributes.normal;
+    for (let i = 0; i < positions.count; i += 1) {
+      if (Math.abs(positions.getZ(i) - 3.63) > 1e-4) continue;
+      signVertices += 1;
+      assert.ok(positions.getY(i) > 5.04 && positions.getY(i) < 6.06, 'lettering within board');
+      assert.ok(normals.getZ(i) > .99, 'lettering must face the service front');
+    }
+  }
 });
-assert.equal(triangles, 912);
+assert.equal(triangles, 1020);
+assert.ok(signVertices > 100, 'baked sign lettering is present');
 assert.equal(primitives, 4);
 assert.deepEqual([...materials].sort(), ['LM_Metal_Dark', 'LM_Roof_Red', 'LM_Wall_Cream', 'LM_Wood_Warm']);
 const report = {
   passed: true, asset: path.basename(input), sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length,
-  triangles, primitives, materials: [...materials].sort(),
+  triangles, primitives, signVertices, signText: json.nodes[0].extras.lm_sign_text, materials: [...materials].sort(),
   bounds_three_m: { min: bounds.min.toArray(), max: bounds.max.toArray(), size: size.toArray() },
   khronos: { errors: khronos.issues.numErrors, warnings: khronos.issues.numWarnings, infos: khronos.issues.numInfos },
 };

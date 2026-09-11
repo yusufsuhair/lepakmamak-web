@@ -17,6 +17,9 @@ The first real pilot is in `art/blender/generated/mamak-maju/`. Its runtime copy
 `public/assets/models/environment/LM_ENV_MamakMaju.glb`; `src/web-assets.ts` loads it at
 `(-29, 0, 30)` and hides only the Mamak Maju building-shell fallback after a successful load.
 The existing table positions, seats, collision solids and procedural fallback remain available.
+The canopy carries baked cream `MAMAK MAJU` lettering, with no runtime font or texture.
+This environment profile allows 1,500 triangles and 128 KiB; the signed asset uses
+1,020 triangles, four material primitives and 72,456 bytes. The scale-test profile is unchanged.
 
 On Linux/Windows or another Blender installation, pass `--blender /path/to/blender` or set `BLENDER_BIN`. Run generation in a separate background Blender process: it resets that process's scene, without touching an open interactive Blender session.
 

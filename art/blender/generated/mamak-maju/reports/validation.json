@@ -23,16 +23,16 @@
     "max_materials": 4,
     "max_meshes": 4,
     "max_textures": 0,
-    "max_triangles": 1000
+    "max_triangles": 1500
   },
   "errors": [],
   "glb": {
-    "bytes": 66732,
+    "bytes": 72456,
     "nodes": [
       "LM_ENV_MamakMaju"
     ],
     "primitives": 4,
-    "sha256": "0bca42bed0e73c96796807dd35597d78af1a696e25875a089544da67c6e46f26"
+    "sha256": "72aed470967757a1e2b44158d7ffe94cc8034ef4dc1be41d17b1e9646b9dbec4"
   },
   "materials": [
     "LM_Metal_Dark",
@@ -46,5 +46,5 @@
   ],
   "passed": true,
   "profile": "static-palette",
-  "triangles": 912
+  "triangles": 1020
 }
