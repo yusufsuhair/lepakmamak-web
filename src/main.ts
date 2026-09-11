@@ -1423,7 +1423,8 @@ async function init() {
   // Password and deletion belong to the account, so guests never see the panel at all.
   const security = setupSecurity(apiBase);
   $('open-security').onclick = () => security();
-  const itemShop = setupShop(setAccessories);
+  // Kedai's try-on starts from exactly what the city character has on.
+  const itemShop = setupShop(setAccessories, undefined, () => player.group.userData.appearance);
   openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
