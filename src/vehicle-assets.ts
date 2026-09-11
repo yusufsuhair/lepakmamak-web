@@ -1,0 +1,106 @@
+import * as THREE from 'three';
+import { MeshoptDecoder } from 'meshoptimizer';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/** Deliberately excludes both owner Porsches; they never enter this asset pipeline. */
+export const vehicleCatalog = {
+  axia: {name: 'Perodua Axia AV', width: 1.665, length: 3.760},
+  myvi: {name: 'Perodua Myvi AV', width: 1.735, length: 3.895},
+  emas: {name: 'Proton e.MAS 7', width: 1.901, length: 4.615},
+  avanza: {name: 'Toyota Avanza', width: 1.730, length: 4.395},
+  vellfire: {name: 'Toyota Vellfire', width: 1.850, length: 4.995},
+  suv: {name: 'Lepak SUV', width: 1.860, length: 4.480},
+  sport: {name: 'Lepak GT Coupe', width: 1.860, length: 4.380},
+  ferrari: {name: 'Ferrari inspired berlinetta', width: 1.950, length: 4.560},
+  lamborghini: {name: 'Lamborghini Aventador SVJ', width: 2.098, length: 4.943},
+  'model-y': {name: 'Tesla Model Y', width: 1.920, length: 4.790},
+  cybertruck: {name: 'Tesla Cybertruck', width: 2.032, length: 5.683},
+  police: {name: 'Polis Malaysia Patrol', width: 1.860, length: 4.480},
+  f1: {name: 'Lepak Formula', width: 2.000, length: 5.150},
+} as const;
+export type RevampedCarStyle = keyof typeof vehicleCatalog;
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const templates = new Map<RevampedCarStyle, Promise<THREE.Group>>();
+const wheelNames = ['wheel_FL', 'wheel_FR', 'wheel_RL', 'wheel_RR'] as const;
+let reflections: THREE.DataTexture | undefined;
+
+/** A shared neutral outdoor reflection probe, scoped to vehicle materials only.
+ * The city has no scene.environment. Metallic GLBs otherwise appear black there.
+ * No renderer/global lighting mutation, so the two owner cars stay visually unchanged.
+ */
+function vehicleReflections() {
+  if (reflections) return reflections;
+  const width = 256, height = 128, data = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const latitude = y / (height - 1), longitude = x / width * Math.PI * 2;
+    const sky = latitude > .5;
+    const horizon = Math.exp(-Math.abs(latitude - .5) * 10);
+    const cloud = sky ? Math.pow(Math.max(0, Math.sin(longitude * 3 + latitude * 14)), 8) * 24 : 0;
+    const building = !sky && latitude > .32 && Math.sin(longitude * 11) > .35 ? .55 : 1;
+    const rgb = sky ? [110 + horizon * 90 + cloud, 144 + horizon * 70 + cloud, 180 + horizon * 40 + cloud]
+      : [51 + horizon * 80, 59 + horizon * 78, 61 + horizon * 74];
+    const offset = (y * width + x) * 4;
+    rgb.forEach((v, i) => { data[offset + i] = Math.min(255, v * building); });
+    data[offset + 3] = 255;
+  }
+  reflections = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+  reflections.mapping = THREE.EquirectangularReflectionMapping;
+  reflections.colorSpace = THREE.SRGBColorSpace;
+  reflections.minFilter = THREE.LinearFilter; reflections.magFilter = THREE.LinearFilter;
+  reflections.needsUpdate = true;
+  return reflections;
+}
+
+async function template(style: RevampedCarStyle) {
+  let pending = templates.get(style);
+  if (!pending) {
+    pending = loader.loadAsync(`/assets/models/vehicles/${style}.glb?v=vehicles-v1`).then(gltf => {
+      for (const name of wheelNames) {
+        if (!gltf.scene.getObjectByName(name)) throw new Error(`${style}: missing ${name}`);
+      }
+      gltf.scene.traverse(object => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.castShadow = true; object.receiveShadow = true;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const source of materials) if (source instanceof THREE.MeshStandardMaterial) {
+          source.envMap = vehicleReflections(); source.envMapIntensity = .65;
+        }
+      });
+      return gltf.scene;
+    }).catch(error => { templates.delete(style); throw error; });
+    templates.set(style, pending);
+  }
+  return pending;
+}
+
+export interface VehicleModel {group: THREE.Group; wheels: THREE.Group[]; driver: THREE.Group}
+
+/** Keep the synchronous driving API while replacing its visual shell atomically.
+ * Position, driver visibility, network ID and the original wheel array retain identity.
+ * Network/GLB failure leaves a complete driveable procedural car in place.
+ */
+export async function upgradeVehicle(model: VehicleModel, style: RevampedCarStyle): Promise<boolean> {
+  const spec = vehicleCatalog[style];
+  model.group.userData.model = style;
+  model.group.userData.displayName = spec.name;
+  model.group.userData.assetState = 'loading';
+  model.group.userData.vehicleFootprint = {width: spec.width + .4, length: spec.length + .2};
+  const fallback = model.group.children.filter(child => child !== model.driver);
+  try {
+    const visual = (await template(style)).clone(true);
+    visual.name = `vehicle-${style}-blender`;
+    const wheels = wheelNames.map(name => visual.getObjectByName(name) as THREE.Group);
+    // Preserve spin phase when a GLB finishes downloading during a drive.
+    wheels.forEach((wheel, i) => { wheel.rotation.x = model.wheels[i]?.rotation.x || 0; });
+    model.group.remove(...fallback);
+    model.group.add(visual);
+    model.wheels.splice(0, model.wheels.length, ...wheels);
+    model.group.userData.assetState = 'ready';
+    model.group.userData.assetVersion = 'vehicles-v1';
+    return true;
+  } catch (error) {
+    model.group.userData.assetState = 'fallback';
+    model.group.userData.assetError = error instanceof Error ? error.message : String(error);
+    return false;
+  }
+}
