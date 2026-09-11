@@ -2,11 +2,17 @@
 
 Reproducible **Blender 5.2 LTS → GLB → Three.js** workflow. The calibration profile supports small, opaque, unrigged, untextured static meshes. Mamak Maju v3 adds a separately validated Cycles AO/normal bake for its serving counter. All other assets keep their existing untextured profiles.
 
-## Current runtime: Mamak Maju v5
+## Current runtime: Mamak Maju v6
 
 Editable source, packed/external textures, five Blender previews and local browser
-evidence live in `generated/mamak-maju-v5/`. Earlier generated sources remain archived
-unchanged. See [MAMAK-V5-REPORT.md](MAMAK-V5-REPORT.md).
+evidence live in `generated/mamak-maju-v6/`; refreshed foliage sources live in
+`generated/street-props-v2/`. Earlier generated sources remain archived unchanged.
+See [MAMAK-V6-REPORT.md](MAMAK-V6-REPORT.md).
+
+V6 smooths festoon cable geometry, rounds bulbs, adds wall-side crates/bin/handwash
+details and varies palm/planter foliage. Three.js adds localized warm canopy pools
+at night without extra lights or draws. This runtime shader is not embedded in GLB;
+Unity integration must recreate that lighting treatment.
 
 V5 adds three Blender-authored festoon strings, six perimeter poles and 18 bulbs above
 the courtyard. The festoons retain over 4.45 m of head clearance. Their separate mesh
@@ -23,7 +29,7 @@ service frames, a gutter/downpipes and tea-station props. Mamak-only roughness v
 differentiate roof, plaster and plastic without altering the shared prop/shop palette.
 The current shared layout supplies five tables and **25** playable chairs.
 
-Measured runtime asset: **15,917 triangles, 9 primitives, 1,183,396 bytes**. The two
+Measured runtime asset: **15,813 triangles, 9 primitives, 1,190,856 bytes**. The two
 embedded 512×512 PNGs hold short-range AO and tangent-space bevel normals; base colour
 has no baked sunlight or emission. Estimated RGBA8 texture memory including mipmaps
 is about 2.67 MiB. This is not a physical-phone performance measurement.

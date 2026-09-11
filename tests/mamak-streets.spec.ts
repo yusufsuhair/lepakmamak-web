@@ -65,7 +65,7 @@ test('Blender lamp bodies preserve night overrides, lamp IDs and glow anchors', 
   expect(result.fallback).toBe(false);
 });
 
-test('new bench collision does not cover game chairs or table arrival positions', async ({page}) => {
+test('benches and service props do not cover game chairs or table arrival positions', async ({page}) => {
   await page.route('**/bench-harness', route => route.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
   await page.goto('/bench-harness');
   const result = await page.evaluate(async () => {
@@ -74,11 +74,11 @@ test('new bench collision does not cover game chairs or table arrival positions'
     const layout = (await import('/shared/mamak-streets.json')).default;
     const tables = (await import('/shared/tables.json')).default;
     const world = createWorld({add(){}} as any);
-    const benches = world.solids.filter((s:any) => layout.benches.some((b:any) => b.x===s.x && b.z===s.z));
+    const benches = world.solids.filter((s:any) => [...layout.benches,...layout.serviceProps].some((b:any) => b.x===s.x && b.z===s.z));
     return {count:benches.length, blockedChairs:world.chairs.filter((c:any) => benches.some((s:any) => overlaps(c,.4,s))).map((c:any) => c.id),
       blockedArrivals:tables.filter((t:any) => benches.some((s:any) => overlaps({x:t.arrivalX,z:t.arrivalZ},.4,s))).map((t:any) => t.id)};
   });
-  expect(result).toEqual({count:2,blockedChairs:[],blockedArrivals:[]});
+  expect(result).toEqual({count:5,blockedChairs:[],blockedArrivals:[]});
 });
 
 test('festoon poles stay on the courtyard edge and clear every game seat and arrival', async ({page}) => {

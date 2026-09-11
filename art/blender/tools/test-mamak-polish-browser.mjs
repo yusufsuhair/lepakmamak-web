@@ -4,7 +4,7 @@ import path from 'node:path';
 import {chromium} from 'playwright';
 
 const base=process.env.LM_BASE_URL ?? 'http://127.0.0.1:5192';
-const output=path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v5');
+const output=path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v6');
 await fs.mkdir(path.join(output,'previews'),{recursive:true});
 await fs.mkdir(path.join(output,'reports'),{recursive:true});
 const browser=await chromium.launch({channel:'chrome'});
@@ -20,8 +20,10 @@ try {
       const THREE=await import('/node_modules/three/build/three.module.js');
       const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');
       const {NIGHT_AMBIENT,NIGHT_SUN}=await import('/src/weather.ts');
-      const gltf=await new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v5');
+      const {configureMamakLighting}=await import('/src/web-assets.ts');
+      const gltf=await new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6');
       const scene=new THREE.Scene();scene.add(gltf.scene);
+      const lighting=configureMamakLighting(gltf.scene);
       const ambient=new THREE.HemisphereLight('#f6edcf','#758b75',1.8);
       const sun=new THREE.DirectionalLight('#ffdfa3',2.7);sun.position.set(-70,110,60);
       scene.add(ambient,sun);
@@ -34,7 +36,8 @@ try {
       let steel,geometry;
       gltf.scene.traverse(o=>{if(o.isMesh && o.material.name==='LM_Counter_Steel'){steel=o.material;geometry=o.geometry;}});
       const ao=steel.aoMap,normal=steel.normalMap;
-      window.renderCounter=(night,baked)=>{
+      window.renderCounter=(night,baked,warm=true)=>{
+        lighting.setNight(night && warm);
         scene.background=new THREE.Color(night?'#172535':'#b9dcec');
         ambient.intensity=night?NIGHT_AMBIENT:1.8;sun.intensity=night?NIGHT_SUN:2.7;
         sun.color.set(night?'#9cb8ed':'#ffdfa3');
@@ -64,6 +67,10 @@ try {
       await page.screenshot({path:path.join(output,'previews',`counter-${device}-${key}.png`)});
     }
     assert.ok(views['night-baked'].meanBrightness<views['day-baked'].meanBrightness);
+    const unlit=await page.evaluate(()=>window.renderCounter(true,true,false));
+    await page.screenshot({path:path.join(output,'previews',`counter-${device}-night-no-warmth.png`)});
+    assert.ok(views['night-baked'].meanBrightness>unlit.meanBrightness+1,'canopy warmth must affect rendered pixels');
+    views['night-no-warmth']=unlit;
     for(const time of ['day','night']) {
       const plain=await fs.readFile(path.join(output,'previews',`counter-${device}-${time}-plain.png`));
       const baked=await fs.readFile(path.join(output,'previews',`counter-${device}-${time}-baked.png`));

@@ -5,6 +5,7 @@ edge drains; cables and bulbs remain well above avatars and the gameplay furnitu
 Only the existing palette is used, so this pass adds no material primitives.
 """
 import bpy
+import bmesh
 from build_mamak_asset import ASSET, Author, CREAM, METAL, PALETTE
 
 
@@ -26,23 +27,30 @@ def add_atmosphere(a):
         for x in POLE_X:
             a.cylinder("FestoonPole", x, TOP_Y / 2, z, .055, TOP_Y, METAL, 6)
 
-        # Seven short horizontal chords read as one gently sagging cable. Using
-        # boxes avoids curves/modifiers and keeps the generated mesh deterministic.
-        steps = 7
+        # Shared rings follow the sag continuously, with no horizontal steps.
+        steps = 14
         span = POLE_X[1] - POLE_X[0]
+        points=[]
+        for index in range(steps+1):
+            u=index/steps
+            for dy,dz in ((-.013,-.013),(.013,-.013),(.013,.013),(-.013,.013)):
+                points.append((POLE_X[0]+span*u,cable_height(u)+dy,z+dz))
+        faces=[(3,2,1,0),tuple(steps*4+i for i in range(4))]
         for index in range(steps):
-            u0, u1 = index / steps, (index + 1) / steps
-            x0, x1 = POLE_X[0] + span * u0, POLE_X[0] + span * u1
-            y = (cable_height(u0) + cable_height(u1)) / 2
-            a.box("FestoonCable", (x0 + x1) / 2, y, z, x1 - x0 + .025, .026, .026, METAL)
+            for k in range(4):
+                faces.append((index*4+k,index*4+(k+1)%4,(index+1)*4+(k+1)%4,(index+1)*4+k))
+        a.add('FestoonCable',points,faces,METAL)
 
-        # Six faceted warm bulbs per string: readable from player height, but only
-        # 20 triangles each after triangulation. The web runtime makes the cream
-        # bulb material glow at night without adding real-time lights.
+        # Round faceted bulbs use 20 triangles each. Runtime supplies warm emission.
         for index in range(6):
             u = (index + 1) / 7
             x = POLE_X[0] + span * u
-            a.cylinder("FestoonBulb", x, cable_height(u) - .12, z, .11, .22, CREAM, 6, .075)
+            bm=bmesh.new()
+            bmesh.ops.create_icosphere(bm,subdivisions=1,radius=1)
+            bm.verts.ensure_lookup_table(); bm.verts.index_update()
+            a.add('FestoonBulb',[(x+v.co.x*.115,cable_height(u)-.115+v.co.y*.115,z+v.co.z*.115) for v in bm.verts],
+                  [tuple(v.index for v in face.verts) for face in bm.faces],CREAM)
+            bm.free()
 
 
 def make_atmosphere():

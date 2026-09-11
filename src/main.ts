@@ -173,7 +173,7 @@ async function init() {
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
   let mamakLighting: MamakLighting | null = null, mamakNight = false;
-  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v5', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v6', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
     .then(asset => {
       try { mamakLighting = configureMamakLighting(asset); }
       catch (error) { scene.remove(asset); disposeWebAsset(asset); throw error; }

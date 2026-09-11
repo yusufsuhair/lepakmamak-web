@@ -9,7 +9,7 @@ from lm_pipeline import ROOT, validate_scene, export_collection, sha256, write_j
 from mamak_polish import PROFILE, COUNTER
 
 parser=argparse.ArgumentParser()
-parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v5")
+parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v6")
 args=parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
 source=args.generated/"source/LM_ENV_MamakMaju.blend"
 before=sha256(source)
@@ -54,6 +54,19 @@ festoon_vertices=[v for v in festoon.data.vertices if any(g.group in festoon_ids
 assert festoon_vertices and min(v.co.z for v in festoon_vertices) > 4.45
 assert festoon['lm_bulb_count']==18 and festoon['lm_pole_count']==6
 checks.append({'test':'festoon cables and bulbs preserve avatar head clearance','passed':True})
+import json
+layout=json.loads((ROOT.parent.parent/'shared/mamak-streets.json').read_text())
+parts={'crates':('DrinkCrateBase','DrinkCrateRail','DrinkCrateEnd','DrinkBottle'),
+       'bin':('ServiceBin','BinLid','BinHandle','BinLabel'),
+       'wash':('WashStand','WashBasin','BasinInset','WashTapStem','WashTapSpout','SoapBottle','SoapPump')}
+for item in layout['serviceProps']:
+    ids={g.index for g in site.vertex_groups if any(g.name.endswith('_'+label) for label in parts[item['kind']])}
+    vertices=[v for v in site.data.vertices if any(g.group in ids for g in v.groups)]
+    assert vertices, item['kind']
+    for vertex in vertices:
+        assert abs(vertex.co.x-29-item['x']) <= item['hx']+.001, item['kind']
+        assert abs(30-vertex.co.y-item['z']) <= item['hz']+.001, item['kind']
+checks.append({'test':'service meshes stay inside shared collision footprints','passed':True})
 inlay_ids={g.index for g in site.vertex_groups if any(g.name.endswith('_'+name) for name in
     ('CourtyardGrout','AnnexGrout','ThresholdJoint','DrainCrossbar'))}
 for polygon in site.data.polygons:

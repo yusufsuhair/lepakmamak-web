@@ -18,6 +18,37 @@ export function configureMamakLighting(asset: THREE.Group): MamakLighting {
   const festoon = asset.getObjectByName('LM_ENV_MamakMaju_Festoon');
   if (!festoon) throw new Error('Mamak v5 festoon node is missing');
   const bulbs: THREE.MeshStandardMaterial[] = [];
+  const warmth = {value: 0};
+  // Three soft pools reach the paving and service frontage under the canopy.
+  // Applied only to the Mamak asset; no extra draws, textures or light variants.
+  asset.traverse(object => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh || mesh.parent === festoon || mesh === festoon) return;
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const copies = materials.map(source => {
+      const material = source.clone() as THREE.MeshStandardMaterial;
+      if (!material.isMeshStandardMaterial) return material;
+      material.onBeforeCompile = shader => {
+        shader.uniforms.lmWarmth = warmth;
+        shader.vertexShader = 'varying vec3 lmPosition;\n' + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
+          '#include <begin_vertex>\nlmPosition = position;');
+        shader.fragmentShader = 'uniform float lmWarmth;\nvarying vec3 lmPosition;\n' + shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+          float zone = 1.0 - smoothstep(3.5, 5.0, lmPosition.y);
+          float pools = 0.0;
+          for (int i = 0; i < 3; i++) {
+            vec2 delta = (lmPosition.xz - vec2(-11.0 + float(i)*11.0, 8.2)) / vec2(6.2, 5.0);
+            pools += exp(-dot(delta,delta)*1.8);
+          }
+          outgoingLight += diffuseColor.rgb * vec3(1.0, 0.52, 0.19) * min(pools,1.0) * zone * lmWarmth;
+          #include <opaque_fragment>`);
+      };
+      material.customProgramCacheKey = () => 'lm-canopy-warmth-v6';
+      return material;
+    });
+    mesh.material = Array.isArray(mesh.material) ? copies : copies[0];
+  });
   festoon.traverse(object => {
     if (!(object as THREE.Mesh).isMesh) return;
     const mesh = object as THREE.Mesh;
@@ -37,6 +68,7 @@ export function configureMamakLighting(asset: THREE.Group): MamakLighting {
   let intensity = 0.08;
   const setNight = (night: boolean) => {
     intensity = night ? 2.4 : 0.08;
+    warmth.value = night ? 0.85 : 0;
     for (const material of bulbs) material.emissiveIntensity = intensity;
   };
   setNight(false);

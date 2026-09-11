@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 
-const output = path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v5');
+const output = path.resolve(process.argv[2] ?? 'art/blender/generated/mamak-maju-v6');
 const baseURL = process.env.LM_BASE_URL ?? 'http://127.0.0.1:5192';
 await fs.mkdir(path.join(output, 'previews'), { recursive: true });
 await fs.mkdir(path.join(output, 'reports'), { recursive: true });

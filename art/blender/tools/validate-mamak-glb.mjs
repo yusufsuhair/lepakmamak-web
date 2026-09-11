@@ -9,9 +9,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const profile = JSON.parse(await fs.readFile(path.join(root, 'mamak-profile.json'), 'utf8'));
-const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju-v5/exports/LM_ENV_MamakMaju.glb'));
+const input = path.resolve(process.argv[2] ?? path.join(root, 'generated/mamak-maju-v6/exports/LM_ENV_MamakMaju.glb'));
 const bytes = await fs.readFile(input);
-const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju-v5/reports'));
+const reportDir = path.resolve(process.argv[3] ?? path.join(root, 'generated/mamak-maju-v6/reports'));
 await fs.mkdir(reportDir, { recursive: true });
 const khronos = await validator.validateBytes(new Uint8Array(bytes), { uri: path.basename(input), maxIssues: 1000 });
 await fs.writeFile(path.join(reportDir, 'gltf-validator.json'), JSON.stringify(khronos, null, 2) + '\n');

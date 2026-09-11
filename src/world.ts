@@ -820,15 +820,21 @@ export function createWorld(scene: THREE.Scene): World {
     solid(point.x, point.z, .18, .18);
   }
   const festoonHeight=(u:number)=>5.25-.55*(4*u*(1-u));
+  for (const point of mamakStreetLayout.serviceProps) {
+    solids.push({x:point.x,z:point.z,hx:point.hx,hz:point.hz});
+    mamakBox(point.x,.75,point.z,point.hx*2,1.05,point.hz*2,'#427863');
+  }
   for (const z of [44,49,54]) {
     const left=-46.25,right=-11.75,steps=7,span=right-left;
     for(let index=0;index<steps;index++){
       const u0=index/steps,u1=(index+1)/steps,x0=left+span*u0,x1=left+span*u1;
-      mamakBox((x0+x1)/2,(festoonHeight(u0)+festoonHeight(u1))/2,z,x1-x0+.025,.026,.026,'#36413d');
+      const dy=festoonHeight(u1)-festoonHeight(u0);
+      const cable=mamakBox((x0+x1)/2,(festoonHeight(u0)+festoonHeight(u1))/2,z,Math.hypot(x1-x0,dy),.026,.026,'#36413d');
+      cable.rotation.z=Math.atan2(dy,x1-x0);
     }
     for(let index=0;index<6;index++){
       const u=(index+1)/7;
-      tube(mamakProcedural,left+span*u,festoonHeight(u)-.12,z,.11,.22,'#f6dfa9');
+      ball(mamakProcedural,left+span*u,festoonHeight(u)-.115,z,.115,'#f6dfa9');
     }
   }
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
