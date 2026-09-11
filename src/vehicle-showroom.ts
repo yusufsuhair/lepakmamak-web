@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import './vehicle-showroom.css';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createDriveableCar, vehicleSolid } from './world';
 import { vehicleCatalog, type RevampedCarStyle } from './vehicle-assets';
