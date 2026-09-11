@@ -53,6 +53,10 @@ test('the top bar reads wall, recentre, Kedai, character, settings',async({page}
  const order=await page.locator('.hud-right').evaluate(el=>[...el.children].map(child=>child.id||child.className));
  // The ⋮ leads, because on a phone it is the only one showing and the rest drop under it.
  expect(order).toEqual(['hud-more','open-wall','camera-controls','open-shop','open-inventory','open-geng','open-friends','menu']);
+ const gengIcon=await page.locator('#open-geng svg').innerHTML();
+ const friendIcon=await page.locator('#open-friends svg').innerHTML();
+ expect(gengIcon).toContain('M12 3 20 6');
+ expect(gengIcon).not.toBe(friendIcon);
  // Neither Kedai nor the wardrobe is buried in settings any more, and the wardrobe is
  // not a dialog of its own at all.
  await expect(page.locator('#pause #open-shop,#pause #open-wardrobe')).toHaveCount(0);

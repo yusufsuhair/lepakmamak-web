@@ -1,5 +1,14 @@
 [
 {
+  "version": "1.39.41",
+  "date": "2026-09-11",
+  "title": "Ikon Geng lebih mudah dibezakan",
+  "notes": [
+    "Ikon Geng kini menggunakan simbol crest untuk mewakili kumpulan atau guild.",
+    "Ikon Friends kekal sebagai simbol tambah kawan supaya dua fungsi ini tidak lagi kelihatan sama."
+  ]
+},
+{
   "version": "1.39.40",
   "date": "2026-09-11",
   "title": "Friend List lebih jelas dan selamat",
