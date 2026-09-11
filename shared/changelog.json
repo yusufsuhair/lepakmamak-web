@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.38",
+  "date": "2026-09-11",
+  "title": "Map macam whiteboard",
+  "notes": [
+    "Map kini boleh dipan dengan satu jari atau mouse supaya anda boleh meneroka kawasan tertentu tanpa kembali ke pusat default.",
+    "Pinch zoom dan wheel zoom kekal pada kawasan di bawah jari atau cursor, bukan mengubah zoom dari tengah map sahaja.",
+    "Butang reset memulangkan zoom dan kedudukan asal; behavior yang sama turut tersedia dalam map LEGOLAND."
+  ]
+},
+{
   "version": "1.39.37",
   "date": "2026-09-11",
   "title": "Collision ikut bentuk sebenar",

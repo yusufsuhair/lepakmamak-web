@@ -29,7 +29,7 @@ import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
 import {setupCityDirectory,drawPlaceLabels} from './city-directory';
-import {drawLegolandMap,isInLegoland} from './legoland-map';
+import {drawLegolandMap,isInLegoland,LEGOLAND_MAP_BOUNDS} from './legoland-map';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
@@ -1652,6 +1652,7 @@ async function init() {
   let mapMode:'2d'|'3d'='3d';
   const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
   let mapZoom=defaultMapZoom;
+  let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
   expandedCanvas.dataset.mode=mapMode;
   const selectMapPlace=(id:string)=>{carFinder.deselect();selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
@@ -1665,16 +1666,93 @@ async function init() {
   const mapZoomControls=document.createElement('div');mapZoomControls.className='map-zoom-controls';mapZoomControls.setAttribute('role','group');mapZoomControls.setAttribute('aria-label','Map zoom');
   const zoomIn=document.createElement('button'),zoomLevel=document.createElement('button'),zoomOut=document.createElement('button');
   zoomIn.type=zoomLevel.type=zoomOut.type='button';zoomIn.textContent='+';zoomOut.textContent='−';zoomIn.setAttribute('aria-label','Zoom in');zoomOut.setAttribute('aria-label','Zoom out');zoomLevel.setAttribute('aria-label','Reset map zoom');zoomLevel.title='Reset to default zoom';mapZoomControls.append(zoomIn,zoomLevel,zoomOut);mapFrame.append(mapZoomControls);
-  function setMapZoom(next:number){
-    mapZoom=Math.max(minMapZoom,Math.min(maxMapZoom,Math.round(next*100)/100));expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=maxMapZoom;zoomOut.disabled=mapZoom<=minMapZoom;drawMap(true);
+  type MapPoint={x:number;y:number};
+  const mapPoint=(event:{clientX:number;clientY:number}):MapPoint=>{const rect=expandedCanvas.getBoundingClientRect();return{x:(event.clientX-rect.left)*expandedCanvas.width/Math.max(1,rect.width),y:(event.clientY-rect.top)*expandedCanvas.height/Math.max(1,rect.height)};};
+  const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
+  function cityMapMetrics(){
+    let minX=-170,maxX=170,minZ=-170,maxZ=170;
+    for(const building of world.mapBuildings){minX=Math.min(minX,building.x-building.w/2);maxX=Math.max(maxX,building.x+building.w/2);minZ=Math.min(minZ,building.z-building.d/2);maxZ=Math.max(maxZ,building.z+building.d/2);}
+    const width=maxX-minX,height=maxZ-minZ;
+    return{centerX:(minX+maxX)/2,centerZ:(minZ+maxZ)/2,width,height,baseScale:Math.min(expandedCanvas.width/(width+44),expandedCanvas.height/(height+44))};
   }
-  zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=()=>setMapZoom(defaultMapZoom);
-  mapViewport.addEventListener('wheel',event=>{event.preventDefault();setMapZoom(mapZoom+(event.deltaY<0?mapZoomStep:-mapZoomStep));},{passive:false});
-  const mapTouches=new Map<number,{x:number;y:number}>();let mapPinchSpan=0;
+  function parkMapMetrics(){
+    const width=LEGOLAND_MAP_BOUNDS.maxX-LEGOLAND_MAP_BOUNDS.minX,height=LEGOLAND_MAP_BOUNDS.maxZ-LEGOLAND_MAP_BOUNDS.minZ,padding=28;
+    return{centerX:(LEGOLAND_MAP_BOUNDS.minX+LEGOLAND_MAP_BOUNDS.maxX)/2,centerZ:(LEGOLAND_MAP_BOUNDS.minZ+LEGOLAND_MAP_BOUNDS.maxZ)/2,width,height,baseScale:Math.min((expandedCanvas.width-padding*2)/width,(expandedCanvas.height-padding*2)/height)};
+  }
+  function clampCityPan(){
+    const metrics=cityMapMetrics(),scale=metrics.baseScale*mapZoom;
+    const breathingRoom=Math.max(0,(mapZoom-defaultMapZoom)*60),maxX=Math.max(0,(metrics.width+44-expandedCanvas.width/scale)/2)+breathingRoom,maxZ=Math.max(0,(metrics.height+44-expandedCanvas.height/scale)/2)+breathingRoom;
+    cityMapPanX=clamp(cityMapPanX,-maxX,maxX);cityMapPanZ=clamp(cityMapPanZ,-maxZ,maxZ);
+  }
+  function clampParkPan(){
+    const metrics=parkMapMetrics(),scale=metrics.baseScale*mapZoom;
+    const breathingRoom=Math.max(0,(mapZoom-defaultMapZoom)*60),maxX=Math.max(0,(metrics.width+40-expandedCanvas.width/scale)/2)+breathingRoom,maxZ=Math.max(0,(metrics.height+40-expandedCanvas.height/scale)/2)+breathingRoom;
+    parkMapPanX=clamp(parkMapPanX,-maxX,maxX);parkMapPanZ=clamp(parkMapPanZ,-maxZ,maxZ);
+  }
+  function focusCity2d(point:MapPoint,nextZoom:number){
+    const metrics=cityMapMetrics(),currentScale=metrics.baseScale*mapZoom,nextScale=metrics.baseScale*nextZoom;
+    const worldX=metrics.centerX+(point.x-expandedCanvas.width/2)/currentScale-cityMapPanX;
+    const worldZ=metrics.centerZ+(point.y-expandedCanvas.height/2)/currentScale-cityMapPanZ;
+    cityMapPanX=metrics.centerX-worldX+(point.x-expandedCanvas.width/2)/nextScale;
+    cityMapPanZ=metrics.centerZ-worldZ+(point.y-expandedCanvas.height/2)/nextScale;
+    clampCityPan();
+  }
+  function focusPark(point:MapPoint,nextZoom:number){
+    const metrics=parkMapMetrics(),currentScale=metrics.baseScale*mapZoom,nextScale=metrics.baseScale*nextZoom;
+    const worldX=metrics.centerX+(point.x-expandedCanvas.width/2)/currentScale-parkMapPanX;
+    const worldZ=metrics.centerZ+(point.y-expandedCanvas.height/2)/currentScale-parkMapPanZ;
+    parkMapPanX=metrics.centerX-worldX+(point.x-expandedCanvas.width/2)/nextScale;
+    parkMapPanZ=metrics.centerZ-worldZ+(point.y-expandedCanvas.height/2)/nextScale;
+    clampParkPan();
+  }
+  function publishMapZoom(){
+    expandedCanvas.dataset.zoom=String(mapZoom);zoomLevel.textContent=`${Math.round(mapZoom*100)}%`;zoomIn.disabled=mapZoom>=maxMapZoom;zoomOut.disabled=mapZoom<=minMapZoom;
+  }
+  function setMapZoom(next:number,point?:MapPoint){
+    const clamped=clamp(Math.round(next*100)/100,minMapZoom,maxMapZoom);
+    if(point&&clamped!==mapZoom){
+      if(expandedCanvas.dataset.scope==='legoland')focusPark(point,clamped);
+      else if(mapMode==='3d')overview.zoomAt(point.x,point.y,clamped);
+      else focusCity2d(point,clamped);
+    }
+    mapZoom=clamped;publishMapZoom();drawMap(true);
+  }
+  function resetMapView(){mapZoom=defaultMapZoom;cityMapPanX=cityMapPanZ=parkMapPanX=parkMapPanZ=0;overview.reset();publishMapZoom();drawMap(true);}
+  zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=resetMapView;
+  expandedCanvas.addEventListener('wheel',event=>{event.preventDefault();setMapZoom(mapZoom+(event.deltaY<0?mapZoomStep:-mapZoomStep),mapPoint(event));},{passive:false});
+  const mapTouches=new Map<number,{x:number;y:number}>();let mapPinchSpan=0,mapPinchCenter:MapPoint|undefined,mapMoved=false;
   const mapTouchSpan=()=>{const [a,b]=[...mapTouches.values()];return Math.hypot(a.x-b.x,a.y-b.y);};
-  expandedCanvas.addEventListener('pointerdown',event=>{if(event.pointerType!=='touch')return;mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(mapTouches.size===2){mapPinchSpan=mapTouchSpan();expandedCanvas.dataset.gesture='true';}});
-  expandedCanvas.addEventListener('pointermove',event=>{if(!mapTouches.has(event.pointerId))return;mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});if(mapTouches.size!==2||!mapPinchSpan)return;event.preventDefault();const span=mapTouchSpan();if(span>0){setMapZoom(mapZoom*span/mapPinchSpan);mapPinchSpan=span;}});
-  const endMapTouch=(event:PointerEvent)=>{mapTouches.delete(event.pointerId);if(mapTouches.size<2){mapPinchSpan=0;setTimeout(()=>delete expandedCanvas.dataset.gesture,100);}};
+  const mapTouchCenter=()=>{const [a,b]=[...mapTouches.values()];return{x:(a.x+b.x)/2,y:(a.y+b.y)/2};};
+  const mapPanByPixels=(dx:number,dy:number)=>{
+    const rect=expandedCanvas.getBoundingClientRect(),pixelX=dx*expandedCanvas.width/Math.max(1,rect.width),pixelY=dy*expandedCanvas.height/Math.max(1,rect.height);
+    if(expandedCanvas.dataset.scope==='legoland'){
+      const scale=parkMapMetrics().baseScale*mapZoom;parkMapPanX+=pixelX/scale;parkMapPanZ+=pixelY/scale;clampParkPan();
+    }else if(mapMode==='3d')overview.pan(pixelX,pixelY);
+    else{const scale=cityMapMetrics().baseScale*mapZoom;cityMapPanX+=pixelX/scale;cityMapPanZ+=pixelY/scale;clampCityPan();}
+    drawMap(true);
+  };
+  const markMapMoved=()=>{mapMoved=true;expandedCanvas.dataset.gesture='true';};
+  expandedCanvas.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+    event.preventDefault();expandedCanvas.setPointerCapture(event.pointerId);mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if(mapTouches.size===2){mapPinchSpan=mapTouchSpan();mapPinchCenter=mapTouchCenter();markMapMoved();}
+  });
+  expandedCanvas.addEventListener('pointermove',event=>{
+    const previous=mapTouches.get(event.pointerId);if(!previous)return;
+    event.preventDefault();mapTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if(mapTouches.size===1){const distance=Math.hypot(event.clientX-previous.x,event.clientY-previous.y);if(distance>1){markMapMoved();mapPanByPixels(event.clientX-previous.x,event.clientY-previous.y);}return;}
+    if(!mapPinchCenter||!mapPinchSpan)return;
+    const center=mapTouchCenter(),span=mapTouchSpan();
+    if(Math.hypot(center.x-mapPinchCenter.x,center.y-mapPinchCenter.y)>1){markMapMoved();mapPanByPixels(center.x-mapPinchCenter.x,center.y-mapPinchCenter.y);}
+    if(span>0&&Math.abs(span-mapPinchSpan)>.1){markMapMoved();setMapZoom(mapZoom*span/mapPinchSpan,mapPoint({clientX:center.x,clientY:center.y}));}
+    mapPinchCenter=center;mapPinchSpan=span;
+  });
+  const endMapTouch=(event:PointerEvent)=>{
+    mapTouches.delete(event.pointerId);
+    if(mapTouches.size===2){mapPinchSpan=mapTouchSpan();mapPinchCenter=mapTouchCenter();return;}
+    mapPinchSpan=0;mapPinchCenter=undefined;
+    if(mapTouches.size===0){const dragged=mapMoved;mapMoved=false;if(dragged)setTimeout(()=>{if(!mapTouches.size)delete expandedCanvas.dataset.gesture;},120);else delete expandedCanvas.dataset.gesture;}
+  };
   for(const type of ['pointerup','pointercancel','lostpointercapture'])expandedCanvas.addEventListener(type,event=>endMapTouch(event as PointerEvent));
   expandedCanvas.addEventListener('click',event=>{if(expandedCanvas.dataset.scope!=='legoland'&&mapMode==='3d')overview.click(event);});
 
@@ -1698,7 +1776,7 @@ async function init() {
     syncMapScope(inPark);
     if(inPark){
       const map=$<HTMLCanvasElement>(expanded?'expanded-map':'minimap');
-      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86);
+      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86,expanded?{panX:parkMapPanX,panZ:parkMapPanZ}:undefined);
       if(expanded)$('map-place-info').textContent='LEGOLAND MAP · Park lands, attractions and Geng are shown here.';
       return;
     }
@@ -1707,12 +1785,10 @@ async function init() {
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w=map.width,h=map.height;let scale=1.13,centerX=0,centerZ=0;
     if(expanded){
-      let minX=-170,maxX=170,minZ=-170,maxZ=170;
-      for(const b of world.mapBuildings){minX=Math.min(minX,b.x-b.w/2);maxX=Math.max(maxX,b.x+b.w/2);minZ=Math.min(minZ,b.z-b.d/2);maxZ=Math.max(maxZ,b.z+b.d/2);}
-      centerX=(minX+maxX)/2;centerZ=(minZ+maxZ)/2;scale=Math.min(w/(maxX-minX+44),h/(maxZ-minZ+44))*mapZoom;
-      map.dataset.worldScale=String(scale);map.dataset.centerX=String(centerX);map.dataset.centerZ=String(centerZ);
+      const metrics=cityMapMetrics();centerX=metrics.centerX;centerZ=metrics.centerZ;scale=metrics.baseScale*mapZoom;
+      map.dataset.worldScale=String(scale);map.dataset.centerX=String(centerX);map.dataset.centerZ=String(centerZ);map.dataset.panX=cityMapPanX.toFixed(2);map.dataset.panZ=cityMapPanZ.toFixed(2);
     }
-    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(scale, scale);ctx.translate(-centerX,-centerZ);
+    ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2 + (expanded?cityMapPanX*scale:0), h / 2 + (expanded?cityMapPanZ*scale:0)); ctx.scale(scale, scale);ctx.translate(-centerX,-centerZ);
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
     ctx.fillStyle = '#82907a';
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
@@ -1745,9 +1821,6 @@ async function init() {
     }
     if(carPin){
       drawCarPin(ctx,carPin,pos,10);
-      // The mobile 2D canvas scrolls: keep the tracked car inside the visible viewport.
-      const x=((carPin.x+180)*scale+w/2)/w*map.clientWidth,z=((carPin.z+50)*scale+h/2)/h*map.clientHeight;
-      if(x<mapViewport.scrollLeft+35||x>mapViewport.scrollLeft+mapViewport.clientWidth-35||z<mapViewport.scrollTop+35||z>mapViewport.scrollTop+mapViewport.clientHeight-35)mapViewport.scrollTo(x-mapViewport.clientWidth/2,z-mapViewport.clientHeight/2);
     }
     ctx.restore();
   }

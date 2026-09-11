@@ -7,6 +7,7 @@ export const LEGOLAND_MAP_BOUNDS = {minX: -195, maxX: 295, minZ: -185, maxZ: 185
 
 export type LegolandMapPlayer = {x:number;z:number;yaw?:number};
 export type LegolandMapPeer = {x:number;z:number;name?:string;party?:boolean};
+export type LegolandMapView = {panX?:number;panZ?:number};
 
 export function isInLegoland(x:number){return Number.isFinite(x)&&x<LEGOLAND_WORLD_MIN_X;}
 
@@ -33,7 +34,7 @@ function playerPoint(x:number,z:number){return toParkLocal(x,z);}
  * The renderer is intentionally 2D: a compact top-down map is much easier to read on a
  * phone, while the attraction names and land colours make it useful at desktop size too.
  */
-export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlayer,peers:LegolandMapPeer[]=[],expanded=false,zoom=1){
+export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlayer,peers:LegolandMapPeer[]=[],expanded=false,zoom=1,view:LegolandMapView={}){
  const ctx=canvas.getContext('2d');if(!ctx)return;
  const width=canvas.width,height=canvas.height;
  const parkWidth=LEGOLAND_MAP_BOUNDS.maxX-LEGOLAND_MAP_BOUNDS.minX;
@@ -44,9 +45,9 @@ export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlaye
  const centerZ=(LEGOLAND_MAP_BOUNDS.minZ+LEGOLAND_MAP_BOUNDS.maxZ)/2;
  const mapX=(x:number)=>(x-centerX)*scale;
  const mapY=(z:number)=>(z-centerZ)*scale;
- canvas.dataset.scope='legoland';canvas.dataset.mapScope='legoland';canvas.dataset.worldScale=String(scale);canvas.dataset.centerX=String(centerX);canvas.dataset.centerZ=String(centerZ);
+ canvas.dataset.scope='legoland';canvas.dataset.mapScope='legoland';canvas.dataset.worldScale=String(scale);canvas.dataset.centerX=String(centerX);canvas.dataset.centerZ=String(centerZ);canvas.dataset.panX=String(view.panX||0);canvas.dataset.panZ=String(view.panZ||0);
  ctx.clearRect(0,0,width,height);ctx.fillStyle='#173c32';ctx.fillRect(0,0,width,height);
- ctx.save();ctx.translate(width/2,height/2);
+ ctx.save();ctx.translate(width/2+Number(view.panX||0)*scale,height/2+Number(view.panZ||0)*scale);
  // Water outside the park and the cream perimeter make the map read as a park plan rather
  // than another green city road grid.
  ctx.fillStyle='#4daeb8';ctx.fillRect(mapX(LEGOLAND_MAP_BOUNDS.minX-20),mapY(LEGOLAND_MAP_BOUNDS.minZ-20),parkWidth*scale+40*scale,parkDepth*scale+40*scale);

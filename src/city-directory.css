@@ -20,3 +20,9 @@
 #city-map.park-map #map-place-info{margin:0 0 12px;padding:8px 10px;border:1px solid #f4d17d55;border-radius:9px;background:#0b281f;color:#e8f2d7;font:700 12px 'Oxanium',sans-serif}
 #city-map.park-map .city-map-hint{color:#cfe4d0;margin:8px 0 0}
 #city-map.park-map footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#d9e7d3}
+
+/* The expanded map owns its gestures like a whiteboard: one finger/mouse pans and two
+   fingers pinch around their midpoint. Native scrolling would move the dialog instead. */
+.city-map-viewport{overflow:hidden;touch-action:none}
+.city-map-viewport #expanded-map{min-width:0;width:100%;touch-action:none;cursor:grab}
+.city-map-viewport #expanded-map:active{cursor:grabbing}

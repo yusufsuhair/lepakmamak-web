@@ -16,6 +16,14 @@ export function createMapOverview(scene:THREE.Scene, canvas:HTMLCanvasElement, s
  let lastRender=0,lastSelection='',lastZoom=0;
  let hits:{id:string;x:number;y:number}[]=[];
  function project(x:number,y:number,z:number){point.set(x,y,z).project(camera);return{x:(point.x+1)*canvas.width/2,y:(1-point.y)*canvas.height/2};}
+ function groundAtScreen(x:number,y:number){
+  const near=new THREE.Vector3(x/canvas.width*2-1,1-y/canvas.height*2,-1).unproject(camera);
+  const far=new THREE.Vector3(x/canvas.width*2-1,1-y/canvas.height*2,1).unproject(camera);
+  const direction=far.sub(near);
+  const distance=direction.y? -near.y/direction.y:0;
+  return near.add(direction.multiplyScalar(distance));
+ }
+ function clampPan(value:number){return THREE.MathUtils.clamp(value,-230,230);}
  function draw(x:number,z:number,selected:string,zoom=1,car?:CarPin,peers:MapPeer[]=[]){
   const peerKey=peers.map(peer=>`${peer.name}:${Math.round(peer.x)}:${Math.round(peer.z)}:${peer.party?'p':'c'}`).join('|');
   const selectionKey=`${selected}:${car?.label||''}:${car?.x||''}:${car?.z||''}:${Math.round(panX)}:${Math.round(panZ)}:${peerKey}`;
@@ -44,8 +52,16 @@ export function createMapOverview(scene:THREE.Scene, canvas:HTMLCanvasElement, s
   const up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);up.y=0;if(up.lengthSq())up.normalize();
   const worldPerPixel=(880/camera.zoom)/Math.max(1,canvas.width);
   const delta=right.multiplyScalar(-dx*worldPerPixel).add(up.multiplyScalar(dy*worldPerPixel));
-  panX=THREE.MathUtils.clamp(panX+delta.x,-230,230);panZ=THREE.MathUtils.clamp(panZ+delta.z,-230,230);updateCamera();
+  panX=clampPan(panX+delta.x);panZ=clampPan(panZ+delta.z);updateCamera();canvas.dataset.panX=panX.toFixed(2);canvas.dataset.panZ=panZ.toFixed(2);
+ }
+ function zoomAt(x:number,y:number,nextZoom:number){
+  const target=groundAtScreen(x,y);
+  camera.zoom=nextZoom;camera.updateProjectionMatrix();updateCamera();
+  const after=groundAtScreen(x,y);
+  panX=clampPan(panX+target.x-after.x);panZ=clampPan(panZ+target.z-after.z);updateCamera();
+  canvas.dataset.panX=panX.toFixed(2);canvas.dataset.panZ=panZ.toFixed(2);canvas.dataset.zoom=String(nextZoom);
+  lastRender=0;
  }
  function reset(){panX=0;panZ=0;updateCamera();lastRender=0;}
- return{draw,pan,reset,click(event:MouseEvent){if(canvas.dataset.gesture)return;const r=canvas.getBoundingClientRect(),x=(event.clientX-r.left)/r.width*canvas.width,y=(event.clientY-r.top)/r.height*canvas.height;const hit=hits.filter(p=>Math.hypot(x-p.x,y-p.y)<25).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(hit)select(hit.id);}};
+ return{draw,pan,zoomAt,reset,click(event:MouseEvent){if(canvas.dataset.gesture)return;const r=canvas.getBoundingClientRect(),x=(event.clientX-r.left)/r.width*canvas.width,y=(event.clientY-r.top)/r.height*canvas.height;const hit=hits.filter(p=>Math.hypot(x-p.x,y-p.y)<25).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(hit)select(hit.id);}};
 }
