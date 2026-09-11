@@ -813,6 +813,24 @@ export function createWorld(scene: THREE.Scene): World {
   for (const table of quietTables) drawSmallTable(table.x,table.z,[0,2.1,4.2]);
   sign(mamakProcedural, 'LEPAK HERE', -18.5, 1.4, 43.3, 3.4, 1.5, '#edb64f', '#344a36');
   for (const x of [-20, -17]) box(mamakProcedural, x, .65, 43.3, .09, 1.3, .1, '#8f7955');
+  // Complete v5 fallback: slim perimeter poles and overhead festoons. Collision
+  // footprints match only the poles; cables and bulbs retain generous headroom.
+  for (const point of mamakStreetLayout.festoonPoles) {
+    tube(mamakProcedural, point.x, 2.625, point.z, .055, 5.25, '#36413d');
+    solid(point.x, point.z, .18, .18);
+  }
+  const festoonHeight=(u:number)=>5.25-.55*(4*u*(1-u));
+  for (const z of [44,49,54]) {
+    const left=-46.25,right=-11.75,steps=7,span=right-left;
+    for(let index=0;index<steps;index++){
+      const u0=index/steps,u1=(index+1)/steps,x0=left+span*u0,x1=left+span*u1;
+      mamakBox((x0+x1)/2,(festoonHeight(u0)+festoonHeight(u1))/2,z,x1-x0+.025,.026,.026,'#36413d');
+    }
+    for(let index=0;index<6;index++){
+      const u=(index+1)/7;
+      tube(mamakProcedural,left+span*u,festoonHeight(u)-.12,z,.11,.22,'#f6dfa9');
+    }
+  }
   const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);
   const customer = createPerson('#829fac', true); customer.group.position.set(-29, .05, 46.7); customer.group.rotation.y = Math.PI; group.add(customer.group);
   // Batch the complete fallback too, so a slow/failed asset download stays inexpensive.

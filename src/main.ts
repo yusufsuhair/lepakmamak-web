@@ -56,7 +56,7 @@ import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
-import { loadWebAsset, type WebAssetState } from './web-assets';
+import { configureMamakLighting, disposeWebAsset, loadWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
@@ -172,8 +172,12 @@ async function init() {
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
-  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v4', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+  let mamakLighting: MamakLighting | null = null, mamakNight = false;
+  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v5', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
     .then(asset => {
+      try { mamakLighting = configureMamakLighting(asset); }
+      catch (error) { scene.remove(asset); disposeWebAsset(asset); throw error; }
+      mamakLighting.setNight(mamakNight);
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';
       asset.userData.source = 'blender-glb';
@@ -182,6 +186,10 @@ async function init() {
       mamakAssetState = 'fallback';
       console.warn('[web-assets] Mamak Maju GLB unavailable; keeping procedural fallback', error);
     });
+  if (import.meta.env.DEV) Object.defineProperty(window, '__lepakMamakLighting', {get: () => ({
+    state: mamakAssetState, bulbCount: mamakLighting?.bulbCount ?? 0,
+    night: mamakNight, intensity: mamakLighting?.intensity ?? 0,
+  })});
   const park = createLegoland(scene,world,{
     send:message=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify(message));},
     online:()=>networkConnected,
@@ -1457,7 +1465,7 @@ async function init() {
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>streetLights.setNight(night),value=>clouds.setWeather(value));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;streetLights.setNight(night);mamakLighting?.setNight(night);},value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }

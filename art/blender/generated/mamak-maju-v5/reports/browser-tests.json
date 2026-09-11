@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "baseURL": "http://127.0.0.1:5252",
+  "results": [
+    {
+      "viewport": "desktop",
+      "lighting": "day",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 2609,
+      "triangles": 242267,
+      "pageErrors": [],
+      "sitStand": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "lighting": "night",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 2699,
+      "triangles": 251806,
+      "pageErrors": [],
+      "sitStand": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "lighting": "day",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 279,
+      "triangles": 73947,
+      "pageErrors": [],
+      "sitStand": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "lighting": "night",
+      "state": "ready",
+      "fallbackVisible": false,
+      "drawCalls": 279,
+      "triangles": 73947,
+      "pageErrors": [],
+      "sitStand": "passed"
+    }
+  ]
+}

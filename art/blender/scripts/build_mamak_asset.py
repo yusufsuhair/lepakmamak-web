@@ -86,7 +86,7 @@ class Author:
         for i, (name, start, count) in enumerate(self.parts):
             obj.vertex_groups.new(name=f"LM_PART_{i:03d}_{name}").add(list(range(start,start+count)), 1, "REPLACE")
         obj["lm_asset_id"], obj["lm_sign_text"] = ASSET, SIGN_TEXT
-        obj["lm_version"] = 4
+        obj["lm_version"] = 5
         obj["lm_origin_world"] = list(ORIGIN)
         obj["lm_tables_json"] = json.dumps([{k:t[k] for k in ("id","x","z")} for t in tables], sort_keys=True)
         obj["lm_chairs_json"] = json.dumps([{k:c[k] for k in ("id","x","z","yaw","tableId")} for c in chairs], sort_keys=True)
@@ -196,7 +196,8 @@ def build_site():
     from mamak_frontage import add_frontage
     add_frontage(a)
     obj=a.finish(tables,chairs)
-    return obj, make_counter(steel)
+    from mamak_atmosphere import make_atmosphere
+    return obj, make_counter(steel), make_atmosphere()
 
 
 def preview_setup():
@@ -232,7 +233,7 @@ def main():
     from mamak_polish import PROFILE, bake_counter
     for name,roughness in PROFILE["roughness"].items():
         bpy.data.materials[name].node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value=roughness
-    obj,counter=build_site()
+    obj,counter,festoon=build_site()
     bake_counter(counter,output)
     preview_setup()
     source=output/"source"/f"{ASSET}.blend"
@@ -248,7 +249,8 @@ def main():
         bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
     write_json(output/"reports"/"validation.json",result)
     write_json(output/"reports"/"manifest.json",{
-        "asset":ASSET,"version":4,"blender_version":bpy.app.version_string,
+        "asset":ASSET,"version":5,"blender_version":bpy.app.version_string,
+        "atmosphere_sha256":sha256(ROOT/"scripts/mamak_atmosphere.py"),
         "frontage_sha256":sha256(ROOT/"scripts/mamak_frontage.py"),
         "profile_sha256":sha256(ROOT/"mamak-profile.json"),
         "polish_sha256":sha256(ROOT/"scripts/mamak_polish.py"),

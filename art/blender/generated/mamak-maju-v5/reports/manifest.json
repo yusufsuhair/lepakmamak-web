@@ -1,0 +1,16 @@
+{
+  "asset": "LM_ENV_MamakMaju",
+  "atmosphere_sha256": "623515a0456a5a26770ced91200e5cf829ea317c3e0af8244fb0f48e63670cc7",
+  "blender_version": "5.2.1 LTS",
+  "chairs_sha256": "09d1118059d0efdac79d09c98d7f5d0f907935088d6bc0440788c6d6554a03b4",
+  "config_sha256": "6b4fa4ff0ff4251f7f91ff224aa6591b5a5c401e541afe3bb24aee2e3e2530ba",
+  "frontage_sha256": "5d6254bae84dd890d0ce981f5ed8cd7e027b04873dc063f22053126c6d91ed96",
+  "glb_sha256": "07b1a3aaaca8ee9edf48dc3838944eb9ca72e6fb213f589538ebbdf6defc23b5",
+  "pipeline_sha256": "06c7ad86e65d88fd0ba239088fd33c1853dcf57f38f5a449d5810d893433fbad",
+  "polish_sha256": "9f5b10ae75fa1c0d6fc951f49c4a5f7895492d63352343ee3bd64366240ecbd9",
+  "profile_sha256": "b979b90252ad04df32512a08d12115c1aab93c3bbd96ccf8be8bf62fdee37cb7",
+  "script_sha256": "57a0f45ebe006267c1973d5de5eb7f448a2695ffd9e77fca99c0fc18a848f900",
+  "source_sha256": "ee47b47bbf38ce712b9167be51e7ee46c6714333d0e258d57d815d542e4fe6ca",
+  "tables_sha256": "f7e4484faf44817b565d6492cf9c3e1a862b83908b2ec5053f088f2da6323a48",
+  "version": 5
+}
