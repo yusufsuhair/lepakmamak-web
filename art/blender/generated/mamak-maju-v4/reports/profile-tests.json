@@ -1,0 +1,42 @@
+{
+  "count": 9,
+  "passed": true,
+  "tests": [
+    {
+      "passed": true,
+      "test": "textures require explicit profile"
+    },
+    {
+      "passed": true,
+      "test": "wrong texture colour space"
+    },
+    {
+      "passed": true,
+      "test": "wrong texture dimensions"
+    },
+    {
+      "passed": true,
+      "test": "unexpected procedural shader"
+    },
+    {
+      "passed": true,
+      "test": "alpha steel"
+    },
+    {
+      "passed": true,
+      "test": "AO cannot darken base colour"
+    },
+    {
+      "passed": true,
+      "test": "version and required authored frontage parts"
+    },
+    {
+      "passed": true,
+      "test": "ground inlays face up and remain below paving border"
+    },
+    {
+      "passed": true,
+      "test": "normalised UVs; packed source; export isolation; source preservation; identical GLB"
+    }
+  ]
+}

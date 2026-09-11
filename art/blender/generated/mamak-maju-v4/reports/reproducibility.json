@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "first": "/Users/yusufsuhair/.codex/worktrees/3fde/astra/art/blender/generated/mamak-maju-v4",
+  "second": "/tmp/lm-mamak-v4-repro-01",
+  "artifacts": [
+    {
+      "artifact": "exports/LM_ENV_MamakMaju.glb",
+      "sha256": "1af550d05ad9b067baf385b015f079bac9f03b23b107f6a57e22fe786c4943b2",
+      "identical": true
+    },
+    {
+      "artifact": "textures/LM_TEX_Counter_AO.png",
+      "sha256": "c5a1fc7f1dec7d49047546101f49a9a3d9cf18c92be8551169cb6145c6ce5d33",
+      "identical": true
+    },
+    {
+      "artifact": "textures/LM_TEX_Counter_Normal.png",
+      "sha256": "cb13a67ca489e8f25bc58346e573df2440d52b9f2b85dd6d46613e0df5db4016",
+      "identical": true
+    },
+    {
+      "artifact": "previews/LM_ENV_MamakMaju_iso.png",
+      "sha256": "1d8be99d904817b93c6deae7e5c39f3fe67ce741fd3573add198e98821bc52e2",
+      "identical": true
+    },
+    {
+      "artifact": "previews/LM_ENV_MamakMaju_front.png",
+      "sha256": "40e7b338c90b6762b840cf1389685cca29205fbbde11e16f7257dd6d4b21e4a7",
+      "identical": true
+    },
+    {
+      "artifact": "previews/LM_ENV_MamakMaju_right.png",
+      "sha256": "3656c20e3f0706cc93ab796b589fe5b14aea4efa012c55e89214e5f17430c85b",
+      "identical": true
+    },
+    {
+      "artifact": "previews/LM_ENV_MamakMaju_top.png",
+      "sha256": "0af6c664e57a0177023f4f695078c464c3411ebee94dffeef859b8cadd72ac07",
+      "identical": true
+    },
+    {
+      "artifact": "previews/counter-close.png",
+      "sha256": "e36a3f7a96bc1b67a2fa03f7735f8db773f2207a4afa7046fb71874d483fe6e6",
+      "identical": true
+    }
+  ],
+  "note": "Same Blender build/config/CPU baker. Packed source .blend files are preserved but not required to be byte-identical."
+}

@@ -169,7 +169,7 @@ async function init() {
   if (import.meta.env.DEV) Object.defineProperty(window, '__lepakShops', {get: () => Object.fromEntries(
     Object.entries(shopAssets.status).map(([asset, state]) => [asset, {state, fallbackVisible: world.shopFallbacks.get(asset)?.visible}]))});
   let mamakAssetState: WebAssetState = 'loading';
-  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v3', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
+  void loadWebAsset('/assets/models/environment/LM_ENV_MamakMaju.glb?v=mamak-v4', scene, new THREE.Vector3(-29, 0, 30), 'LM_ENV_MamakMaju')
     .then(asset => {
       world.mamakProcedural.visible = false;
       mamakAssetState = 'ready';

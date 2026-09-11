@@ -86,7 +86,7 @@ class Author:
         for i, (name, start, count) in enumerate(self.parts):
             obj.vertex_groups.new(name=f"LM_PART_{i:03d}_{name}").add(list(range(start,start+count)), 1, "REPLACE")
         obj["lm_asset_id"], obj["lm_sign_text"] = ASSET, SIGN_TEXT
-        obj["lm_version"] = 3
+        obj["lm_version"] = 4
         obj["lm_origin_world"] = list(ORIGIN)
         obj["lm_tables_json"] = json.dumps([{k:t[k] for k in ("id","x","z")} for t in tables], sort_keys=True)
         obj["lm_chairs_json"] = json.dumps([{k:c[k] for k in ("id","x","z","yaw","tableId")} for c in chairs], sort_keys=True)
@@ -115,7 +115,6 @@ def build_site():
     a.box("Courtyard",-29,.10,41,37,.20,30,CREAM)
     a.box("BigTablePaving",-34,.10,60.75,15,.20,9.5,CREAM)
     for x in (-46.9,-11.1): a.box("PavingBorder",x,.215,41,.18,.03,30,WOOD)
-    for z in (43,48,53): a.box("PavingJoint",-29,.203,z,35.5,.006,.035,WOOD)
     # Building and counter match the existing collision solids.
     a.box("Building",-29,4.4,30,30,8.8,9,CREAM)
     a.box("Plinth",-29,.55,34.55,30,1.1,.1,GREEN)
@@ -126,7 +125,7 @@ def build_site():
     for x in (-44,-34,-24,-14): a.box("FacadePillar",x,4.4,34.65,.3,8.8,.3,WOOD)
     for x in (-39,-29,-19):
         a.box("WindowFrame",x,6.85,34.66,5,2.5,.18,WOOD)
-        a.box("Window",x,6.85,34.77,4.72,2.25,.06,GREEN)
+        a.box("Window",x,6.85,34.77,4.72,2.25,.06,METAL)
         a.box("Mullion",x,6.85,34.82,.12,2.3,.05,CREAM)
         a.box("WindowRail",x,6.85,34.82,4.75,.1,.05,CREAM)
         a.box("Sill",x,5.57,34.85,5.2,.15,.46,WOOD)
@@ -194,6 +193,8 @@ def build_site():
     from mamak_polish import add_details, make_counter
     steel=Author()
     add_details(a,steel)
+    from mamak_frontage import add_frontage
+    add_frontage(a)
     obj=a.finish(tables,chairs)
     return obj, make_counter(steel)
 
@@ -247,7 +248,8 @@ def main():
         bpy.context.scene.camera=bpy.data.objects["LM_PREVIEW_Iso_Camera"]
     write_json(output/"reports"/"validation.json",result)
     write_json(output/"reports"/"manifest.json",{
-        "asset":ASSET,"version":3,"blender_version":bpy.app.version_string,
+        "asset":ASSET,"version":4,"blender_version":bpy.app.version_string,
+        "frontage_sha256":sha256(ROOT/"scripts/mamak_frontage.py"),
         "profile_sha256":sha256(ROOT/"mamak-profile.json"),
         "polish_sha256":sha256(ROOT/"scripts/mamak_polish.py"),
         "config_sha256":sha256(ROOT/"config.json"),"script_sha256":sha256(Path(__file__)),

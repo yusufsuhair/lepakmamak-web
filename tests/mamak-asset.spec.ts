@@ -11,7 +11,7 @@ test('Mamak Maju Blender GLB loads and hides only its procedural visual fallback
   const bytes = await response.body();
   const document = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
   expect(document.nodes[0].extras.lm_sign_text).toBe('MAMAK MAJU');
-  expect(document.nodes[0].extras.lm_version).toBe(3);
+  expect(document.nodes[0].extras.lm_version).toBe(4);
 });
 
 test('failed Mamak download retains the complete procedural site and playable seating', async ({ page }) => {

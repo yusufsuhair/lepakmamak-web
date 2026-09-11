@@ -9,7 +9,7 @@ from lm_pipeline import ROOT, validate_scene, export_collection, sha256, write_j
 from mamak_polish import PROFILE, COUNTER
 
 parser=argparse.ArgumentParser()
-parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v3")
+parser.add_argument("--generated",type=Path,default=ROOT/"generated/mamak-maju-v4")
 args=parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
 source=args.generated/"source/LM_ENV_MamakMaju.blend"
 before=sha256(source)
@@ -41,6 +41,18 @@ def wrong_ao(obj):
     mat.node_tree.links.new(mat.node_tree.nodes['LM_Baked_AO'].outputs['Color'],mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
 rejects("AO cannot darken base colour",wrong_ao,"Baked direct lighting")
 obj=reopen()
+site=bpy.data.objects['LM_ENV_MamakMaju']
+assert site['lm_version']==PROFILE['version']
+for label in ('WindowReveal','ShutterLouvre','CourtyardGrout','DrainBed','CanopyRafter'):
+    assert any(g.name.endswith('_'+label) for g in site.vertex_groups), label
+checks.append({'test':'version and required authored frontage parts','passed':True})
+inlay_ids={g.index for g in site.vertex_groups if any(g.name.endswith('_'+name) for name in
+    ('CourtyardGrout','AnnexGrout','ThresholdJoint','DrainCrossbar'))}
+for polygon in site.data.polygons:
+    if any(g.group in inlay_ids for g in site.data.vertices[polygon.vertices[0]].groups):
+        assert polygon.normal.z>.999, 'inlay must face upwards'
+        assert all(.20 < site.data.vertices[v].co.z < .215 for v in polygon.vertices), 'inlay not flush'
+checks.append({'test':'ground inlays face up and remain below paving border','passed':True})
 assert all(0<=value<=1 for uv in obj.data.uv_layers.active.data for value in uv.uv)
 for item in bpy.context.selected_objects:item.select_set(False)
 floor=bpy.data.objects['LM_PREVIEW_Ground']
