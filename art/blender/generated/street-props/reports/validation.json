@@ -1,0 +1,200 @@
+{
+  "LM_PROP_BenchMamak": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        1.2000000476837158,
+        0.36000001430511475,
+        1.3300000429153442
+      ],
+      "min": [
+        -1.2000000476837158,
+        -0.36000001430511475,
+        0.0
+      ],
+      "size": [
+        2.4000000953674316,
+        0.7200000286102295,
+        1.3300000429153442
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 3,
+      "max_glb_bytes": 98304,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1200
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 20804,
+      "nodes": [
+        "LM_PROP_BenchMamak"
+      ],
+      "primitives": 2,
+      "sha256": "d891e5b1a9145d5027b602f373dce053cc132d11159bea991ebd6bbd6702d1f2"
+    },
+    "materials": [
+      "LM_Metal_Dark",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_PROP_BenchMamak"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "6b216fcd6c1ac7225b1e293e91ba6bddb1b8bbf1b49c11ef0c612fc337e42bf6",
+    "triangles": 264
+  },
+  "LM_PROP_PalmMamak": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        4.570000171661377,
+        4.300000190734863,
+        7.231057643890381
+      ],
+      "min": [
+        -4.03000020980835,
+        -4.300000190734863,
+        0.0
+      ],
+      "size": [
+        8.600000381469727,
+        8.600000381469727,
+        7.231057643890381
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 3,
+      "max_glb_bytes": 98304,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1200
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 64320,
+      "nodes": [
+        "LM_PROP_PalmMamak"
+      ],
+      "primitives": 3,
+      "sha256": "e2fbe226ecd776d1740df18962f9e863f38cb3d405b0d06c3f8a6ae0ca7d3eaa"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Wall_Cream",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_PROP_PalmMamak"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "1cee5698d893d536655766daef7b55329008d52e8a9c1e2262c2effdb613ca66",
+    "triangles": 888
+  },
+  "LM_PROP_PlanterMamak": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        1.1313762664794922,
+        1.0,
+        2.1720454692840576
+      ],
+      "min": [
+        -1.0866550207138062,
+        -1.0,
+        0.0
+      ],
+      "size": [
+        2.2180312871932983,
+        2.0,
+        2.1720454692840576
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 3,
+      "max_glb_bytes": 98304,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1200
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 15120,
+      "nodes": [
+        "LM_PROP_PlanterMamak"
+      ],
+      "primitives": 3,
+      "sha256": "1a0ecea4cdb0329166b076191fbe4f34c6de660b090fbf48c5e8c4413c1541ce"
+    },
+    "materials": [
+      "LM_Leaf_Green",
+      "LM_Wall_Cream",
+      "LM_Wood_Warm"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_PROP_PlanterMamak"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "63933cbf1bcb9533d19c94f98a6e73212d40a00be1f8e677ead763f1ae58df6c",
+    "triangles": 144
+  },
+  "LM_PROP_StreetLamp": {
+    "blender_version": "5.2.1 LTS",
+    "bounds_blender_m": {
+      "max": [
+        1.7000000476837158,
+        0.25999999046325684,
+        5.420000076293945
+      ],
+      "min": [
+        -0.1899999976158142,
+        -0.25999999046325684,
+        0.0
+      ],
+      "size": [
+        1.89000004529953,
+        0.5199999809265137,
+        5.420000076293945
+      ]
+    },
+    "budgets": {
+      "max_draw_calls": 3,
+      "max_glb_bytes": 98304,
+      "max_materials": 3,
+      "max_meshes": 4,
+      "max_textures": 0,
+      "max_triangles": 1200
+    },
+    "errors": [],
+    "glb": {
+      "bytes": 10776,
+      "nodes": [
+        "LM_PROP_StreetLamp"
+      ],
+      "primitives": 2,
+      "sha256": "0d13c6a60b87f3891226669dfecf45c8d45177ea284ff08702c5f4ea547f19d8"
+    },
+    "materials": [
+      "LM_Metal_Dark",
+      "LM_Wall_Cream"
+    ],
+    "mesh_count": 1,
+    "objects": [
+      "LM_PROP_StreetLamp"
+    ],
+    "passed": true,
+    "profile": "static-palette",
+    "source_sha256": "872bcf5edad8c4c5c9ce6762dcee073d109a290b5efbeb2dfdbf2343c66e4b94",
+    "triangles": 132
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "assets": [
+    {
+      "name": "LM_PROP_BenchMamak",
+      "bytes": 20804,
+      "triangles": 264,
+      "primitives": 2,
+      "sha256": "d891e5b1a9145d5027b602f373dce053cc132d11159bea991ebd6bbd6702d1f2",
+      "bounds_m": {
+        "min": [
+          -1.2000000476837158,
+          0,
+          -0.36000001430511475
+        ],
+        "max": [
+          1.2000000476837158,
+          1.3300000429153442,
+          0.36000001430511475
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 2
+      }
+    },
+    {
+      "name": "LM_PROP_PalmMamak",
+      "bytes": 64320,
+      "triangles": 888,
+      "primitives": 3,
+      "sha256": "e2fbe226ecd776d1740df18962f9e863f38cb3d405b0d06c3f8a6ae0ca7d3eaa",
+      "bounds_m": {
+        "min": [
+          -4.03000020980835,
+          0,
+          -4.300000190734863
+        ],
+        "max": [
+          4.570000171661377,
+          7.231057643890381,
+          4.300000190734863
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    },
+    {
+      "name": "LM_PROP_PlanterMamak",
+      "bytes": 15120,
+      "triangles": 144,
+      "primitives": 3,
+      "sha256": "1a0ecea4cdb0329166b076191fbe4f34c6de660b090fbf48c5e8c4413c1541ce",
+      "bounds_m": {
+        "min": [
+          -1.0866550207138062,
+          0,
+          -1
+        ],
+        "max": [
+          1.1313762664794922,
+          2.1720454692840576,
+          1
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 3
+      }
+    },
+    {
+      "name": "LM_PROP_StreetLamp",
+      "bytes": 10776,
+      "triangles": 132,
+      "primitives": 2,
+      "sha256": "0d13c6a60b87f3891226669dfecf45c8d45177ea284ff08702c5f4ea547f19d8",
+      "bounds_m": {
+        "min": [
+          -0.1899999976158142,
+          0,
+          -0.25999999046325684
+        ],
+        "max": [
+          1.7000000476837158,
+          5.420000076293945,
+          0.25999999046325684
+        ]
+      },
+      "khronos": {
+        "errors": 0,
+        "warnings": 0,
+        "infos": 2
+      }
+    }
+  ]
+}

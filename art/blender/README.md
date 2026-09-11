@@ -139,4 +139,30 @@ asset request. To capture the integrated desktop/touch-mobile game and verify si
 LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-mamak-browser.mjs
 ```
 
+## Reusable neighbourhood props
+
+`generated/street-props/` contains four standalone Blender sources/GLBs: a palm, wooden
+bench, planter and street-lamp body. Each has four preview renders and retains named part
+vertex groups. The per-prop profile permits 1,200 triangles, three materials/draws and 96 KiB.
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
+  --python-exit-code 1 --python art/blender/scripts/build_street_props.py -- \
+  --output /tmp/lepakmamak-street-props-v1
+node art/blender/tools/validate-street-props.mjs /tmp/lepakmamak-street-props-v1
+LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-street-browser.mjs
+```
+
+Only validated GLBs are copied to `public/assets/models/props/`. Positions live in
+`shared/mamak-streets.json`; `src/mamak-streets.ts` loads all four models into staging,
+then switches the complete neighbourhood fallback off. Repeated placements use
+InstancedMesh: ten placed props require ten asset draw calls and 111,020 source GLB bytes.
+Three existing switchable lamps keep their IDs, glow positions, night state and overrides;
+the two decorative lamps retain their scenery role. Two benches are decorative street
+furniture with collision, not additional player/game seats. Existing Mamak seats remain usable.
+
+Focused checks cover all-or-nothing loading, failure fallback, lamp anchors/state and
+bench collision against game seat/arrival positions. Browser screenshots cover the actual
+desktop and touch-mobile game. These are not physical-device frame-rate benchmarks.
+
 References: [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator), [Three.js GLTFLoader](https://threejs.org/docs/#GLTFLoader). Export options were also checked against the installed Blender 5.2.1 operator API.

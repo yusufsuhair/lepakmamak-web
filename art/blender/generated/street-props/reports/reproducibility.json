@@ -1,0 +1,106 @@
+{
+  "passed": true,
+  "sourcesPreserved": true,
+  "files": [
+    {
+      "path": "exports/LM_PROP_BenchMamak.glb",
+      "sha256": "d891e5b1a9145d5027b602f373dce053cc132d11159bea991ebd6bbd6702d1f2",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_BenchMamak_iso.png",
+      "sha256": "be801318343aaccbfcf344ddf8d148670fe4c6db908ea8160b45e54d0db52de6",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_BenchMamak_front.png",
+      "sha256": "422a091ef4b06d42061c609867513a5cbf5b0cadd2365fe3d1987dcf9caee9d2",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_BenchMamak_right.png",
+      "sha256": "d1299ac6b1be6a04ea58b0c9d59c87b3e95c0fb4d151be8c793b8044116d28ce",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_BenchMamak_top.png",
+      "sha256": "12a0d7f34019c810282840f074629c577da0b36fc680ad09da71dead348fd5e4",
+      "identical": true
+    },
+    {
+      "path": "exports/LM_PROP_PalmMamak.glb",
+      "sha256": "e2fbe226ecd776d1740df18962f9e863f38cb3d405b0d06c3f8a6ae0ca7d3eaa",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PalmMamak_iso.png",
+      "sha256": "16337b3f8499f8c32fa150724c5d4e21f9058a2b3cdbdedede2dd341fbb60754",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PalmMamak_front.png",
+      "sha256": "30948c9b729a7cc9bd00ae87e5a136eb2ee225001afa9791fa76579670c727b3",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PalmMamak_right.png",
+      "sha256": "30a69ba1b7fb6a2dcffca75c8dfd957217e49c586c4dbbdc974c1b2a1b4d7b51",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PalmMamak_top.png",
+      "sha256": "426397d212be2ea6e61bad8ab0a07288f58bda55923a16bd4894c21555f4b1dd",
+      "identical": true
+    },
+    {
+      "path": "exports/LM_PROP_PlanterMamak.glb",
+      "sha256": "1a0ecea4cdb0329166b076191fbe4f34c6de660b090fbf48c5e8c4413c1541ce",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PlanterMamak_iso.png",
+      "sha256": "64c4de110e31020d92cbd463915a9ecce75f30aadd3ffb76b1b84ef193e673cd",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PlanterMamak_front.png",
+      "sha256": "faf0eac5e1505d2e78ea7bbe41a9ac6918ce2a882ccce2634526b783a2cfd17a",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PlanterMamak_right.png",
+      "sha256": "a1362d762d3ebac3a3df02b5343d3537ba31cd9f1b07eaf1c6e2b65cb3132948",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_PlanterMamak_top.png",
+      "sha256": "59673ff9377a4f324fb604ce12cc4d2d7c1c4c2360c61ef06aa11aff52f8daf2",
+      "identical": true
+    },
+    {
+      "path": "exports/LM_PROP_StreetLamp.glb",
+      "sha256": "0d13c6a60b87f3891226669dfecf45c8d45177ea284ff08702c5f4ea547f19d8",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_StreetLamp_iso.png",
+      "sha256": "b8aa8e4df45787ba49dc79cf3211316f737ec2ddfbc88953c4b3a4dbfe60c0c7",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_StreetLamp_front.png",
+      "sha256": "292ffe0f5b89bf68a9e95bf0447043f9be76d0dffb9b4a44819a95229c134920",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_StreetLamp_right.png",
+      "sha256": "bce142099380a416831f59c835ca0331de680ec730a9aa4a7b0164a13af594c9",
+      "identical": true
+    },
+    {
+      "path": "previews/LM_PROP_StreetLamp_top.png",
+      "sha256": "231d4980d25ffbd216a0f93b4cfa00da7920bc5a746f9a5f5f553869648449dc",
+      "identical": true
+    }
+  ]
+}

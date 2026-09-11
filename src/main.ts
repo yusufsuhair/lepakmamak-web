@@ -56,6 +56,7 @@ import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,rail
 import { nearestLamp } from './lamps';
 import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
 import { loadWebAsset, type WebAssetState } from './web-assets';
+import { installMamakStreets } from './mamak-streets';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
@@ -182,6 +183,17 @@ async function init() {
     notice:(title,body)=>toast(title,body,4),
   });
   const streetLights = createStreetLights(scene, world.solids);
+  const streetAssetStatus = { state: 'loading' as WebAssetState, instances: 0, draws: 0, switchableLamps: 0 };
+  void installMamakStreets(scene, world.mamakStreetFallback, streetLights).then(asset => {
+    streetAssetStatus.state = 'ready';
+    for (const model of asset.children) streetAssetStatus.instances += Number(model.userData.instances || 0);
+    asset.traverse(object => { if (object instanceof THREE.InstancedMesh) streetAssetStatus.draws++; });
+    streetAssetStatus.switchableLamps = asset.userData.switchableLampIndices.length;
+  }).catch(error => {
+    streetAssetStatus.state = 'fallback';
+    console.warn('[web-assets] Mamak street props unavailable; keeping fallback', error);
+  });
+  if (import.meta.env.DEV) Object.defineProperty(window, '__lepakStreets', {get: () => ({...streetAssetStatus, fallbackVisible: world.mamakStreetFallback.visible})});
   // Night only decides the default: each lamp carries its own answer once somebody walks
   // up and flips it, and that answer is shared with everyone in the room.
   const lampNear = () => nearestLamp(streetLights.lamps, pos.x, pos.z);

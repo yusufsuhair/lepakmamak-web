@@ -3,6 +3,7 @@ import tableLocations from '../shared/tables.json';
 import fleetSeeds from '../shared/fleet.json';
 import {createDurianVillage} from './durian-village';
 import chairLocations from '../shared/chairs.json';
+import mamakStreetLayout from '../shared/mamak-streets.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { appearance, tudungColour, type Appearance } from './appearance';
@@ -607,7 +608,7 @@ export function createDriveableCar(style: CarStyle = 'myvi') {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
-export interface World { chairs: { id: string; x: number; z: number; y?:number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group }
+export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -668,6 +669,7 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
 export function createWorld(scene: THREE.Scene): World {
   const chairs: World['chairs'] = chairLocations;
   const group = new THREE.Group(); const solids: Solid[] = []; const mapBuildings: World['mapBuildings'] = [];
+  const mamakStreetFallback = new THREE.Group(); mamakStreetFallback.name = 'mamak-street-fallback'; group.add(mamakStreetFallback);
   scene.add(group);
   const solid = (x: number, z: number, w: number, d: number) => solids.push({ x, z, hx: w / 2, hz: d / 2 });
   const block = (x: number, z: number, w: number, h: number, d: number, color: string) => {
@@ -1303,13 +1305,29 @@ export function createWorld(scene: THREE.Scene): World {
   tube(group, -104, 42, -145, 1.3, 84, '#c5c6ae');
   tube(group, -104, 70, -145, 6.2, 4, '#aaa991'); tube(group, -104, 73, -145, 4.9, 2, '#637f79');
   tube(group, -104, 89, -145, .3, 21, '#d8d2b6');
-  for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) streetLamp(group, x, z, x > 0 ? -1 : 1);
-  for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 91, 1]]) palm(group, x, z, s);
+  for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) {
+    const parent = mamakStreetLayout.lamps.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
+    streetLamp(parent, x, z, x > 0 ? -1 : 1);
+  }
+  for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 91, 1]]) {
+    const parent = mamakStreetLayout.palms.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
+    palm(parent, x, z, s);
+  }
   // Keep the basketball sideline clear of the southern tree canopy.
   for (const x of [-67, 64, 93, -95]) for (const z of [-79, -23, 22, 92, 135]) tree(group, x, x===64&&z===135?149:z, .8 + rand() * .45);
   for (const [x, z] of [[12, 58], [-12, -35], [59, 48], [-49, 46]]) {
-    box(group, x, .45, z, 2, .9, 2, '#bfa687'); ball(group, x, 1.25, z, 1.05, '#688750'); solid(x, z, 2, 2);
+    const parent = mamakStreetLayout.planters.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
+    box(parent, x, .45, z, 2, .9, 2, '#bfa687'); ball(parent, x, 1.25, z, 1.05, '#688750'); solid(x, z, 2, 2);
   }
+  for (const point of mamakStreetLayout.benches) {
+    const bench = new THREE.Group(); bench.position.set(point.x, point.y, point.z); bench.rotation.y = point.yaw; mamakStreetFallback.add(bench);
+    box(bench, 0, .55, 0, 2.4, .10, .68, '#9f7049');
+    box(bench, 0, 1.04, -.3, 2.4, .6, .09, '#9f7049');
+    for (const x of [-.88, .88]) for (const z of [-.23, .23]) box(bench, x, .25, z, .09, .5, .1, '#343f42');
+    const c = Math.abs(Math.cos(point.yaw)), s = Math.abs(Math.sin(point.yaw));
+    solid(point.x, point.z, 2.4 * c + .72 * s, 2.4 * s + .72 * c);
+  }
+  mamakStreetFallback.traverse(object => { object.userData.keepUnbatched = true; });
   // Malaysian flags and street signs.
   function flag(x: number, z: number) {
     tube(group, x, 4, z, .055, 8, '#b9c1aa');
@@ -1375,7 +1393,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can
@@ -1468,6 +1486,15 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
 
   return {
     group, lamps, headMaterial,
+    useBlenderBodies(indices: number[]) {
+      const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
+      for (const index of indices) {
+        if (!Number.isInteger(index) || index < 0 || index >= lamps.length) continue;
+        poles.setMatrixAt(index, hidden); heads.setMatrixAt(index, hidden);
+      }
+      poles.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true;
+      // Emissive heads, glow pools and switch overrides keep the same indexed state.
+    },
     lit: (index: number) => isLit(index),
     setNight(on: boolean) { if (night === on) return; night = on; paint(); },
     setLamp(index: number, on: boolean | null) {

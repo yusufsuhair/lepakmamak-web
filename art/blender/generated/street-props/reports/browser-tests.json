@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "viewport": "desktop",
+      "state": "ready",
+      "instances": 10,
+      "draws": 10,
+      "switchableLamps": 3,
+      "fallbackVisible": false,
+      "position": {
+        "x": -42.0492599963033,
+        "z": 56.51357333719409
+      },
+      "worldDraws": 2018,
+      "pageErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "state": "ready",
+      "instances": 10,
+      "draws": 10,
+      "switchableLamps": 3,
+      "fallbackVisible": false,
+      "position": {
+        "x": -42.049259996303476,
+        "z": 56.523713561424195
+      },
+      "worldDraws": 309,
+      "pageErrors": []
+    }
+  ]
+}
