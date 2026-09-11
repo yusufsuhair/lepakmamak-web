@@ -1,5 +1,15 @@
 [
 {
+  "version": "1.39.39",
+  "date": "2026-09-11",
+  "title": "Chat penuh mobile lebih mudah digunakan",
+  "notes": [
+    "Paparan chat penuh di telefon kini memenuhi viewport dengan betul dan tidak menolak kotak taip keluar dari skrin.",
+    "Senarai mesej mempunyai ruang scroll sendiri, jadi mesej lama boleh dibaca dengan swipe tanpa menggerakkan seluruh paparan.",
+    "Kotak taip kekal di bahagian bawah dan bergerak ke atas keyboard apabila keyboard telefon terbuka."
+  ]
+},
+{
   "version": "1.39.38",
   "date": "2026-09-11",
   "title": "Map macam whiteboard",

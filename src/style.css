@@ -798,6 +798,92 @@ html, body, #app { touch-action: manipulation; }
   #speaking { top: auto; right: 12px; bottom: calc(max(24px, env(safe-area-inset-bottom)) + 165px); left: auto; }
 }
 
+/* Mobile fullscreen chat is a small app shell: the message list owns the scroll, while
+   the composer and connection status stay in the bottom rail. Giving the nested flex items
+   an explicit shrink boundary is essential on Safari; without it, a long log makes the
+   whole body taller than the viewport and pushes the input below the screen. */
+@media (max-width: 600px) {
+  #city-chat.chat-expanded {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: 100dvh;
+    max-height: 100dvh;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #city-chat.chat-expanded #chat-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #city-chat.chat-expanded #chat-dms {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  #city-chat.chat-expanded #chat-logs {
+    order: 1;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #city-chat.chat-expanded #chat-logs .chat-log:not([hidden]) {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  #city-chat.chat-expanded #chat-status {
+    order: 3;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  #city-chat.chat-expanded #chat-compose,
+  #city-chat.chat-expanded #chat-form {
+    order: 4;
+    flex: 0 0 auto;
+    width: 100%;
+  }
+  #city-chat.chat-expanded #chat-form {
+    min-height: 44px;
+    margin-top: 8px;
+    align-items: stretch;
+  }
+  #city-chat.chat-expanded #chat-input,
+  #city-chat.chat-expanded #chat-form button[type="submit"],
+  #city-chat.chat-expanded #chat-form #chat-channel {
+    min-height: 44px;
+  }
+}
+
+/* When the phone keyboard is up, the visual viewport ends above it. Follow that edge so
+   the input remains visible without requiring a second scroll, including on iOS where the
+   browser resizes the visual viewport instead of the layout viewport. */
+@media (max-width: 600px) {
+  .touch-device.chat-typing #city-chat.chat-expanded {
+    top: 0;
+    right: 0;
+    bottom: max(0px, var(--keyboard-height, 0px));
+    left: 0;
+    width: auto;
+    height: auto;
+    max-height: none;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
 /* Table actions need a full touch target even when the table is empty. */
 .table-label { min-width: 120px; min-height: 48px; touch-action: manipulation; }
 
