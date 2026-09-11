@@ -17,6 +17,8 @@ ORIGIN=(-29,0,30);IDS={'meja-1','meja-2','meja-3','meja-4','meja-9'}
 TABLES=[t for t in json.loads((ROOT/'shared/tables.json').read_text()) if t['id'] in IDS]
 CHAIRS=[c for c in json.loads((ROOT/'shared/chairs.json').read_text()) if c.get('tableId') in IDS]
 TABLETOP=json.loads((ROOT/'shared/mamak-tabletop.json').read_text())['realism']
+CHAIR_CONTRACT=[{k:c[k] for k in ('id','x','z','yaw','tableId')} for c in CHAIRS]
+TABLE_CONTRACT=[{k:t[k] for k in ('id','x','z')} for t in TABLES]
 ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 RNG=random.Random(91026);CREATED=[];OWNER=''
 
@@ -213,6 +215,10 @@ def build():
     s=bpy.context.scene;s['mamak_realism_version']=2;s['scope']='V7 contact shading rebaked with realistic furniture; gameplay unchanged'
     # Never reuse contact shadows baked around the old low-poly furniture.
     site=bpy.data.objects['LM_ENV_MamakMaju'];festoon=bpy.data.objects['LM_ENV_MamakMaju_Festoon']
+    # The V7 base carries its own old anchors. Publish the contract used by this
+    # derivative's freshly constructed furniture, not inherited baseline yaw.
+    site['lm_chairs_json']=json.dumps(CHAIR_CONTRACT,sort_keys=True)
+    site['lm_tables_json']=json.dumps(TABLE_CONTRACT,sort_keys=True)
     for o in [site,festoon]:
         for attr in list(o.data.color_attributes):o.data.color_attributes.remove(attr)
     for m in site.data.materials:
@@ -228,6 +234,9 @@ def build():
 
 def export():
     bpy.ops.wm.open_mainfile(filepath=str(SOURCE));groups={}
+    site=bpy.data.objects['LM_ENV_MamakMaju']
+    assert json.loads(site['lm_chairs_json'])==CHAIR_CONTRACT,'Stale chair metadata: regenerate the source from the current chair contract'
+    assert json.loads(site['lm_tables_json'])==TABLE_CONTRACT,'Stale table metadata: regenerate the source from the current table contract'
     for o in list(bpy.data.collections['EXPORT'].all_objects):
         if not o.get('mr_detail'):continue
         bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o

@@ -153,6 +153,23 @@ is intentionally not included in the asset-only commit: it is Game Dev 1's chang
 Synchronize with its committed main fix before continuing autonomous modelling.
 Do not overwrite or deploy the baseline V7 source to fix this detailed derivative.
 
+## Follow-up handoff — authoritative GLB chair metadata
+
+Unity caught inherited `lm_chairs_json` metadata still carrying baseline yaw after
+the geometry fix. Fixed builder to publish current chairs/tables when constructing
+the derivative, and made export and packing reject mismatched contracts. Fresh
+native source and GLB now encode all 25 anchors correctly, including +PI meja-9.
+Prior editable file preserved at
+`drafts/dining-corrected-geometry-before-metadata-fix.blend` (ignored).
+
+GLB SHA: `6b206d8d62a3fc4acf8380c9599d7c5a236aa0c2d532ab210fa4cb6dc72f2949`;
+6,614,352 bytes, unchanged triangle/draw/image budgets. Strict metadata checks,
+71 lossless compression streams and zero Khronos errors/warnings pass. Binary
+comparison confirms unchanged positions, normals, indices, UVs and textures;
+one tangent component differed by <.0001 in the fresh Blender export.
+See `reports/chair-metadata-fix.json`. No deployment by this task; asset/pipeline
+commit is handed to Game Dev 1 for integration and Unity for strict import checks.
+
 ## Next batch
 
 Prioritize the two planters near the Mamak canopy and realistic broadleaf foliage,

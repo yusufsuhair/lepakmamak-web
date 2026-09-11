@@ -1,0 +1,15 @@
+{
+  "chairContractSha256": "aa332a8cbe210dc50eb8aa1556fcdff49d1d4ff19fc0065dafcfa327191bdc57",
+  "glbSha256": "6b206d8d62a3fc4acf8380c9599d7c5a236aa0c2d532ab210fa4cb6dc72f2949",
+  "chairsValidated": 25,
+  "tablesValidated": 5,
+  "metadataMatchesAuthoritativeJson": true,
+  "previousGlbSha256": "f793aa10d0e04a5193ad700ffb91b99a267df671046e695a62327696533ac0c6",
+  "positionNormalIndexUvTextureStreamsUnchanged": true,
+  "rebuildDifference": "One plastic-chair tangent float differed by 0.00009995698928833008 in the fresh Blender export; all other binary buffer views identical.",
+  "khronosErrors": 0,
+  "khronosWarnings": 0,
+  "losslessStreamsValidated": 71,
+  "browserTestOutput": "/tmp/mamak-chair-metadata-tests",
+  "deployedByThisTask": false
+}

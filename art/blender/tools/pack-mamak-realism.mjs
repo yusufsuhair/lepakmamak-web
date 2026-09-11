@@ -17,6 +17,11 @@ assert.ok(triangles<250000,`${triangles} triangles`);assert.ok(draws<=24,`${draw
 assert.ok(doc.nodes.some(n=>n.name==='LM_ENV_MamakMaju_Festoon'));
 assert.ok(doc.nodes.some(n=>n.extras?.lm_realism_version===2));
 const site=doc.nodes.find(n=>n.name==='LM_ENV_MamakMaju');
+const chairs=JSON.parse(await fs.readFile(new URL('shared/chairs.json',root),'utf8'));
+const tables=JSON.parse(await fs.readFile(new URL('shared/tables.json',root),'utf8'));
+const ids=['meja-1','meja-2','meja-3','meja-4','meja-9'];
+assert.deepEqual(JSON.parse(site.extras.lm_chairs_json),chairs.filter(c=>ids.includes(c.tableId)).map(({id,x,z,yaw,tableId})=>({id,x,z,yaw,tableId})),'Exported chair metadata must match the authoritative geometry contract');
+assert.deepEqual(JSON.parse(site.extras.lm_tables_json),tables.filter(t=>ids.includes(t.id)).map(({id,x,z})=>({id,x,z})),'Exported table metadata must match the authoritative contract');
 assert.ok(doc.meshes[site.mesh].primitives.every(p=>p.attributes.COLOR_0!==undefined),'Portable baked AO must survive export');
 assert.ok(doc.images.length>=6);assert.ok(doc.images.every(i=>i.bufferView!==undefined&&!i.uri));
 await Promise.all([MeshoptEncoder.ready,MeshoptDecoder.ready]);
