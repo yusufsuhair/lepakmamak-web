@@ -10,7 +10,7 @@ test('all six Blender facades load and hide only their own fallback',async ({pag
 });
 
 test('missing shop keeps its facade while the other five still load',async ({page}) => {
-  await page.route('**/LM_SHOP_ZusCoffee.glb',route=>route.abort());
+  await page.route('**/LM_SHOP_ZusCoffee.glb*',route=>route.abort());
   await page.goto('/');
   await expect.poll(()=>page.evaluate(()=>Object.values((window as any).__lepakShops ?? {}).filter((s:any)=>s.state==='ready').length)).toBe(5);
   expect(await page.evaluate(()=>(window as any).__lepakShops.LM_SHOP_ZusCoffee)).toEqual({state:'fallback',fallbackVisible:true});

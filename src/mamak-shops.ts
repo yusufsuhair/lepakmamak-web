@@ -9,7 +9,7 @@ export function loadMamakShops(scene: THREE.Scene, fallbacks: Map<string, THREE.
     const fallback = fallbacks.get(shop.asset);
     if (!fallback) { status[shop.asset] = 'fallback'; return; }
     try {
-      await loadWebAsset(`/assets/models/shops/${shop.asset}.glb`, scene,
+      await loadWebAsset(`/assets/models/shops/${shop.asset}.glb${'version' in shop ? `?v=${shop.version}` : ''}`, scene,
         new THREE.Vector3(shop.x, 0, shop.z), shop.asset);
       fallback.visible = false;
       status[shop.asset] = 'ready';
