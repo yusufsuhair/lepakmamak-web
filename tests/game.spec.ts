@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { standInCity } from './city';
 interface GameState { vehicle: string; stick: { x: number; y: number }; seated: boolean; profileScreen: { x: number; y: number }; punchCount: number; jumpHeight: number; started: boolean; paused: boolean; riding: boolean; position: { x: number; z: number }; speed: number; money: number; simTime: number; rain: boolean; drawCalls: number }
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __lepak: GameState }).__lepak);
 // A jump is an arc, so polling its instantaneous height races the apex: on a busy machine
@@ -14,6 +15,10 @@ const peakJump = (page: Page) => page.evaluate(() => {
 
 test('free roam supports riding, settings and no mission prompts', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  // The music this journey ends on only starts once the city has admitted the player, so it
+  // needs a city to be admitted by — one that answers the heartbeat, since the client drops a
+  // silent socket after ~13 s and this journey runs for minutes.
+  await standInCity(page);
   await page.goto('/');
   await expect(page.locator('#loading')).toBeHidden();
   await page.screenshot({ path: 'test-results/title-screen.png' });

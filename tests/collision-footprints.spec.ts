@@ -26,10 +26,10 @@ test('the mosque courtyard is open until the prayer hall or a minaret is touched
 
 test('every car style exposes its real rotated footprint without an invisible side wall',async({page})=>{
   await page.goto('/');
-  const result=await page.evaluate(async()=>{
+  const {styles,footprints}=await page.evaluate(async()=>{
     const {carStyles,createDriveableCar,vehicleSolid}=await import('/src/world.ts');
     const {overlaps}=await import('/src/physics.ts');
-    return carStyles.map((style:string)=>{
+    return {styles:carStyles as string[],footprints:carStyles.map((style:string)=>{
       const model=createDriveableCar(style as any),yaw=Math.PI/4;
       const solid=vehicleSolid(model.group,0,0,yaw);
       const point=(localX:number,localZ:number)=>({
@@ -43,14 +43,22 @@ test('every car style exposes its real rotated footprint without an invisible si
         sideClear:!overlaps(point(solid.hx+.47,0),.46,solid),
         sideTouch:overlaps(point(solid.hx+.44,0),.46,solid),
       };
-    });
+    })};
   });
-  expect(result).toHaveLength(14);
-  for(const footprint of result){
-    expect(footprint.width,footprint.style).toBeGreaterThanOrEqual(1.6);
-    expect(footprint.width,footprint.style).toBeLessThanOrEqual(2.2);
-    expect(footprint.length,footprint.style).toBeGreaterThanOrEqual(3.1);
-    expect(footprint.length,footprint.style).toBeLessThanOrEqual(4.8);
+  // Counting the styles by hand goes stale every time a car ships (gt3-rs made it 15). What the
+  // count was guarding is that no style is listed twice and every one gets its own footprint.
+  expect(new Set(styles).size,styles.join(',')).toBe(styles.length);
+  expect(footprints).toHaveLength(styles.length);
+  // Car-sized, not shell-sized: the revamped fleet's solid is the catalogue's real metres plus
+  // the deliberate collision margin vehicle-assets.ts adds (+.4 wide, +.2 long), so it runs
+  // 2.07–2.50 by 3.96–5.88, and the two hand-set Porsches sit inside that. The old 2.2/4.8
+  // ceilings described the pre-revamp procedural shells; the stale length assert threw first,
+  // so nothing said that most of the fleet had stopped fitting them.
+  for(const footprint of footprints){
+    expect(footprint.width,footprint.style).toBeGreaterThanOrEqual(1.9);
+    expect(footprint.width,footprint.style).toBeLessThanOrEqual(2.6);
+    expect(footprint.length,footprint.style).toBeGreaterThanOrEqual(3.8);
+    expect(footprint.length,footprint.style).toBeLessThanOrEqual(6);
     expect(footprint.sideClear,footprint.style).toBe(true);
     expect(footprint.sideTouch,footprint.style).toBe(true);
   }
