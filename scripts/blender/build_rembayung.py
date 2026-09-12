@@ -439,7 +439,7 @@ def build():
     # Authentic supplied project wordmark, UV mapped with transparent background.
     logo=material('Rembayung original illuminated wordmark',(1,.65,.22),.3,0,1)
     nt=MATS[logo].node_tree;p=nt.nodes.get('Principled BSDF')
-    img=bpy.data.images.load(str(ROOT/'public/rembayung-wordmark.png'));img.pack()
+    img=bpy.data.images.load(str(ROOT/'assets/rembayung-wordmark.png'));img.pack()
     tex=nt.nodes.new('ShaderNodeTexImage');tex.image=img
     nt.links.new(tex.outputs['Color'],p.inputs['Base Color'])
     nt.links.new(tex.outputs['Color'],p.inputs['Emission Color'])

@@ -1,4 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
+import {enterAt} from './city';
 
 // Kedai against a stand-in shop, with a stand-in city socket open beside it. Everything that
 // could carry a try anywhere is recorded (shop requests, socket frames, storage writes and what
@@ -109,4 +110,17 @@ test('signed out, Cuba still works while Beli waits for an account',async({page}
  await expect(page.locator('.shop-try').getByRole('button',{name:'Beli · 🪙 150'})).toBeDisabled();
  expect(requests).toEqual(['GET /shop/catalog']);
  expect(frames).toEqual([]);
+});
+
+// The shop harness above already proves a session-less Kedai renders Cuba. What it cannot see is
+// the city's own gate: the HUD used to hide #open-shop from guests outright, so the try-on existed
+// and no guest could reach it. A guest still cannot buy — every Beli stays disabled without a session.
+test('a guest reaches Kedai and its try-on from the city',async({page})=>{
+ await enterAt(page,-18,52);
+ const shop=page.locator('#open-shop');
+ await expect(shop).toBeVisible();
+ await shop.click();
+ await expect(page.locator('#item-shop')).toBeVisible();
+ await expect(page.locator('.shop-wallet')).toBeHidden();
+ await expect(page.locator('.coin-topup')).toBeHidden();
 });

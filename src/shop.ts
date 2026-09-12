@@ -55,6 +55,9 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   }
   function endTry() { trying = ''; tryPanel.hidden = true; fitting?.stop(); }
   function draw() {
+    // A guest has no wallet and no checkout: show the rack and the try-on, not disabled money.
+    dialog.querySelector<HTMLElement>('.shop-wallet')!.hidden = !session;
+    dialog.querySelector<HTMLElement>('.coin-topup')!.hidden = !session;
     const loading = busy && !ready, unknown = !busy && !ready;
     // Bought, it is theirs to Pakai; there is nothing left to try.
     if (owned.some(entry => entry.sku === trying)) endTry();

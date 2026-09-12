@@ -1441,7 +1441,7 @@ async function init() {
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
   friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!session||!!guestName;
 
-  $('open-shop').onclick = () => { if (!guestName) itemShop.open(); };
+  $('open-shop').onclick = () => itemShop.open();
   function start() {
     if (auth && !session && !guestName) return;
     if (started) return;
@@ -1452,8 +1452,7 @@ async function init() {
     if (friendsButton) friendsButton.hidden = !session || !!guestName;
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
-    $('open-shop').hidden = !!guestName;
-    if (!guestName) void itemShop.enter();
+    void itemShop.enter();
     started = true; $('intro').hidden = true; $('hud').hidden = false;
     if (!guestName) { void gengUI.refresh(); void friendsUI.refresh(); }
     ensureAudio(); connectMultiplayer(); camera.position.set(pos.x + 2, 5, pos.z + 9); cameraHeading = yaw; updateHud(); canvas.tabIndex = -1; canvas.focus();
@@ -2576,8 +2575,9 @@ async function init() {
           if (!overlap) break;
           y = overlap.top - 10;
         }
-        bubble.element.hidden = y - height < 8;
-        if (bubble.element.hidden) continue;
+        // A close camera puts the speaker's head near the top edge. Clamp the bubble into the
+        // viewport instead of hiding it, or Tegur disappears exactly when you walk up to talk.
+        y = Math.max(y, height + 8);
         placedBubbles.push({ left: x - width / 2, right: x + width / 2, top: y - height, bottom: y });
         bubble.element.style.left = `${x}px`;
         bubble.element.style.top = `${y}px`;

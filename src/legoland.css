@@ -13,4 +13,4 @@
 #legoland-panel.park-compact h2,#legoland-panel.park-compact p{display:none}
 /* Tablets keep the speedometer in the lower right corner; sit above it. */
 @media(any-pointer:coarse) and (min-width:601px){#legoland-panel{bottom:240px}}
-@media(max-width:600px){#legoland-panel{right:10px;bottom:215px;width:220px;max-height:40vh;padding:12px}#legoland-panel h2{font-size:16px}#legoland-panel .park-description{display:none}}
+@media(max-width:600px){#legoland-panel{right:10px;bottom:350px;width:220px;max-height:32vh;padding:12px}#legoland-panel h2{font-size:16px}#legoland-panel .park-description{display:none}}
