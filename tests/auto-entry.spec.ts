@@ -15,6 +15,6 @@ test('a restored signed-in session enters the city without pressing start',async
   await page.goto('/');
   await expect(page.locator('#intro')).toBeHidden();
   await expect(page.locator('#hud')).toBeVisible();
-  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.started)).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak?.started)).toBe(true);
   await expect(page.locator('#auth-panel')).toHaveCount(0);
 });

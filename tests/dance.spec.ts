@@ -1,11 +1,17 @@
 import {test,expect} from '@playwright/test';
 import {spawn} from 'node:child_process';
+import {createRequire} from 'node:module';
 import WebSocket from 'ws';
+// This spec spawns its own city, and a git worktree has no node_modules of its own — the literal
+// path node_modules/vite/bin/vite.js only resolves in the primary checkout, so here vite died on
+// spawn with MODULE_NOT_FOUND and the wait below could never come true. Ask the module system.
+const viteBin=createRequire(`${process.cwd()}/`).resolve('vite/package.json').replace(/package\.json$/,'bin/vite.js');
 test('self dance menu triggers a synchronized ten second dance and cannot be spammed',async({page})=>{
  const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT:'8088',ALLOW_GUESTS:'true',SUPABASE_URL:'',SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});
- const vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5180','--strictPort'],{env:{...process.env,VITE_MULTIPLAYER_URL:'ws://127.0.0.1:8088',VITE_SUPABASE_URL:'',VITE_SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});let friend:WebSocket|undefined;let players:any[]=[];let friendId='';
+ const vite=spawn(process.execPath,[viteBin,'--host','127.0.0.1','--port','5180','--strictPort'],{env:{...process.env,VITE_MULTIPLAYER_URL:'ws://127.0.0.1:8088',VITE_SUPABASE_URL:'',VITE_SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});let friend:WebSocket|undefined;let players:any[]=[];let friendId='';
  // A node server and a cold vite cannot both be serving inside expect.poll's default 5 s on a
- // machine that is also running the rest of the suite. Wait for them properly instead.
+ // machine that is also running the rest of the suite, so this waits properly. Both are spawned
+ // with stdio ignored: if it times out, start them by hand to see what they said.
  try{await expect.poll(async()=>{try{return(await fetch('http://127.0.0.1:8088/health')).ok&&(await fetch('http://127.0.0.1:5180')).ok;}catch{return false;}},{timeout:90000}).toBe(true);
  await page.goto('http://127.0.0.1:5180/?room=dance-test');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Dancer');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE');
  friend=new WebSocket('ws://127.0.0.1:8088/ws');friend.on('open',()=>friend!.send(JSON.stringify({type:'join',guest:true,name:'Watcher',room:'dance-test',resume:{x:0,z:0,yaw:0}})));friend.on('message',raw=>{const m=JSON.parse(String(raw));if(m.players)players=m.players;if(m.type==='welcome')friendId=m.id;});await expect.poll(()=>friendId).not.toBe('');

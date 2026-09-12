@@ -5,7 +5,7 @@ for(const width of [1280,390])test(`find owner cars follows live fleet in 2D and
  await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export const session={access_token:'test',user:{id:'a',user_metadata:{display_name:'Tester'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Tester';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`}));
  let send:(m:object)=>void=()=>{};let disconnect:()=>void=()=>{};const teleports:object[]=[];
  await page.routeWebSocket('**/ws',ws=>{send=m=>ws.send(JSON.stringify(m));disconnect=()=>ws.close();ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join'){send({type:'welcome',id:'a',players:[{id:'a',name:'Tester',x:0,z:0,yaw:0,riding:false},{id:'driver',name:'Ali',x:50,z:60,yaw:0,riding:false}]});}if(m.type==='teleport')teleports.push(m);});});
- await page.goto('/');await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.started)).toBe(true);
+ await page.goto('/');await expect.poll(()=>page.evaluate(()=>(window as any).__lepak?.started)).toBe(true);
  await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  await page.getByRole('button',{name:'1 Mamak Maju',exact:true}).click();await expect(page.locator('#map-teleport')).toBeEnabled();
  await page.locator('#car-finder summary').click();
