@@ -1,0 +1,26 @@
+{
+  "Masjid": {
+    "asset": "LM_ENV_Masjid",
+    "triangles": 8986,
+    "bytes": 295508,
+    "draws": 8
+  },
+  "Church": {
+    "asset": "LM_ENV_Church",
+    "triangles": 2534,
+    "bytes": 116644,
+    "draws": 9
+  },
+  "HinduTemple": {
+    "asset": "LM_ENV_HinduTemple",
+    "triangles": 12084,
+    "bytes": 332304,
+    "draws": 13
+  },
+  "ChineseTemple": {
+    "asset": "LM_ENV_ChineseTemple",
+    "triangles": 7076,
+    "bytes": 224952,
+    "draws": 9
+  }
+}
