@@ -1,0 +1,13 @@
+{
+  "Kampung": {
+    "asset": "LM_ENV_Kampung",
+    "origin": [
+      122,
+      0,
+      -132
+    ],
+    "triangles": 17240,
+    "bytes": 861176,
+    "draws": 31
+  }
+}

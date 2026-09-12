@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {box,createPerson,material,type World} from './world';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {batchShopFallback,box,createPerson,material,type World} from './world';
 import {createVillageChores,createVillageCycle,groupRoute,villageActivity} from './village-activities';
 
 // All authored coordinates are relative to this origin: relocate the whole neighbourhood here.
@@ -74,6 +75,21 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  box(g,-11,.38,-3.7,.8,.4,.6,'#b88960');solid(-11,-3.7,.8,.6);
  for(let i=0;i<48;i++){const a=i/48*Math.PI*2;box(g,18+Math.sin(a)*4.7,.16,16.8+Math.cos(a)*1.65,.18,.04,.18,'#d4bf90');}
  for(const x of [-6,6]){box(g,x,.55,17,3,.15,.7,'#b98b53');for(const dx of [-1,1])box(g,x+dx,.3,17,.15,.5,.5,'#71553a');solid(x,17,3,.7);}
+ // The Blender kampung (scripts/blender/build_kampung.py) replaces the boxes above: stilt houses
+ // on tiang, the timber gerbang, the swing, the vegetable beds, the court and net, the washing
+ // line and four durian trees. It is authored in village-local coordinates, so its origin is
+ // this group's origin and nothing shifts. Every solid() and mapBuildings footprint above is
+ // untouched, so the residents' cleared routes still thread between the same colliders. The
+ // canvas MeshBasicMaterial children are kept: those are the game's own text signs (village
+ // name, house labels, badminton sign), and the wording has to stay the game's.
+ g.name='kampung';
+ g.traverse(o=>{o.userData.keepUnbatched=true;});
+ batchShopFallback(g);
+ void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Kampung.glb?v=kampung-v1').then(gltf=>{
+  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+  for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+  g.add(gltf.scene);
+ }).catch(error=>console.warn('[KAMPUNG] keeping procedural village',error));
 }
 
 // Resident meshes load separately; no moving people are merged into the static scenery.
