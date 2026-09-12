@@ -1,0 +1,17 @@
+{
+  "asset": "LM_ENV_Saloma",
+  "origin": [
+    55,
+    0,
+    -125
+  ],
+  "span": [
+    48,
+    5.2
+  ],
+  "deckTop": 4.44,
+  "steps": 6,
+  "triangles": 10812,
+  "bytes": 575844,
+  "draws": 9
+}

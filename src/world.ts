@@ -1178,6 +1178,18 @@ export function createWorld(scene: THREE.Scene): World {
       for(const side of [-1,1]) solid(columnX,z+side*2.15,.28,.28);
     }
     mapBuildings.push({x,z,w:48,d:5.2,color:'#55cdbd'});
+    // The Blender bridge (scripts/blender/build_saloma.py) replaces the boxes above; its deck
+    // top, step rise and ramp start are read from the same SALOMA constants that decide where
+    // a player actually walks, so the swap cannot move the walkable surface. The canvas
+    // SALOMA LINK sign is the one child kept, so the wording stays the game's.
+    bridge.name='saloma';
+    bridge.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(bridge);
+    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Saloma.glb?v=saloma-v1').then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...bridge.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      bridge.add(gltf.scene);
+    }).catch(error=>console.warn('[SALOMA] keeping procedural bridge',error));
   }
   // Zoo Negara Mini Lepak: a walkable park with distinct habitats and a landmark entrance.
   {
