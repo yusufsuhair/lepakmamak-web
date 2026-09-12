@@ -15,6 +15,14 @@ export function isStale(client: string, server: string): boolean {
   return false;
 }
 
+// The update notice polls once a minute, and a page younger than one cycle is not behind.
+// A build mismatch that early means the edge is still handing out the previous index.html,
+// which it does for a while after a deploy — exactly when players are loading. Telling that
+// player to refresh drops them onto the same build again, seconds after they entered the
+// city, which reads as the game reloading itself for no reason.
+export const POLL_MS = 60000;
+export const isSettled = (pageAgeMs: number) => pageAgeMs >= POLL_MS;
+
 export function shouldOfferConnectionRestart(state: 'solo' | 'connecting' | 'online' | 'offline', label: string): boolean {
   return state === 'offline' && label !== 'LOGIN REQUIRED' && label !== 'SUSPENDED';
 }
@@ -39,6 +47,7 @@ export function createRefresher(
     location.replace(url.toString());
   });
   const now = options.now ?? (() => Date.now());
+  const opened = now();
 
   const root = document.createElement('div');
   root.id = 'force-refresh'; root.hidden = true;
@@ -87,6 +96,7 @@ export function createRefresher(
   }
   async function poll() {
     if (!client || polling || timer !== null || document.hidden) return;
+    if (!isSettled(now() - opened)) return;
     polling = true;
     try {
       const response = await fetch('/release.json', {cache: 'no-store'});
@@ -103,7 +113,7 @@ export function createRefresher(
     finally { polling = false; }
   }
   if (import.meta.env.PROD) {
-    window.setInterval(() => void poll(), 60000);
+    window.setInterval(() => void poll(), POLL_MS);
     document.addEventListener('visibilitychange', () => void poll());
   }
 

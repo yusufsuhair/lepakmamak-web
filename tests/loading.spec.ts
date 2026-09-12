@@ -51,3 +51,29 @@ test('a failed first socket reports entry failure instead of pretending to recon
   expect(connections).toBe(1);
   await expect(page.locator('#multiplayer-status-text')).not.toContainText('RECONNECT');
 });
+
+// A returning member never sees the title screen: init() finishes the world and auto-enters.
+// The bar used to reach 100% and announce "The city is ready" before the city link had even
+// opened, then slide back to 74% for the connection — which reads as the game restarting.
+test('auto-entry never runs the loading bar backwards',async({page})=>{
+  await page.route('**/src/auth.ts*',route=>route.fulfill({contentType:'application/javascript',body:`export const session={access_token:'t',user:{id:'a',user_metadata:{display_name:'Returning'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=>'Returning';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`}));
+  await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{
+    if(JSON.parse(String(raw)).type==='join')setTimeout(()=>ws.send(JSON.stringify({type:'welcome',id:'a',players:[{id:'a',name:'Returning',x:0,z:0,yaw:0}],version:'1.0.0'})),400);
+  }));
+  await page.addInitScript(()=>{
+    (window as any).__steps=[];
+    const watch=()=>{const bar=document.getElementById('loading-progress');if(!bar){requestAnimationFrame(watch);return;}
+      const read=()=>({value:Number(bar.getAttribute('aria-valuenow')),title:document.getElementById('loading-title')?.textContent||''});
+      const push=()=>{const step=read(),last=(window as any).__steps.at(-1);
+        if(!last||last.value!==step.value||last.title!==step.title)(window as any).__steps.push(step);};
+      push();new MutationObserver(push).observe(document.getElementById('loading')!,{attributes:true,subtree:true,childList:true,characterData:true});};
+    watch();
+  });
+  await page.goto('/');
+  await expect(page.locator('#loading')).toBeHidden();
+  const steps=await page.evaluate(()=>(window as any).__steps as {value:number;title:string}[]);
+  // Monotonic: every step is at least as far along as the one before it.
+  expect(steps.map(step=>step.value)).toEqual([...steps.map(step=>step.value)].sort((a,b)=>a-b));
+  // And the overlay only claims the city is ready once, at the end.
+  expect(steps.filter(step=>step.value===100)).toHaveLength(1);
+});

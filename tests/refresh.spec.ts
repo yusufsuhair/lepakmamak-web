@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {isStale,shouldOfferConnectionRestart} from '../src/refresh';
+import {isStale,isSettled,POLL_MS,shouldOfferConnectionRestart} from '../src/refresh';
 
 test('only a genuinely newer server counts as stale',()=>{
  expect(isStale('1.22.0','1.23.0')).toBe(true);
@@ -102,4 +102,14 @@ test('a red connection state offers a responsive restart action in the update ra
  await expect.poll(()=>page.evaluate(()=>(window as any).reloads)).toBe(1);
  await page.evaluate(()=>(window as any).refresher.hideConnectionRestart());
  await expect(notice).toBeHidden();
+});
+
+// A player who just loaded the page was told "Update tersedia" the moment they entered the
+// city, because the first poll runs on the first welcome and Cloudflare keeps serving the
+// previous index.html for a while after a deploy. Refreshing then lands on the same build.
+test('a page that just loaded is never told it is out of date',()=>{
+ expect(isSettled(0)).toBe(false);
+ expect(isSettled(POLL_MS-1)).toBe(false);
+ expect(isSettled(POLL_MS)).toBe(true);
+ expect(isSettled(POLL_MS*10)).toBe(true);
 });

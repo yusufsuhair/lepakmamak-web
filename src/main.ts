@@ -2605,12 +2605,19 @@ async function init() {
   if (import.meta.env.DEV) {
     Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(),soundRange, angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
   }
-  showLoading('Ready to lepak', 'The city is ready.', 100);
-  await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-  hideLoading();
+  requestAnimationFrame(frame);
   // Returning members skip the title screen once Supabase restores a valid session.
   // Calling the same entry function preserves recovery mode and all normal startup checks.
-  if (session) requestEntry();
-  requestAnimationFrame(frame);
+  // The world stage hands over to the city link rather than finishing: it used to announce
+  // 100% "The city is ready" and hide the overlay, so the bar slid back to 74% the instant
+  // entry began, which reads as the game reloading itself. Entry can still decline (expired
+  // login, a Google account with no display name yet), so the overlay is only retired here
+  // when entry did not take it over.
+  if (session) await requestEntry();
+  if (!started) {
+    showLoading('Ready to lepak', 'The city is ready.', 100);
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    hideLoading();
+  }
 }
 void init().catch(error => { console.error(error); fail('The city could not finish loading. Please reload and try again.'); });
