@@ -621,18 +621,31 @@ export function createWorld(scene: THREE.Scene): World {
   box(group, 0, .21, -99, 104, .18, 14, '#ded5bd');
   box(group, 0, .3, -104, 80, .18, 9, '#8db5af');
   box(group, 0, .42, -104, 76, .12, 6.5, '#75b3b1');
-  block(-22, -122, 21, 3, 24, '#c8cbb9'); block(22, -122, 21, 3, 24, '#c8cbb9');
-  tower(group, -22, -122); tower(group, 22, -122);
+  // Podiums, towers and skybridge share one group so the Blender set
+  // (scripts/blender/build_klcc.py) can replace them atomically. Collision stays on the
+  // podium footprints and the lifts stay procedural: their cabins move.
+  const klcc = new THREE.Group(); klcc.name = 'klcc'; klcc.position.set(0, 0, -122); group.add(klcc);
+  for (const x of [-22, 22]) {
+    box(klcc, x, 1.5, 0, 21, 3, 24, '#c8cbb9'); solid(x, -122, 21, 24); mapBuildings.push({ x, z: -122, w: 21, d: 24, color: '#c8cbb9' });
+    tower(klcc, x, 0);
+  }
   const klccLifts = [
     createKlccLift(group, -22, -107.8, 'klcc-west-lift'),
     createKlccLift(group, 22, -107.8, 'klcc-east-lift'),
   ];
-  box(group, 0, 39, -122, 31, 2.2, 3.4, '#aebfba');
-  box(group, 0, 40.4, -122, 31, .35, 4, '#dce0cd');
+  box(klcc, 0, 39, 0, 31, 2.2, 3.4, '#aebfba');
+  box(klcc, 0, 40.4, 0, 31, .35, 4, '#dce0cd');
   for (const side of [-1, 1]) {
-    const brace = box(group, side * 12.5, 33.5, -122, .6, 13, .7, '#d0d9c8'); brace.rotation.z = side * -.48;
-    for (let j = 0; j < 10; j++) box(group, side * (j * 1.4 + 1), 39, -120.2, .12, 2.6, .12, '#e0e2cf');
+    const brace = box(klcc, side * 12.5, 33.5, 0, .6, 13, .7, '#d0d9c8'); brace.rotation.z = side * -.48;
+    for (let j = 0; j < 10; j++) box(klcc, side * (j * 1.4 + 1), 39, 1.8, .12, 2.6, .12, '#e0e2cf');
   }
+  klcc.traverse(o => { o.userData.keepUnbatched = true; });
+  batchShopFallback(klcc);
+  void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_KLCC.glb?v=klcc-v1').then(gltf => {
+    gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
+    for (const child of [...klcc.children]) child.removeFromParent();
+    klcc.add(gltf.scene);
+  }).catch(error => console.warn('[KLCC] keeping procedural towers', error));
   sign(group, 'SELAMAT DATANG · KLCC', 0, 3.3, -97, 16, 2, '#376052');
   for (const x of [-6.9, 6.9]) tube(group, x, 1.55, -97, .1, 3.1, '#6a8073');
   for (const x of [-48, -37, 37, 48]) for (const z of [-88, -105, -137]) palm(group, x, z, .85);
