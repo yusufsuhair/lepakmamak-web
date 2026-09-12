@@ -893,13 +893,12 @@ export function createWorld(scene: THREE.Scene): World {
     sign(g,'ORDER',laneX-laneSide*2.5,2.15,.86,1.25,.42,accent,ink);
     solid(x+buildingX,z,14,12);mapBuildings.push({x:x+buildingX,z,w:14,d:12,color:brand});
     // The boxes above stay out of the world batch so the Blender outlet
-    // (scripts/blender/build_fastfood.py) can replace them. The canvas nameplate, DRIVE THRU
-    // and ORDER signs are the only children kept, so the wording stays the game's.
+    // (scripts/blender/build_fastfood.py) can replace them wholesale. Its lettering is
+    // baked geometry, so the canvas nameplate and lane signs go with the boxes.
     g.traverse(object=>{object.userData.keepUnbatched=true;});
     void driveThroughAsset().then(scene=>{
       const outlet=scene?.getObjectByName(asset);if(!outlet)return;
-      for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
-      g.add(outlet.clone());
+      g.clear();g.add(outlet.clone());
     });
   }
   function shellStation(x:number,z:number){

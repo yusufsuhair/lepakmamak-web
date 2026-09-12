@@ -25,7 +25,7 @@ WARM=mat('Pendant light',(1,.92,.75),.4,emit=3);MENU=mat('Menu board',(.97,.97,.
 
 def text(body,x,y,z,size,m,depth=.04,align='CENTER',font=None):
     bpy.ops.object.text_add(location=pt(x,y,z));o=bpy.context.object;o.data.body=body;o.data.size=size;o.data.extrude=depth/2
-    o.data.align_x=align;o.data.align_y='CENTER';o.rotation_euler=(math.pi/2,0,0)
+    o.data.align_x=align;o.data.align_y='CENTER';o.data.resolution_u=3;o.rotation_euler=(math.pi/2,0,0)
     if font:o.data.font=font
     bpy.ops.object.convert(target='MESH');o=bpy.context.object;o.name='text '+body;o.data.materials.append(m);o['asset']=T;return o
 
