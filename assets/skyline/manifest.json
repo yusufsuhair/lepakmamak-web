@@ -1,0 +1,85 @@
+{
+  "towers": {
+    "TRX": {
+      "asset": "LM_ENV_TRX",
+      "origin": [
+        105,
+        0,
+        -95
+      ],
+      "triangles": 1036,
+      "bytes": 51108,
+      "draws": 6
+    },
+    "Merdeka118": {
+      "asset": "LM_ENV_Merdeka118",
+      "origin": [
+        129,
+        0,
+        -95
+      ],
+      "triangles": 5022,
+      "bytes": 255108,
+      "draws": 6
+    },
+    "KLTower": {
+      "asset": "LM_ENV_KLTower",
+      "origin": [
+        -104,
+        0,
+        -145
+      ],
+      "triangles": 1208,
+      "bytes": 54724,
+      "draws": 7
+    },
+    "TowerUOB": {
+      "asset": "LM_ENV_TowerUOB",
+      "origin": [
+        -127,
+        0,
+        -37
+      ],
+      "triangles": 2648,
+      "bytes": 148376,
+      "draws": 9
+    },
+    "TowerHSBC": {
+      "asset": "LM_ENV_TowerHSBC",
+      "origin": [
+        -106,
+        0,
+        -37
+      ],
+      "triangles": 2648,
+      "bytes": 148376,
+      "draws": 9
+    },
+    "TowerDAP": {
+      "asset": "LM_ENV_TowerDAP",
+      "origin": [
+        -127,
+        0,
+        37
+      ],
+      "triangles": 2428,
+      "bytes": 137944,
+      "draws": 10
+    },
+    "TowerMahkota": {
+      "asset": "LM_ENV_TowerMahkota",
+      "origin": [
+        -106,
+        0,
+        37
+      ],
+      "triangles": 3440,
+      "bytes": 191152,
+      "draws": 9
+    }
+  },
+  "total": {
+    "triangles": 18430,
+    "bytes": 986788
+  }
+}

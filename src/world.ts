@@ -1107,7 +1107,7 @@ export function createWorld(scene: THREE.Scene): World {
     box(group,x,3.8,z,6,.12,5,'#bc875b');for(const side of [-1,1])for(const front of [-1,1]){box(group,x+side*2.8,1.9,z+front*2.3,.12,3.8,.12,'#755741');solid(x+side*2.8,z+front*2.3,.15,.15);}
   }
   // Named city block: recognisable silhouettes replace four generic towers.
-  function cityLandmark(x:number,z:number,name:string,accent:string,height:number,kind:'bank'|'civic'|'hotel'){
+  function cityLandmark(x:number,z:number,name:string,accent:string,height:number,kind:'bank'|'civic'|'hotel',asset:string){
     const landmark=new THREE.Group();landmark.position.set(x,0,z);group.add(landmark);
     const w=kind==='hotel'?17:16,d=17,body=kind==='hotel'?'#e4d7bd':'#c8d0c9';
     box(landmark,0,height/2,0,w,height,d,body);
@@ -1120,11 +1120,21 @@ export function createWorld(scene: THREE.Scene): World {
     if(kind==='civic'){sign(landmark,'PUSAT KOMUNITI',w/2+.43,4.2,0,10,.8,'#f4f0df','#b63035',Math.PI/2);box(landmark,w/2+1.1,5.9,-4.7,.1,4.8,.1,'#d8d4bd');box(landmark,w/2+1.1,7.8,-4.7,.08,.9,1.45,'#df3d42');}
     if(kind==='hotel'){box(landmark,0,height+1.1,0,7,1.6,7,'#b99551');for(const side of [-1,1])tube(landmark,w/2+1.2,1.7,side*4.6,.16,3.4,'#b99551');}
     solid(x,z,w,d);mapBuildings.push({x,z,w,d,color:accent});
+    // The Blender tower (scripts/blender/build_skyline.py) replaces the boxes above. Footprint,
+    // collision and the canvas name sign stay the game's; only the skin changes.
+    landmark.name=asset;
+    landmark.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(landmark);
+    void new GLTFLoader().loadAsync(`/assets/models/environment/${asset}.glb?v=skyline-v1`).then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...landmark.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      landmark.add(gltf.scene);
+    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${asset}`,error));
   }
-  cityLandmark(-127,-37,'UOB','#b52e35',30,'bank');
-  cityLandmark(-106,-37,'HSBC','#d33b3e',27,'bank');
-  cityLandmark(-127,37,'DAP','#c62e34',22,'civic');
-  cityLandmark(-106,37,'HOTEL MAHKOTA','#a5813e',38,'hotel');
+  cityLandmark(-127,-37,'UOB','#b52e35',30,'bank','LM_ENV_TowerUOB');
+  cityLandmark(-106,-37,'HSBC','#d33b3e',27,'bank','LM_ENV_TowerHSBC');
+  cityLandmark(-127,37,'DAP','#c62e34',22,'civic','LM_ENV_TowerDAP');
+  cityLandmark(-106,37,'HOTEL MAHKOTA','#a5813e',38,'hotel','LM_ENV_TowerMahkota');
   // Contemporary KL skyline landmarks: faceted TRX and the tapering Merdeka 118.
   {
     const x=105,z=-95,trx=new THREE.Group();trx.position.set(x,0,z);group.add(trx);
@@ -1134,6 +1144,14 @@ export function createWorld(scene: THREE.Scene): World {
     const crown=box(trx,0,69,0,8,5,8,'#b7c9b8');crown.rotation.y=Math.PI/4;tube(trx,0,77,0,.22,13,'#d7d8c9');
     sign(trx,'TRX',-9.08,4.2,0,7,1.8,'#314f50','#ffffff',-Math.PI/2);
     solid(x,z,18,18);mapBuildings.push({x,z,w:18,d:18,color:'#688c8e'});
+    trx.name='LM_ENV_TRX';
+    trx.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(trx);
+    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_TRX'}.glb?v=skyline-v1`).then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...trx.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      trx.add(gltf.scene);
+    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_TRX'}`,error));
   }
   {
     const x=129,z=-95,tower118=new THREE.Group();tower118.position.set(x,0,z);group.add(tower118);
@@ -1143,6 +1161,14 @@ export function createWorld(scene: THREE.Scene): World {
     const needle=tube(tower118,0,86,0,.18,29,'#d9d8c9');needle.rotation.z=-.055;ball(tower118,-.8,100.4,0,.32,'#d9d8c9');
     sign(tower118,'MERDEKA 118',-8.58,4.3,0,11,1.45,'#394f50','#f2df9c',-Math.PI/2);
     solid(x,z,17,17);mapBuildings.push({x,z,w:17,d:17,color:'#7f9697'});
+    tower118.name='LM_ENV_Merdeka118';
+    tower118.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(tower118);
+    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_Merdeka118'}.glb?v=skyline-v1`).then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...tower118.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      tower118.add(gltf.scene);
+    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_Merdeka118'}`,error));
   }
   // Saloma Link: raised pedestrian deck with its distinctive illuminated faceted canopy.
   {
@@ -1287,10 +1313,21 @@ export function createWorld(scene: THREE.Scene): World {
     solid(x, z, landmark.width, 16);
     mapBuildings.push({x, z, w: landmark.width, d: landmark.depth, color: kind === 'church' ? '#507c9a' : kind === 'hindu' ? '#bd6776' : '#ae4939'});
   }
-  // A distant communications tower complements the twin towers.
-  tube(group, -104, 42, -145, 1.3, 84, '#c5c6ae');
-  tube(group, -104, 70, -145, 6.2, 4, '#aaa991'); tube(group, -104, 73, -145, 4.9, 2, '#637f79');
-  tube(group, -104, 89, -145, .3, 21, '#d8d2b6');
+  // Menara KL complements the twin towers. No collision, then or now.
+  {
+    const kltower=new THREE.Group();kltower.position.set(-104,0,-145);group.add(kltower);
+    tube(kltower, 0, 42, 0, 1.3, 84, '#c5c6ae');
+    tube(kltower, 0, 70, 0, 6.2, 4, '#aaa991'); tube(kltower, 0, 73, 0, 4.9, 2, '#637f79');
+    tube(kltower, 0, 89, 0, .3, 21, '#d8d2b6');
+    kltower.name='LM_ENV_KLTower';
+    kltower.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(kltower);
+    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_KLTower'}.glb?v=skyline-v1`).then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...kltower.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      kltower.add(gltf.scene);
+    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_KLTower'}`,error));
+  }
   for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) {
     const parent = mamakStreetLayout.lamps.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
     streetLamp(parent, x, z, x > 0 ? -1 : 1);
