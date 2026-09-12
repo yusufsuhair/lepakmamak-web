@@ -17,6 +17,7 @@ import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {loadPetronas, type PetronasSite} from './petronas';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -886,8 +887,17 @@ export function createWorld(scene: THREE.Scene): World {
     box(g,0,5,-4,18,.5,10,white);box(g,0,4.7,-8.9,18,.45,.25,yellow);box(g,0,4.7,.9,18,.45,.25,red);
     for(const x of [-7,7]){box(g,x,2.5,-4,.4,5,.4,white);box(g,x,1.3,-4,2,2.6,.8,yellow);box(g,x,1.7,-4,1.2,.55,.84,red);}
     box(g,11,5,-9,2.5,10,1,white);sign(g,'SHELL',11,7,-9.54,2.1,.65,red,yellow);sign(g,'95 · 97',11,4.8,-9.55,2,.8,white,red);
+    sign(g,'deli2go',-6.5,4.4,2.92,3,.5,red,white);
     solid(x,z+7,20,8);solid(x-7,z-4,2,2.6);solid(x+7,z-4,2,2.6);solid(x+11,z-9,2.5,1);
     mapBuildings.push({x,z:z+7,w:20,d:8,color:yellow});
+    // The boxes above stay out of the world batch so the Blender forecourt
+    // (scripts/blender/build_shell.py) can replace them; the text signs stay on top.
+    g.traverse(o=>{o.userData.keepUnbatched=true;});
+    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v1').then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      g.add(gltf.scene);
+    }).catch(error=>console.warn('[SHELL] keeping procedural station',error));
   }
   zusCoffee(27, 58);
   // Tucked against the shopfront: the teleport arrival for ZUS lands at (27, 68) and the

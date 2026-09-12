@@ -1,0 +1,15 @@
+{
+  "asset": "LM_ENV_Shell",
+  "origin": [
+    33,
+    0,
+    103
+  ],
+  "footprint": [
+    25,
+    25
+  ],
+  "triangles": 10060,
+  "bytes": 491940,
+  "draws": 13
+}
