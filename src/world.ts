@@ -73,7 +73,7 @@ function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: num
 }
 
 /** Keep an independently replaceable facade cheap while it waits for its GLB. */
-function batchShopFallback(root: THREE.Group) {
+export function batchShopFallback(root: THREE.Group) {
   root.updateMatrixWorld(true);
   const inverse = root.matrixWorld.clone().invert();
   const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();

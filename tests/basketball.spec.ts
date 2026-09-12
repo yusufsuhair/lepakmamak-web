@@ -17,3 +17,42 @@ test('court placement, basketball controls and mobile charge release',async({pag
  },court);expect(await page.evaluate(()=>(window as any).overlaps)).toEqual([]);await page.screenshot({path:'/tmp/basketball-court.png'});
  await page.setViewportSize({width:375,height:812});await page.locator('canvas').evaluate(el=>el.style.display='none');const button=page.getByRole('button',{name:'Tahan untuk Shoot'});await expect(button).toBeEnabled();const b=await button.boundingBox();expect(b!.x).toBeGreaterThanOrEqual(0);expect(b!.x+b!.width).toBeLessThanOrEqual(375);await button.dispatchEvent('pointerdown',{pointerId:1});await button.dispatchEvent('pointerup',{pointerId:1});expect(await page.evaluate(()=>(window as any).sent.map((m:any)=>m.type))).toEqual(['basketball-charge','basketball-shoot']);
 });
+// Scoring is server-owned and keys off court.x, court.z +- hoopOffset and y=3.05. A Blender
+// court that quietly moved the rim, or dropped a collider, would stop baskets registering with
+// nothing else to show for it, so pin both to the swapped-in GLB and not to the fallback.
+test('the Blender court keeps every collider and leaves the rim where the server scores',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/');
+ const result=await page.evaluate(async court=>{
+  const THREE:any=await import('/node_modules/three/build/three.module.js');
+  const {createWorld}=await import('/src/world.ts');
+  const {createBasketball}=await import('/src/basketball.ts');
+  document.body.innerHTML='';
+  const scene=new THREE.Scene(),world=createWorld(scene);
+  const snapshot=()=>JSON.stringify({solids:world.solids,chairs:world.chairs,map:world.mapBuildings});
+  const game=createBasketball(scene,world);
+  const before=snapshot();
+  const deadline=Date.now()+60000;
+  while(game.status.state==='loading'&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));
+  const group=scene.getObjectByName('basketball')!;group.updateMatrixWorld(true);
+  const boxes:number[][]=[];
+  group.traverse((o:any)=>{
+   if(!o.isMesh)return;
+   const names=[o.name,...(Array.isArray(o.material)?o.material:[o.material]).map((m:any)=>m?.name??'')];
+   if(!names.some((n:any)=>String(n).includes('Rim orange')))return;   // not 'Backboard trim'
+   const b=new THREE.Box3().setFromObject(o);boxes.push([b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z]);
+  });
+  return {state:game.status.state,collidersUnchanged:snapshot()===before,boxes};
+ },court);
+ expect(result.state).toBe('ready');
+ expect(result.collidersUnchanged).toBe(true);
+ expect(result.boxes.length).toBeGreaterThan(0);
+ const [minX,minY,minZ,maxX,maxY,maxZ]=result.boxes[0];
+ // the rim sits at the scoring height, on the court's centre line, at both hoop offsets
+ expect(minY).toBeLessThanOrEqual(3.05);expect(maxY).toBeGreaterThanOrEqual(3.05);
+ expect(maxY-minY).toBeLessThan(.2);
+ expect((minX+maxX)/2).toBeCloseTo(court.x,1);
+ expect(minZ).toBeLessThanOrEqual(court.z-court.hoopOffset+.4);
+ expect(maxZ).toBeGreaterThanOrEqual(court.z+court.hoopOffset-.4);
+ expect(errors).toEqual([]);
+});

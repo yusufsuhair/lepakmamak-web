@@ -302,6 +302,7 @@ async function init() {
   let villageNearby:typeof villageResidents[number]|undefined;
   const pickleball=createPickleball(scene,world);
   const basketball=createBasketball(scene,world);
+  if(import.meta.env.DEV)Object.defineProperty(window,'__lepakCourts',{get:()=>({LM_ENV_Pickleball:{...pickleball.status},LM_ENV_Basketball:{...basketball.status}})});
   const beach=createBeach(scene,world);
   const sky=createSkyDining(scene);
   showLoading('Bringing the streets alive', 'Adding vehicles, neighbours and city sounds…', 66);

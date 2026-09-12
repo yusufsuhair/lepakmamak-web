@@ -1,0 +1,14 @@
+{
+  "Basketball": {
+    "asset": "LM_ENV_Basketball",
+    "triangles": 4278,
+    "bytes": 204892,
+    "draws": 12
+  },
+  "Pickleball": {
+    "asset": "LM_ENV_Pickleball",
+    "triangles": 2208,
+    "bytes": 99796,
+    "draws": 13
+  }
+}
