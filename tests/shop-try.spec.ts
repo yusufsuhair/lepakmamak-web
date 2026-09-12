@@ -117,7 +117,6 @@ test('signed out, Cuba still works while Beli waits for an account',async({page}
 // and no guest could reach it. A guest still cannot buy — every Beli stays disabled without a session.
 test('a guest reaches Kedai and its try-on from the city',async({page})=>{
  await enterAt(page,-18,52);
- await page.getByRole('button',{name:'Faham, jom!',exact:true}).click();
  const shop=page.locator('#open-shop');
  await expect(shop).toBeVisible();
  await shop.click();
