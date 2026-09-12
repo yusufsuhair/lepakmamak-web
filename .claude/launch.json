@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "unity-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/yusufsuhair/Downloads/lepakmamak-unity/unity/tools/serve.mjs"],
+      "port": 5194
     }
   ]
 }
