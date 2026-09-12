@@ -42,6 +42,21 @@ function ball(parent: THREE.Object3D, x: number, y: number, z: number, r: number
   mesh.castShadow = true; parent.add(mesh); return mesh;
 }
 const textMaterials = new Map<string, THREE.MeshBasicMaterial>();
+// Both drive-throughs live in one asset, so the two sites share a single fetch.
+let driveThroughModel: Promise<THREE.Group | null> | undefined;
+const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader()
+  .loadAsync('/assets/models/environment/LM_ENV_DriveThrough.glb?v=drivethru-v1')
+  .then(gltf => {
+    gltf.scene.traverse(object => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = object.receiveShadow = true;
+      const material = object.material as THREE.MeshStandardMaterial;
+      if (material.transparent) { material.depthWrite = false; object.castShadow = false; }
+    });
+    return gltf.scene;
+  })
+  .catch(error => { console.warn('[drive-through] keeping procedural outlets', error); return null; });
+
 function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: number, w: number, h: number, bg = '#183f36', fg = '#fff6d5', rotation = 0) {
   const key = text + bg + fg;
   if (!textMaterials.has(key)) {
@@ -861,7 +876,7 @@ export function createWorld(scene: THREE.Scene): World {
       }
     }
   }
-  function driveThrough(x:number,z:number,label:string,brand:string,accent:string,ink:string,laneSide:-1|1){
+  function driveThrough(x:number,z:number,label:string,brand:string,accent:string,ink:string,laneSide:-1|1,asset:'kfc'|'mcd'){
     const g=new THREE.Group();g.name=`drive-through-${label.toLowerCase().replace(/[^a-z]+/g,'-')}`;g.position.set(x,0,z);group.add(g);
     const buildingX=-laneSide*2.5,laneX=laneSide*8;
     box(g,buildingX,4.2,0,14,8.4,12,'#eee7d8');
@@ -877,6 +892,15 @@ export function createWorld(scene: THREE.Scene): World {
     box(g,laneX-laneSide*2.5,1.25,1.3,1.5,2.5,.8,brand);
     sign(g,'ORDER',laneX-laneSide*2.5,2.15,.86,1.25,.42,accent,ink);
     solid(x+buildingX,z,14,12);mapBuildings.push({x:x+buildingX,z,w:14,d:12,color:brand});
+    // The boxes above stay out of the world batch so the Blender outlet
+    // (scripts/blender/build_fastfood.py) can replace them. The canvas nameplate, DRIVE THRU
+    // and ORDER signs are the only children kept, so the wording stays the game's.
+    g.traverse(object=>{object.userData.keepUnbatched=true;});
+    void driveThroughAsset().then(scene=>{
+      const outlet=scene?.getObjectByName(asset);if(!outlet)return;
+      for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      g.add(outlet.clone());
+    });
   }
   function shellStation(x:number,z:number){
     const g=new THREE.Group();g.name='shell-station';g.position.set(x,0,z);group.add(g);
@@ -908,8 +932,8 @@ export function createWorld(scene: THREE.Scene): World {
   retail(-56, -90, 'MR.DIY', '#f1c62b', '#253d35', 'diy');
   retail(27,-40,'KEDAI ACEH · SERBANEKA','#317e62','#fff0ce','market');
   retail(49,-40,'MR.DIY','#f1c62b','#253d35','diy');
-  driveThrough(105,60,'KFC','#b81924','#8d111a','#ffffff',1);
-  driveThrough(129,60,"McDONALD'S",'#d71920','#ffc72c','#ffffff',-1);
+  driveThrough(105,60,'KFC','#b81924','#8d111a','#ffffff',1,'kfc');
+  driveThrough(129,60,"McDONALD'S",'#d71920','#ffc72c','#ffffff',-1,'mcd');
   shellStation(33,103);
 
   // Watsons health and beauty shop: a bright turquoise frontage, glazed doors

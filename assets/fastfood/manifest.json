@@ -1,0 +1,11 @@
+{
+  "kfc": {
+    "triangles": 3856,
+    "draws": 15
+  },
+  "mcd": {
+    "triangles": 3784,
+    "draws": 15
+  },
+  "bytes": 391392
+}
