@@ -1,18 +1,19 @@
 import {test,expect} from '@playwright/test';
+import registry from '../shared/mamak-shops.json' with {type:'json'};
 
-test('all six Blender facades load and hide only their own fallback',async ({page}) => {
+test('every Blender facade loads and hides only its own fallback',async ({page}) => {
   const errors:string[]=[]; page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/');
-  await expect.poll(()=>page.evaluate(()=>Object.values((window as any).__lepakShops ?? {}).filter((s:any)=>s.state==='ready').length)).toBe(6);
+  await expect.poll(()=>page.evaluate(()=>Object.values((window as any).__lepakShops ?? {}).filter((s:any)=>s.state==='ready').length)).toBe(registry.length);
   const states=await page.evaluate(()=>Object.values((window as any).__lepakShops));
   expect(states.every((s:any)=>s.fallbackVisible===false)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('missing shop keeps its facade while the other five still load',async ({page}) => {
+test('missing shop keeps its facade while the others still load',async ({page}) => {
   await page.route('**/LM_SHOP_ZusCoffee.glb*',route=>route.abort());
   await page.goto('/');
-  await expect.poll(()=>page.evaluate(()=>Object.values((window as any).__lepakShops ?? {}).filter((s:any)=>s.state==='ready').length)).toBe(5);
+  await expect.poll(()=>page.evaluate(()=>Object.values((window as any).__lepakShops ?? {}).filter((s:any)=>s.state==='ready').length)).toBe(registry.length-1);
   expect(await page.evaluate(()=>(window as any).__lepakShops.LM_SHOP_ZusCoffee)).toEqual({state:'fallback',fallbackVisible:true});
 });
 
@@ -44,7 +45,7 @@ test('facade replacement preserves collision, map footprints and playable chairs
       zusArrivalBlocked:world.solids.some((s:any)=>overlaps({x:27,z:68},.4,s))};
   });
   expect(result.unchanged).toBe(true);
-  expect(result.imported).toHaveLength(6);
+  expect(result.imported).toHaveLength(registry.length);
   for(const model of result.imported){expect(model.position).toEqual(model.expected);expect(model.collider && model.hidden).toBe(true);expect(model.children).toBeGreaterThan(0);}
   for(const fallback of result.fallbackPositions){expect(Math.abs(fallback.x-fallback.shopX)).toBeLessThan(.5);expect(fallback.width).toBeGreaterThan(16);expect(fallback.width).toBeLessThan(23);}
   expect(result.zusChairCount).toBe(12);
