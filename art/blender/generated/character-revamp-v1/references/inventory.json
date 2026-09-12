@@ -1,0 +1,338 @@
+{
+  "sourceCommit": "e8408ce8a6ff4ef4a7f8b527ceb448c136134db9",
+  "options": {
+    "gender": {
+      "Male": "male",
+      "Female": "female"
+    },
+    "hairstyle": {
+      "Short": "short",
+      "Bob": "bob",
+      "Ponytail": "ponytail"
+    },
+    "hair": {
+      "Black": "#202c2b",
+      "Brown": "#654331",
+      "Blonde": "#d8b66c",
+      "Red": "#a64f34",
+      "Purple": "#79549b"
+    },
+    "skin": {
+      "Light": "#efc6a0",
+      "Warm": "#cf986c",
+      "Tan": "#b98157",
+      "Brown": "#8b583d",
+      "Deep": "#593b30"
+    },
+    "shirt": {
+      "Orange": "#ef734c",
+      "Green": "#62876b",
+      "Blue": "#628fbb",
+      "Pink": "#c9779c",
+      "Cream": "#eee2c6",
+      "Black": "#29363b"
+    },
+    "trousers": {
+      "Sand": "#c7be9c",
+      "Denim": "#436485",
+      "Black": "#253a40",
+      "Olive": "#64734d"
+    },
+    "tudung": {
+      "No tudung": "none",
+      "Tudung labuh": "long",
+      "Turban": "turban",
+      "Tudung pendek": "short",
+      "Shawl": "shawl",
+      "Bawal": "bawal",
+      "Satin": "satin",
+      "Instant": "instant",
+      "dUCk Luxe": "duck-luxe",
+      "Ruffle": "ruffle"
+    }
+  },
+  "definitions": [
+    {
+      "id": "male-short",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "none"
+    },
+    {
+      "id": "male-bob",
+      "gender": "male",
+      "hairstyle": "bob",
+      "tudung": "none"
+    },
+    {
+      "id": "male-ponytail",
+      "gender": "male",
+      "hairstyle": "ponytail",
+      "tudung": "none"
+    },
+    {
+      "id": "male-tudung-long",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "long"
+    },
+    {
+      "id": "male-tudung-turban",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "turban"
+    },
+    {
+      "id": "male-tudung-short",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "short"
+    },
+    {
+      "id": "male-tudung-shawl",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "shawl"
+    },
+    {
+      "id": "male-tudung-bawal",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "bawal"
+    },
+    {
+      "id": "male-tudung-satin",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "satin"
+    },
+    {
+      "id": "male-tudung-instant",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "instant"
+    },
+    {
+      "id": "male-tudung-duck-luxe",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "duck-luxe"
+    },
+    {
+      "id": "male-tudung-ruffle",
+      "gender": "male",
+      "hairstyle": "short",
+      "tudung": "ruffle"
+    },
+    {
+      "id": "female-short",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "none"
+    },
+    {
+      "id": "female-bob",
+      "gender": "female",
+      "hairstyle": "bob",
+      "tudung": "none"
+    },
+    {
+      "id": "female-ponytail",
+      "gender": "female",
+      "hairstyle": "ponytail",
+      "tudung": "none"
+    },
+    {
+      "id": "female-tudung-long",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "long"
+    },
+    {
+      "id": "female-tudung-turban",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "turban"
+    },
+    {
+      "id": "female-tudung-short",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "short"
+    },
+    {
+      "id": "female-tudung-shawl",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "shawl"
+    },
+    {
+      "id": "female-tudung-bawal",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "bawal"
+    },
+    {
+      "id": "female-tudung-satin",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "satin"
+    },
+    {
+      "id": "female-tudung-instant",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "instant"
+    },
+    {
+      "id": "female-tudung-duck-luxe",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "duck-luxe"
+    },
+    {
+      "id": "female-tudung-ruffle",
+      "gender": "female",
+      "hairstyle": "short",
+      "tudung": "ruffle"
+    }
+  ],
+  "createPersonCallSites": [
+    {
+      "file": "src/main.ts",
+      "line": 315,
+      "text": "const player = createPerson(); scene.add(player.group);"
+    },
+    {
+      "file": "src/main.ts",
+      "line": 327,
+      "text": "const npc=createPerson('#ef734c');"
+    },
+    {
+      "file": "src/main.ts",
+      "line": 1019,
+      "text": "const person = createPerson('#ef734c', false, appearance(player.appearance));"
+    },
+    {
+      "file": "src/sky-dining.ts",
+      "line": 68,
+      "text": "const dj=createPerson('#24304c');dj.group.position.set(-14,0,6.5);root.add(dj.group);box(root,-14,1,5.5,3.3,.28,1.2,'#171827');obstacle(-14,5.5,3.3,1.2);"
+    },
+    {
+      "file": "src/sky-dining.ts",
+      "line": 71,
+      "text": "const swimmers=Array.from({length:4},(_,i)=>{const p=createPerson(['#496d91','#784c97','#397b80','#864f73'][i]);root.add(p.group);return p;});"
+    },
+    {
+      "file": "src/sky-dining.ts",
+      "line": 72,
+      "text": "for(const [x,z,color] of [[-6,5,'#86633c'],[5,6,'#527c85'],[-6,12,'#714971'],[5,12,'#386879']] as const){const p=createPerson(color);p.group.position.set(x,0,z);root.add(p.group);}"
+    },
+    {
+      "file": "src/avatar-preview.ts",
+      "line": 23,
+      "text": "const avatar = createPerson();"
+    },
+    {
+      "file": "src/durian-village.ts",
+      "line": 83,
+      "text": "const rig=createPerson(resident.color);rig.group.position.set(resident.x,.1,resident.z);rig.group.scale.setScalar(resident.child?.73:1);"
+    },
+    {
+      "file": "src/busking.ts",
+      "line": 14,
+      "text": "const guitarist=createPerson('#376c65');guitarist.group.position.set(-.7,.12,0);group.add(guitarist.group);"
+    },
+    {
+      "file": "src/busking.ts",
+      "line": 21,
+      "text": "const drummer=createPerson('#c39354',true);drummer.group.position.set(1.05,.02,-.15);group.add(drummer.group);box(group,1.05,.42,-.05,.6,.8,.6,'#b58855');"
+    },
+    {
+      "file": "src/busking.ts",
+      "line": 32,
+      "text": "const [x,z]=seatedPositions[i],person=createPerson(shirts[i%shirts.length],true);"
+    },
+    {
+      "file": "src/busking.ts",
+      "line": 49,
+      "text": "const cameraFan=createPerson('#bd7156');cameraFan.group.position.set(-6,0,1.8);cameraFan.group.rotation.y=Math.atan2(6,-1.8);group.add(cameraFan.group);"
+    },
+    {
+      "file": "src/busking.ts",
+      "line": 58,
+      "text": "const person=createPerson(['#d4a75c','#6d8f72','#c87983'][i]);person.group.position.set(x,0,z);person.group.rotation.y=Math.atan2(-x,-z);group.add(person.group);"
+    },
+    {
+      "file": "src/stalls.ts",
+      "line": 39,
+      "text": "const seller=createPerson(stall.id==='air-balang'?'#f3e7c3':'#7e608d');seller.group.position.set(0,.12,-1.4);g.add(seller.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 86,
+      "text": "export function createPerson(shirt = '#ef734c', seated = false, customization?: Appearance): Person {"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 309,
+      "text": "const rider = createPerson('#e87043', true); rider.group.position.set(0, .25, .1); rider.group.visible = false; group.add(rider.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 490,
+      "text": "const model=createGt3Rs(),driver=createPerson('#eeeeee',true);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 496,
+      "text": "const model=createTaycan(),driver=createPerson('#e9d8c3',true);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 538,
+      "text": "const driver=createPerson(driverShirt,true);driver.group.scale.setScalar(.7);driver.group.position.set(.35,.24,-.1);driver.group.visible=false;group.add(driver.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 563,
+      "text": "const driver = createPerson(driverShirt, true); driver.group.scale.setScalar(.5); driver.group.position.set(0, .35, -.5); driver.group.visible = false; group.add(driver.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 666,
+      "text": "const driver = createPerson(driverShirt, true); driver.group.scale.setScalar(.7); driver.group.position.set(.35, .24, -.1); driver.group.visible = false; group.add(driver.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 875,
+      "text": "const chef = createPerson('#efe7cd'); chef.group.position.set(-35.5, .12, 38); group.add(chef.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 876,
+      "text": "const customer = createPerson('#829fac', true); customer.group.position.set(-29, .05, 46.7); customer.group.rotation.y = Math.PI; group.add(customer.group);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 1462,
+      "text": "const person=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);"
+    },
+    {
+      "file": "src/world.ts",
+      "line": 1468,
+      "text": "const person = createPerson(['#efcf8d', '#628f91', '#bd7156', '#eee2c6'][i % 4]);"
+    },
+    {
+      "file": "src/beach.ts",
+      "line": 74,
+      "text": "const vendor=createPerson('#ead09b',true);vendor.group.position.set(98,0,135.3);g.add(vendor.group);"
+    },
+    {
+      "file": "src/beach.ts",
+      "line": 75,
+      "text": "const walkers=[createPerson('#df9168'),createPerson('#74a6b2'),createPerson('#d6b56a')];for(const p of walkers)g.add(p.group);"
+    }
+  ],
+  "note": "24 structural avatar combinations; colour swatches remain modular. NPCs reuse createPerson with role colours, props, poses and scale; attached role props are not separate avatar bodies."
+}
