@@ -21,6 +21,7 @@ import {createAnnouncer} from './announce';
 import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
+import {createOnboarding} from './onboarding';
 import {createRefresher,shouldOfferConnectionRestart} from './refresh';
 import {createRipples} from './ripple';
 import {createCarFinder,drawCarPin} from './car-finder';
@@ -560,10 +561,11 @@ async function init() {
   function finishEntryLoading() {
     if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
     hideLoading();
+    onboarding.showOnce();
   }
   function completeEntryLoading() {
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
-    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); }, 320);
+    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); onboarding.showOnce(); }, 320);
   }
   function beginEntryLoading() {
     connectedOnceThisEntry = false; connectionAttempts = 0;
@@ -682,6 +684,8 @@ async function init() {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   createRipples(document.body, {reducedMotion});
   $('touch-controls').hidden = !touch;
+  const onboarding = createOnboarding(touch, () => { keys.clear(); resetStick(); dragging = false; });
+  document.querySelector('.pause-panel')!.insertBefore(onboarding.button, document.querySelector('#whats-new'));
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
     const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;

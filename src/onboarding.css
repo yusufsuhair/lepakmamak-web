@@ -1,0 +1,12 @@
+#cara-main { width: min(460px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; box-sizing: border-box; padding: 22px; border: 1px solid #a6bc91; border-radius: 14px; color: #fff8e7; background: #173c32; box-shadow: 0 20px 90px #0008; overscroll-behavior: contain; }
+#cara-main header small { font-size: 11px; letter-spacing: .12em; color: #ddf69a; }
+#cara-main h2 { margin: 4px 0 14px; font: 700 28px 'Oxanium', sans-serif; }
+#cara-main ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: step; }
+#cara-main li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff0d; }
+#cara-main li > span { flex: 0 0 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: #f2e9cd; font-size: 18px; }
+#cara-main li b { display: block; font-size: 13px; }
+#cara-main li b::before { counter-increment: step; content: counter(step) '. '; color: #ddf69a; }
+#cara-main li p { margin: 3px 0 0; font-size: 12px; line-height: 1.45; color: #dbdfcc; }
+#cara-main-done { width: 100%; min-height: 46px; margin-top: 16px; border: 0; border-radius: 10px; background: #ddf69a; color: #193d33; font: 700 14px 'Oxanium', sans-serif; letter-spacing: .04em; cursor: pointer; }
+#cara-main button:focus-visible { outline: 3px solid #ffe09a; outline-offset: 3px; }
+@media (max-width: 480px) { #cara-main { padding: 16px; } #cara-main h2 { font-size: 24px; } }
