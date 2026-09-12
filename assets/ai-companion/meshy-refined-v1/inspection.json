@@ -1,0 +1,239 @@
+{
+  "objects": [
+    {
+      "name": "Mesh_0",
+      "type": "MESH",
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        -4.371138828673793e-08,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "dimensions": [
+        0.7458440065383911,
+        0.31306397914886475,
+        1.899379014968872
+      ],
+      "verts": 1518522,
+      "faces": 3038796,
+      "uvs": [
+        "UVMap"
+      ],
+      "materials": [
+        "Material.001"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Dots Stroke",
+      "nodes": [
+        {
+          "name": "Frame",
+          "type": "FRAME",
+          "image": null
+        },
+        {
+          "name": "Material Output",
+          "type": "OUTPUT_MATERIAL",
+          "image": null
+        },
+        {
+          "name": "Principled BSDF",
+          "type": "BSDF_PRINCIPLED",
+          "image": null
+        },
+        {
+          "name": "Material Output.001",
+          "type": "OUTPUT_MATERIAL",
+          "image": null
+        },
+        {
+          "name": "Diffuse BSDF",
+          "type": "BSDF_DIFFUSE",
+          "image": null
+        }
+      ],
+      "links": [
+        [
+          "Principled BSDF",
+          "BSDF",
+          "Material Output",
+          "Surface"
+        ],
+        [
+          "Diffuse BSDF",
+          "BSDF",
+          "Material Output.001",
+          "Surface"
+        ]
+      ]
+    },
+    {
+      "name": "Material",
+      "nodes": [
+        {
+          "name": "Material Output",
+          "type": "OUTPUT_MATERIAL",
+          "image": null
+        },
+        {
+          "name": "Principled BSDF",
+          "type": "BSDF_PRINCIPLED",
+          "image": null
+        }
+      ],
+      "links": [
+        [
+          "Principled BSDF",
+          "BSDF",
+          "Material Output",
+          "Surface"
+        ]
+      ]
+    },
+    {
+      "name": "Material.001",
+      "nodes": [
+        {
+          "name": "Principled BSDF",
+          "type": "BSDF_PRINCIPLED",
+          "image": null
+        },
+        {
+          "name": "Material Output",
+          "type": "OUTPUT_MATERIAL",
+          "image": null
+        },
+        {
+          "name": "Normal Map",
+          "type": "NORMAL_MAP",
+          "image": null
+        },
+        {
+          "name": "Image Texture",
+          "type": "TEX_IMAGE",
+          "image": "Image_0"
+        },
+        {
+          "name": "Image Texture.001",
+          "type": "TEX_IMAGE",
+          "image": "Image_2"
+        },
+        {
+          "name": "Image Texture.002",
+          "type": "TEX_IMAGE",
+          "image": "texture_0_roughness.png"
+        },
+        {
+          "name": "Image Texture.003",
+          "type": "TEX_IMAGE",
+          "image": "texture_0_metallic.png"
+        }
+      ],
+      "links": [
+        [
+          "Principled BSDF",
+          "BSDF",
+          "Material Output",
+          "Surface"
+        ],
+        [
+          "Normal Map",
+          "Normal",
+          "Principled BSDF",
+          "Normal"
+        ],
+        [
+          "Image Texture",
+          "Color",
+          "Principled BSDF",
+          "Base Color"
+        ],
+        [
+          "Image Texture.001",
+          "Color",
+          "Normal Map",
+          "Color"
+        ],
+        [
+          "Image Texture.002",
+          "Color",
+          "Principled BSDF",
+          "Roughness"
+        ],
+        [
+          "Image Texture.003",
+          "Color",
+          "Principled BSDF",
+          "Metallic"
+        ]
+      ]
+    }
+  ],
+  "images": [
+    {
+      "name": "Image_0",
+      "size": [
+        4096,
+        4096
+      ],
+      "path": "/Users/yusufsuhair/Downloads/astra/assets/ai-companion/meshy-refined-v1/source/Meshy_AI_Midnight_Elegance_0912154937_texture_fbx/Meshy_AI_Midnight_Elegance_0912154937_texture.fbm/Image_0.jpg",
+      "colorspace": "sRGB"
+    },
+    {
+      "name": "Image_2",
+      "size": [
+        4096,
+        4096
+      ],
+      "path": "/Users/yusufsuhair/Downloads/astra/assets/ai-companion/meshy-refined-v1/source/Meshy_AI_Midnight_Elegance_0912154937_texture_fbx/Meshy_AI_Midnight_Elegance_0912154937_texture.fbm/Image_2.jpg",
+      "colorspace": "Non-Color"
+    },
+    {
+      "name": "Render Result",
+      "size": [
+        0,
+        0
+      ],
+      "path": "",
+      "colorspace": ""
+    },
+    {
+      "name": "texture_0_metallic.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "path": "/Users/yusufsuhair/Downloads/astra/assets/ai-companion/meshy-refined-v1/source/Meshy_AI_Midnight_Elegance_0912154937_texture_fbx/Meshy_AI_Midnight_Elegance_0912154937_texture.fbm/texture_0_metallic.png",
+      "colorspace": "Non-Color"
+    },
+    {
+      "name": "texture_0_roughness.png",
+      "size": [
+        2048,
+        2048
+      ],
+      "path": "/Users/yusufsuhair/Downloads/astra/assets/ai-companion/meshy-refined-v1/source/Meshy_AI_Midnight_Elegance_0912154937_texture_fbx/Meshy_AI_Midnight_Elegance_0912154937_texture.fbm/texture_0_roughness.png",
+      "colorspace": "Non-Color"
+    },
+    {
+      "name": "Viewer Node",
+      "size": [
+        256,
+        256
+      ],
+      "path": "",
+      "colorspace": ""
+    }
+  ]
+}

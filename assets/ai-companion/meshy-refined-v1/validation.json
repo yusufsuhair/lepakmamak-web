@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "blender": "5.2.1 LTS",
+  "source": "meshy-reference-refined.blend",
+  "geometry_and_uv_match_normalized_source": true,
+  "geometry": {
+    "vertices": 1518522,
+    "triangles": 3038796,
+    "position_sha256": "28921d34836cfa17cc0a80cde20c72da32484abe103abdf7703e3926317aa686",
+    "uv_sha256": "14783cd602aee557ce3e6d360bb9e77e4a8017cb64b1efbebb40640bf1c14497",
+    "bounds_min_m": [
+      -0.3337761163711548,
+      -0.14245733618736267,
+      0.0
+    ],
+    "bounds_max_m": [
+      0.3337761461734772,
+      0.13774414360523224,
+      1.7000000476837158
+    ]
+  },
+  "height_m": 1.7000000476837158,
+  "textures": [
+    {
+      "name": "Refined \u2022 BASECOLOR",
+      "file": "companion_basecolor_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "sRGB",
+      "packed": true,
+      "sha256": "67197a269b8d68748d43a99dcd4c44d5b92db3553e82a56e32e07895c3da9724"
+    },
+    {
+      "name": "Refined \u2022 ROUGHNESS",
+      "file": "companion_roughness_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "Non-Color",
+      "packed": true,
+      "sha256": "c0ebd7e641ad13a14428736848147577ce75a4e684a799a1dc508a509a3f0cc5"
+    },
+    {
+      "name": "Refined \u2022 METALLIC",
+      "file": "companion_metallic_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "Non-Color",
+      "packed": true,
+      "sha256": "2012e8ba667bf63dba43a65bc1813e77133f52e60b2fc5e336d454aa1fb02dc8"
+    },
+    {
+      "name": "Refined \u2022 NORMAL",
+      "file": "companion_normal_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "Non-Color",
+      "packed": true,
+      "sha256": "444914b32aa1f0cb3167157d3dc30decf94c381b6154f998b534000590c8e3a7"
+    },
+    {
+      "name": "Refined \u2022 SKIN_MASK",
+      "file": "companion_skin_mask_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "Non-Color",
+      "packed": true,
+      "sha256": "ea5117d47867225f756da3dcd271c4f1cbc8f7d270557b1ebb7e22fd3bf0ae85"
+    },
+    {
+      "name": "Refined \u2022 HAIR_MASK",
+      "file": "companion_hair_mask_4k.png",
+      "size": [
+        4096,
+        4096
+      ],
+      "colorspace": "Non-Color",
+      "packed": true,
+      "sha256": "9fed01a21c81901afed4176a4f44e5b63c2e8fd4259328d063a9b6c1872dfbfb"
+    }
+  ],
+  "reference_packed": true,
+  "limitations": [
+    "No handbag in supplied mesh",
+    "Generated eye/hair/jewelry geometry artifacts remain",
+    "No new photographic detail invented by 4K baking"
+  ],
+  "baked_vs_procedural_render_mean_abs_error_rgb_255": [
+    0.02656121212121212,
+    0.02581939393939394,
+    0.02532
+  ]
+}
