@@ -599,6 +599,10 @@ export function createWorld(scene: THREE.Scene): World {
   const chairs: World['chairs'] = chairLocations;
   const group = new THREE.Group(); const solids: Solid[] = []; const mapBuildings: World['mapBuildings'] = [];
   const mamakStreetFallback = new THREE.Group(); mamakStreetFallback.name = 'mamak-street-fallback'; group.add(mamakStreetFallback);
+  // Static street furniture scattered across the whole city — flags, street signs, the
+  // courtyard bunting, the boundary hedges and the delivery-plaza fountain — shares one group
+  // at the world origin so scripts/blender/build_zoo.py can replace the lot in one fetch.
+  const furniture = new THREE.Group(); furniture.name = 'street-furniture'; group.add(furniture);
   const shopFallbacks = new Map<string, THREE.Group>();
   scene.add(group);
   const solid = (x: number, z: number, w: number, d: number) => solids.push({ x, z, hx: w / 2, hz: d / 2 });
@@ -660,8 +664,8 @@ export function createWorld(scene: THREE.Scene): World {
   for (const x of [-6.9, 6.9]) tube(group, x, 1.55, -97, .1, 3.1, '#6a8073');
   for (const x of [-48, -37, 37, 48]) for (const z of [-88, -105, -137]) palm(group, x, z, .85);
   // Low fountain at the delivery plaza.
-  tube(group, 19, .4, -87, 4, .6, '#b7baa6'); tube(group, 19, .74, -87, 3.6, .09, '#82b3ab');
-  tube(group, 19, 1.15, -87, .55, 1, '#d5d4b9');
+  tube(furniture, 19, .4, -87, 4, .6, '#b7baa6'); tube(furniture, 19, .74, -87, 3.6, .09, '#82b3ab');
+  tube(furniture, 19, 1.15, -87, .55, 1, '#d5d4b9');
   for (const x of [-53, 53]) { box(group, x, .4, -113, 2, .8, 55, '#839468'); solid(x, -113, 2, 55); }
 
   // Mamak, open ground floor and striped canopy, facing the courtyard to the south.
@@ -1273,8 +1277,21 @@ export function createWorld(scene: THREE.Scene): World {
     for(const [x,z] of [[-15,13],[-11,15],[-8,12]] as const){tube(zoo,x,.85,z,.055,1.35,'#e48b93');const neck=tube(zoo,x,1.55,z,.1,.8,'#ef9ba2');neck.rotation.z=.22;const bird=ball(zoo,x+.12,1.95,z,.23,'#ef9ba2');bird.scale.set(.7,.8,1);}
     const lion=(x:number,z:number)=>{const l=new THREE.Group();l.position.set(x,0,z);zoo.add(l);const body=ball(l,0,.65,0,.62,'#c99143');body.scale.set(1.2,.65,.62);for(const side of [-1,1])for(const dz of [-.35,.35])tube(l,side*.4,.32,dz,.1,.64,'#b87c37');ball(l,0,.92,.68,.46,'#704a2e');ball(l,0,.94,.75,.3,'#d09b54');};
     lion(12,20);box(zoo,16,1.3,21,8,2.6,3,'#907553');box(zoo,14,1.15,19.2,5,.35,3.5,'#81704f');
-    for(const [x,z] of [[-23,-24],[-5,-24],[21,-24],[-23,24],[5,24],[23,22]] as const)palm(zoo,x,z,.6);
+    // The park's palms hang off a sibling group at the same origin: they are already served by
+    // the instanced foliage asset, and the zoo swap below clears every child it owns.
+    const zooPalms=new THREE.Group();zooPalms.position.set(zx,0,zz);group.add(zooPalms);
+    for(const [x,z] of [[-23,-24],[-5,-24],[21,-24],[-23,24],[5,24],[23,22]] as const)palm(zooPalms,x,z,.6);
     sign(zoo,'GAJAH',-15,2.4,-2,5,.8,'#315f48','#fff0b9');sign(zoo,'SAVANA',13,2.4,-1,5,.8,'#315f48','#fff0b9');sign(zoo,'KOLAM FLAMINGO',-12,2.4,23,8,.8,'#315f48','#fff0b9');
+    // Boxes and balls above are the fallback until the Blender park (scripts/blender/build_zoo.py)
+    // loads. The canvas habitat signs are the only children kept, so the wording stays the game's.
+    zoo.name='zoo';
+    zoo.traverse(o=>{o.userData.keepUnbatched=true;});
+    batchShopFallback(zoo);
+    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Zoo.glb?v=zoo-v1').then(gltf=>{
+      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      for(const child of [...zoo.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
+      zoo.add(gltf.scene);
+    }).catch(error=>console.warn('[ZOO] keeping procedural zoo',error));
     mapBuildings.push({x:zx,z:zz,w:56,d:62,color:'#759858'});
   }
   // Mid-rise skyline, deterministically placed away from the road grid.
@@ -1353,25 +1370,34 @@ export function createWorld(scene: THREE.Scene): World {
   mamakStreetFallback.traverse(object => { object.userData.keepUnbatched = true; });
   // Malaysian flags and street signs.
   function flag(x: number, z: number) {
-    tube(group, x, 4, z, .055, 8, '#b9c1aa');
-    for (let i = 0; i < 14; i++) box(group, x + 1.22, 7.7 - i * .1, z, 2.4, .1, .025, i % 2 ? '#f5e7cc' : '#c34d3c');
-    box(group, x + .55, 7.37, z + .02, 1.05, .75, .02, '#344f7a');
-    sign(group, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57');
+    tube(furniture, x, 4, z, .055, 8, '#b9c1aa');
+    for (let i = 0; i < 14; i++) box(furniture, x + 1.22, 7.7 - i * .1, z, 2.4, .1, .025, i % 2 ? '#f5e7cc' : '#c34d3c');
+    box(furniture, x + .55, 7.37, z + .02, 1.05, .75, .02, '#344f7a');
+    sign(furniture, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57');
   }
   flag(-13, 54); flag(13, -77);
-  sign(group, 'JALAN LEPAK', -11, 3.7, 14, 5, .8, '#245c4b'); tube(group, -11, 1.8, 14, .07, 3.6, '#728571');
-  sign(group, 'KLCC ↑', 11.5, 3.6, -48, 3.8, .9, '#245c4b'); tube(group, 11.5, 1.8, -48, .07, 3.6, '#728571');
+  sign(furniture, 'JALAN LEPAK', -11, 3.7, 14, 5, .8, '#245c4b'); tube(furniture, -11, 1.8, 14, .07, 3.6, '#728571');
+  sign(furniture, 'KLCC ↑', 11.5, 3.6, -48, 3.8, .9, '#245c4b'); tube(furniture, 11.5, 1.8, -48, .07, 3.6, '#728571');
   // Bunting over the courtyard.
   for (let i = 0; i < 18; i++) {
     const geo = new THREE.BufferGeometry(); const y = 6.6 - Math.sin(i / 17 * Math.PI) * 1.1;
     geo.setAttribute('position', new THREE.Float32BufferAttribute([-.35, 0, 0, .35, 0, 0, 0, -.6, 0], 3)); geo.computeVertexNormals();
     const mat = material(['#e4b64d', '#b95240', '#578c76'][i % 3]); mat.side = THREE.DoubleSide;
-    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(-46 + i * 1.9, y, 49); group.add(mesh);
+    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(-46 + i * 1.9, y, 49); furniture.add(mesh);
   }
   // Boundary hedges: world limits are enforced in physics.
-  for (const x of [-156, 156]) box(group, x, 1.1, 0, 3, 2.2, 315, '#718361');
-  box(group,0,1.1,-156,315,2.2,3,'#718361');
-  box(group,-31.5,1.1,156,252,2.2,3,'#718361');
+  for (const x of [-156, 156]) box(furniture, x, 1.1, 0, 3, 2.2, 315, '#718361');
+  box(furniture,0,1.1,-156,315,2.2,3,'#718361');
+  box(furniture,-31.5,1.1,156,252,2.2,3,'#718361');
+  // The boxes above stay as the fallback until the Blender set arrives. Only the canvas text
+  // signs survive the swap, so JALAN LEPAK, KLCC ↑ and the flag crescent stay the game's.
+  furniture.traverse(o => { o.userData.keepUnbatched = true; });
+  batchShopFallback(furniture);
+  void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=zoo-v1').then(gltf => {
+    gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
+    for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
+    furniture.add(gltf.scene);
+  }).catch(error => console.warn('[FURNITURE] keeping procedural street furniture', error));
 
   // Batch the static city by material to avoid thousands of draw calls.
   for (const fallback of shopFallbacks.values()) batchShopFallback(fallback);

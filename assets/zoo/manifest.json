@@ -1,0 +1,26 @@
+{
+  "Zoo": {
+    "asset": "LM_ENV_Zoo",
+    "node": "zoo",
+    "triangles": 14374,
+    "bytes": 495808,
+    "draws": 30,
+    "origin": [
+      -123,
+      0,
+      -112
+    ]
+  },
+  "Furniture": {
+    "asset": "LM_ENV_Furniture",
+    "node": "furniture",
+    "triangles": 6456,
+    "bytes": 304304,
+    "draws": 15,
+    "origin": [
+      0,
+      0,
+      0
+    ]
+  }
+}
