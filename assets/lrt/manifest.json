@@ -1,0 +1,28 @@
+{
+  "LM_LRT_Train.glb": {
+    "nodes": [
+      "cab",
+      "mid"
+    ],
+    "triangles": 12950,
+    "bytes": 684300,
+    "draws": 43
+  },
+  "LM_LRT_Station.glb": {
+    "nodes": [
+      "station"
+    ],
+    "triangles": 6532,
+    "bytes": 326076,
+    "draws": 14
+  },
+  "LM_LRT_Viaduct.glb": {
+    "nodes": [
+      "girder",
+      "pier"
+    ],
+    "triangles": 504,
+    "bytes": 33320,
+    "draws": 8
+  }
+}

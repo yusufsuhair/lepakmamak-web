@@ -29,7 +29,7 @@ for(const viewport of [{width:1280,height:800},{width:390,height:844}])test(`boa
   const p:any={id:'a',name:'Passenger',x:stations[0].x,z:stations[0].z,yaw:0,riding:false};const players=new Map([['a',p]]);const lrt=createLrt((_w:any,m:any)=>ws.send(JSON.stringify(m)));
   ws.onMessage(raw=>{const m=JSON.parse(String(raw));if(m.type==='join'){ws.send(JSON.stringify({type:'welcome',id:'a',players:[p]}));sendClock(2000);}else lrt.handle(players,p,m,mockTime);});
  });
- await page.goto('/');await expect(page.locator('#interaction')).toHaveText('Naik LRT');await page.locator('#interaction').click();await expect(page.locator('.lrt-panel')).toBeVisible();await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.lrtId)).toBe(0);
+ await page.addInitScript(()=>localStorage.setItem('lepakmamak-onboarded','1'));await page.goto('/');await expect(page.locator('#interaction')).toHaveText('Naik LRT');await page.locator('#interaction').dispatchEvent('click');await expect(page.locator('.lrt-panel')).toBeVisible();await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.lrtId)).toBe(0);
  await expect(page.locator('body')).toHaveClass(/on-lrt/);await page.waitForTimeout(1000);await page.screenshot({path:`/tmp/lepak-lrt-${viewport.width}.png`});
  const button=page.getByRole('button',{name:'Turun di stesen',exact:true});const bounds=await button.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(viewport.width);
  sendClock(15000);await expect(button).toBeDisabled();await expect(page.locator('.lrt-panel strong')).toHaveText('Seterusnya · Ampang Park');

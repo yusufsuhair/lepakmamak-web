@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {box,material} from './world';
 import {stations,trackPoint,trackLength,trainState,railHeight} from '../shared/lrt.mjs';
 import type {Solid} from './physics';
@@ -16,21 +17,36 @@ function batchStatic(group:THREE.Group,dynamic:THREE.Object3D[]=[]){
  for(const [mat,geometries] of batches){const merged=mergeGeometries(geometries);if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.receiveShadow=true;group.add(mesh);}geometries.forEach(g=>g.dispose());}
 }
 
+// Blender-built Rapid KL assets (scripts/blender/build_lrt.py). The box placeholders
+// below stay on screen until each GLB lands, and stay for good if it never does.
+const LRT_VERSION='lrt-v1';
+function lrtAsset(name:string){return new GLTFLoader().loadAsync(`/assets/models/lrt/${name}.glb?v=${LRT_VERSION}`).then(gltf=>{
+ gltf.scene.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;obj.castShadow=obj.receiveShadow=true;const m=obj.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;obj.castShadow=false;}});
+ return gltf.scene;}).catch(error=>{console.warn(`LRT asset ${name} unavailable, keeping placeholder`,error);return null;});}
+// Drop every placeholder mesh but keep the canvas labels (station names, destinations).
+function swapIn(group:THREE.Object3D,model:THREE.Object3D){for(const child of [...group.children])if(!child.userData.label)child.removeFromParent();group.add(model);}
+function instanced(node:THREE.Object3D,matrices:THREE.Matrix4[]){const out:THREE.InstancedMesh[]=[];node.updateMatrixWorld(true);
+ node.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;const mesh=new THREE.InstancedMesh(obj.geometry,obj.material,matrices.length);const local=obj.matrixWorld.clone();
+  matrices.forEach((m,i)=>mesh.setMatrixAt(i,m.clone().multiply(local)));mesh.receiveShadow=true;mesh.castShadow=obj.castShadow;out.push(mesh);});return out;}
 function label(parent:THREE.Group,text:string,x:number,y:number,z:number,w:number,h:number){
  const c=document.createElement('canvas');c.width=768;c.height=128;const ctx=c.getContext('2d')!;
  ctx.fillStyle='#082f50';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 44px sans-serif';ctx.fillText(text,384,64,740);
- const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+ const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));mesh.position.set(x,y,z);mesh.userData.label=true;parent.add(mesh);return mesh;
 }
 export function createLrt(scene:THREE.Scene,solids:Solid[]){
  const infrastructure=new THREE.Group();infrastructure.name='Lepak LRT elevated line';scene.add(infrastructure);
- const beamMatrices:THREE.Matrix4[]=[],railMatrices:THREE.Matrix4[]=[],pillarMatrices:THREE.Matrix4[]=[];
+ const beamMatrices:THREE.Matrix4[]=[],railMatrices:THREE.Matrix4[]=[],pillarMatrices:THREE.Matrix4[]=[],girderMatrices:THREE.Matrix4[]=[],pierMatrices:THREE.Matrix4[]=[];
  const dummy=new THREE.Object3D();
  for(let d=0;d<trackLength;d+=3){const a=trackPoint(d),b=trackPoint(Math.min(d+3,trackLength));const length=Math.hypot(b.x-a.x,b.z-a.z),yaw=Math.atan2(b.x-a.x,b.z-a.z);
+  dummy.position.set((a.x+b.x)/2,0,(a.z+b.z)/2);dummy.rotation.set(0,yaw,0);dummy.scale.set(1,1,(length+.08)/3);dummy.updateMatrix();girderMatrices.push(dummy.matrix.clone());
   dummy.position.set((a.x+b.x)/2,railHeight-.5,(a.z+b.z)/2);dummy.rotation.set(0,yaw,0);dummy.scale.set(4.6,.8,length+.08);dummy.updateMatrix();beamMatrices.push(dummy.matrix.clone());
   for(const side of [-1,1]){dummy.position.set((a.x+b.x)/2+Math.cos(yaw)*side*.95,railHeight,(a.z+b.z)/2-Math.sin(yaw)*side*.95);dummy.scale.set(.13,.18,length+.1);dummy.updateMatrix();railMatrices.push(dummy.matrix.clone());}
  }
- for(let d=0;d<trackLength;d+=24){const p=trackPoint(d);dummy.position.set(p.x,5,p.z);dummy.rotation.set(0,p.yaw,0);dummy.scale.set(1.1,10,1.1);dummy.updateMatrix();pillarMatrices.push(dummy.matrix.clone());solids.push({x:p.x,z:p.z,hx:.55,hz:.55});}
+ for(let d=0;d<trackLength;d+=24){const p=trackPoint(d);dummy.position.set(p.x,5,p.z);dummy.rotation.set(0,p.yaw,0);dummy.scale.set(1.1,10,1.1);dummy.updateMatrix();pillarMatrices.push(dummy.matrix.clone());
+  dummy.position.y=0;dummy.scale.set(1,1,1);dummy.updateMatrix();pierMatrices.push(dummy.matrix.clone());solids.push({x:p.x,z:p.z,hx:.8,hz:.8});}
  for(const [matrices,color] of [[beamMatrices,'#9caaa9'],[railMatrices,'#414b52'],[pillarMatrices,'#a8b0a9']] as const){const mesh=new THREE.InstancedMesh(new THREE.BoxGeometry(),material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.receiveShadow=true;infrastructure.add(mesh);}
+ void lrtAsset('LM_LRT_Viaduct').then(model=>{if(!model)return;const girder=model.getObjectByName('girder'),pier=model.getObjectByName('pier');if(!girder||!pier)return;
+  infrastructure.clear();for(const mesh of [...instanced(girder,girderMatrices),...instanced(pier,pierMatrices)])infrastructure.add(mesh);});
  const stationGroups=stations.map((station,index)=>{
   const p=trackPoint(station.distance),g=new THREE.Group();g.name=station.name+' LRT';g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
   box(g,4.9,railHeight+.05,0,5.5,.8,59,'#b6c1bc');box(g,2.35,railHeight+.5,0,.25,.04,58,'#ffcf4e');
@@ -42,8 +58,10 @@ export function createLrt(scene:THREE.Scene,solids:Solid[]){
   solids.push({x:p.x+Math.cos(p.yaw)*11.8,z:p.z-Math.sin(p.yaw)*11.8,hx:Math.abs(Math.cos(p.yaw))*1.15+Math.abs(Math.sin(p.yaw))*1.75,hz:Math.abs(Math.sin(p.yaw))*1.15+Math.abs(Math.cos(p.yaw))*1.75});
   const ground=label(g,`LRT ${String(index+1).padStart(2,'0')} · ${station.name}`,9,3.8,0,7,1.1);ground.rotation.y=Math.PI/2;
   label(g,`Rapid KL  ·  ${station.name}`,4.9,railHeight+3.1,0,5.3,.8).rotation.y=Math.PI/2;
+  for(const along of [-18,18])solids.push({x:p.x+Math.cos(p.yaw)*4.9+Math.sin(p.yaw)*along,z:p.z-Math.sin(p.yaw)*4.9+Math.cos(p.yaw)*along,hx:.7*(Math.abs(Math.cos(p.yaw))+Math.abs(Math.sin(p.yaw))),hz:.7*(Math.abs(Math.cos(p.yaw))+Math.abs(Math.sin(p.yaw)))});
   batchStatic(g);return g;
  });
+ void lrtAsset('LM_LRT_Station').then(model=>{const station=model?.getObjectByName('station');if(station)for(const g of stationGroups)swapIn(g,station.clone());});
  const trains=[0,1].map(id=>Array.from({length:4},(_,i)=>{
   const g=new THREE.Group();g.name=`LRT ${id+1} coach ${i+1}`;scene.add(g);
   box(g,0,.55,0,3.8,.65,11.5,'#dae1e1');box(g,0,.02,0,2.5,.35,10,'#38424a');
@@ -58,11 +76,17 @@ export function createLrt(scene:THREE.Scene,solids:Solid[]){
   for(const z of [-4.1,4.1]){box(g,0,2.1,z,.07,2.8,.07,'#f4d052');for(const side of [-1,1])box(g,side*1.3,.1,z,.55,.65,1.3,'#20282e');}
   for(const z of [-5.75,5.75])box(g,0,2.1,z,3.75,2.75,.15,'#e0e5e4');
   if(i===0||i===3){const front=i===0?1:-1;const glass=box(g,0,2.6,front*5.88,3.15,1.65,.12,'#183c4c');glass.rotation.x=front*.12;
-   label(g,'Rapid KL',0,1.4,front*5.99,2.6,.48);label(g,'LRT · LEPAK LOOP',0,3.48,front*6,2.9,.3);
+   label(g,'Rapid KL',0,2.28,front*6.72,1.5,.3);label(g,'LRT · LEPAK LOOP',0,3.45,front*6.36,1.5,.26);
    for(const side of [-1,1])box(g,side*1.25,1,front*5.99,.4,.17,.1,i===0?'#fff3bc':'#eb4c4c');
   }else box(g,0,1.6,6,1.8,2.1,.7,'#414b50');
-  batchStatic(g,[roof,...doors]);return{g,roof,doors};
+  batchStatic(g,[roof,...doors]);return{g,roof:roof as THREE.Object3D,doors:doors as THREE.Object3D[]};
  }));
+ void lrtAsset('LM_LRT_Train').then(model=>{if(!model)return;
+  trains.forEach(coaches=>coaches.forEach((coach,i)=>{const node=model.getObjectByName(i===0||i===3?'cab':'mid');if(!node)return;
+   const flipped=i===3,body=node.clone();if(flipped)body.rotation.y=Math.PI;swapIn(coach.g,body);
+   const roof=body.getObjectByName('roof');if(roof)coach.roof=roof;coach.doors=[];
+   body.traverse(obj=>{const m=/^door_([PN])_\d_([ab])$/.exec(obj.name);if(!m)return;obj.userData.z=obj.position.z;obj.userData.side=(m[1]==='P'?1:-1)*(flipped?-1:1);obj.userData.part=m[2]==='a'?-1:1;coach.doors.push(obj);});
+  }));});
  return {update(now:number,viewer:{x:number;z:number},aboard:number|null){
   stationGroups.forEach(g=>g.visible=Math.hypot(g.position.x-viewer.x,g.position.z-viewer.z)<145);
   trains.forEach((coaches,id)=>{const state=trainState(id,now);coaches.forEach((coach,i)=>{const p=trackPoint(state.distance+18-i*12);coach.g.position.set(p.x,railHeight,p.z);coach.g.rotation.y=p.yaw;coach.g.visible=aboard===id||Math.hypot(p.x-viewer.x,p.z-viewer.z)<160;coach.roof.visible=aboard!==id;for(const door of coach.doors)door.position.z=THREE.MathUtils.lerp(door.position.z,door.userData.z+(state.doors&&door.userData.side===1?door.userData.part*.65:0),.2);});});
