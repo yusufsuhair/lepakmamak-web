@@ -1,3 +1,4 @@
+import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
 import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
 import {createSkyDining,swimPose} from './sky-dining';
@@ -1153,6 +1154,7 @@ async function init() {
   function disposeRemote(entity: RemotePlayer) {
     (entity.stand.material as THREE.Material).dispose();
     entity.group.traverse(object => { if (object instanceof THREE.Sprite) { object.material.map?.dispose(); object.material.dispose(); } });
+    disposeCharacter(entity.person.group); disposeCharacter(entity.bike.rider); disposeCharacter(entity.car.driver);
     entity.group.removeFromParent();
   }
   function sessionReplaced() {
@@ -1432,7 +1434,7 @@ async function init() {
   openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
-    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', shirt: look.shirt, trousers: look.trousers, tudung: look.tudung }));
+    if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', ...look }));
   });
   // A hanger, not a second bag: beside Kedai's shopping bag the old backpack read as another shop.
   const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 6.2a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5v.8"/><path d="m12 10.7-8.3 5.6c-.9.6-.5 2 .6 2h15.4c1.1 0 1.5-1.4.6-2L12 10.7Z"/></svg>';// Wall · recentre · Kedai · character · Geng · settings, reading outwards along the top bar.
@@ -2211,7 +2213,7 @@ async function init() {
       }
       for(let i=angryDrivers.length-1;i>=0;i--){
         const actor=angryDrivers[i],npc=actor.person,left=actor.until-simTime;
-        if(left<=0||!started){actor.source?.stop();actor.source?.disconnect();actor.gain?.disconnect();npc.group.traverse(o=>{if(o instanceof THREE.Sprite){o.material.map?.dispose();o.material.dispose();}});npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
+        if(left<=0||!started){actor.source?.stop();actor.source?.disconnect();actor.gain?.disconnect();npc.group.traverse(o=>{if(o instanceof THREE.Sprite){o.material.map?.dispose();o.material.dispose();}});disposeCharacter(npc.group);npc.group.removeFromParent();angryDrivers.splice(i,1);continue;}
         const distance=distanceTo(npc.group.position);
         if(actor.gain)actor.gain.gain.value=audioEnabled?Math.max(0,1-distance/25)*.9:0;
         npc.group.rotation.y=Math.atan2(pos.x-npc.group.position.x,pos.z-npc.group.position.z);

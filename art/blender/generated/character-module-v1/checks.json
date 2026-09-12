@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "unique_browser_tests": 22,
+  "browser_runs": [
+    {
+      "suite": "character-module.spec.ts",
+      "passed": 6
+    },
+    {
+      "suite": "inventory.spec.ts, avatar-hidden.spec.ts, wardrobe.spec.ts, shop-try.spec.ts",
+      "passed": 11
+    },
+    {
+      "suite": "focused dance, Superman, purchased outfit and pickleball regressions",
+      "passed": 5
+    }
+  ],
+  "catalog_combinations_checked": 72,
+  "glb_assets_validated": 38,
+  "gltf_errors": 0,
+  "gltf_warnings": 0,
+  "typescript_and_vite_build": "passed",
+  "graphify_update": "completed",
+  "deployment": "not performed",
+  "limitations": [
+    "Rigid game limb pivots; no cloth or hair physics or facial blendshapes.",
+    "Stylised browser exports; not photoreal skin scans.",
+    "Full repository test suite and physical mobile device tests were not run."
+  ]
+}

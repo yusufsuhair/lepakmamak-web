@@ -7,7 +7,8 @@ import mamakStreetLayout from '../shared/mamak-streets.json';
 import mamakShops from '../shared/mamak-shops.json';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { appearance, tudungColour, type Appearance } from './appearance';
+import { type Appearance } from './appearance';
+import {createCharacter, applyCharacterAppearance, refreshCharacterAccessories} from './character-assets';
 import type { Solid } from './physics';
 import { masjidSpots } from './masjid';
 import {createTaycan} from './taycan';
@@ -84,202 +85,43 @@ function batchShopFallback(root: THREE.Group) {
 
 export interface Person { group: THREE.Group; leftLeg: THREE.Group; rightLeg: THREE.Group; leftArm: THREE.Group; rightArm: THREE.Group }
 export function createPerson(shirt = '#ef734c', seated = false, customization?: Appearance): Person {
-  const group = new THREE.Group();
-  box(group, 0, 1.2, 0, .61, .68, .34, shirt);
-  box(group, 0, .91, 0, .5, .18, .31, '#253a40');
-  tube(group, 0, 1.62, 0, .12, .15, '#b98157');
-  const head = ball(group, 0, 1.85, .015, .255, '#b98157'); head.scale.y *= 1.14;
-  const hair = ball(group, 0, 2.01, -.04, .24, '#202c2b'); hair.scale.y *= .65;
-  box(group, 0, 1.84, .247, .08, .1, .045, '#ac744c');
-  box(group, -.1, 1.91, .22, .055, .035, .025, '#27332d');
-  box(group, .1, 1.91, .22, .055, .035, .025, '#27332d');
-  const limbs: THREE.Group[] = [];
-  for (const side of [-1, 1]) {
-    const leg = new THREE.Group(); leg.position.set(side * .16, .88, 0);
-    box(leg, 0, -.3, 0, .23, .59, .25, '#c7be9c');
-    box(leg, 0, -.7, .065, .24, .24, .38, '#f6efd7');
-    box(leg, 0, -.81, .07, .26, .06, .4, '#27403c');
-    if (seated) { leg.rotation.x = -.92; leg.rotation.z = side * .24; }
-    group.add(leg); limbs.push(leg);
-  }
-  for (const side of [-1, 1]) {
-    const arm = new THREE.Group(); arm.position.set(side * .39, 1.43, 0);
-    box(arm, 0, -.16, 0, .23, .36, .27, shirt);
-    box(arm, 0, -.44, .015, .16, .28, .17, '#b98157');
-    if (seated) { arm.rotation.x = -1.08; arm.rotation.z = side * -.12; }
-    group.add(arm); limbs.push(arm);
-  }
-  group.traverse(object => {
-    if (object instanceof THREE.Mesh) {
-      const color = (object.material as THREE.MeshStandardMaterial).color.getHexString();
-      object.userData.avatarPart = color === shirt.slice(1) ? 'shirt' : color === 'b98157' || color === 'ac744c' ? 'skin' : color === '202c2b' ? 'hair' : color === 'c7be9c' ? 'trousers' : '';
-    }
-  });
-  if (customization) applyAppearance(group, customization);
-  return { group, leftLeg: limbs[0], rightLeg: limbs[1], leftArm: limbs[2], rightArm: limbs[3] };
+  return createCharacter(shirt, seated, customization);
 }
-
-export function applyAppearance(group: THREE.Group, value: unknown) {
-  const look = appearance(value);
-  group.traverse(object => { if (object instanceof THREE.Mesh && object.userData.avatarPart) object.material = material(look[object.userData.avatarPart as keyof Appearance]); });
-  group.children[0].scale.x = look.gender === 'female' ? .55 : .61;
-  group.children[1].scale.x = look.gender === 'female' ? .55 : .5;
-  const old = group.getObjectByName('avatar-hair'); if (old) group.remove(old);
-  const extra = new THREE.Group(); extra.name = 'avatar-hair'; group.add(extra);
-  if (look.hairstyle === 'bob') {
-    box(extra, 0, 1.79, -.17, .48, .46, .2, look.hair);
-    for (const side of [-1, 1]) box(extra, side * .225, 1.83, -.025, .10, .4, .3, look.hair);
-  } else if (look.hairstyle === 'ponytail') {
-    const tail = ball(extra, 0, 1.76, -.29, .15, look.hair); tail.scale.y = .36;
-  }
-  applyTudung(group, look.tudung);
-  group.userData.appearance = look;
-}
-
-/** Add a readable, low-poly head covering to the same avatar rig used in the city. */
-function applyTudung(group: THREE.Group, style: string) {
-  const old = group.getObjectByName('avatar-tudung'); if (old) group.remove(old);
-  if (!style || style === 'none') return;
-  const tudung = new THREE.Group(); tudung.name = 'avatar-tudung'; group.add(tudung);
-  const colour = tudungColour(style);
-  const roughness = style === 'satin' || style === 'duck-luxe' ? .28 : .78;
-  const cloth = (x: number, y: number, z: number, w: number, h: number, d: number, rotation = 0, tone = colour) => {
-    const mesh = box(tudung, x, y, z, w, h, d, material(tone, roughness)); mesh.rotation.z = rotation; return mesh;
-  };
-  const panel = (name: string, draw: (shape: THREE.Shape) => void, z: number, depth = .065, tone = colour) => {
-    const shape = new THREE.Shape(); draw(shape);
-    const mesh = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, {
-      depth, bevelEnabled: true, bevelSegments: 1, bevelSize: .008, bevelThickness: .008, curveSegments: 5,
-    }), material(tone, roughness));
-    mesh.name = name; mesh.position.z = z - depth / 2; mesh.castShadow = true; mesh.receiveShadow = true;
-    mesh.material.side = THREE.DoubleSide; tudung.add(mesh); return mesh;
-  };
-  const neckWrap = (tone = colour) => {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(.225, .31, .24, 12, 1, true), material(tone, roughness));
-    mesh.name = 'tudung-neck-wrap'; mesh.position.set(0, 1.61, 0); mesh.castShadow = true; mesh.receiveShadow = true;
-    mesh.material.side = THREE.DoubleSide; tudung.add(mesh); return mesh;
-  };
-  const crown = ball(tudung, 0, 2.035, -.075, .285, colour); crown.scale.set(.285 * 1.02, .285 * .72, .285 * .72);
-  // A clean band frames the face, which keeps each style recognisable at the game's camera
-  // distance without covering the eyes or changing the underlying face rig.
-  cloth(0, 1.985, .145, .285, .075, .055);
-  switch (style) {
-    case 'long':
-      neckWrap();
-      // A single broad bib reads as fabric from the front, while a second panel keeps the
-      // back covered when the player turns. The curved top leaves the face clear instead of
-      // looking like three floating cuboids.
-      panel('tudung-long-front', shape => {
-        shape.moveTo(-.22, 1.67); shape.quadraticCurveTo(-.32, 1.55, -.43, 1.38); shape.lineTo(-.47, .91);
-        shape.lineTo(.47, .91); shape.quadraticCurveTo(.43, 1.38, .22, 1.67); shape.closePath();
-      }, .23, .075);
-      panel('tudung-long-back', shape => {
-        shape.moveTo(-.31, 1.7); shape.quadraticCurveTo(-.42, 1.43, -.49, 1.15); shape.lineTo(-.46, .88);
-        shape.lineTo(.46, .88); shape.quadraticCurveTo(.42, 1.43, .31, 1.7); shape.closePath();
-      }, -.19, .09);
-      cloth(-.255, 1.69, .02, .11, .55, .105, .04);
-      cloth(.255, 1.69, .02, .11, .55, .105, -.04);
-      break;
-    case 'turban': {
-      neckWrap('#e7e1d4');
-      for (const [y, scale] of [[2.03, 1], [2.095, .88], [2.15, .7]] as const) {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(.235, .037, 6, 18), material(colour, roughness));
-        ring.position.set(0, y, .03); ring.scale.set(1, .56 * scale, .7); ring.castShadow = true; tudung.add(ring);
-      }
-      const knot = ball(tudung, .12, 2.16, .03, .085, colour); knot.scale.set(.085 * 1.2, .085 * .72, .085 * .72);
-      // The undercap closes the neck, and the asymmetric scarf tail makes the turban read
-      // as a wrapped style from the rear as well as from the front.
-      panel('tudung-turban-scarf', shape => {
-        shape.moveTo(.12, 1.76); shape.quadraticCurveTo(.34, 1.56, .47, 1.34); shape.lineTo(.45, .95);
-        shape.lineTo(.18, .95); shape.quadraticCurveTo(.25, 1.4, .12, 1.76); shape.closePath();
-      }, .13, .07);
-      panel('tudung-turban-back', shape => {
-        shape.moveTo(-.22, 1.72); shape.quadraticCurveTo(-.42, 1.44, -.45, 1.14); shape.lineTo(-.4, .98);
-        shape.lineTo(.18, .98); shape.quadraticCurveTo(.06, 1.4, -.22, 1.72); shape.closePath();
-      }, -.17, .08);
-      break;
-    }
-    case 'short':
-      neckWrap();
-      cloth(-.245, 1.79, .02, .12, .3, .11, .05);
-      cloth(.245, 1.79, .02, .12, .3, .11, -.05);
-      break;
-    case 'shawl':
-      neckWrap();
-      cloth(-.255, 1.74, .02, .12, .4, .11, .1);
-      cloth(.19, 1.77, -.01, .11, .35, .1, -.08);
-      cloth(.285, 1.52, -.13, .16, .54, .12, -.1);
-      break;
-    case 'bawal':
-      neckWrap();
-      cloth(-.255, 1.76, .02, .12, .34, .11, .04);
-      cloth(.255, 1.76, .02, .12, .34, .11, -.04);
-      cloth(0, 1.58, -.12, .38, .36, .11);
-      break;
-    case 'satin':
-      neckWrap();
-      cloth(-.25, 1.74, .02, .12, .4, .11, .04);
-      cloth(.25, 1.65, -.04, .12, .57, .11, -.04);
-      cloth(.27, 1.42, -.12, .18, .42, .12, -.05);
-      break;
-    case 'instant':
-      neckWrap();
-      cloth(-.245, 1.71, .02, .13, .48, .12, .03);
-      cloth(.245, 1.71, .02, .13, .48, .12, -.03);
-      cloth(0, 1.57, -.13, .4, .38, .12);
-      break;
-    case 'duck-luxe':
-      neckWrap();
-      cloth(-.255, 1.72, .02, .12, .44, .11, .08);
-      cloth(.21, 1.69, -.01, .11, .48, .11, -.06);
-      cloth(.27, 1.49, -.13, .18, .5, .12, -.08);
-      cloth(0, 1.985, .18, .12, .025, .018, 0, '#f7e0a1');
-      break;
-    case 'ruffle':
-      neckWrap();
-      cloth(-.245, 1.76, .02, .12, .34, .11, .05);
-      cloth(.245, 1.76, .02, .12, .34, .11, -.05);
-      for (const x of [-.16, -.08, 0, .08, .16]) cloth(x, 1.62, .02, .055, .13, .1, x * .5);
-      break;
-    default:
-      neckWrap();
-      cloth(-.245, 1.76, .02, .12, .34, .11, .04);
-      cloth(.245, 1.76, .02, .12, .34, .11, -.04);
-  }
-}
+export const applyAppearance = applyCharacterAppearance;
 
 export function applyAccessories(group: THREE.Group, items: string[]) {
   const key = [...items].sort().join(','); if (group.userData.accessoryKey === key) return;
   group.userData.accessoryKey = key;
-  const old = group.getObjectByName('shop-accessories'); if (old) group.remove(old);
-  const accessories = new THREE.Group(); accessories.name = 'shop-accessories'; group.add(accessories);
+  let accessories = group.getObjectByName('shop-accessories') as THREE.Group | undefined;
+  if (!accessories) { accessories = new THREE.Group(); accessories.name = 'shop-accessories'; group.add(accessories); }
+  accessories.clear();
   if (items.includes('spectacles')) {
     for (const side of [-1, 1]) {
-      const x = side * .115;
-      for (const y of [1.845, 1.97]) box(accessories, x, y, .257, .19, .025, .025, '#16251f');
-      for (const dx of [-.085, .085]) box(accessories, x + dx, 1.91, .257, .025, .14, .025, '#16251f');
-      box(accessories, side * .215, 1.93, .1, .025, .025, .32, '#16251f');
+      const x = side * .15;
+      for (const y of [1.765, 1.86]) box(accessories, x, y, .327, .22, .025, .025, '#16251f');
+      for (const dx of [-.10, .10]) box(accessories, x + dx, 1.812, .327, .018, .10, .025, '#16251f');
+      box(accessories, side * .265, 1.822, .19, .018, .018, .29, '#16251f');
     }
-    box(accessories, 0, 1.93, .267, .065, .025, .025, '#16251f');
+    box(accessories, 0, 1.815, .337, .08, .018, .018, '#16251f');
   }
   if (items.includes('cap')) {
-    const crown = ball(accessories, 0, 2.04, -.02, .27, '#245d46'); crown.scale.y *= .7;
-    box(accessories, 0, 2.025, .22, .43, .04, .36, '#dfff87');
-    box(accessories, 0, 2.12, .21, .08, .09, .02, '#dfff87');
+    const cap = new THREE.Group(); cap.name = 'shop-cap'; accessories.add(cap);
+    const crown = ball(cap, 0, 2.05, -.02, .41, '#245d46'); crown.scale.y *= .48;
+    box(cap, 0, 2.03, .29, .61, .035, .39, '#dfff87');
+    box(cap, 0, 2.12, .315, .08, .08, .02, '#dfff87');
   }
   if (items.includes('batik')) {
-    box(accessories, 0, 1.2, .185, .62, .68, .035, '#244f75');
+    box(accessories, 0, 1.06, .185, .52, .51, .035, '#244f75');
     for (let i = -2; i <= 2; i++) {
-      const motif = box(accessories, i * .12, 1.2 + (i % 2) * .13, .208, .055, .47, .018, '#e2b94e'); motif.rotation.z = i % 2 ? .58 : -.58;
+      const motif = box(accessories, i * .10, 1.04 + (i % 2) * .08, .208, .045, .36, .018, '#e2b94e'); motif.rotation.z = i % 2 ? .58 : -.58;
     }
-    for (const side of [-1, 1]) box(accessories, side * .39, 1.4, .145, .235, .34, .035, '#244f75');
   }
   if (items.includes('harimau')) {
-    box(accessories, 0, 1.2, .185, .62, .68, .035, '#efc62f');
-    for (const x of [-.23, -.11, .11, .23]) { const stripe = box(accessories, x, 1.22, .208, .055, .6, .018, '#202b2d'); stripe.rotation.z = x * 1.6; }
-    box(accessories, 0, 1.45, .219, .22, .08, .018, '#f7e49b');
-    for (const side of [-1, 1]) box(accessories, side * .39, 1.4, .145, .235, .34, .035, '#efc62f');
+    box(accessories, 0, 1.06, .185, .52, .51, .035, '#efc62f');
+    for (const x of [-.19, -.09, .09, .19]) { const stripe = box(accessories, x, 1.06, .208, .045, .44, .018, '#202b2d'); stripe.rotation.z = x * 1.6; }
+    box(accessories, 0, 1.24, .219, .22, .08, .018, '#f7e49b');
   }
+  refreshCharacterAccessories(group);
 }
 
 export function createBike() {

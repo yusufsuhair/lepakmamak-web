@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {appearance, type Appearance} from './appearance';
-import {applyAppearance, createPerson} from './world';
+import {applyAppearance, applyAccessories, createPerson} from './world';
+import {disposeCharacter, whenCharacterReady} from './character-assets';
 
 /** Render the same Three.js avatar rig used by the city in the character screen. */
 export function createAvatarPreview(canvas: HTMLCanvasElement) {
@@ -24,7 +25,12 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   avatar.group.scale.setScalar(1.18);
   scene.add(avatar.group);
 
-  let running = false;
+  let running = false, disposed = false;
+  const reportAssetState = () => {
+    if (disposed) return;
+    const state = avatar.group.userData.assetState || 'loading';
+    if (canvas.dataset.assetState !== state) { canvas.dataset.assetState = state; canvas.dispatchEvent(new Event('avatarassetstate')); }
+  };
   let frame = 0;
   let width = 0;
   let height = 0;
@@ -56,11 +62,12 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
     if (!running) return;
     if (resize()) {
       avatar.group.rotation.y = yaw;
+      reportAssetState();
       renderer.render(scene, camera);
     }
     frame = requestAnimationFrame(paint);
   };
-  const renderOnce = () => { if (resize()) renderer.render(scene, camera); };
+  const renderOnce = () => { if (!disposed && resize()) renderer.render(scene, camera); };
   const onPointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || pointerId !== null) return;
     event.preventDefault();
@@ -100,10 +107,14 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
     canvas.dataset.shirt = look.shirt;
     canvas.dataset.trousers = look.trousers;
     canvas.dataset.tudung = look.tudung;
+    canvas.dataset.hairstyle = look.hairstyle;
+    canvas.dataset.gender = look.gender;
+    void whenCharacterReady(avatar.group).then(() => { reportAssetState(); if (!running && !disposed) renderOnce(); });
+    reportAssetState();
     if (!running) renderOnce();
   };
   const start = () => {
-    if (running) return;
+    if (running || disposed) return;
     running = true;
     resize();
     frame = requestAnimationFrame(paint);
@@ -113,21 +124,16 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
     cancelAnimationFrame(frame);
   };
   const dispose = () => {
+    if (disposed) return; disposed = true;
     stop(); observer?.disconnect();
     canvas.removeEventListener('pointerdown', onPointerDown);
     canvas.removeEventListener('pointermove', onPointerMove);
     canvas.removeEventListener('pointerup', onPointerEnd);
     canvas.removeEventListener('pointercancel', onPointerEnd);
     canvas.removeEventListener('lostpointercapture', onPointerEnd);
-    avatar.group.traverse(object => {
-      if (object instanceof THREE.Mesh) {
-        object.geometry.dispose();
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.forEach(material => material.dispose());
-      }
-    });
+    disposeCharacter(avatar.group);
     renderer.dispose();
   };
 
-  return {setLook, start, stop, dispose, avatar: avatar.group, rotate(delta: number) { yaw += delta; publishYaw(); if (!running) draw(); }};
+  return {setLook, start, stop, dispose, setAccessories(items: string[]) { applyAccessories(avatar.group, items); if (!running) renderOnce(); }, avatar: avatar.group, rotate(delta: number) { yaw += delta; publishYaw(); if (!running) draw(); }};
 }

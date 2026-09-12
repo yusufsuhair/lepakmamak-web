@@ -8,6 +8,7 @@ test('clothes are picked in the character screen and survive a reload', async ({
   await page.locator('#auth-guest').click();
   await page.locator('#guest-name').fill('Tester');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
+  await page.getByRole('button', {name: 'Faham, jom!', exact: true}).click();
   // One screen: the wardrobe is a pair of tabs in the inventory, not a dialog behind it.
   const open = async () => {
     await page.getByRole('button', { name: 'Open inventory' }).click();
@@ -23,7 +24,8 @@ test('clothes are picked in the character screen and survive a reload', async ({
   // Picking is applying: there is no Save button, so the status line is the confirmation.
   await expect(page.locator('.inventory-status')).toHaveText('Outfit saved.');
   await expect(page.locator('.outfit-slots')).toContainText('Black');
-  await page.screenshot({ path: 'test-results/character-desktop.png' });
+  await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-asset-state','ready');
+  await page.screenshot({ path: 'art/blender/generated/character-module-v1/review/wardrobe-in-game.png' });
   await page.getByRole('button', { name: 'Close inventory' }).click();
 
   await page.reload();
@@ -53,10 +55,13 @@ test('outfit updates reach peers and preserve other appearance fields', async ()
         socket.on('message', raw => { const message = JSON.parse(String(raw)); if (i === 1 && message.players) players = message.players; if (message.type === 'welcome') { ids.push(message.id); resolve(); } });
       });
     }
-    clients[0].send(JSON.stringify({ type: 'outfit', shirt: '#628fbb', trousers: '#253a40', tudung: 'shawl', gender: 'female' }));
+    clients[0].send(JSON.stringify({ type: 'outfit', shirt: '#628fbb', trousers: '#253a40', tudung: 'shawl', gender: 'female', hairstyle: 'long-wavy', hair: '#654331', skin: '#cf986c' }));
     await expect.poll(() => players.find(p => p.id === ids[0])?.appearance?.shirt).toBe('#628fbb');
     expect(players.find(p => p.id === ids[0]).appearance.tudung).toBe('shawl');
-    expect(players.find(p => p.id === ids[0]).appearance.gender).toBe('male');
+    expect(players.find(p => p.id === ids[0]).appearance.gender).toBe('female');
+    expect(players.find(p => p.id === ids[0]).appearance.hairstyle).toBe('long-wavy');
+    expect(players.find(p => p.id === ids[0]).appearance.hair).toBe('#654331');
+    expect(players.find(p => p.id === ids[0]).appearance.skin).toBe('#cf986c');
     clients[0].send(JSON.stringify({ type: 'outfit', shirt: 'invalid', trousers: '#436485' }));
     await expect.poll(() => players.find(p => p.id === ids[0])?.appearance?.shirt).toBe('#ef734c');
   } finally { clients.forEach(c => c.close()); server.kill(); }

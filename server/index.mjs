@@ -703,12 +703,8 @@ webSocketServer.on('connection', ws => {
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'outfit') {
-      player.appearance = cleanAppearance({
-        ...player.appearance,
-        ...(typeof message.shirt === 'string' ? { shirt: message.shirt } : {}),
-        ...(typeof message.trousers === 'string' ? { trousers: message.trousers } : {}),
-        ...(typeof message.tudung === 'string' ? { tudung: message.tudung } : {}),
-      });
+      const changes = Object.fromEntries(Object.keys(defaults).filter(key => typeof message[key] === 'string').map(key => [key, message[key]]));
+      player.appearance = cleanAppearance({...player.appearance, ...changes});
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if(message.type==='network-telemetry'){metrics.clientSample(player.id,message);return;}

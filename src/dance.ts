@@ -27,7 +27,7 @@ export function dancePose(person:Person,remaining:number,time:number,reduced=fal
   return;
  }
  if(!rig){const parts=person.group.children.filter(o=>o!==person.leftLeg&&o!==person.rightLeg).map(object=>({object,y:object.position.y}));const elbows=[new THREE.Group(),new THREE.Group()];const forearms=[person.leftArm,person.rightArm].map(arm=>({object:arm.children[1],y:arm.children[1].position.y,arm}));rig={upper:new THREE.Group(),parts,elbows,forearms,active:false};rig.upper.position.y=1;rigs.set(person,rig);}
- if(!rig.active){person.group.add(rig.upper);for(const p of rig.parts){rig.upper.add(p.object);p.object.position.y=p.y-1;}rig.forearms.forEach((p,i)=>{const e=rig!.elbows[i];e.position.y=-.34;p.arm.add(e);e.add(p.object);p.object.position.y=p.y+.34;});rig.active=true;}
+ if(!rig.active){person.group.add(rig.upper);for(const p of rig.parts){rig.upper.add(p.object);p.object.position.y=p.y-1;}rig.forearms.forEach((p,i)=>{const e=rig!.elbows[i];e.position.y=p.arm.userData.elbowY ?? -.34;p.arm.add(e);e.add(p.object);p.object.position.y=p.y-e.position.y;});rig.active=true;}
  const t=((time%5)+5)%5;let index=0;while(index<poses.length-2&&poses[index+1][0]<t)index++;const a=poses[index],b=poses[index+1];let f=(t-a[0])/(b[0]-a[0]);f=f*f*(3-2*f);const v=(i:number)=>a[i]+(b[i]-a[i])*f;const soft=reduced?.35:1;
  person.leftArm.rotation.set(v(1),0,v(2));person.rightArm.rotation.set(v(3),0,v(4));rig.elbows[0].rotation.x=v(5);rig.elbows[1].rotation.x=v(6);const chest=Math.min(1,Math.max(0,(t-1.6)/.4))*Math.min(1,(5-t)/.4);rig.elbows[0].rotation.z=chest*.85;rig.elbows[1].rotation.z=-chest*.85;
  rig.upper.rotation.set(v(7)*soft,v(8)*soft,v(9)*soft);rig.upper.position.z=-Math.sin(t*Math.PI*4)*.025*soft;

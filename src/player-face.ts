@@ -11,6 +11,7 @@ export function paintPlayerFace(root: HTMLElement, value?: Partial<Appearance> |
   root.style.setProperty('--face-tudung', tudungColour(look.tudung));
   root.dataset.gender = look.gender;
   root.dataset.hair = look.hairstyle;
+  root.dataset.hairFamily = ['bob', 'lob', 'long-straight', 'long-wavy', 'long-layered', 'curtain-bangs', 'wolf-cut', 'mullet'].includes(look.hairstyle) ? 'long' : ['ponytail', 'low-ponytail', 'braid'].includes(look.hairstyle) ? 'tail' : look.hairstyle;
   root.dataset.tudung = look.tudung;
 }
 

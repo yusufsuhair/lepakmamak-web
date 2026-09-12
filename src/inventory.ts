@@ -1,16 +1,18 @@
 import catalog from '../shared/shop.json';
-import {appearanceOptions, TUDUNG_COMING_SOON, tudungColour, type Appearance} from './appearance';
+import {appearanceOptions, hairStyles, characterThumbnail, tudungColour, type Appearance} from './appearance';
 import {createAvatarPreview} from './avatar-preview';
 import {CLOTHING, lookLabel, savedLook, saveLook} from './wardrobe';
 import {bar, skeleton, settled} from './skeleton';
 import './inventory.css';
+import {session} from './auth';
 
 type State = {items: {sku: string; equipped: boolean}[]; balance: number};
-type Filter = 'all' | 'accessory' | 'skin' | 'shirt' | 'trousers' | 'tudung';
+type Filter = 'all' | 'accessory' | 'owned-skin' | keyof Appearance;
 
 const ICONS: Record<string, string> = {spectacles: '👓', cap: '🧢', batik: '👔', harimau: '👕'};
 const FILTERS: {key: Filter; label: string}[] = [
-  {key: 'all', label: 'All'}, {key: 'accessory', label: 'Accessories'}, {key: 'skin', label: 'Skins'},
+  {key: 'all', label: 'All'}, {key: 'accessory', label: 'Accessories'}, {key: 'owned-skin', label: 'Skins'},
+  {key: 'gender', label: 'Body'}, {key: 'hairstyle', label: 'Hair'}, {key: 'hair', label: 'Hair colour'}, {key: 'skin', label: 'Skin tone'},
   {key: 'shirt', label: 'Tops'}, {key: 'trousers', label: 'Bottoms'}, {key: 'tudung', label: 'Tudung'},
 ];
 
@@ -28,8 +30,8 @@ export function setupInventory(
     <div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div>
     <div class="inventory-layout">
       <aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Wearing</h3><div class="outfit-slots"></div></aside>
-      <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><small class="inventory-stage-hint">DRAG TO ROTATE · SWIPE ON MOBILE</small><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
-      <section><nav aria-label="Inventory filters"></nav><div class="inventory-grid" role="group"></div><div class="inventory-details"></div></section>
+      <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><p class="inventory-model-status" role="status"></p><button type="button" class="inventory-model-retry" hidden>Retry model</button><small class="inventory-stage-hint">DRAG TO ROTATE · SWIPE ON MOBILE</small><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
+      <section><nav aria-label="Inventory filters"></nav><div class="inventory-hair-filters" role="group" aria-label="Hair collections" hidden></div><div class="inventory-grid" role="group"></div><div class="inventory-details"></div></section>
     </div>
     <p class="inventory-status" role="status" aria-live="polite"></p>`;
   document.body.append(dialog);
@@ -45,6 +47,15 @@ export function setupInventory(
   let ready = false;
   const loading = () => busy && !ready;
   let look = savedLook();
+  let hairCategory = look.gender;
+  let saveRevision = 0;
+  let saveQueue = Promise.resolve();
+  canvas.addEventListener('avatarassetstate', () => {
+    const assetState = canvas.dataset.assetState;
+    dialog.querySelector('.inventory-model-status')!.textContent = assetState === 'loading' ? 'Loading character…' : assetState === 'fallback' ? 'Character model could not load.' : '';
+    dialog.querySelector<HTMLButtonElement>('.inventory-model-retry')!.hidden = assetState !== 'fallback';
+  });
+  dialog.querySelector<HTMLButtonElement>('.inventory-model-retry')!.onclick = () => avatarPreview.setLook(look);
 
   for (const {key, label} of FILTERS) {
     const button = document.createElement('button');
@@ -56,10 +67,22 @@ export function setupInventory(
   // Clothes apply the moment you pick them, so there is no Save button to hunt for. The
   // world hears about it through onLook; storage keeps it for the next time you log in.
   async function wear(next: Appearance) {
-    look = next; onLook(look); render();
+    if (next.gender !== look.gender) hairCategory = next.gender;
+    look = {...next}; onLook(look); render();
+    const revision = ++saveRevision, ticket = epoch, account = session?.user.id;
+    const snapshot = {...look};
     status.textContent = 'Saving your look…';
-    try { await saveLook(look); status.textContent = 'Outfit saved.'; }
-    catch (error) { status.textContent = error instanceof Error ? error.message : 'Could not save your outfit.'; }
+    // Serialize writes so quick swatch/style changes cannot save an older outfit last.
+    saveQueue = saveQueue.catch(() => {}).then(async () => {
+      if (session?.user.id !== account) throw new Error('Your session changed. Open your character screen again.');
+      await saveLook(snapshot);
+    });
+    try { await saveQueue; if (revision === saveRevision && ticket === epoch) status.textContent = 'Outfit saved.'; }
+    catch (error) { if (revision === saveRevision && ticket === epoch) status.textContent = error instanceof Error ? error.message : 'Could not save your outfit.'; }
+  }
+
+  function swatchColor(key: keyof Appearance, value: string) {
+    return key === 'tudung' ? tudungColour(value) : key === 'hairstyle' ? look.hair : key === 'gender' ? look.skin : value;
   }
 
   function renderEquipped() {
@@ -86,7 +109,7 @@ export function setupInventory(
     for (const {key, title} of CLOTHING) {
       const slot = document.createElement('button');
       slot.type = 'button'; slot.className = 'outfit-slot'; slot.disabled = busy;
-      slot.style.setProperty('--worn', key === 'tudung' ? tudungColour(look[key]) : look[key]);
+      slot.style.setProperty('--worn', swatchColor(key, look[key]));
       slot.innerHTML = '<i aria-hidden="true"></i>';
       slot.append(document.createTextNode(`${title} · ${lookLabel(key, look[key])}`));
       slot.onclick = () => { filter = key; render(); };
@@ -97,25 +120,37 @@ export function setupInventory(
   function renderGrid() {
     const grid = dialog.querySelector<HTMLElement>('.inventory-grid')!;
     grid.replaceChildren();
+    const hairFilters = dialog.querySelector<HTMLElement>('.inventory-hair-filters')!;
+    hairFilters.hidden = filter !== 'hairstyle'; hairFilters.replaceChildren();
+    if (filter === 'hairstyle') for (const [id, label] of [['male', 'Lelaki'], ['female', 'Perempuan'], ['all', 'Semua']]) {
+      const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+      button.setAttribute('aria-pressed', String(hairCategory === id));
+      button.onclick = () => { hairCategory = id; renderGrid(); }; hairFilters.append(button);
+    }
     const clothing = CLOTHING.find(entry => entry.key === filter);
     if (clothing) {
       grid.setAttribute('aria-label', `${clothing.title} you can wear`);
       grid.setAttribute('role', 'radiogroup');
     for (const [label, colour] of Object.entries(appearanceOptions[clothing.key])) {
       const button = document.createElement('button');
-      const comingSoon = clothing.key === 'tudung' && TUDUNG_COMING_SOON.has(colour);
-      button.type = 'button'; button.className = 'inventory-item inventory-cloth'; button.dataset.availability = comingSoon ? 'coming-soon' : 'available';
+      if (clothing.key === 'hairstyle' && hairCategory !== 'all' && !hairStyles.some(style => style.id === colour && style.category === hairCategory)) continue;
+      button.type = 'button'; button.className = 'inventory-item inventory-cloth'; button.dataset.availability = 'available'; button.dataset.style = colour;
       button.setAttribute('role', 'radio');
       button.setAttribute('aria-checked', String(look[clothing.key] === colour));
       button.setAttribute('aria-label', `${label} ${clothing.key}`);
-      button.disabled = busy || comingSoon;
-      button.title = comingSoon ? 'Coming soon' : `Wear ${label}`;
-      button.style.setProperty('--cloth', clothing.key === 'tudung' ? tudungColour(colour) : colour);
+      button.disabled = busy;
+      button.title = `Wear ${label}`;
+      button.style.setProperty('--cloth', swatchColor(clothing.key, colour));
       const swatch = document.createElement('span'); swatch.className = 'inventory-art inventory-swatch';
+      if (clothing.key === 'hairstyle' || clothing.key === 'tudung' && colour !== 'none') {
+        const image = document.createElement('img'); image.src = characterThumbnail(clothing.key === 'hairstyle' ? 'hair' : 'tudung', colour);
+        image.alt = ''; image.loading = 'lazy'; image.width = 96; image.height = 96;
+        swatch.className = 'inventory-art inventory-style-preview'; swatch.append(image);
+      }
       const name = document.createElement('strong'); name.textContent = label;
-      const badge = document.createElement('small'); badge.textContent = comingSoon ? 'COMING SOON' : look[clothing.key] === colour ? 'WEARING' : clothing.title.toUpperCase();
+      const badge = document.createElement('small'); badge.textContent = look[clothing.key] === colour ? 'WEARING' : clothing.title.toUpperCase();
       button.append(swatch, name, badge);
-      button.onclick = () => { if (!comingSoon) void wear({...look, [clothing.key]: colour}); };
+      button.onclick = () => { void wear({...look, [clothing.key]: colour, ...(clothing.key === 'hairstyle' ? {tudung: 'none'} : {})}); };
       grid.append(button);
       }
       return;
@@ -133,7 +168,7 @@ export function setupInventory(
       }
       return;
     }
-    const items = catalog.filter(entry => state.items.some(owned => owned.sku === entry.id) && (filter === 'all' || entry.type === filter));
+    const items = catalog.filter(entry => state.items.some(owned => owned.sku === entry.id) && (filter === 'all' || entry.type === (filter === 'owned-skin' ? 'skin' : filter)));
     for (const item of items) {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'inventory-item'; button.disabled = busy;
@@ -177,19 +212,20 @@ export function setupInventory(
     const balanceLabel = dialog.querySelector<HTMLElement>('.inventory-balance')!;
     if (loading()) skeleton(balanceLabel, 'Loading balance', '82px', '14px');
     else settled(balanceLabel, ready ? `${state.balance.toLocaleString()} Syiling` : '— Syiling');
-    dialog.querySelector('.inventory-look-name')!.textContent = `${lookLabel('tudung', look.tudung)} · ${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
+    dialog.querySelector('.inventory-look-name')!.textContent = `${look.tudung === 'none' ? lookLabel('hairstyle', look.hairstyle) : lookLabel('tudung', look.tudung)} · ${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
     avatarPreview.setLook(look);
+    avatarPreview.setAccessories(state.items.filter(item => item.equipped).map(item => item.sku));
     for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-filter]')) button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
     dialog.querySelector<HTMLButtonElement>('.inventory-random')!.disabled = busy;
     renderEquipped(); renderOutfit(); renderGrid(); renderDetails();
   }
 
   dialog.querySelector<HTMLButtonElement>('.inventory-random')!.onclick = () => {
-    const pick = (key: 'shirt' | 'trousers' | 'tudung') => {
-      const values = Object.values(appearanceOptions[key]).filter(value => key !== 'tudung' || !TUDUNG_COMING_SOON.has(value));
+    const pick = (key: keyof Appearance) => {
+      const values = key === 'hairstyle' ? hairStyles.filter(style => style.category === look.gender).map(style => style.id) : Object.values(appearanceOptions[key]);
       return values[Math.floor(Math.random() * values.length)];
     };
-    void wear({...look, shirt: pick('shirt'), trousers: pick('trousers'), tudung: pick('tudung')});
+    void wear({...look, hairstyle: pick('hairstyle'), hair: pick('hair'), shirt: pick('shirt'), trousers: pick('trousers'), tudung: Math.random() < .5 ? 'none' : pick('tudung')});
   };
   dialog.querySelector('header button')!.addEventListener('click', () => dialog.close());
   dialog.addEventListener('keydown', event => event.stopPropagation());
@@ -207,7 +243,7 @@ export function setupInventory(
     open() {
       release();
       // The account may have changed clothes on another device since this was last open.
-      look = savedLook();
+      look = savedLook(); hairCategory = look.gender;
       if (!dialog.open) dialog.showModal();
       avatarPreview.start();
       void load();

@@ -1,7 +1,7 @@
 import { auth, session } from './auth';
 import { appearance, appearanceOptions, tudungColour, type Appearance } from './appearance';
 
-type ClothingKey = 'shirt' | 'trousers' | 'tudung';
+type ClothingKey = keyof Appearance;
 
 export function savedLook(): Appearance {
   if (session) return appearance(session.user.user_metadata?.appearance);
@@ -10,6 +10,8 @@ export function savedLook(): Appearance {
 
 export type ClothingCategory = ClothingKey;
 export const CLOTHING: {key: ClothingKey; title: string}[] = [
+  {key: 'gender', title: 'Body'}, {key: 'hairstyle', title: 'Hair'},
+  {key: 'hair', title: 'Hair colour'}, {key: 'skin', title: 'Skin tone'},
   {key: 'shirt', title: 'Tops'}, {key: 'trousers', title: 'Bottoms'}, {key: 'tudung', title: 'Tudung'},
 ];
 export const lookLabel = (key: ClothingKey, value: string) =>

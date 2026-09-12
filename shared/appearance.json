@@ -1,1 +1,75 @@
-{"gender":{"Male":"male","Female":"female"},"hairstyle":{"Short":"short","Bob":"bob","Ponytail":"ponytail"},"hair":{"Black":"#202c2b","Brown":"#654331","Blonde":"#d8b66c","Red":"#a64f34","Purple":"#79549b"},"skin":{"Light":"#efc6a0","Warm":"#cf986c","Tan":"#b98157","Brown":"#8b583d","Deep":"#593b30"},"shirt":{"Orange":"#ef734c","Green":"#62876b","Blue":"#628fbb","Pink":"#c9779c","Cream":"#eee2c6","Black":"#29363b"},"trousers":{"Sand":"#c7be9c","Denim":"#436485","Black":"#253a40","Olive":"#64734d"},"tudung":{"No tudung":"none","Tudung labuh":"long","Turban":"turban","Tudung pendek":"short","Shawl":"shawl","Bawal":"bawal","Satin":"satin","Instant":"instant","dUCk Luxe":"duck-luxe","Ruffle":"ruffle"}}
+{
+  "gender": {
+    "Male": "male",
+    "Female": "female"
+  },
+  "hairstyle": {
+    "Short klasik": "short",
+    "Buzz cut": "buzz",
+    "Crew cut": "crew",
+    "French crop": "french-crop",
+    "Side part": "side-part",
+    "Comb over": "comb-over",
+    "Undercut": "undercut",
+    "Quiff": "quiff",
+    "Pompadour": "pompadour",
+    "Curtains": "curtains",
+    "Mullet moden": "mullet",
+    "Curly top": "curly-top",
+    "Bob": "bob",
+    "Long bob": "lob",
+    "Panjang lurus": "long-straight",
+    "Panjang beralun": "long-wavy",
+    "Panjang berlapis": "long-layered",
+    "Curtain bangs": "curtain-bangs",
+    "Wolf cut": "wolf-cut",
+    "Pixie": "pixie",
+    "Ponytail tinggi": "ponytail",
+    "Ponytail rendah": "low-ponytail",
+    "Sanggul": "bun",
+    "Tocang": "braid"
+  },
+  "hair": {
+    "Black": "#202c2b",
+    "Brown": "#654331",
+    "Blonde": "#d8b66c",
+    "Red": "#a64f34",
+    "Purple": "#79549b"
+  },
+  "skin": {
+    "Light": "#efc6a0",
+    "Warm": "#cf986c",
+    "Tan": "#b98157",
+    "Brown": "#8b583d",
+    "Deep": "#593b30"
+  },
+  "shirt": {
+    "Orange": "#ef734c",
+    "Green": "#62876b",
+    "Blue": "#628fbb",
+    "Pink": "#c9779c",
+    "Cream": "#eee2c6",
+    "Black": "#29363b"
+  },
+  "trousers": {
+    "Sand": "#c7be9c",
+    "Denim": "#436485",
+    "Black": "#253a40",
+    "Olive": "#64734d"
+  },
+  "tudung": {
+    "No tudung": "none",
+    "Tudung pendek": "short",
+    "Tudung labuh": "long",
+    "Turban": "turban",
+    "Shawl": "shawl",
+    "Bawal": "bawal",
+    "Satin": "satin",
+    "Instant": "instant",
+    "dUCk Luxe": "duck-luxe",
+    "Ruffle": "ruffle",
+    "Bawal labuh": "bawal-labuh",
+    "Shawl loose": "shawl-loose",
+    "Tudung sukan": "sport"
+  }
+}

@@ -81,7 +81,7 @@ export function createVillageResidents(scene:THREE.Scene){
  const group=new THREE.Group();group.position.set(villageOrigin.x,0,villageOrigin.z);scene.add(group);
  const people=villageResidents.map((resident,i)=>{
   const rig=createPerson(resident.color);rig.group.position.set(resident.x,.1,resident.z);rig.group.scale.setScalar(resident.child?.73:1);
-  if(!resident.hair){const hair=rig.group.children[4];if(hair)hair.visible=false;}
+  if(!resident.hair){rig.group.userData.hideHair=true;const hair=rig.group.getObjectByName('avatar-hair');if(hair)hair.visible=false;}
   if(resident.name==='Upin')box(rig.group,0,2.22,0,.025,.18,.025,'#302f28');
   if(resident.name==='Ehsan'||resident.name==='Mei Mei')for(const side of [-1,1])box(rig.group,side*.115,1.91,.255,.19,.1,.025,'#433a32');
   if(resident.name==='Opah'||resident.name==='Cikgu Melati'){box(rig.group,0,1.79,-.11,.55,.48,.28,resident.color);}

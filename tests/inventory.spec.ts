@@ -38,7 +38,7 @@ for(const width of [390,1280])test(`one screen holds items, equipment and clothe
  await page.getByRole('radio',{name:'Tudung labuh tudung'}).click();
  await expect(page.locator('.inventory-stage canvas')).toHaveAttribute('data-tudung','long');
  await expect(page.locator('.inventory-look-name')).toContainText('Tudung labuh');
- await expect(page.getByRole('radio',{name:'dUCk Luxe tudung'})).toBeDisabled();
+ await expect(page.getByRole('radio',{name:'dUCk Luxe tudung'})).toBeEnabled();
  // The world is told at once; there is no Save button to press.
  expect(await page.evaluate(()=>(window as any).looks.at(-1).shirt)).toBeTruthy();
 

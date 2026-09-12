@@ -1,0 +1,233 @@
+{
+  "version": "character-module-v1",
+  "styles": [
+    {
+      "id": "short",
+      "label": "Short klasik",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "buzz",
+      "label": "Buzz cut",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "crew",
+      "label": "Crew cut",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "french-crop",
+      "label": "French crop",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "side-part",
+      "label": "Side part",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "comb-over",
+      "label": "Comb over",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "undercut",
+      "label": "Undercut",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "quiff",
+      "label": "Quiff",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "pompadour",
+      "label": "Pompadour",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "curtains",
+      "label": "Curtains",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "mullet",
+      "label": "Mullet moden",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "curly-top",
+      "label": "Curly top",
+      "kind": "hair",
+      "category": "male"
+    },
+    {
+      "id": "bob",
+      "label": "Bob",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "lob",
+      "label": "Long bob",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "long-straight",
+      "label": "Panjang lurus",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "long-wavy",
+      "label": "Panjang beralun",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "long-layered",
+      "label": "Panjang berlapis",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "curtain-bangs",
+      "label": "Curtain bangs",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "wolf-cut",
+      "label": "Wolf cut",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "pixie",
+      "label": "Pixie",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "ponytail",
+      "label": "Ponytail tinggi",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "low-ponytail",
+      "label": "Ponytail rendah",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "bun",
+      "label": "Sanggul",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "braid",
+      "label": "Tocang",
+      "kind": "hair",
+      "category": "female"
+    },
+    {
+      "id": "short",
+      "label": "Tudung pendek",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#4d8b80"
+    },
+    {
+      "id": "long",
+      "label": "Tudung labuh",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#73518b"
+    },
+    {
+      "id": "turban",
+      "label": "Turban",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#c98267"
+    },
+    {
+      "id": "shawl",
+      "label": "Shawl",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#c99a58"
+    },
+    {
+      "id": "bawal",
+      "label": "Bawal",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#385e83"
+    },
+    {
+      "id": "satin",
+      "label": "Satin",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#b394c8"
+    },
+    {
+      "id": "instant",
+      "label": "Instant",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#c85c72"
+    },
+    {
+      "id": "duck-luxe",
+      "label": "dUCk Luxe",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#e9bd6f"
+    },
+    {
+      "id": "ruffle",
+      "label": "Ruffle",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#db7896"
+    },
+    {
+      "id": "bawal-labuh",
+      "label": "Bawal labuh",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#667a8a"
+    },
+    {
+      "id": "shawl-loose",
+      "label": "Shawl loose",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#b78e79"
+    },
+    {
+      "id": "sport",
+      "label": "Tudung sukan",
+      "kind": "tudung",
+      "category": "tudung",
+      "color": "#53645b"
+    }
+  ]
+}

@@ -1,4 +1,8 @@
 import options from '../shared/appearance.json';
+import catalog from '../shared/character-styles.json';
+export const characterStyles = catalog.styles;
+export const hairStyles = characterStyles.filter(style => style.kind === 'hair');
+export const characterThumbnail = (kind: 'hair' | 'tudung', id: string) => `/assets/characters/thumbs/${kind}-${id}.png?v=${catalog.version}`;
 export { options as appearanceOptions };
 export type Appearance = { gender: string; hairstyle: string; hair: string; skin: string; shirt: string; trousers: string; tudung: string };
 export const defaultAppearance: Appearance = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c', tudung: 'none' };
@@ -8,10 +12,10 @@ export const defaultAppearance: Appearance = { gender: 'male', hairstyle: 'short
 // same visual language without storing a second colour on the account.
 export const tudungColours: Record<string, string> = {
   none: '#00000000', long: '#73518b', turban: '#c98267', short: '#4d8b80', shawl: '#c99a58',
-  bawal: '#385e83', satin: '#b394c8', instant: '#c85c72', 'duck-luxe': '#e9bd6f', ruffle: '#db7896',
+  bawal: '#385e83', satin: '#b394c8', instant: '#c85c72', 'duck-luxe': '#e9bd6f', ruffle: '#db7896', 'bawal-labuh': '#667a8a', 'shawl-loose': '#b78e79', sport: '#53645b',
 };
 export const tudungColour = (style: string) => tudungColours[style] || '#6b7f78';
-export const TUDUNG_COMING_SOON = new Set(['duck-luxe', 'ruffle']);
+export const TUDUNG_COMING_SOON = new Set<string>();
 export function appearance(value: unknown): Appearance {
   const input = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   return Object.fromEntries(Object.entries(defaultAppearance).map(([key, fallback]) => [key, (Object.values(options[key as keyof typeof options]) as unknown[]).includes(input[key]) ? input[key] : fallback])) as Appearance;
