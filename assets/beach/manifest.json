@@ -1,0 +1,22 @@
+{
+  "asset": "LM_ENV_Beach",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "props": [
+    "kelapa stall",
+    "2 rope hammocks",
+    "4 tables",
+    "26 chairs",
+    "2 parasols",
+    "3 loungers",
+    "fire ring",
+    "promenade sign frame",
+    "2 lamp posts"
+  ],
+  "triangles": 16432,
+  "bytes": 750540,
+  "draws": 29
+}
