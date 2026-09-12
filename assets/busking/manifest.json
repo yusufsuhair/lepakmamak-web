@@ -1,0 +1,22 @@
+{
+  "asset": "LM_ENV_Busking",
+  "origins": [
+    [
+      -31,
+      0,
+      86
+    ],
+    [
+      -116,
+      0,
+      119
+    ]
+  ],
+  "footprint": [
+    5,
+    3.6
+  ],
+  "triangles": 7076,
+  "bytes": 312252,
+  "draws": 19
+}
