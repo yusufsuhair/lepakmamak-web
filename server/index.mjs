@@ -38,6 +38,10 @@ import {createAccounts} from './account.mjs';
 import {createLeaderboard} from './leaderboard.mjs';
 import {createGengs} from './geng.mjs';
 import {createFriends} from './friends.mjs';
+import {createSocialStore} from './social-store.mjs';
+import {createHandles} from './handles.mjs';
+import {createMessages} from './messages.mjs';
+import {UUID} from './social-http.mjs';
 import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
@@ -179,15 +183,48 @@ function playerForId(playerId) {
   }
   return null;
 }
+// Dev has no Supabase, so the social store is in memory there and a guest carries a stand-in
+// account id for friends, handles and stored messages. createSocialStore never returns the
+// in-memory store while any SUPABASE_* setting is present, so production cannot issue one.
+const socialStore = createSocialStore();
+function seatOfAccount(accountId) {
+  if (!accountId) return null;
+  for (const players of rooms.values()) for (const player of players.values()) {
+    if (player.userId === accountId || player.standInId === accountId) return {player, players};
+  }
+  return null;
+}
+const playerForAccount = accountId => seatOfAccount(accountId)?.player || null;
+// Friends checks userId and guest; a stand-in answers as its account, and only for this.
+const accountView = player => player && !player.userId && player.standInId ? {...player, userId: player.standInId, guest: false} : player;
 const friends = createFriends({
-  playerFor: playerForUser,
-  resolvePlayer: playerForId,
-  isOnline: userId => !!playerForUser(userId),
+  store: socialStore,
+  playerFor: playerForAccount,
+  resolvePlayer: playerId => accountView(playerForId(playerId)),
+  isOnline: userId => !!playerForAccount(userId),
   onChanged: ids => {
     const changed = new Set(ids);
     for (const players of rooms.values()) for (const player of players.values()) {
-      if (player.userId && changed.has(player.userId)) send(player.ws, {type: 'friends-updated'});
+      const accountId = player.userId || player.standInId;
+      if (accountId && changed.has(accountId)) send(player.ws, {type: 'friends-updated'});
     }
+  },
+});
+const handles = createHandles({store: socialStore, playerFor: playerForAccount});
+const messages = createMessages({
+  store: socialStore,
+  moderation,
+  playerFor: playerForAccount,
+  // The sender's own room decides the lockout. Someone not in the city is in no live game.
+  liveGame: accountId => {
+    const seat = seatOfAccount(accountId);
+    return !!seat && (werewolf.live(seat.players, seat.player) || lukis.live(seat.players, seat.player));
+  },
+  push: (accountId, payload) => {
+    const player = playerForAccount(accountId);
+    if (!player || player.ws.readyState !== 1) return false;
+    send(player.ws, payload);
+    return true;
   },
 });
 const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4001,'Account deleted')});
@@ -258,7 +295,7 @@ function releasePassenger(passenger, reset = false) {
   Object.assign(passenger,reset?{x:-18,z:52}:clampWorldPoint(passenger.x+Math.cos(passenger.yaw)*2.4,passenger.z-Math.sin(passenger.yaw)*2.4,1));
 }
 function snapshot(players) {
-  return [...players.values()].map(({ ws: _ws, userId: _userId, chairStand: _chairStand, profile: _profile, muted: _muted, gengRefreshAt: _gengRefreshAt, resyncAt: _resyncAt, ...player }) => player);
+  return [...players.values()].map(({ ws: _ws, userId: _userId, standInId: _standInId, chairStand: _chairStand, profile: _profile, muted: _muted, gengRefreshAt: _gengRefreshAt, resyncAt: _resyncAt, ...player }) => player);
 }
 
 function send(ws, message) {
@@ -320,6 +357,8 @@ const server = http.createServer(async (request, response) => {
   }
   response.setHeader('Cache-Control', 'no-store');
   if (await friends.handle(request, response)) return;
+  if (await handles.handle(request, response)) return;
+  if (await messages.handle(request, response)) return;
   if (await gengs.handle(request, response)) return;
   if (await shop.handle(request, response)) return;
   if (await socialProfiles.handle(request,response)) return;
@@ -460,11 +499,16 @@ webSocketServer.on('connection', ws => {
       try { recentChat = await chatHistory.recent(room.name); }
       catch { /* Joining remains available if chat storage is temporarily unavailable. */ }
       const id = crypto.randomUUID();
+      // Dev only (see socialStore). A reconnecting guest hands its token back and keeps the same
+      // stand-in, so its handle and inbox survive a dropped socket.
+      const standIn = !identity.userId && socialStore && !socialStore.persistent
+        ? socialStore.resumeStandIn(message.standInToken, identity.name) || socialStore.issueStandIn(identity.name)
+        : null;
       const number = room.players.size;
       player = {
         id,
         ws,
-        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, accessories: identity.accessories || [],
+        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [],
         geng: identity.geng?.name || '', gengId: identity.geng?.id || null, gengLeader: !!identity.geng?.leader,
         muted: penalty.muted,
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
@@ -510,7 +554,7 @@ webSocketServer.on('connection', ws => {
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       // The version travels with the welcome so a page left open across a deploy finds out
       // it is stale without polling anything.
-      send(ws, { type: 'welcome', id, room: room.name, version, voiceTransport:sfu.enabled?'sfu':'legacy', players: snapshot(room.players) });
+      send(ws, { type: 'welcome', id, room: room.name, version, voiceTransport:sfu.enabled?'sfu':'legacy', players: snapshot(room.players), ...(standIn ? { standIn } : {}) });
       if (reconnectedGeng) { const gengState = party.state(room.players, player); if (gengState) send(ws, {type: 'party-state', party: gengState, geng: gengState}); }
       weatherControls.sync(room.players,ws);
       lamps.sync(room.players,ws);
@@ -522,6 +566,9 @@ webSocketServer.on('connection', ws => {
     if (standing) send(ws, standing);
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       syncVoiceCodec(room.players);
+      // A nudge, not a gate: a failed lookup must never stand between a player and the city.
+      const accountId = identity.userId || standIn?.userId;
+      if (accountId) handles.required(accountId, identity.name).then(suggestion => { if (suggestion) send(ws, { type: 'handle-required', suggestion }); }).catch(() => {});
       return;
     }
 
@@ -555,24 +602,41 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'report') {
       const now = Date.now();
       if (now - lastReportAt < 60000) { send(ws, { type: 'notice', message: 'You just filed a report. Give it a minute.' }); return; }
-      const target = currentRoom.players.get(message.id);
-      if (!target || target.id === player.id) { send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return; }
-      if (reported.has(target.id)) { send(ws, { type: 'notice', message: 'You have already reported this player. It is with the moderators.' }); return; }
-      const surface = SURFACES.has(message.surface) ? message.surface : 'behaviour';
       const reason = REASONS.has(message.reason) ? message.reason : 'other';
       // Deliberately not run through filterChat: this note is read by a moderator, never
       // broadcast, and 'he called me a babi' censored down to *** destroys the evidence.
       const note = typeof message.note === 'string' ? message.note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 300) : '';
-      // Nobody records the room's audio, so what makes a voice report reviewable is who
-      // else was close enough to have heard it. Names only, and only those in earshot.
-      const witnesses = [...currentRoom.players.values()]
-        .filter(other => other.id !== player.id && other.id !== target.id && Math.hypot(other.x - target.x, other.z - target.z) < voiceConfig.hearingRadius)
-        .slice(0, 10).map(other => other.name);
+      let target, surface, witnesses = [], evidence = [];
+      if (message.surface === 'dm') {
+        // A conversation is reported by account: the other person may be offline or in another
+        // room. The server attaches the messages itself; the client never supplies them.
+        const reporterId = player.userId || player.standInId;
+        const reportedId = typeof message.userId === 'string' ? message.userId.toLowerCase() : '';
+        if (!reporterId || !UUID.test(reportedId) || reportedId === reporterId) { send(ws, { type: 'notice', message: 'Open the conversation you want to report.' }); return; }
+        if (reported.has(reportedId)) { send(ws, { type: 'notice', message: 'You have already reported this player. It is with the moderators.' }); return; }
+        try {
+          const found = await messages.reportFor(reporterId, reportedId);
+          target = { id: reportedId, userId: reportedId, name: found.name };
+          evidence = found.evidence;
+        } catch { send(ws, { type: 'notice', message: 'Could not file that report. Please try again in a moment.' }); return; }
+        if (!player || !currentRoom) return;
+        surface = 'dm';
+      } else {
+        target = currentRoom.players.get(message.id);
+        if (!target || target.id === player.id) { send(ws, { type: 'notice', message: 'That player is no longer in the city.' }); return; }
+        if (reported.has(target.id)) { send(ws, { type: 'notice', message: 'You have already reported this player. It is with the moderators.' }); return; }
+        surface = SURFACES.has(message.surface) ? message.surface : 'behaviour';
+        // Nobody records the room's audio, so what makes a voice report reviewable is who
+        // else was close enough to have heard it. Names only, and only those in earshot.
+        witnesses = [...currentRoom.players.values()]
+          .filter(other => other.id !== player.id && other.id !== target.id && Math.hypot(other.x - target.x, other.z - target.z) < voiceConfig.hearingRadius)
+          .slice(0, 10).map(other => other.name);
+      }
       try {
         await moderation.report({
           reporterUserId: player.userId, reporterName: player.name,
           reportedUserId: target.userId, reportedName: target.name,
-          room: currentRoom.name, surface, reason, note, witnesses,
+          room: currentRoom.name, surface, reason, note, witnesses, evidence,
         });
       } catch { send(ws, { type: 'notice', message: 'Could not file that report. Please try again in a moment.' }); return; }
       // Only a report that actually landed spends the cooldown.
