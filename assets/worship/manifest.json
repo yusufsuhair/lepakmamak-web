@@ -1,10 +1,4 @@
 {
-  "Masjid": {
-    "asset": "LM_ENV_Masjid",
-    "triangles": 8986,
-    "bytes": 295508,
-    "draws": 8
-  },
   "Church": {
     "asset": "LM_ENV_Church",
     "triangles": 2534,

@@ -1,0 +1,75 @@
+{
+  "asset": "LM_ENV_Masjid",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "footprint": {
+    "plaza": [
+      [
+        -19,
+        19
+      ],
+      [
+        -11,
+        17
+      ]
+    ],
+    "hall": [
+      [
+        -12.5,
+        12.5
+      ],
+      [
+        -7.5,
+        7.5
+      ]
+    ],
+    "minarets": [
+      -15,
+      15
+    ]
+  },
+  "sign": {
+    "x": 0,
+    "y": 5.25,
+    "z": 7.7,
+    "w": 17,
+    "h": 0.8
+  },
+  "night_materials": [
+    "Night LED green",
+    "Night glow interior",
+    "Night glow jali",
+    "Night lantern",
+    "Night wash green",
+    "Night wash warm"
+  ],
+  "textures": [
+    "foliage_color",
+    "foliage_normal",
+    "girih_color",
+    "girih_normal",
+    "glaze_color",
+    "glaze_normal",
+    "granite_tiles_color",
+    "granite_tiles_normal",
+    "interior",
+    "jali_color",
+    "jali_glow",
+    "jali_normal",
+    "marble_color",
+    "marble_normal",
+    "marble_tiles_color",
+    "marble_tiles_normal",
+    "render_color",
+    "render_normal",
+    "wash",
+    "wood_small_color",
+    "wood_small_normal"
+  ],
+  "triangles": 29163,
+  "bytes": 1999492,
+  "draws": 25
+}

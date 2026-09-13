@@ -10,7 +10,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type Appearance } from './appearance';
 import {createCharacter, applyCharacterAppearance, refreshCharacterAccessories} from './character-assets';
 import type { Solid } from './physics';
-import { masjidSpots } from './masjid';
+import { lightMasjid, masjidSpots } from './masjid';
 import {createTaycan} from './taycan';
 import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
@@ -633,13 +633,15 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
     sign(g, 'TOKONG HARMONI', 0, 5.1, 8, 11, .8, '#8d352f', '#f2d38e');
     tube(g, 0, .65, 11, .8, 1.1, '#997956'); tube(g, 0, 1.25, 11, 1, .18, '#be9a62');
   }
-  // The boxes above are the fallback until the Blender landmark (scripts/blender/build_worship.py)
+  // The boxes above are the fallback until the Blender landmark (scripts/blender/build_worship.py, build_masjid.py)
   // arrives; the canvas name sign is the only child kept, so the wording stays the game's.
   g.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(g);
   const asset = {mosque: 'Masjid', church: 'Church', hindu: 'HinduTemple', chinese: 'ChineseTemple'}[kind];
-  void nearLoader(g,200,340).loadAsync(`/assets/models/environment/LM_ENV_${asset}.glb?v=worship-v1`).then(gltf => {
+  // The mosque is its own photographic build (scripts/blender/build_masjid.py) with night lighting.
+  void nearLoader(g,200,340).loadAsync(`/assets/models/environment/LM_ENV_${asset}.glb?v=${kind === 'mosque' ? 'masjid-v2' : 'worship-v1'}`).then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
+    if (kind === 'mosque') lightMasjid(gltf.scene);
     for (const child of [...g.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
     g.add(gltf.scene);
   }).catch(error => console.warn(`[WORSHIP] keeping procedural ${kind}`, error));

@@ -1,12 +1,12 @@
-"""The four worship landmarks: Masjid Kampung Maju (onion domes, arcade, two minarets),
-Gereja Harapan (gabled nave, bell tower, spire), Kuil Seri Harmoni (six-tier gopuram,
-striped compound wall, pillared mandapam) and Tokong Harmoni (two-tier hip roofs, red
-columns, lanterns, incense urn). Same footprints and collision boxes as the procedural
-landmarks in world.ts; the game keeps drawing its own name signs on top.
+"""Three of the worship landmarks: Gereja Harapan (gabled nave, bell tower, spire), Kuil Seri
+Harmoni (six-tier gopuram, striped compound wall, pillared mandapam) and Tokong Harmoni (two-tier
+hip roofs, red columns, lanterns, incense urn). Same footprints and collision boxes as the
+procedural landmarks in world.ts; the game keeps drawing its own name signs on top.
+Masjid Kampung Maju has its own photographic build: scripts/blender/build_masjid.py.
 
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python scripts/blender/build_worship.py -- --no-render
 
-Output: public/assets/models/environment/LM_ENV_{Masjid,Church,HinduTemple,ChineseTemple}.glb
+Output: public/assets/models/environment/LM_ENV_{Church,HinduTemple,ChineseTemple}.glb
 """
 import bpy, math, json, sys
 from pathlib import Path
@@ -19,8 +19,8 @@ OUT=ROOT/'assets/worship'; OUT.mkdir(parents=True,exist_ok=True)
 PUBLIC=ROOT/'public/assets/models/environment'; PUBLIC.mkdir(parents=True,exist_ok=True)
 ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 
-PLAZA=mat('Plaza stone',(.87,.83,.72),.9);CREAM=mat('Wall cream',(.95,.91,.83),.8);TEAL=mat('Dome teal',(.26,.55,.48),.45)
-GOLD=mat('Gold trim',(.84,.74,.46),.35);MINARET=mat('Minaret cream',(.94,.90,.80),.75);DOOR=mat('Door teal',(.22,.43,.40),.6)
+PLAZA=mat('Plaza stone',(.87,.83,.72),.9);TEAL=mat('Dome teal',(.26,.55,.48),.45)
+GOLD=mat('Gold trim',(.84,.74,.46),.35)
 DARK=mat('Doorway dark',(.13,.11,.10),.8);GLASS=mat('Window glass',(.53,.65,.71),.15)
 BLUE=mat('Church blue',(.31,.49,.60),.5);CHURCH=mat('Church cream',(.95,.92,.85),.8);BELL=mat('Bell bronze',(.65,.50,.28),.4)
 SAND=mat('Temple sandstone',(.93,.77,.65),.85);MAROON=mat('Temple maroon',(.68,.40,.49),.6);RED=mat('Temple red',(.75,.25,.22),.6)
@@ -30,81 +30,16 @@ CRED=mat('Tokong red',(.69,.24,.20),.55);TILE=mat('Roof tile green',(.32,.42,.38
 LANTERN=mat('Lantern red',(.85,.33,.25),.4,emit=.6);BRONZE=mat('Urn bronze',(.60,.47,.34),.5);STONE=mat('Grey stone',(.62,.62,.58),.9)
 TIMBER=mat('Dark timber',(.36,.24,.16),.7)
 
-def circle(cx,cz,r,n=16):return [(cx+r*math.cos(2*math.pi*i/n),cz+r*math.sin(2*math.pi*i/n)) for i in range(n)]
 def rect(cx,cz,w,d):return [(cx-w/2,cz-d/2),(cx+w/2,cz-d/2),(cx+w/2,cz+d/2),(cx-w/2,cz+d/2)]
-
-def onion(name,x,y,z,R,H,m,tag,n=20):
-    prof=[(0,.86),(.10,.97),(.24,1.0),(.40,.95),(.55,.82),(.70,.60),(.82,.37),(.92,.17),(1,.03)]
-    o=vloft(name,[(y+t*H,circle(x,-z,R*r,n)) for t,r in prof],[m]*(len(prof)-1),tag)
-    return o
 
 def hip(name,x,y0,y1,z,w0,d0,w1,d1,m,tag):
     """Hip roof between two rectangles."""
     return vloft(name,[(y0,rect(x,-z,w0,d0)),(y1,rect(x,-z,w1,d1))],[m],tag)
 
-def arch_band(name,x,y,z,r,t,depth,m,tag,n=12):
-    """Round arch head from springing line y: outer radius r+t, inner r, thickness depth along z."""
-    outer=[((r+t)*math.cos(math.pi*i/n),(r+t)*math.sin(math.pi*i/n)) for i in range(n+1)]
-    inner=[(r*math.cos(math.pi*i/n),r*math.sin(math.pi*i/n)) for i in range(n,-1,-1)]
-    prof=[(x+px,y+py) for px,py in outer+inner]
-    return loft(name,[(z-depth/2,prof),(z+depth/2,prof)],m,tag)
-
 def arch_panel(name,x,y0,z,w,h,depth,m,tag,n=10):
     """Flat panel with a round top: width w, straight height h, plus the half circle."""
     r=w/2;prof=[(x-r,y0),(x+r,y0)]+[(x+r*math.cos(math.pi*i/n),y0+h+r*math.sin(math.pi*i/n)) for i in range(n+1)]
     return loft(name,[(z-depth/2,prof),(z+depth/2,prof)],m,tag)
-
-def crescent(name,x,y,z,r,m,tag,n=14):
-    a=math.radians(55.4);outer=[(r*math.cos(t),r*math.sin(t)) for t in [a+(2*math.pi-2*a)*i/n for i in range(n+1)]]
-    b=math.radians(78.4);inner=[(.4*r+.84*r*math.cos(t),.84*r*math.sin(t)) for t in [(2*math.pi-b)-(2*math.pi-2*b)*i/n for i in range(n+1)]]
-    prof=[(x+px,y+py) for px,py in outer+inner]
-    o=loft(name,[(z-.06,prof),(z+.06,prof)],m,tag);return o
-
-def finial(o,x,y,z,tag,h=1.4,ball=.22):
-    o.append(cyl('finial rod',x,y+h/2,z,.07,h,GOLD,tag,verts=8));o.append(sphere('finial ball',x,y+h,z,ball,GOLD,tag))
-
-# ------------------------------------------------------------------ masjid
-def masjid(T):
-    o=[box('plaza',0,.12,3,38,.24,28,PLAZA,T,.02)]
-    o.append(box('prayer hall',0,3,0,25,6,15,CREAM,T,.04))
-    o.append(box('cornice',0,6.1,0,25.6,.35,15.6,GOLD,T,.02))
-    o.append(box('parapet',0,6.5,0,25.2,.5,15.2,CREAM,T,.03))
-    for xx in (-12.4,12.4):
-        for zz in (-7.4,7.4):o.append(box('pilaster',xx,3,zz,.7,6.2,.7,MINARET,T,.03))
-    # front arcade: verandah roof above the sign, columns and round arches
-    o.append(box('verandah roof',0,6.0,9,27,.3,3.6,CREAM,T,.03))
-    o.append(box('verandah fascia',0,5.75,10.75,27,.2,.12,GOLD,T,0))
-    cols=[-12,-7.8,-3.6,3.6,7.8,12]
-    for xx in cols:
-        o.append(cyl('column',xx,2.9,10.4,.32,5.7,MINARET,T,verts=10));o.append(box('capital',xx,5.65,10.4,.8,.25,.8,GOLD,T,.02))
-    for i in range(len(cols)-1):
-        cx=(cols[i]+cols[i+1])/2;r=(cols[i+1]-cols[i])/2-.32
-        if abs(cx)>1.5:o.append(arch_band('arch',cx,3.6,10.4,r,.3,.5,CREAM,T))
-    o.append(arch_band('portal arch',0,2.0,10.4,3.28,.38,.6,GOLD,T))
-    # doorways in the hall's front wall
-    for xx in (-5,0,5):o.append(arch_panel('doorway',xx,0,7.53,2.4,2.6,.1,DOOR,T))
-    for xx in (-9.5,9.5):o.append(arch_panel('window',xx,1.4,7.53,1.4,1.8,.1,GLASS,T))
-    for zz in (-4,0,4):
-        for s in (-1,1):o.append(arch_panel('side window',s*12.52,1.4,zz,1.4,1.8,.1,GLASS,T) if False else box('side window',s*12.53,2.6,zz,.08,2.4,1.4,GLASS,T,0))
-    # main dome on its drum, corner cupolas
-    o.append(cyl('drum',0,6.7,0,5.6,.8,CREAM,T,verts=24));o.append(cyl('drum band',0,7.15,0,5.75,.25,GOLD,T,verts=24))
-    o.append(onion('main dome',0,7.2,0,5.4,5.8,TEAL,T,n=24))
-    finial(o,0,13.0,0,T,h=1.2,ball=.2);o.append(cyl('crescent stem',0,14.35,0,.05,.5,GOLD,T,verts=6))
-    c=crescent('crescent',0,14.9,0,.55,GOLD,T);c.rotation_euler.y=0;o.append(c)
-    for xx in (-11,11):
-        for zz in (-6,6):
-            o.append(cyl('cupola drum',xx,6.9,zz,1.0,.5,CREAM,T,verts=12));o.append(onion('cupola',xx,7.1,zz,.95,1.3,TEAL,T,n=12));finial(o,xx,8.35,zz,T,h=.6,ball=.1)
-    # minarets: plinth, octagonal shaft, three balconies, cupola
-    for xx in (-15,15):
-        o.append(box('minaret plinth',xx,.5,0,2.5,1,2.5,MINARET,T,.04))
-        o.append(cyl('minaret shaft',xx,6.5,0,1.15,11,MINARET,T,verts=8))
-        for yy in (3,8,11.5):
-            o.append(cyl('balcony',xx,yy,0,1.6,.35,GOLD,T,verts=10));o.append(cyl('balcony rail',xx,yy+.45,0,1.55,.55,CREAM,T,verts=10))
-        o.append(cyl('minaret drum',xx,12.3,0,1.3,.6,CREAM,T,verts=10));o.append(onion('minaret cupola',xx,12.6,0,1.45,2.0,TEAL,T,n=12));finial(o,xx,14.55,0,T,h=1.0,ball=.14)
-    # ablution trough and planters on the plaza
-    o.append(box('ablution',-14,.5,12,4,.5,1.2,STONE,T,.03))
-    for xx in (-9,9):o.append(box('planter',xx,.45,15.5,2.2,.5,1.2,STONE,T,.03));o.append(sphere('shrub',xx,1.0,15.5,.75,TEAL,T))
-    return o
 
 # ------------------------------------------------------------------ church
 def church(T):
@@ -200,7 +135,7 @@ def chinese(T):
     o.append(box('steps',0,.4,7.4,6,.3,1.4,STONE,T,.02));o.append(box('steps',0,.2,8.2,6.6,.3,1.4,STONE,T,.02))
     return o
 
-SITES={'Masjid':masjid,'Church':church,'HinduTemple':hindu,'ChineseTemple':chinese}
+SITES={'Church':church,'HinduTemple':hindu,'ChineseTemple':chinese}
 
 def build():
     s=bpy.context.scene
@@ -244,7 +179,7 @@ def render(roots):
         for other in roots.values():
             if other is not e:
                 for c in other.children:c.hide_render=True
-        eye,at=((-26,14,34),(0,6,0)) if name!='Masjid' else ((-34,16,40),(0,6,0))
+        eye,at=(-26,14,34),(0,6,0)
         cam.location=pt(*eye);d=Vector(pt(*at))-cam.location;cam.rotation_euler=d.to_track_quat('-Z','Y').to_euler()
         s.render.filepath=str(OUT/f'preview-{name.lower()}.png');bpy.ops.render.render(write_still=True)
 
