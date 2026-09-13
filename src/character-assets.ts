@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {appearance, defaultAppearance, tudungColour, type Appearance} from './appearance';
 import catalog from '../shared/character-styles.json';
 
 export type Character = {group: THREE.Group; leftLeg: THREE.Group; rightLeg: THREE.Group; leftArm: THREE.Group; rightArm: THREE.Group};
 const VERSION = catalog.version;
-const loader = new GLTFLoader();
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const templates = new Map<string, Promise<THREE.Group>>();
 type Channel = 'skin' | 'shirt' | 'trousers' | 'hair' | 'tudung';
 type State = {rig: Character; slots: Record<string, THREE.Group>; palette: Record<Channel, THREE.MeshStandardMaterial>; look: Appearance; revision: number; key: string; disposed: boolean; pending: Promise<void>};

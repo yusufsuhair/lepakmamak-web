@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {batchShopFallback,box,createPerson,material,type World} from './world';
 import {createVillageChores,createVillageCycle,groupRoute,villageActivity} from './village-activities';
 
@@ -85,7 +86,7 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  g.name='kampung';
  g.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(g);
- void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Kampung.glb?v=kampung-v1').then(gltf=>{
+ void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Kampung.glb?v=kampung-v1').then(gltf=>{
   gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
   for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   g.add(gltf.scene);

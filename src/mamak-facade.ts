@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {disposeWebAsset} from './web-assets';
 import {createFacadeWash} from './mamak-facade-lighting';
 
@@ -31,7 +32,7 @@ export function createMamakFacade(scene: THREE.Scene) {
       status.state = 'loading';
       let candidate: THREE.Group | undefined;
       try {
-        candidate = (await new GLTFLoader().loadAsync(MAMAK_FACADE_URL)).scene;
+        candidate = (await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(MAMAK_FACADE_URL)).scene;
         candidate.updateMatrixWorld(true);
         const bounds = new THREE.Box3().setFromObject(candidate);
         const newLamps: THREE.MeshStandardMaterial[] = [];

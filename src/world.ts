@@ -18,6 +18,7 @@ import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -44,7 +45,7 @@ function ball(parent: THREE.Object3D, x: number, y: number, z: number, r: number
 const textMaterials = new Map<string, THREE.MeshBasicMaterial>();
 // Both drive-throughs live in one asset, so the two sites share a single fetch.
 let driveThroughModel: Promise<THREE.Group | null> | undefined;
-const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader()
+const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
   .loadAsync('/assets/models/environment/LM_ENV_DriveThrough.glb?v=drivethru-v1')
   .then(gltf => {
     gltf.scene.traverse(object => {
@@ -527,6 +528,55 @@ function createProceduralCar(style: Exclude<CarStyle, 'emas'>) {
 
 export interface TrafficCar { id:string; model:ReturnType<typeof createDriveableCar>; owner:string|null; npc:boolean; yaw:number; group: THREE.Group; x: number; z: number; speed: number; axis: 'x' | 'z'; direction: number }
 export interface Pedestrian { person: Person; startX: number; startZ: number; phase: number; axis: 'x' | 'z'; range: number }
+/** A heavy GLB swap that waits until the player is near enough for the detail to be visible.
+ * The procedural fallback each swap replaces is already a low-detail stand-in, so it doubles as
+ * the far LOD for free, and nothing is downloaded for a corner of the map nobody has walked to. */
+export interface StreamedAsset { group: THREE.Object3D; loadRadius: number; hideRadius: number; start(): void; started?: boolean }
+const streamed: StreamedAsset[] = [];
+const streamPoint = new THREE.Vector3();
+
+/** Drop-in replacement for `new GLTFLoader()` that holds the download until the player is close.
+ * The `.then(...)` chain at each call site is untouched, so the swap logic stays where it reads.
+ * Distance is measured from the group's own world position, so a caller that moves the group
+ * afterwards cannot leave a stale coordinate behind. */
+export function nearLoader(group: THREE.Object3D, loadRadius: number, hideRadius = Infinity) {
+  return { loadAsync(url: string) {
+    return new Promise<{ scene: THREE.Group }>((resolve, reject) => {
+      streamed.push({ group, loadRadius, hideRadius,
+        start: () => void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url).then(resolve, reject) });
+    });
+  } };
+}
+
+/** Called once per frame. Starts a download when the player comes within range, and hides a group
+ * once it is far enough that its detail cannot be read. Collision never depends on visibility. */
+export function updateStreaming(x: number, z: number) {
+  for (const crowd of crowds) {
+    crowd.group.getWorldPosition(streamPoint);
+    const far = Math.hypot(x - streamPoint.x, z - streamPoint.z) >= crowd.radius;
+    // Only ever undo our own hiding. Drivers, riders and idle crowd members are hidden by the
+    // systems that own them, and forcing those back on would cost more than the cull saves.
+    if (far && crowd.group.visible) { crowd.group.visible = false; crowd.hidden = true; }
+    else if (!far && crowd.hidden) { crowd.group.visible = true; crowd.hidden = false; }
+  }
+  for (const asset of streamed) {
+    asset.group.getWorldPosition(streamPoint);
+    const distance = Math.hypot(x - streamPoint.x, z - streamPoint.z);
+    if (!asset.started && distance < asset.loadRadius) { asset.started = true; asset.start(); }
+    if (asset.hideRadius !== Infinity) asset.group.visible = distance < asset.hideRadius;
+  }
+}
+
+/** NPC crowds that stop being readable long before the fog takes them. Avatars are the most
+ * expensive thing in the scene — about 12,800 triangles and a dozen meshes each — so a villager
+ * a hundred metres away is pure cost. Player-controlled rigs are never registered here. */
+const crowds: { group: THREE.Object3D; radius: number; hidden?: boolean }[] = [];
+export function cullBeyond(group: THREE.Object3D, radius: number) { crowds.push({ group, radius }); }
+
+/** Load everything regardless of distance. */
+export function streamAllNow() { for (const a of streamed) if (!a.started) { a.started = true; a.start(); } }
+
+
 export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; foliage:typeof foliageStatus; rembayung:RembayungSite; petronas:PetronasSite }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
@@ -587,7 +637,7 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
   g.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(g);
   const asset = {mosque: 'Masjid', church: 'Church', hindu: 'HinduTemple', chinese: 'ChineseTemple'}[kind];
-  void new GLTFLoader().loadAsync(`/assets/models/environment/LM_ENV_${asset}.glb?v=worship-v1`).then(gltf => {
+  void nearLoader(g,200,340).loadAsync(`/assets/models/environment/LM_ENV_${asset}.glb?v=worship-v1`).then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
     for (const child of [...g.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
     g.add(gltf.scene);
@@ -596,6 +646,7 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
 }
 
 export function createWorld(scene: THREE.Scene): World {
+  streamed.length = 0; crowds.length = 0;
   const chairs: World['chairs'] = chairLocations;
   const group = new THREE.Group(); const solids: Solid[] = []; const mapBuildings: World['mapBuildings'] = [];
   const mamakStreetFallback = new THREE.Group(); mamakStreetFallback.name = 'mamak-street-fallback'; group.add(mamakStreetFallback);
@@ -655,7 +706,7 @@ export function createWorld(scene: THREE.Scene): World {
   }
   klcc.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(klcc);
-  void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_KLCC.glb?v=klcc-v1').then(gltf => {
+  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_KLCC.glb?v=klcc-v1').then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
     for (const child of [...klcc.children]) child.removeFromParent();
     klcc.add(gltf.scene);
@@ -943,7 +994,7 @@ export function createWorld(scene: THREE.Scene): World {
     // The boxes above stay out of the world batch so the Blender forecourt
     // (scripts/blender/build_shell.py) can replace them; the text signs stay on top.
     g.traverse(o=>{o.userData.keepUnbatched=true;});
-    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v1').then(gltf=>{
+    void nearLoader(g,170,300).loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v1').then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       g.add(gltf.scene);
@@ -1129,7 +1180,7 @@ export function createWorld(scene: THREE.Scene): World {
     landmark.name=asset;
     landmark.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(landmark);
-    void new GLTFLoader().loadAsync(`/assets/models/environment/${asset}.glb?v=skyline-v1`).then(gltf=>{
+    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${asset}.glb?v=skyline-v1`).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...landmark.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       landmark.add(gltf.scene);
@@ -1151,7 +1202,7 @@ export function createWorld(scene: THREE.Scene): World {
     trx.name='LM_ENV_TRX';
     trx.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(trx);
-    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_TRX'}.glb?v=skyline-v1`).then(gltf=>{
+    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_TRX'}.glb?v=skyline-v1`).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...trx.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       trx.add(gltf.scene);
@@ -1168,7 +1219,7 @@ export function createWorld(scene: THREE.Scene): World {
     tower118.name='LM_ENV_Merdeka118';
     tower118.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(tower118);
-    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_Merdeka118'}.glb?v=skyline-v1`).then(gltf=>{
+    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_Merdeka118'}.glb?v=skyline-v1`).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...tower118.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       tower118.add(gltf.scene);
@@ -1215,7 +1266,7 @@ export function createWorld(scene: THREE.Scene): World {
     bridge.name='saloma';
     bridge.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(bridge);
-    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Saloma.glb?v=saloma-v1').then(gltf=>{
+    void nearLoader(bridge,170,320).loadAsync('/assets/models/environment/LM_ENV_Saloma.glb?v=saloma-v1').then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...bridge.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       bridge.add(gltf.scene);
@@ -1287,7 +1338,7 @@ export function createWorld(scene: THREE.Scene): World {
     zoo.name='zoo';
     zoo.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(zoo);
-    void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Zoo.glb?v=zoo-v1').then(gltf=>{
+    void nearLoader(zoo,170,300).loadAsync('/assets/models/environment/LM_ENV_Zoo.glb?v=zoo-v1').then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...zoo.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       zoo.add(gltf.scene);
@@ -1339,7 +1390,7 @@ export function createWorld(scene: THREE.Scene): World {
     kltower.name='LM_ENV_KLTower';
     kltower.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(kltower);
-    void new GLTFLoader().loadAsync(`/assets/models/environment/${'LM_ENV_KLTower'}.glb?v=skyline-v1`).then(gltf=>{
+    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_KLTower'}.glb?v=skyline-v1`).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...kltower.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       kltower.add(gltf.scene);
@@ -1393,7 +1444,7 @@ export function createWorld(scene: THREE.Scene): World {
   // signs survive the swap, so JALAN LEPAK, KLCC ↑ and the flag crescent stay the game's.
   furniture.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(furniture);
-  void new GLTFLoader().loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=zoo-v1').then(gltf => {
+  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=zoo-v1').then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
     for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
     furniture.add(gltf.scene);
@@ -1435,13 +1486,13 @@ export function createWorld(scene: THREE.Scene): World {
     const person=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);
     const startX=-105+(i%3)*3,startZ=116+Math.floor(i/3)*3;
     person.group.position.set(startX,.1,startZ);scene.add(person.group);
-    pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
+    cullBeyond(person.group,100); pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
   }
   for (let i = 0; i < 10; i++) {
     const person = createPerson(['#efcf8d', '#628f91', '#bd7156', '#eee2c6'][i % 4]);
     const startX = i < 6 ? (i % 2 ? -11 : 11) : -45 + (i - 6) * 27;
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
-    scene.add(person.group); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
+    scene.add(person.group); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
   return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, foliage:foliageStatus, rembayung, petronas };
 }

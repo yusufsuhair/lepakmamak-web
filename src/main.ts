@@ -61,7 +61,7 @@ import * as THREE from 'three';
 import {createLrt} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import { createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift } from './world';
+import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift, updateStreaming} from './world';
 import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
@@ -220,6 +220,8 @@ async function init() {
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakFacade',{get:()=>({...mamakFacade.status})});
   let mamakLighting: MamakLighting | null = null, mamakNight = false;
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakRealism',{get:()=>mamakRealismStatus});
+  // Profiling handle: what is actually being drawn, and from which group.
+  if(import.meta.env.DEV)Object.assign(window,{__lepakScene:scene});
   void loadMamakRealism(scene,renderer)
     .then(asset => {
       try { mamakLighting = configureMamakLighting(asset); }
@@ -2451,6 +2453,7 @@ async function init() {
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
     for(let i=venues.length;i--;)if(Math.hypot(pos.x-venues[i].x,pos.z-venues[i].z)<VENUE_LOAD_RADIUS)void venues.splice(i,1)[0].load();
+    updateStreaming(pos.x,pos.z);
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
     villageTalk.hidden=!villageNearby;villageTalk.textContent=villageNearby?`Tegur ${villageNearby.name}`:'';

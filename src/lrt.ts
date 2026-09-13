@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {box,material} from './world';
 import {stations,trackPoint,trackLength,trainState,railHeight} from '../shared/lrt.mjs';
 import type {Solid} from './physics';
@@ -20,7 +21,7 @@ function batchStatic(group:THREE.Group,dynamic:THREE.Object3D[]=[]){
 // Blender-built Rapid KL assets (scripts/blender/build_lrt.py). The box placeholders
 // below stay on screen until each GLB lands, and stay for good if it never does.
 const LRT_VERSION='lrt-v1';
-function lrtAsset(name:string){return new GLTFLoader().loadAsync(`/assets/models/lrt/${name}.glb?v=${LRT_VERSION}`).then(gltf=>{
+function lrtAsset(name:string){return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/lrt/${name}.glb?v=${LRT_VERSION}`).then(gltf=>{
  gltf.scene.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;obj.castShadow=obj.receiveShadow=true;const m=obj.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;obj.castShadow=false;}});
  return gltf.scene;}).catch(error=>{console.warn(`LRT asset ${name} unavailable, keeping placeholder`,error);return null;});}
 // Drop every placeholder mesh but keep the canvas labels (station names, destinations).
