@@ -21,6 +21,7 @@ import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -666,25 +667,31 @@ export function createWorld(scene: THREE.Scene): World {
   const block = (x: number, z: number, w: number, h: number, d: number, color: string) => {
     box(group, x, h / 2, z, w, h, d, color); solid(x, z, w, d); mapBuildings.push({ x, z, w, d, color });
   };
-  box(group, 0, -.38, 0, 340, .5, 340, '#829178');
-  box(group, 0, -.11, 0, 318, .12, 318, '#c3bba4');
+  // The ground boxes keep their sizes and heights; src/ground.ts gives them world-space textures.
+  box(group, 0, -.38, 0, 340, .5, 340, groundMaterial('apron'));
+  box(group, 0, -.11, 0, 318, .12, 318, groundMaterial('slab'));
   // A connected road grid. North is negative Z.
-  for (const x of [0, 76, -82]) {
-    box(group, x, -.028, 0, 17, .06, 312, '#637373');
-    for (const side of [-1, 1]) box(group, x + side * 9.2, .04, 0, 1.25, .17, 312, '#ddd3b9');
+  for (const x of ROAD_X) {
+    box(group, x, -.028, 0, 17, .06, 312, groundMaterial('asphalt'));
+    // Kerbs stop at each junction mouth instead of running across the east-west carriageway.
+    const mouths = [-156, ...ROAD_Z.flatMap(z => [z - ROAD_HALF, z + ROAD_HALF]), 156];
+    for (let i = 0; i < mouths.length; i += 2) {
+      for (const side of [-1, 1]) box(group, x + side * 9.2, .04, (mouths[i] + mouths[i + 1]) / 2, 1.25, .17, mouths[i + 1] - mouths[i], groundMaterial('kerb'));
+    }
     for (let z = -149; z <= 149; z += 8) {
-      if ([-64, 8, 78].some(cross => Math.abs(z - cross) < 11)) continue;
-      box(group, x, .016, z, .14, .012, 3.2, '#e3d8ad');
+      if (ROAD_Z.some(cross => Math.abs(z - cross) < 11)) continue;
+      box(group, x, .016, z, .14, .012, 3.2, groundMaterial('lines'));
     }
   }
-  for (const z of [-64, 8, 78]) {
-    box(group, 0, .009, z, 312, .055, 17, '#637373');
+  for (const z of ROAD_Z) {
+    box(group, 0, .009, z, 312, .055, 17, groundMaterial('asphalt'));
     for (let x = -147; x <= 147; x += 8) {
-      if ([0, 76, -82].some(cross => Math.abs(x - cross) < 11)) continue;
-      box(group, x, .043, z, 3.2, .01, .14, '#e3d8ad');
+      if (ROAD_X.some(cross => Math.abs(x - cross) < 11)) continue;
+      box(group, x, .043, z, 3.2, .01, .14, groundMaterial('lines'));
     }
-    for (const x of [0, 76, -82]) {
-      for (const side of [-1, 1]) for (let i = 0; i < 6; i++) box(group, x - 6 + i * 2.4, .046, z + side * 11, 1.3, .014, 3, '#e2dece');
+    // Zebra bars sit on the carriageway rather than floating 4 cm above it.
+    for (const x of ROAD_X) {
+      for (const side of [-1, 1]) for (let i = 0; i < 6; i++) box(group, x - 6 + i * 2.4, .009, z + side * 11, 1.3, .014, 3, groundMaterial('lines'));
     }
   }
   // KLCC park and podium.
@@ -1440,15 +1447,21 @@ export function createWorld(scene: THREE.Scene): World {
     const mesh = new THREE.Mesh(geo, mat); mesh.position.set(-46 + i * 1.9, y, 49); furniture.add(mesh);
   }
   // Boundary hedges: world limits are enforced in physics.
-  for (const x of [-156, 156]) box(furniture, x, 1.1, 0, 3, 2.2, 315, '#718361');
+  // The sea edges get a concrete seawall instead (scripts/blender/build_zoo.py seawall()).
+  box(furniture, -156, 1.1, -1.15, 3, 2.2, 312.7, '#718361');
+  box(furniture, 156, 1.1, -15.8, 3, 2.2, 283.4, '#718361');
   box(furniture,0,1.1,-156,315,2.2,3,'#718361');
-  box(furniture,-31.5,1.1,156,252,2.2,3,'#718361');
+  box(furniture,-30.25,.57,155.7,254.5,1.14,.9,'#c9c6bc');
+  box(furniture,155.7,.57,137.75,.9,1.14,24.5,'#c9c6bc');
   // The boxes above stay as the fallback until the Blender set arrives. Only the canvas text
   // signs survive the swap, so JALAN LEPAK, KLCC ↑ and the flag crescent stay the game's.
   furniture.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(furniture);
-  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=zoo-v1').then(gltf => {
-    gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
+  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=seawall-v1').then(gltf => {
+    gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; }
+      // The seawall's armour rock lies at the waterline across 250 m: a shadow pass over it costs
+      // more triangles than the stones' own shade is worth.
+      if (m.name === 'Armour granite') o.castShadow = false; });
     for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
     furniture.add(gltf.scene);
   }).catch(error => console.warn('[FURNITURE] keeping procedural street furniture', error));
@@ -1497,6 +1510,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
+  paintGroundMask(mapBuildings, chairs);
   return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, foliage:foliageStatus, rembayung, petronas };
 }
 

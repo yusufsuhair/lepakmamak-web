@@ -9,26 +9,32 @@ keeps the footprints world.ts already draws, and the game keeps painting its own
 signs (ZOO NEGARA MINI LEPAK, GAJAH, SAVANA, KOLAM FLAMINGO) on top.
 
 The second asset is the city furniture world.ts scatters by hand: the two Malaysian flags,
-the two street signs, the courtyard bunting, the four boundary hedges and the low fountain
-on the KLCC delivery plaza. Skin only - no collision box, seat or coordinate moves.
+the two street signs, the courtyard bunting, the boundary hedges (clipped kemuning on a concrete
+planter kerb), the seawall with its granite rock armour where the city meets the sea, and the
+low fountain on the KLCC delivery plaza. Skin only - no collision box, seat or coordinate moves.
+The hedge, seawall and rock carry PBR textures (pbr_kit + ground_textures.py), embedded as WebP.
 
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python scripts/blender/build_zoo.py -- --no-render
+  add --only=Furniture (or --only=Zoo) to rebuild one asset; then node scripts/blender/compress-glb.mjs <glb>
 
 Outputs (public/assets/models/environment):
   LM_ENV_Zoo.glb       node 'zoo', origin at the park pad (game -123, -112)
   LM_ENV_Furniture.glb node 'furniture', origin at the world origin (absolute coordinates)
 """
-import bpy, math, json, sys
+import bpy, bmesh, math, json, sys, random
 from pathlib import Path
-from mathutils import Vector
+from mathutils import Vector, noise
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from build_lrt import pt,mat,box,cyl,loft,join,finish
 from build_klcc import vloft,sphere
+import pbr_kit as kit
+import ground_textures as GT
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'assets/zoo'; OUT.mkdir(parents=True,exist_ok=True)
 PUBLIC=ROOT/'public/assets/models/environment'; PUBLIC.mkdir(parents=True,exist_ok=True)
 ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
+ONLY=[a.split('=',1)[1] for a in ARGS if a.startswith('--only=')]   # e.g. --only=Furniture
 
 # ---------------------------------------------------------------- materials
 GRASS=mat('Zoo grass',(.55,.64,.42),.95);SCRUB=mat('Zoo scrub',(.72,.66,.46),.95)
@@ -54,8 +60,11 @@ FLAGW=mat('Flag cream',(.96,.94,.88),.6,two_sided=True);FLAGB=mat('Flag navy',(.
 STREET=mat('Street post',(.45,.52,.45),.5);BOARD=mat('Street board',(.14,.36,.29),.7)
 BUNT1=mat('Bunting gold',(.89,.71,.30),.6,two_sided=True);BUNT2=mat('Bunting red',(.73,.32,.25),.6,two_sided=True)
 BUNT3=mat('Bunting teal',(.34,.55,.46),.6,two_sided=True);CORD=mat('Bunting cord',(.30,.30,.26),.7)
-HEDGE=mat('Hedge green',(.40,.50,.34),.9);HEDGE2=mat('Hedge green deep',(.34,.44,.29),.9)
-HEDGEB=mat('Hedge base',(.28,.26,.21),.9)
+kit.setup('furniture',ROOT/'assets/ground/textures',20260914)
+HEDGE=kit.pbr('Hedge leaves','hedge','#e8eedf',.72,1.5,strength=1.3,source=GT)
+HEDGEB=kit.pbr('Hedge planter kerb','concrete','#bdbab2',.9,2.0,source=GT)
+SEAWALL=kit.pbr('Seawall concrete','concrete','#d8d5cc',.9,2.0,source=GT)
+ARMOUR=kit.pbr('Armour granite','granite','#a7abad',.86,1.6,strength=1.4)
 FSTONE=mat('Fountain stone',(.76,.76,.68),.85);FTRIM=mat('Fountain trim',(.66,.67,.60),.8)
 FWATER=mat('Fountain water',(.42,.68,.68),.1,alpha=.8,two_sided=True)
 JET=mat('Fountain jet',(.80,.90,.90),.15,alpha=.6,two_sided=True)
@@ -469,23 +478,97 @@ def bunting():
         o.append(shell('pennant',verts,faces,m,F,False,0,1,(False,False)))
     return o
 
-HEDGE_PROFILE=[(-1.5,0),(1.5,0),(1.5,1.86),(.92,2.2),(-.92,2.2),(-1.5,1.86)]
+HEDGE_PROFILE=[(-1.38,0),(1.38,0),(1.5,1.3),(1.34,1.95),(.75,2.2),(-.75,2.2),(-1.34,1.95),(-1.5,1.3)]
 def hedge_vary(station,profile):
-    k=.84+.16*(.5+.5*math.sin(station*.62)*math.cos(station*.23))
-    wide=.86+.14*(.5+.5*math.cos(station*.41))
+    """Uneven clipping: the crown dips and bulges along the run instead of a regular scallop."""
+    k=.92+.06*noise.noise(Vector((station*.21,.5,1.7)))+.03*noise.noise(Vector((station*.7,2.5,.3)))
+    wide=.95+.05*noise.noise(Vector((station*.33,4.1,2.2)))
     return [(a*wide,y*k) for a,y in profile]
 
+def leafy(ob):
+    """Clumps of lighter and darker growth, and the shaded, sparser foot of the hedge."""
+    me=ob.data;attr=me.color_attributes.new('Color','FLOAT_COLOR','POINT')
+    for v in me.vertices:
+        c=.9*(.84+.16*noise.noise(Vector((v.co.x*.35,v.co.y*.35,v.co.z*.6))))*(.62+.38*min(v.co.z/1.2,1))
+        attr.data[v.index].color=(c,c,c,1)
+    me.color_attributes.active_color=attr
+    return ob
+
+# Where the city meets the sea the hedge gives way to a Malaysian coastal bund: a battered
+# concrete seawall with a coping, cast in 6 m panels, its sea face armoured with granite rock.
+# The south edge runs the whole way (the sea is behind it from x -157.5 to the beach); on the
+# east edge the wall takes over beside Pantai Senja and ends in a rock head at the waterline,
+# where the beach's own boulders already sit. Across is measured inward (toward the city).
+SEAWALL_FIXED=156;SEAWALL_EAST_FROM=125.5;SEAWALL_EAST_TO=150.0
+WALL_PROFILE=[(-.30,-.55),(.85,-.55),(.85,.98),(.92,.98),(.92,1.08),(.86,1.14),(.26,1.14),(.20,1.08),(.20,.98),(.27,.98)]
+
 def hedges():
-    """Boundary hedges with a scalloped top; the two greens alternate so it reads clumpy."""
-    o=[]
-    for x in (-156,156):
-        o.append(run('boundary hedge','z',x,-157.5,157.5,HEDGE_PROFILE,[HEDGE,HEDGE2],F,vary=hedge_vary,step=4.5))
-        o.append(box('hedge base',x,.10,0,3.1,.2,315,HEDGEB,F,0))
-    o.append(run('boundary hedge','x',-156,-157.5,157.5,HEDGE_PROFILE,[HEDGE,HEDGE2],F,vary=hedge_vary,step=4.5))
+    """Boundary hedges with a scalloped top; the two greens alternate so it reads clumpy. They
+    stop at the seawall's city face on the south edge and where the beach wall begins."""
+    o=[];inner=SEAWALL_FIXED-.8
+    o.append(leafy(run('boundary hedge','z',-156,-157.5,inner,HEDGE_PROFILE,HEDGE,F,vary=hedge_vary,step=2.25,smooth=True)))
+    o.append(box('hedge base',-156,.10,(inner-157.5)/2,3.1,.2,inner+157.5,HEDGEB,F,0))
+    o.append(leafy(run('boundary hedge','z',156,-157.5,SEAWALL_EAST_FROM+.4,HEDGE_PROFILE,HEDGE,F,vary=hedge_vary,step=2.25,smooth=True)))
+    o.append(box('hedge base',156,.10,(SEAWALL_EAST_FROM+.4-157.5)/2,3.1,.2,SEAWALL_EAST_FROM+.4+157.5,HEDGEB,F,0))
+    o.append(leafy(run('boundary hedge','x',-156,-157.5,157.5,HEDGE_PROFILE,HEDGE,F,vary=hedge_vary,step=2.25,smooth=True)))
     o.append(box('hedge base',0,.10,-156,315,.2,3.1,HEDGEB,F,0))
-    o.append(run('boundary hedge','x',156,-157.5,94.5,HEDGE_PROFILE,[HEDGE,HEDGE2],F,vary=hedge_vary,step=4.5))
-    o.append(box('hedge base',-31.5,.10,156,252,.2,3.1,HEDGEB,F,0))
     return o
+
+def armour(rocks,x,y,z,r,R):
+    """One angular granite armour stone: a tumbled, noise-pushed icosahedron, flat shaded like
+    quarried rock and vertex-tinted wet and weedy below the tide mark. Faces wholly under the
+    city ground are dropped: they could never be seen."""
+    o=kit.rock('armour stone',x,y,z,r,ARMOUR,squash=R.uniform(.7,.95),sub=1,rough=.3,seed=R.randint(0,999))
+    o.scale=(R.uniform(.9,1.35),R.uniform(.8,1.15),R.uniform(.85,1.0))
+    o.rotation_euler=(R.uniform(-.6,.6),R.uniform(-.6,.6),R.uniform(0,6.28))
+    mw=o.matrix_basis.copy();me=o.data;bm=bmesh.new();bm.from_mesh(me)
+    floor=-.06 if z<159 else -.14
+    bmesh.ops.delete(bm,geom=[f for f in bm.faces if all((mw@v.co).z<floor for v in f.verts)],context='FACES')
+    bm.to_mesh(me);bm.free();me.update()
+    attr=me.color_attributes.new('Color','FLOAT_COLOR','POINT');tone=R.uniform(.72,1.0)
+    for v in me.vertices:
+        wet=1-min(max(((mw@v.co).z-.02)/.32,0),1)
+        c=.9*tone*(1-.55*wet)
+        attr.data[v.index].color=(c*(1-.18*wet),c*(1-.04*wet),c*(1-.3*wet),1)
+    me.color_attributes.active_color=attr
+    for f in me.polygons:f.use_smooth=False
+    rocks.append(o)
+
+def weather(ob,paint=1.0):
+    """Splash and grime darken a wall toward its foot (linear vertex colour, .9 headroom).
+    `paint` scales it, so joint sealant can ride on the wall's own material."""
+    me=ob.data;attr=me.color_attributes.new('Color','FLOAT_COLOR','POINT');mw=ob.matrix_basis
+    for v in me.vertices:
+        t=min(max(((mw@v.co).z+.1)/1.1,0),1);c=.9*(.7+.3*t*t)*paint
+        attr.data[v.index].color=(c,c,c*.98,1)
+    me.color_attributes.active_color=attr
+    return ob
+
+def seawall():
+    o=[];R=random.Random(20260914)
+    o.append(weather(run('seawall','x',SEAWALL_FIXED,-157.5,97.0,WALL_PROFILE,SEAWALL,F,step=6.0)))
+    # east: across runs +x (outward) on a z run, so mirror the profile and keep its winding
+    east=[(-a,y) for a,y in WALL_PROFILE][::-1]
+    o.append(weather(run('seawall','z',SEAWALL_FIXED,SEAWALL_EAST_FROM,SEAWALL_EAST_TO,east,SEAWALL,F,step=6.0)))
+    # expansion joints every 6 m on the city face: the wall's own material, vertex-painted black,
+    # so the joints, the wall and the end pier share one draw
+    for x in [x0*6.0-157.5 for x0 in range(1,43)]:
+        o.append(weather(box('seawall joint',x,.5,SEAWALL_FIXED-.86,.035,1.0,.03,SEAWALL,F,0),.12))
+    for z in [SEAWALL_EAST_FROM+6*k for k in range(1,5)]:
+        o.append(weather(box('seawall joint',SEAWALL_FIXED-.86,.5,z,.03,1.0,.035,SEAWALL,F,0),.12))
+    o.append(weather(box('seawall pier',SEAWALL_FIXED-.35,.7,SEAWALL_EAST_FROM,1.5,1.4,.9,SEAWALL,F,.03)))
+    # rock armour along the whole south face: two packed rows and a looser toe
+    rocks=[]
+    for row,(z0,y0,r0,r1,step,keep) in enumerate([(156.95,.3,.6,.9,1.1,1),(158.1,.0,.65,1.0,1.25,1),(159.25,-.22,.5,.8,1.5,.7)]):
+        x=-157.2+R.uniform(0,step)
+        while x<97.5-row*.8:
+            if R.random()<keep:armour(rocks,x,y0+R.uniform(-.08,.1),z0+R.uniform(-.3,.3),R.uniform(r0,r1),R)
+            x+=step*R.uniform(.8,1.15)
+    # the rock head that closes the east wall at the waterline
+    for i in range(34):
+        z=R.uniform(SEAWALL_EAST_TO-4,160.5);x=SEAWALL_FIXED+R.uniform(.1,2.8)+max(0,z-156)*.25
+        armour(rocks,x,.35-max(0,z-SEAWALL_EAST_TO)*.06+R.uniform(-.1,.1),z,R.uniform(.55,.95),R)
+    return o+rocks
 
 # One cross-section, walked from the outer footing up over the rim, down the inside, across
 # the floor and back up the pedestal to the finial: a single watertight solid whose faces all
@@ -506,7 +589,7 @@ def fountain():
     return o
 
 def furniture():
-    return flag(-13,54)+flag(13,-77)+street_sign(-11,14,5,.8)+street_sign(11.5,-48,3.8,.9)+bunting()+hedges()+fountain()
+    return flag(-13,54)+flag(13,-77)+street_sign(-11,14,5,.8)+street_sign(11.5,-48,3.8,.9)+bunting()+hedges()+seawall()+fountain()
 
 # ================================================================ build / export
 SETS={'Zoo':('zoo',zoo),'Furniture':('furniture',furniture)}
@@ -516,8 +599,10 @@ def build():
     for ob in list(s.objects):bpy.data.objects.remove(ob,do_unlink=True)
     roots={}
     for name,(node,fn) in SETS.items():
+        if ONLY and name not in ONLY:continue
         e=bpy.data.objects.new(node,None);s.collection.objects.link(e)
-        for ob in fn():ob.parent=e
+        for ob in fn():
+            ob.parent=e;kit.uv_metres(ob)   # only the seawall's PBR materials carry a tile size
         roots[name]=e
     return roots
 
@@ -529,17 +614,21 @@ def export(roots):
             batches.setdefault(tuple(m.name for m in ob.data.materials),[]).append(ob)
         for key,objs in batches.items():
             j=join(objs,f'{name} | {" + ".join(key)}')
-            for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
+            if not any('tile' in m for m in j.data.materials if m):
+                for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
         bpy.ops.object.select_all(action='DESELECT');e.select_set(True)
         for c in e.children:c.select_set(True)
         path=PUBLIC/f'LM_ENV_{name}.glb'
         bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,
-            export_yup=True,export_cameras=False,export_lights=False,export_extras=False)
+            export_yup=True,export_cameras=False,export_lights=False,export_extras=False,
+            export_image_format='WEBP',export_image_quality=82,export_vertex_color='ACTIVE',export_all_vertex_colors=False)
         tris=sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children if c.type=='MESH')
         report[name]={'asset':f'LM_ENV_{name}','node':e.name,'triangles':tris,'bytes':path.stat().st_size,
                       'draws':len([c for c in e.children if c.type=='MESH'])}
-    report['Zoo']['origin']=[-123,0,-112];report['Furniture']['origin']=[0,0,0]
-    (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n')
+    if 'Zoo' in report:report['Zoo']['origin']=[-123,0,-112]
+    if 'Furniture' in report:report['Furniture']['origin']=[0,0,0]
+    manifest=OUT/'manifest.json';report={**(json.loads(manifest.read_text()) if manifest.exists() else {}),**report}
+    manifest.write_text(json.dumps(report,indent=2)+'\n')
     print('ZOO WEB EXPORT',json.dumps(report),flush=True)
 
 def render(roots):
