@@ -109,9 +109,13 @@ export function updateGameMasterTag(label: THREE.Sprite, enabled: boolean, time:
 import {createDmBar} from './dm';
 
 type Member = {id: string; name: string};
-type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm' | 'table'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
+type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm' | 'table' | 'pm'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
+// Stored conversations (channel 'pm', keyed by account) travel over HTTP through src/inbox.ts;
+// the chat only draws them and reports what the player did.
+export type PmHooks = {opened?: (userId: string) => void; older?: (userId: string) => void; block?: (userId: string) => void; report?: (userId: string) => void};
+export type PmEntry = {key: string; name: string; text: string; sentAt?: string};
 
-export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' | 'table', to?: string) => boolean, focus: () => void) {
+export function setupChat(send: (text: string, channel: Thread['channel'], to?: string) => boolean, focus: () => void, hooks: PmHooks = {}) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
   panel.innerHTML = `<span id="chat-controls"><button type="button" id="chat-min"></button><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
@@ -122,7 +126,12 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
   const minimise = el<HTMLButtonElement>('chat-min');
-  const dmBar = createDmBar({select: key => select(key), close: key => closeThread(key)});
+  const accountOf = (key: string) => threads.get(key)?.to || '';
+  const dmBar = createDmBar({
+    select: key => select(key), close: key => closeThread(key),
+    block: key => { const id = accountOf(key); if (id) hooks.block?.(id); },
+    report: key => { const id = accountOf(key); if (id) hooks.report?.(id); },
+  });
   body.prepend(dmBar.root);
   const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
   const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
@@ -140,6 +149,11 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     jump.hidden = collapsed || !log || atBottom(log);
   }
   logs.addEventListener('scroll', renderJump, true);
+  // A stored conversation pages older messages in as you reach the top of it.
+  logs.addEventListener('scroll', event => {
+    const thread = threads.get(active);
+    if (thread?.channel === 'pm' && thread.to && event.target === thread.log && thread.log.scrollTop < 8) hooks.older?.(thread.to);
+  }, true);
   jump.onclick = () => { const log = threads.get(active)!.log; toBottom(log); renderJump(); };
   jump.onkeydown = event => event.stopPropagation();
 
@@ -165,6 +179,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     render();
     toBottom(threads.get(key)!.log);
     renderJump();
+    const chosen = threads.get(key)!;
+    if (chosen.channel === 'pm' && chosen.to) hooks.opened?.(chosen.to);
   }
 
   function closeThread(key: string) {
@@ -185,7 +201,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
   function renderMenu() {
     menu.replaceChildren();
     for (const thread of threads.values()) {
-      if (thread.channel === 'dm') continue;   // private threads have their own strip
+      if (thread.channel === 'dm' || thread.channel === 'pm') continue;   // private threads have their own strip
       const row = document.createElement('div'); row.className = 'chat-channel-row';
       const option = document.createElement('button');
       option.type = 'button'; option.setAttribute('role', 'option');
@@ -222,7 +238,7 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
     for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
     const current = threads.get(active)!;
-    const private_ = current.channel === 'dm';
+    const private_ = current.channel === 'dm' || current.channel === 'pm';
     // In a private conversation the pill states the recipient and stops being a menu, so a
     // private line can never be handed to the whole city by a mis-tap.
     selector.textContent = private_ ? `→ ${current.label}` : current.label;
@@ -231,7 +247,9 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     if (private_) closeMenu();
     if (current.unread) { const count = document.createElement('span'); count.className = 'opt-unread'; count.textContent = String(current.unread); selector.append(count); }
     selector.setAttribute('aria-label', private_ ? `Private message to ${current.name}` : `Channel: ${current.label}. Choose who sees your message`);
-    dmBar.render([...threads.values()].filter(thread => thread.channel === 'dm').map(thread => ({key: thread.key, name: thread.name || thread.label, unread: thread.unread})), active);
+    dmBar.render([...threads.values()].filter(thread => thread.channel === 'dm' || thread.channel === 'pm').map(thread => ({key: thread.key, name: thread.name || thread.label, unread: thread.unread, stored: thread.channel === 'pm'})), active);
+    // Stored messages allow 500 characters, matching the Wall; live chat stays at 200.
+    input.maxLength = current.channel === 'pm' ? 500 : 200;
     input.setAttribute('aria-label', active === 'all' ? 'Message to the city' : `Message to ${current.label}`);
     if (menuOpen) renderMenu();
     renderJump();
@@ -301,10 +319,81 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     return threads.get(key)!;
   }
 
+  function openPm(userId: string, label: string) {
+    const key = `pm:${userId}`;
+    const thread = threads.get(key) || build(key, label, 'pm', {to: userId, name: label, closable: true});
+    thread.label = label; thread.name = label;
+    return thread;
+  }
+
+  function line(name: string, text: string, sentAt?: string, gameMaster = false, area = '') {
+    const parsed = sentAt ? new Date(sentAt) : new Date();
+    const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
+    const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
+    timestamp.textContent = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
+    timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
+    timestamp.setAttribute('aria-label', timestamp.title);
+    const row = document.createElement('p');
+    // Name on top, where they were standing underneath it. The area is stamped by the
+    // server when the message is sent, so it is where they said it, not where they are now.
+    const who = document.createElement('span'); who.className = 'chat-who';
+    const author = document.createElement('strong'); author.textContent = gameMaster ? `✦ GM · ${name}:` : `${name}:`;
+    who.append(author);
+    if (area) { const place = document.createElement('small'); place.className = 'chat-area'; place.textContent = area; who.append(place); }
+    if (gameMaster) row.className = 'game-master-chat';
+    const said = document.createElement('span'); said.className = 'chat-said'; said.textContent = text;
+    row.append(timestamp, document.createTextNode(' '), who, document.createTextNode(' '), said);
+    return row;
+  }
+
   return {
     open() { openComposer(); },
     openDm(id: string, name: string) { openDm(id, name); select(`dm:${id}`); },
     closeDm,
+    pm: {
+      open(userId: string, label: string) { openPm(userId, label); select(`pm:${userId}`); },
+      // ponytail: no 50-row cap here, since older pages are prepended on purpose; a very long
+      // scroll-back simply keeps its rows until the conversation is closed.
+      add(userId: string, label: string, entries: PmEntry[], options: {mode?: 'append' | 'prepend' | 'replace'; notify?: boolean} = {}) {
+        const thread = openPm(userId, label), log = thread.log, mode = options.mode || 'append';
+        const follow = !collapsed && thread.key === active && atBottom(log);
+        const height = log.scrollHeight;
+        if (mode === 'replace') log.querySelectorAll('p[data-key]').forEach(row => row.remove());
+        const rows = entries
+          .filter(entry => !log.querySelector(`p[data-key="${CSS.escape(entry.key)}"]`))
+          .map(entry => { const row = line(entry.name, entry.text, entry.sentAt); row.dataset.key = entry.key; return row; });
+        if (mode === 'prepend') log.prepend(...rows); else log.append(...rows);
+        if (options.notify && rows.length && (collapsed || thread.key !== active)) thread.unread += rows.length;
+        render();
+        if (mode === 'prepend') log.scrollTop += log.scrollHeight - height;
+        else if (follow || mode === 'replace') toBottom(log);
+        renderJump();
+      },
+      note(userId: string, text: string, action?: {label: string; run: (row: HTMLElement) => void}) {
+        const thread = threads.get(`pm:${userId}`);
+        if (!thread) return null;
+        const row = document.createElement('p'); row.className = 'chat-note';
+        const said = document.createElement('span'); said.textContent = text; row.append(said);
+        if (action) {
+          const button = document.createElement('button'); button.type = 'button'; button.textContent = action.label;
+          button.onkeydown = event => event.stopPropagation();
+          button.onclick = () => action.run(row);
+          row.append(button);
+        }
+        const follow = atBottom(thread.log);
+        thread.log.append(row);
+        if (follow) toBottom(thread.log);
+        renderJump();
+        return row;
+      },
+      unread(userId: string, label: string, count: number) {
+        const thread = openPm(userId, label);
+        if (thread.key !== active) thread.unread = count;
+        render();
+      },
+      active: (userId: string) => active === `pm:${userId}` && !collapsed,
+      close(userId: string) { closeThread(`pm:${userId}`); },
+    },
     online(ids: string[]) {
       const present = new Set(ids);
       for (const thread of [...threads.values()]) {
@@ -336,23 +425,8 @@ export function setupChat(send: (text: string, channel: 'all' | 'party' | 'dm' |
     },
     append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '') {
       const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'GENG', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
-      const parsed = sentAt ? new Date(sentAt) : new Date();
-      const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
-      const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
-      timestamp.textContent = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
-      timestamp.title = `${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'medium' }).format(date)} MYT`;
-      timestamp.setAttribute('aria-label', timestamp.title);
       const follow = !collapsed && target.key === active && atBottom(target.log);
-      const row = document.createElement('p');
-      // Name on top, where they were standing underneath it. The area is stamped by the
-      // server when the message is sent, so it is where they said it, not where they are now.
-      const who = document.createElement('span'); who.className = 'chat-who';
-      const author = document.createElement('strong'); author.textContent = gameMaster ? `✦ GM · ${name}:` : `${name}:`;
-      who.append(author);
-      if (area) { const place = document.createElement('small'); place.className = 'chat-area'; place.textContent = area; who.append(place); }
-      if (gameMaster) row.className = 'game-master-chat';
-      const said = document.createElement('span'); said.className = 'chat-said'; said.textContent = text;
-      row.append(timestamp, document.createTextNode(' '), who, document.createTextNode(' '), said); target.log.append(row);
+      target.log.append(line(name, text, sentAt, gameMaster, area));
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();
       if (notify && (collapsed || target.key !== active)) target.unread++;
       render();

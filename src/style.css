@@ -637,6 +637,12 @@ html, body, #app { touch-action: manipulation; }
 .dm-chip.on .dm-open, .dm-chip.on .dm-close { color: #173c32; }
 .dm-open i { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #2f5d4d; color: #ddf69a; font: 700 9px 'Oxanium', sans-serif; font-style: normal; }
 .dm-chip.on .dm-open i { background: #173c32; }
+.dm-tools { display: flex; gap: 4px; flex: 0 0 auto; margin-left: auto; }
+.dm-tools[hidden] { display: none; }
+.dm-tools button { border: 1px solid #99ad8966; border-radius: 11px; background: #ffffff12; color: #cdd8c0; padding: 4px 9px; font-size: 10px; cursor: pointer; }
+.dm-tools button:focus-visible, .chat-note button:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
+.chat-log .chat-note { color: #9fb094; font-size: 11px; font-style: italic; }
+.chat-log .chat-note button { margin-left: 6px; border: 1px solid #ddf69a88; border-radius: 9px; background: none; color: #ddf69a; padding: 2px 8px; font-size: 10px; font-style: normal; cursor: pointer; }
 .dm-close { background: none; border: 0; color: #9fb094; padding: 5px 8px 5px 3px; font-size: 12px; line-height: 1; cursor: pointer; }
 .dm-close:hover { color: #ffd0c4; }
 #chat-channel.dm-recipient { background: #ddf69a; color: #173c32; border-color: #ddf69a; opacity: 1; }

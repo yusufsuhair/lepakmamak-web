@@ -1,15 +1,21 @@
 // A private message is not a broadcast scope, so it does not belong in the composer's
 // ALL / PARTY list. Conversations get their own strip above the log: one chip each,
-// carrying the name, the unread count and the way out of the conversation.
-export type DmThread = {key: string; name: string; unread: number};
+// carrying the name, the unread count and the way out of the conversation. A stored
+// conversation also carries Block and Report, one tap away while it is open.
+export type DmThread = {key: string; name: string; unread: number; stored?: boolean};
 
-export function createDmBar(actions: {select: (key: string) => void; close: (key: string) => void}) {
+export function createDmBar(actions: {select: (key: string) => void; close: (key: string) => void; block?: (key: string) => void; report?: (key: string) => void}) {
   const root = document.createElement('div');
   root.id = 'chat-dms'; root.hidden = true;
   root.setAttribute('role', 'group'); root.setAttribute('aria-label', 'Private messages');
   const heading = document.createElement('small'); heading.textContent = 'MESEJ';
   const list = document.createElement('div'); list.className = 'dm-chips';
-  root.append(heading, list);
+  const tools = document.createElement('span'); tools.className = 'dm-tools'; tools.hidden = true;
+  const block = document.createElement('button'); block.type = 'button'; block.textContent = 'Block';
+  const report = document.createElement('button'); report.type = 'button'; report.textContent = 'Report';
+  for (const button of [block, report]) button.onkeydown = event => event.stopPropagation();
+  tools.append(block, report);
+  root.append(heading, list, tools);
 
   return {
     root,
@@ -24,7 +30,7 @@ export function createDmBar(actions: {select: (key: string) => void; close: (key
         open.type = 'button'; open.className = 'dm-open'; open.setAttribute('aria-pressed', String(on));
         open.setAttribute('aria-label', `Private messages with ${thread.name}${thread.unread ? `, ${thread.unread} unread` : ''}`);
         const face = document.createElement('i'); face.setAttribute('aria-hidden', 'true');
-        face.textContent = thread.name.slice(0, 1).toUpperCase();
+        face.textContent = thread.name.replace(/^@/, '').slice(0, 1).toUpperCase();
         const name = document.createElement('b'); name.textContent = thread.name;
         open.append(face, name);
         if (thread.unread) {
@@ -38,6 +44,14 @@ export function createDmBar(actions: {select: (key: string) => void; close: (key
         shut.onclick = event => { event.stopPropagation(); actions.close(thread.key); };
         chip.append(open, shut);
         list.append(chip);
+      }
+      const current = threads.find(thread => thread.key === active && thread.stored);
+      tools.hidden = !current;
+      if (current) {
+        block.setAttribute('aria-label', `Block ${current.name}`);
+        report.setAttribute('aria-label', `Report ${current.name}`);
+        block.onclick = () => actions.block?.(current.key);
+        report.onclick = () => actions.report?.(current.key);
       }
     },
   };

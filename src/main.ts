@@ -84,6 +84,9 @@ import {setupDeveloperOptions} from './developer-options';
 import {createMamakSteam} from './mamak-steam';
 import {setupGeng, type GengEvent, type GengState} from './geng';
 import {setupFriends, type FriendEvent, type FriendState} from './friends';
+import {setupHandleClaim} from './handles';
+import {setupInbox, type Peer, type StoredMessage} from './inbox';
+import {accountToken, clearStandIn, setStandInToken, standInTokenFor} from './account-token';
 
 // Suppress native selection menus without interfering with player context menus or text entry.
 for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
@@ -137,7 +140,7 @@ $('app').innerHTML = `
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
-  <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
+  <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="dm">Private messages</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><div id="profile-actions" hidden><button id="profile-add-friend" type="button">Add friend</button><button id="profile-message" type="button">Message</button></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
   <div id="error" hidden><h2>Couldn't open the streets.</h2><p id="error-message"></p><button class="primary" id="reload">Try again</button></div>
@@ -547,9 +550,16 @@ async function init() {
   const netStatus=createNetStatus(document.querySelector('.brand-status') as HTMLElement);
   const speaking=createSpeakingList($('hud'));
   const chat = setupChat((text, channel, to) => {
+    // Stored conversations go over HTTP and survive a dropped socket; everything else is live.
+    if (channel === 'pm') return !!to && inbox.send(to, text);
     if (!networkConnected || networkSocket?.readyState !== WebSocket.OPEN) return false;
     networkSocket.send(JSON.stringify({ type: 'chat', text, channel, to })); return true;
-  }, () => { keys.clear(); resetStick(); dragging = false; });
+  }, () => { keys.clear(); resetStick(); dragging = false; }, {
+    opened: userId => void inbox.opened(userId),
+    older: userId => inbox.older(userId),
+    block: userId => void inbox.block(userId),
+    report: userId => inbox.report(userId),
+  });
   let networkSocket: WebSocket | null = null;
   if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value),{get:()=>soundRange,set:setSoundRange});
   let networkPlayerId = '';
@@ -644,7 +654,7 @@ async function init() {
   });
   closeGeng = () => gengUI.close();
   const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
-    if (friendsButton) friendsButton.hidden = !session || !!guestName;
+    if (friendsButton) friendsButton.hidden = !accountToken();
     renderProfileActions();
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
     friendsUI.close(); chat.openDm(playerId, name); chat.open();
@@ -659,6 +669,14 @@ async function init() {
       : event === 'declined' || event === 'cancelled' || event === 'removed' ? 'close'
       : event === 'request-sent' ? 'open' : null;
     if (sound) uiSounds.play(sound);
+  }, (userId, handle, name) => {
+    friendsUI.close(); inbox.open({userId, handle, name}); chat.open();
+  });
+  const handleClaim = setupHandleClaim(apiBase, handle => toast('Handle claimed', `Friends can find you as @${handle}.`, 5));
+  const inbox = setupInbox(apiBase, chat.pm, {
+    me: () => displayName(),
+    toast: (title, body) => toast(title, body, 5),
+    report: peer => openConversationReport(peer),
   });
   const stick = $('move-stick'), thumb = $('stick-thumb');
   let stickId: number | null = null, stickX = 0, stickY = 0;
@@ -1226,7 +1244,7 @@ async function init() {
         if (!connectedOnceThisEntry) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         carFinder.clear();
-        socket.send(JSON.stringify({ type: 'join', sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined }));
+        socket.send(JSON.stringify({ type: 'join', sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined, standInToken: guestName ? standInTokenFor() || undefined : undefined }));
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
@@ -1252,6 +1270,21 @@ async function init() {
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
         if (message.type === 'welcome' && message.id) { voice.transport((message as any).voiceTransport || 'legacy'); const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
+        if (message.type === 'welcome' && message.id) {
+          // Dev only: the server hands a guest a stand-in account for handles and stored messages.
+          const standIn = (message as unknown as {standIn?: {token?: string}}).standIn;
+          if (standIn?.token && guestName) { setStandInToken(standIn.token); void friendsUI.refresh(); }
+          if (friendsButton) friendsButton.hidden = !accountToken();
+          if (accountToken()) void inbox.login();
+        }
+        if (message.type === 'handle-required') {
+          keys.clear(); resetStick(); dragging = false;
+          handleClaim.require(String((message as unknown as {suggestion?: string}).suggestion || ''));
+        }
+        if (message.type === 'dm-new') {
+          const pushed = message as unknown as {message?: StoredMessage; from?: Peer};
+          if (pushed.message) { inbox.receive(pushed.message, pushed.from); chatPop(); }
+        }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else $('profile-details').textContent = 'This player has left the city.'; }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
@@ -1448,7 +1481,7 @@ async function init() {
   friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
   $('menu').before(shopButton,inventoryButton,gengButton,friendsButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
-  friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!session||!!guestName;
+  friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!accountToken();
 
   $('open-shop').onclick = () => itemShop.open();
   function start() {
@@ -1458,7 +1491,7 @@ async function init() {
     $('open-my-profile').hidden = !session || !!guestName;
     $('open-edit-profile').hidden = !session || !!guestName;
     $('open-security').hidden = !session || !!guestName;
-    if (friendsButton) friendsButton.hidden = !session || !!guestName;
+    if (friendsButton) friendsButton.hidden = !accountToken();
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
     void itemShop.enter();
@@ -1486,7 +1519,7 @@ async function init() {
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
-    inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); clearGuest();
+    inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); inbox.reset(); clearStandIn(); clearGuest();
     if (friendsButton) friendsButton.hidden = true;
     onlinePlayersDialog.close();
     finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
@@ -1853,27 +1886,38 @@ async function init() {
   $('message-player').onclick = () => { closeOptions(); chat.openDm(selectedProfileId, selectedName); chat.open(); };
   $('leave-party').onclick = () => { closeOptions(); if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'party-leave'})); };
   const reportDialog = $<HTMLDialogElement>('report-player-dialog');
-  let reportTargetId = '';
+  let reportTargetId = '', reportAccountId = '';
+  const reportSurface = $<HTMLSelectElement>('report-surface');
+  const reportPrivacy = $('report-privacy').textContent || '';
   $('report-player').onclick = () => {
-    closeOptions(); reportTargetId = selectedProfileId;
+    closeOptions(); reportTargetId = selectedProfileId; reportAccountId = '';
     $('report-target').textContent = `You are reporting ${selectedName}.`;
+    reportSurface.disabled = false; if (reportSurface.value === 'dm') reportSurface.value = 'behaviour';
+    $('report-privacy').textContent = reportPrivacy;
     $<HTMLTextAreaElement>('report-note').value = '';
     reportDialog.showModal();
   };
+  // A conversation is reported by account; the server attaches the recent messages itself.
+  function openConversationReport(peer: Peer) {
+    reportTargetId = ''; reportAccountId = peer.userId;
+    $('report-target').textContent = `You are reporting ${peer.handle ? `@${peer.handle}` : peer.name} for private messages.`;
+    reportSurface.value = 'dm'; reportSurface.disabled = true;
+    $('report-privacy').textContent = 'Your recent private messages with them are attached, exactly as they were sent.';
+    $<HTMLTextAreaElement>('report-note').value = '';
+    reportDialog.showModal();
+  }
   $('cancel-report').onclick = () => { reportDialog.close(); canvas.focus(); };
   reportDialog.addEventListener('cancel', event => { event.preventDefault(); reportDialog.close(); canvas.focus(); });
   reportDialog.addEventListener('keydown', event => event.stopPropagation());
   $('report-form').addEventListener('submit', () => {
     // The server decides whether this counts, who was in earshot and what gets stored;
     // the client only carries the reporter's answers across.
-    if (reportTargetId && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({
-      type: 'report', id: reportTargetId,
-      surface: $<HTMLSelectElement>('report-surface').value,
-      reason: $<HTMLSelectElement>('report-reason').value,
-      note: $<HTMLTextAreaElement>('report-note').value,
-    }));
+    const reason = $<HTMLSelectElement>('report-reason').value, note = $<HTMLTextAreaElement>('report-note').value;
+    if ((reportTargetId || reportAccountId) && networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify(reportAccountId
+      ? { type: 'report', surface: 'dm', userId: reportAccountId, reason, note }
+      : { type: 'report', id: reportTargetId, surface: reportSurface.value, reason, note }));
     else toast('Report not sent', 'Reconnect to the city and try again.');
-    reportTargetId = ''; canvas.focus();
+    reportTargetId = ''; reportAccountId = ''; canvas.focus();
   });
   $('open-my-profile').onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
   $('close-profile').onclick = () => { profile.close(); profileActions.hidden = true; canvas.focus(); };
