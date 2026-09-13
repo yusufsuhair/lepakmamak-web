@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {cdnUrl} from './cdn';
 
 /** The Blender PETRONAS Twin Towers (scripts/blender/build_klcc.py). Glass and stainless reflect a
  * small painted sky of their own, never scene.environment, so no other asset changes; at night the
  * curtain wall's emissive mask lights a random spread of windows and the floodlit steel, and the
  * pinnacles glow brightest, the way the real towers read after dark. */
-export const KLCC_URL = '/assets/models/environment/LM_ENV_KLCC.glb?v=klcc-v2';
+// Served from R2 with brotli (1.17 MB meshopt -> 0.33 MB on the wire): it loads on the landing screen.
+export const KLCC_URL = cdnUrl('assets/models/environment/LM_ENV_KLCC.glb');
 export const klccStatus = {state: 'loading' as 'loading' | 'ready' | 'fallback', night: false};
 
 const nightUniform = {value: 0};
