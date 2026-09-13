@@ -41,3 +41,18 @@
 #game-friends .friends-confirm-actions .danger{border-color:#c18a7b;background:#f1d5cd;color:#7b2d20}
 @media(max-width:600px){#game-friends{width:calc(100vw - 14px);max-height:calc(100dvh - 14px);border-radius:13px}#game-friends header{padding:18px 16px 13px}#game-friends header h2{font-size:27px}#game-friends section,#game-friends>.friends-message,#game-friends>.friends-login{margin-left:16px;margin-right:16px}#game-friends li{align-items:flex-start;padding:9px 7px}#game-friends .friend-copy{display:grid;gap:3px}#game-friends .friend-actions{flex-wrap:wrap}.friend-actions button{min-height:39px!important}}
 @media(max-width:600px){#game-friends .friends-confirm-actions{flex-direction:column-reverse}#game-friends .friends-confirm-actions button{width:100%}}
+#handle-claim{width:min(420px,calc(100vw - 28px));padding:0;border:1px solid #a8b891;border-radius:16px;background:#f4f0df;color:#234839;box-shadow:0 24px 90px #10251b66}
+#handle-claim::backdrop{background:#102b24d9;backdrop-filter:blur(5px)}
+#handle-claim .handle-card{display:grid;gap:9px;padding:24px}
+#handle-claim small{font-size:9px;letter-spacing:.18em;font-weight:800;color:#6b806b}
+#handle-claim h2{margin:0;font:800 28px/1.05 'Oxanium',sans-serif;text-transform:uppercase;overflow-wrap:anywhere}
+#handle-claim p{margin:0;color:#597064;font-size:12px;line-height:1.5}
+#handle-claim label{font-size:11px;font-weight:700}
+#handle-claim .handle-field{display:flex;align-items:center;border:1px solid #9caf95;border-radius:8px;background:#fffdf5}
+#handle-claim .handle-field:focus-within{outline:3px solid #d8ee8d;outline-offset:2px}
+#handle-claim .handle-field span{padding:0 2px 0 12px;font:800 16px 'Oxanium',sans-serif}
+#handle-claim input{flex:1;min-width:0;min-height:44px;border:0;background:none;color:#234839;font:700 16px 'Oxanium',sans-serif;outline:none}
+#handle-claim #handle-status{min-height:18px}
+#handle-claim button{min-height:44px;border:0;border-radius:8px;background:#2d674f;color:#f4f2d9;font:800 12px 'Oxanium',sans-serif;cursor:pointer}
+#handle-claim button:disabled{opacity:.5;cursor:default}
+#handle-claim button:focus-visible{outline:3px solid #d8ee8d;outline-offset:2px}
