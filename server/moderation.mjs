@@ -60,6 +60,9 @@ export function createModeration(services = {}) {
         reason: entry.reason,
         note: entry.note || '',
         witnesses: entry.witnesses || [],
+        // Only a DM report has evidence. Leaving the key off otherwise keeps every other report
+        // working on a database that has not been migrated yet.
+        ...(entry.evidence?.length ? { evidence: entry.evidence } : {}),
       });
       if (error) throw new Error('Could not file the report');
     },
