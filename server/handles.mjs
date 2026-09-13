@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import {createRateLimiter} from './limits.mjs';
+import {HttpError, readJson, serveJson} from './social-http.mjs';
+import {cleanDisplayName} from './social-store.mjs';
 
 export const HANDLE = /^[a-z0-9_]{3,18}$/;
 const RESERVED = new Set(['mod', 'moderator', 'gm', 'support', 'system']);
@@ -29,4 +32,76 @@ export function suggestHandle(name, taken = new Set()) {
     if (!handleProblem(candidate) && !taken.has(candidate)) return candidate;
   }
   return `player${crypto.randomInt(100000, 999999999)}`;
+}
+
+export function createHandles({store = null, playerFor = () => null} = {}) {
+  const checks = createRateLimiter({limit: 120, windowMs: 60000});
+  const searches = createRateLimiter({limit: 60, windowMs: 60000});
+  const serve = serveJson({store, methods: 'GET, POST, OPTIONS', unavailable: 'Handles are not available yet.', failure: 'Could not reach handles. Please try again.'});
+
+  // Every candidate a suggestion can produce starts with the first 12 characters of its base,
+  // so one prefix query answers them all.
+  async function suggestFor(text) {
+    const taken = new Set((await store.searchHandles(handleBase(text).slice(0, 12), 1000)).map(row => row.handle));
+    return suggestHandle(text, taken);
+  }
+
+  async function required(userId, name) {
+    if (!store || !userId || await store.handleFor(userId)) return null;
+    return suggestFor(name);
+  }
+
+  async function search(user, url) {
+    if (!searches(user.id)) throw new HttpError(429, 'Slow down.', {retryAfter: 60});
+    const query = cleanHandle(url.searchParams.get('q'));
+    if (!/^[a-z0-9_]{1,18}$/.test(query)) return {results: []};
+    const found = (await store.searchHandles(query, 21)).filter(row => row.userId !== user.id).slice(0, 20);
+    const offline = found.map(row => row.userId).filter(id => !playerFor(id));
+    const [names, friendships] = await Promise.all([store.names(offline), store.friendships(user.id)]);
+    const relations = new Map();
+    for (const row of friendships) {
+      const other = row.user_id === user.id ? row.friend_id : row.user_id;
+      if (row.status === 'accepted') relations.set(other, 'friend');
+      else if (relations.get(other) !== 'friend') relations.set(other, 'pending');
+    }
+    return {results: found.map(row => {
+      const live = playerFor(row.userId);
+      return {userId: row.userId, handle: row.handle, name: cleanDisplayName(live?.name || names.get(row.userId)), online: !!live, relation: relations.get(row.userId) || 'none'};
+    })};
+  }
+
+  async function route(user, request, url) {
+    if (url.pathname === '/handles/claim' && request.method === 'POST') {
+      const input = await readJson(request, 4096);
+      const handle = cleanHandle(input?.handle);
+      const problem = handleProblem(handle);
+      if (problem) {
+        const message = problem === 'reserved' ? 'That handle is reserved.' : 'Handles are 3 to 18 letters, numbers or _.';
+        throw new HttpError(422, message, {error: problem, message, suggestion: await suggestFor(handle || user.name)});
+      }
+      const result = await store.claimHandle(user.id, handle);
+      if (result === 'claimed') throw new HttpError(409, 'Your handle is permanent.', {error: 'claimed', message: 'Your handle is permanent.', handle: await store.handleFor(user.id)});
+      // Losing a race to the unique index lands here as well, with a fresh suggestion.
+      if (result === 'taken') throw new HttpError(409, 'That handle is taken.', {error: 'taken', message: 'That handle is taken.', suggestion: await suggestFor(handle)});
+      return {handle};
+    }
+    if (url.pathname === '/handles/check' && request.method === 'GET') {
+      if (!checks(user.id)) throw new HttpError(429, 'Slow down.', {retryAfter: 60});
+      const handle = cleanHandle(url.searchParams.get('h'));
+      const problem = handleProblem(handle);
+      if (problem) return {available: false, reason: problem};
+      return {available: !(await store.ownerOf(handle))};
+    }
+    if (url.pathname === '/players/search' && request.method === 'GET') return search(user, url);
+    throw new HttpError(404, 'Not found');
+  }
+
+  async function handle(request, response) {
+    const url = new URL(request.url, 'http://localhost');
+    if (!url.pathname.startsWith('/handles/') && url.pathname !== '/players/search') return false;
+    await serve(request, response, user => route(user, request, url));
+    return true;
+  }
+
+  return {handle, required, suggestFor};
 }
