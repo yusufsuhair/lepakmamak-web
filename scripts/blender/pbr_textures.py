@@ -1,4 +1,4 @@
-"""Procedural, tileable PBR textures for Pantai Senja, generated with numpy inside Blender.
+"""Procedural, tileable PBR textures for photographic venues (first made for Pantai Senja), built with numpy in Blender.
 
 Every field is synthesised in Fourier space (random phase, shaped amplitude), so it wraps
 seamlessly by construction; normal maps are finite differences with np.roll, which wrap too.
