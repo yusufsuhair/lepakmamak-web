@@ -123,6 +123,7 @@ $('app').innerHTML = `
     </div>
   </div>
   <audio id="background-music" crossorigin="anonymous" loop preload="none" aria-hidden="true"></audio>
+  <audio id="lofi-music" crossorigin="anonymous" preload="none" aria-hidden="true"></audio>
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
     <div class="intro-top"><div class="brand"><img class="brand-mark" src="/icon-80.png" width="28" height="28" alt="" /> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
@@ -151,6 +152,16 @@ $('reload').onclick = () => location.reload();
 const backgroundMusic = $<HTMLAudioElement>('background-music');
 backgroundMusic.volume = .06;
 backgroundMusic.loop = true;
+// background-short.mp3 is the city ambience. The lofi is the actual background song, laid over it
+// and rotated between two tracks. Measured with ffmpeg ebur128: city -18.7 LUFS, lofi1 -18.4,
+// lofi2 -17.4. Each track is trimmed to the city's loudness so the rotation never jumps in volume,
+// then sat 1.6 dB under the city so it stays a soothing bed rather than the loudest thing playing.
+const LOFI_UNDER_CITY = .83;
+const LOFI_TRACKS = [{file: 'lofi1.mp3', trim: .966}, {file: 'lofi2.mp3', trim: .861}] as const;
+const lofiMusic = $<HTMLAudioElement>('lofi-music');
+let lofiTrack = Math.floor(Math.random() * LOFI_TRACKS.length);
+let lofiGain: GainNode | null = null;
+function lofiLevel() { return LOFI_UNDER_CITY * LOFI_TRACKS[lofiTrack].trim; }
 function showLoading(title: string, detail: string, progress: number) {
   const value = Math.max(0, Math.min(100, progress));
   $('loading-title').textContent = title; $('loading-detail').textContent = detail;
@@ -822,6 +833,12 @@ async function init() {
   let musicContext: AudioContext | null = null;
   let musicGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
+  lofiMusic.addEventListener('ended', () => {
+    lofiTrack = (lofiTrack + 1) % LOFI_TRACKS.length;
+    if (lofiGain) lofiGain.gain.value = lofiLevel();
+    lofiMusic.src = cdnUrl(LOFI_TRACKS[lofiTrack].file);
+    if (musicEnabled && started) void lofiMusic.play().catch(() => {});
+  });
   function startBackgroundMusic(force = false) {
     // Entering the city starts the simulation before the socket has admitted the player.
     // Do not let a click on the sign-in form turn that short interval into a music preview.
@@ -832,12 +849,16 @@ async function init() {
         skyMusic = createSkyMusic(musicContext);
         musicGain = musicContext.createGain(); musicGain.gain.value = .06 * audioVolume('music');
         musicContext.createMediaElementSource(backgroundMusic).connect(musicGain); musicGain.connect(musicContext.destination);
+        lofiGain = musicContext.createGain(); lofiGain.gain.value = lofiLevel();
+        musicContext.createMediaElementSource(lofiMusic).connect(lofiGain); lofiGain.connect(musicGain);
         backgroundMusic.volume = 1;
       }
       if (musicContext.state === 'suspended') void musicContext.resume().catch(() => {});
     } catch { /* Retain the quieter media-element fallback where supported. */ }
     // Attached here, not in the markup, so a player with music off never downloads the track.
     if (!backgroundMusic.hasAttribute('src')) backgroundMusic.src = cdnUrl('background-short.mp3');
+    if (!lofiMusic.hasAttribute('src')) lofiMusic.src = cdnUrl(LOFI_TRACKS[lofiTrack].file);
+    void lofiMusic.play().catch(() => { /* Retried on the next interaction, like the city track. */ });
     void backgroundMusic.play().catch(() => {
       // Browsers can still reject playback when the user starts with the keyboard.
       // The next user interaction will try again without interrupting the game.
@@ -859,7 +880,7 @@ async function init() {
     } else if (!song.paused) song.pause();
   }
   document.addEventListener('pointerdown', () => {
-    if (started && ((musicEnabled && (backgroundMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && audioContext?.state === 'suspended'))) { ensureAudio(); startBackgroundMusic(); }
+    if (started && ((musicEnabled && (backgroundMusic.paused || lofiMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && audioContext?.state === 'suspended'))) { ensureAudio(); startBackgroundMusic(); }
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
@@ -1523,7 +1544,7 @@ async function init() {
     inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); inbox.reset(); clearStandIn(); clearGuest();
     if (friendsButton) friendsButton.hidden = true;
     onlinePlayersDialog.close();
-    finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
+    finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); lofiMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
@@ -1662,7 +1683,7 @@ async function init() {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
     vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    if (musicEnabled && started) startBackgroundMusic(true); else backgroundMusic.pause();
+    if (musicEnabled && started) startBackgroundMusic(true); else { backgroundMusic.pause(); lofiMusic.pause(); }
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;stallVoiceSong.pause();if(stallVoiceGain)stallVoiceGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
@@ -2178,6 +2199,7 @@ async function init() {
     musicDuck += ((tableSocial.playing || skyDining ? 0 : 1) - musicDuck) * .08;
     skyMusic?.update(started && !paused && skyDining && musicEnabled, tableSocial.playing, audioVolume('music'));
     backgroundMusic.volume=(musicContext?1:.06*audioVolume('music'))*((riding||passengerOf)? .15:1)*musicDuck;
+    lofiMusic.volume=(musicContext?1:.06*audioVolume('music')*lofiLevel())*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;
     jumpButton.textContent = riding ? 'BRAKE' : 'JUMP'; jumpButton.setAttribute('aria-label', riding ? 'Brake' : 'Jump');
     const area = districtFor(pos.z,pos.x);

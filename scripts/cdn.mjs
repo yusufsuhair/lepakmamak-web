@@ -26,7 +26,7 @@ const FOLDERS = {'.mp3': 'audio', '.glb': 'models'};
 // not compress model/gltf-binary on its own. Audio is already entropy-coded.
 const ENCODINGS = {'.glb': 'br'};
 /** Paths under public/. Only assets the game still loads belong here. */
-export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3',
+export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3', 'lofi1.mp3', 'lofi2.mp3',
   'assets/models/environment/LM_ENV_MamakMaju_Realism.glb', 'assets/models/environment/LM_ENV_Petronas.glb', 'assets/models/environment/LM_ENV_Rembayung.glb',
   'assets/models/environment/LM_ENV_Beach.glb', 'assets/models/environment/LM_ENV_KLCC.glb',
   'assets/models/environment/LM_ENV_Masjid.glb', 'assets/models/environment/LM_ENV_Furniture.glb'];
