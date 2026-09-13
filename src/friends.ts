@@ -1,4 +1,4 @@
-import {guestName, session} from './auth';
+import {accountToken} from './account-token';
 import {fillSocialSkeleton} from './social-skeleton';
 import './friends.css';
 
@@ -7,6 +7,7 @@ export type FriendRequest = {id: string; name: string; requestedAt?: string; pla
 export type FriendState = {friends: Friend[]; incoming: FriendRequest[]; outgoing: FriendRequest[]};
 export type FriendRelation = 'friend' | 'incoming' | 'outgoing' | 'none';
 export type FriendEvent = 'request-sent' | 'request-received' | 'accepted' | 'declined' | 'cancelled' | 'removed' | 'notifications-cleared';
+export type SearchResult = {userId: string; handle: string; name: string; online: boolean; relation: 'none' | 'pending' | 'friend'};
 
 export function setupFriends(
   endpoint: string,
@@ -14,12 +15,14 @@ export function setupFriends(
   release: () => void = () => {},
   messageFriend: (playerId: string, name: string) => void = () => {},
   onEvent: (event: FriendEvent, unread: number) => void = () => {},
+  messageAccount: (userId: string, handle: string, name: string) => void = () => {},
 ) {
   const dialog = document.createElement('dialog');
   dialog.id = 'game-friends'; dialog.setAttribute('aria-labelledby', 'game-friends-title');
   dialog.innerHTML = `<div class="friends-shell">
     <header><div><small>LEPAKMAMAK · SOCIAL</small><h2 id="game-friends-title">Friends</h2><p>Keep your lepak crew close.</p></div><button type="button" aria-label="Close Friends">×</button></header>
     <p id="friends-message" class="friends-message" role="status" aria-live="polite"></p>
+    <section id="friends-search-section" aria-labelledby="friends-search-title"><div class="friends-section-head"><div><small>FIND PLAYERS</small><h3 id="friends-search-title">Search by handle</h3></div></div><input id="friends-search" class="friends-search" type="search" placeholder="@handle" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="19" aria-label="Search players by handle"><ul id="friends-results"></ul></section>
     <section aria-labelledby="friends-list-title"><div class="friends-section-head"><div><small>YOUR CREW</small><h3 id="friends-list-title">Friend List</h3></div><span id="friends-count">0</span></div><ul id="friends-list"></ul></section>
     <section aria-labelledby="friends-incoming-title"><div class="friends-section-head"><div><small>WAITING FOR YOU</small><h3 id="friends-incoming-title">Friend requests</h3></div></div><ul id="friends-incoming"></ul></section>
     <section aria-labelledby="friends-outgoing-title"><div class="friends-section-head"><div><small>ON THE WAY</small><h3 id="friends-outgoing-title">Sent requests</h3></div></div><ul id="friends-outgoing"></ul></section>
@@ -42,14 +45,72 @@ export function setupFriends(
   let pendingRemoval: {id: string; name: string} | null = null;
   const unreadIncoming = new Set<string>();
   const base = endpoint.replace(/^ws/i, 'http').replace(/\/ws\/?$/, '').replace(/\/$/, '');
-  const loggedIn = () => !!session && !guestName;
+  const loggedIn = () => !!accountToken();
 
   function empty(text: string) {
     const row = document.createElement('li'); row.className = 'friends-empty'; row.textContent = text; return row;
   }
 
+  const searchSection = el('friends-search-section');
+  const searchInput = el<HTMLInputElement>('friends-search');
+  const results = el('friends-results');
+  let found: SearchResult[] = [];
+  let searchTimer = 0, searchSeq = 0;
+
+  function renderResults() {
+    results.replaceChildren();
+    for (const result of found) {
+      const row = document.createElement('li'); row.className = 'friend-row friend-result';
+      const copy = document.createElement('span'); copy.className = 'friend-copy';
+      const initial = document.createElement('i'); initial.className = 'friend-initial'; initial.setAttribute('aria-hidden', 'true');
+      initial.textContent = (result.name || result.handle).slice(0, 1).toUpperCase();
+      const names = document.createElement('span');
+      const handle = document.createElement('strong'); handle.textContent = `@${result.handle}`;
+      const name = document.createElement('small'); name.className = 'friend-name'; name.textContent = result.name;
+      names.append(handle, name);
+      const status = document.createElement('small'); status.className = result.online ? 'is-online' : 'is-offline'; status.textContent = result.online ? 'Online' : 'Offline';
+      copy.append(initial, names, status);
+      const actions = document.createElement('span'); actions.className = 'friend-actions';
+      const chat = document.createElement('button'); chat.type = 'button'; chat.textContent = 'Message';
+      chat.onclick = () => messageAccount(result.userId, result.handle, result.name);
+      const add = document.createElement('button'); add.type = 'button'; add.dataset.uiSound = 'none';
+      add.textContent = result.relation === 'friend' ? 'Friends' : result.relation === 'pending' ? 'Pending' : 'Add friend';
+      if (result.relation === 'none') add.className = 'primary';
+      add.disabled = result.relation !== 'none' || busy;
+      // The same request flow as everywhere else; the result only mirrors what it did.
+      add.onclick = async () => {
+        await mutate('request', {id: result.userId}, 'Friend request sent.', 'request-sent');
+        const relation = relationship(result.userId);
+        if (relation !== 'none') result.relation = relation === 'friend' ? 'friend' : 'pending';
+        renderResults();
+      };
+      actions.append(chat, add); row.append(copy, actions); results.append(row);
+    }
+  }
+
+  async function search() {
+    const query = searchInput.value.trim().replace(/^@/, '').toLowerCase();
+    const mine = ++searchSeq;
+    if (!query || !base || !loggedIn()) { found = []; renderResults(); return; }
+    try {
+      const response = await fetch(`${base}/players/search?q=${encodeURIComponent(query)}`, {headers: {Authorization: `Bearer ${accountToken()}`}});
+      const data = await response.json().catch(() => ({}));
+      if (mine !== searchSeq) return;
+      if (!response.ok) throw Error(data.error || 'Search is not available right now.');
+      found = Array.isArray(data.results) ? data.results : [];
+      renderResults();
+      if (!found.length) results.append(empty('No players with that handle.'));
+    } catch (error) {
+      if (mine !== searchSeq) return;
+      found = []; renderResults();
+      results.append(empty(error instanceof Error ? error.message : 'Search failed.'));
+    }
+  }
+  searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = window.setTimeout(() => void search(), 250); });
+
   function render() {
     const state = currentState;
+    searchSection.hidden = !loggedIn();
     const list = el('friends-list'); list.replaceChildren();
     const incoming = el('friends-incoming'); incoming.replaceChildren();
     const outgoing = el('friends-outgoing'); outgoing.replaceChildren();
@@ -118,7 +179,7 @@ export function setupFriends(
     if (!base || !loggedIn()) throw Error('Log in to use Friends.');
     const response = await fetch(`${base}/friends/${path}`, {
       method: body === undefined ? 'GET' : 'POST',
-      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}`},
+      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${accountToken()}`},
       ...(body === undefined ? {} : {body: JSON.stringify(body)}),
     });
     const data = await response.json().catch(() => ({}));
@@ -225,6 +286,7 @@ export function setupFriends(
     open() {
       if (unreadIncoming.size) { unreadIncoming.clear(); onEvent('notifications-cleared', 0); }
       release(); if (!dialog.open) dialog.showModal(); void refresh(false);
+      if (searchInput.value) void search();
     },
     close() { if (dialog.open) dialog.close(); },
     refresh,

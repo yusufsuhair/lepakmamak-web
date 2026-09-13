@@ -41,6 +41,11 @@
 #game-friends .friends-confirm-actions .danger{border-color:#c18a7b;background:#f1d5cd;color:#7b2d20}
 @media(max-width:600px){#game-friends{width:calc(100vw - 14px);max-height:calc(100dvh - 14px);border-radius:13px}#game-friends header{padding:18px 16px 13px}#game-friends header h2{font-size:27px}#game-friends section,#game-friends>.friends-message,#game-friends>.friends-login{margin-left:16px;margin-right:16px}#game-friends li{align-items:flex-start;padding:9px 7px}#game-friends .friend-copy{display:grid;gap:3px}#game-friends .friend-actions{flex-wrap:wrap}.friend-actions button{min-height:39px!important}}
 @media(max-width:600px){#game-friends .friends-confirm-actions{flex-direction:column-reverse}#game-friends .friends-confirm-actions button{width:100%}}
+#game-friends .friends-search{display:block;width:100%;box-sizing:border-box;min-height:42px;margin-top:12px;padding:0 12px;border:1px solid #9caf95;border-radius:8px;background:#fffdf5;color:#234839;font:600 16px 'Oxanium',sans-serif}
+#game-friends .friends-search:focus-visible{outline:3px solid #d8ee8d;outline-offset:2px}
+#game-friends .friend-initial{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:#2d674f;color:#f4f2d9;font:800 12px 'Oxanium',sans-serif;font-style:normal}
+#game-friends .friend-copy .friend-name{display:block;padding-left:0;color:#657564;font-size:10px;white-space:normal;overflow-wrap:anywhere}
+#game-friends .friend-copy .friend-name::before{content:none}
 #handle-claim{width:min(420px,calc(100vw - 28px));padding:0;border:1px solid #a8b891;border-radius:16px;background:#f4f0df;color:#234839;box-shadow:0 24px 90px #10251b66}
 #handle-claim::backdrop{background:#102b24d9;backdrop-filter:blur(5px)}
 #handle-claim .handle-card{display:grid;gap:9px;padding:24px}

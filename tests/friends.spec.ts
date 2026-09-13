@@ -189,3 +189,44 @@ test('Friend List announces new requests and confirms friend removal', async ({p
   await expect.poll(() => page.evaluate(() => JSON.stringify((window as any).friendEvents))).toContain('request-received');
   await expect.poll(() => page.evaluate(() => (window as any).friendEvents.at(-1))).toEqual({event: 'request-received', unread: 1});
 });
+
+test('search finds players by handle and offers Message and the existing friend request', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me',user_metadata:{display_name:'Tester'}}};export let guestName='';`}));
+  await page.route('**/friends/state', route => route.fulfill({json: {state: {friends: [], incoming: [], outgoing: []}}}));
+  const queries: string[] = [];
+  await page.route('**/players/search?*', route => {
+    queries.push(new URL(route.request().url()).searchParams.get('q') || '');
+    return route.fulfill({json: {results: [
+      {userId: 'u-1', handle: 'badrul', name: '<b>Badrul</b>', online: true, relation: 'none'},
+      {userId: 'u-2', handle: 'badrulx', name: 'Other', online: false, relation: 'pending'},
+      {userId: 'u-3', handle: 'badrul_3', name: 'Mate', online: false, relation: 'friend'},
+    ]}});
+  });
+  let requested: unknown = null;
+  await page.route('**/friends/request', route => {
+    requested = route.request().postDataJSON();
+    return route.fulfill({json: {result: {requested: true}, state: {friends: [], incoming: [], outgoing: [{id: 'u-1', name: 'Badrul'}]}}});
+  });
+  await page.route('**/friends-search-harness', route => route.fulfill({contentType: 'text/html', body: `<main><script type="module">import {setupFriends} from '/src/friends.ts';window.opened=[];window.friendApi=setupFriends('http://friends.test',()=>{},()=>{},()=>{},()=>{},(userId,handle,name)=>window.opened.push({userId,handle,name}));window.friendApi.open();</script></main>`}));
+  await page.goto('/friends-search-harness');
+
+  await page.getByRole('searchbox', {name: 'Search players by handle'}).fill('@Bad');
+  const results = page.locator('.friend-result');
+  await expect(results).toHaveCount(3);
+  expect(queries).toEqual(['bad']);
+  await expect(results.nth(0)).toContainText('@badrul');
+  await expect(results.nth(0)).toContainText('<b>Badrul</b>');
+  await expect(results.nth(0)).toContainText('Online');
+  await expect(results.nth(1)).toContainText('Offline');
+  await expect(page.locator('#game-friends b, #game-friends img')).toHaveCount(0);
+  await expect(results.nth(1).getByRole('button', {name: 'Pending'})).toBeDisabled();
+  await expect(results.nth(2).getByRole('button', {name: 'Friends'})).toBeDisabled();
+
+  await results.nth(0).getByRole('button', {name: 'Add friend'}).click();
+  await expect(results.nth(0).getByRole('button', {name: 'Pending'})).toBeDisabled();
+  expect(requested).toEqual({id: 'u-1'});
+  await results.nth(0).getByRole('button', {name: 'Message'}).click();
+  expect(await page.evaluate(() => (window as any).opened)).toEqual([{userId: 'u-1', handle: 'badrul', name: '<b>Badrul</b>'}]);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
