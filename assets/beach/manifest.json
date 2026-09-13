@@ -5,7 +5,18 @@
     0,
     0
   ],
+  "shore": {
+    "sandY": 0.02,
+    "foreshore": [
+      150.3,
+      153.3
+    ],
+    "nearY": -0.035,
+    "seaY": -0.012
+  },
   "props": [
+    "sand terrain to z 180",
+    "boardwalk",
     "kelapa stall",
     "2 rope hammocks",
     "4 tables",
@@ -14,9 +25,29 @@
     "3 loungers",
     "fire ring",
     "promenade sign frame",
-    "2 lamp posts"
+    "2 lamp posts",
+    "3 pandan laut",
+    "7 tapak kuda patches",
+    "beach grass",
+    "8 granite boulders",
+    "driftwood, fronds, husks, seaweed and shells",
+    "no-swimming flag"
   ],
-  "triangles": 16432,
-  "bytes": 750540,
-  "draws": 29
+  "textures": [
+    "bark_color",
+    "bark_normal",
+    "fabric_color",
+    "fabric_normal",
+    "granite_color",
+    "granite_normal",
+    "sand_color",
+    "sand_normal",
+    "thatch_color",
+    "thatch_normal",
+    "wood_color",
+    "wood_normal"
+  ],
+  "triangles": 48465,
+  "bytes": 2900556,
+  "draws": 52
 }
