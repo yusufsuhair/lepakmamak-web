@@ -191,3 +191,58 @@ test('blocking hides that sender from unread, and unblocking works', async () =>
     expect(await box.store.isBlocked(box.badrul.userId, box.alya.userId)).toBe(false);
   } finally { await box.http.close(); }
 });
+
+// Wraps a real store so isBlocked/handleFor/insertMessage each cross a real tick before
+// resolving, the way a network round trip to Supabase would. The rate limit used to be a
+// separate check() then note() with two such awaits in between, so a burst of concurrent
+// requests all read "under the limit" before any of them recorded a send.
+function delayed(store: any, ms: number) {
+  const wait = () => new Promise(resolve => setTimeout(resolve, ms));
+  return new Proxy(store, {
+    get(target, prop: string) {
+      const value = target[prop];
+      if ((prop === 'isBlocked' || prop === 'handleFor' || prop === 'insertMessage') && typeof value === 'function') {
+        return async (...args: unknown[]) => { await wait(); return value.apply(target, args); };
+      }
+      return value;
+    },
+  });
+}
+
+test('a slow store cannot be raced past the per-recipient rate limit', async () => {
+  const store = createMemorySocialStore();
+  const alya = store.issueStandIn('Alya'), badrul = store.issueStandIn('Badrul');
+  await store.claimHandle(alya.userId, 'alya');
+  await store.claimHandle(badrul.userId, 'badrul');
+  const moderation = {status: async () => ({banned: false, muted: false})};
+  const messages = createMessages({store: delayed(store, 10), moderation});
+  const http = await listen(messages.handle);
+  try {
+    const results = await Promise.all(Array.from({length: 12}, (_, n) =>
+      http.call(alya.token, 'POST', '/messages', {to: badrul.userId, body: `m${n}`, clientId: `c-${n}`})));
+    expect(results.filter(r => r.status === 200)).toHaveLength(5);
+    expect(results.filter(r => r.status === 429)).toHaveLength(7);
+    expect(await store.conversation(alya.userId, badrul.userId)).toHaveLength(5);
+  } finally { await http.close(); }
+});
+
+test('a slow store cannot be raced past the per-minute rate limit either', async () => {
+  const store = createMemorySocialStore();
+  const alya = store.issueStandIn('Alya');
+  await store.claimHandle(alya.userId, 'alya');
+  const recipients = Array.from({length: 6}, (_, n) => store.issueStandIn(`R${n}`));
+  await Promise.all(recipients.map((r, n) => store.claimHandle(r.userId, `r${n}`)));
+  const moderation = {status: async () => ({banned: false, muted: false})};
+  const messages = createMessages({store: delayed(store, 10), moderation});
+  const http = await listen(messages.handle);
+  try {
+    // 24 sends round-robined over 6 recipients: 4 each, well under the 5-per-recipient cap,
+    // so only the 20-per-minute total cap can bind.
+    const results = await Promise.all(Array.from({length: 24}, (_, n) =>
+      http.call(alya.token, 'POST', '/messages', {to: recipients[n % 6].userId, body: `m${n}`, clientId: `c-${n}`})));
+    expect(results.filter(r => r.status === 200)).toHaveLength(20);
+    expect(results.filter(r => r.status === 429)).toHaveLength(4);
+    const counts = await Promise.all(recipients.map(r => store.conversation(alya.userId, r.userId)));
+    expect(counts.reduce((total, rows) => total + rows.length, 0)).toBe(20);
+  } finally { await http.close(); }
+});

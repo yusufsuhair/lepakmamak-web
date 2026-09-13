@@ -15,10 +15,16 @@ export const cleanBody = value => typeof value === 'string' ? value.replace(/\p{
 
 // ponytail: per-process windows, like server/limits.mjs. A shared store only matters if the
 // realtime service ever runs more than one instance.
+//
+// check and note used to be two separate calls, straddling two `await`s (the handle lookup
+// and the insert) in send() below. Every request in a parallel burst read the same "not yet
+// over the limit" state before any of them recorded a send, so a burst sailed straight through
+// both windows. take() collapses them into one synchronous call: the record happens in the
+// same tick as the decision, so nothing can interleave between "allowed" and "recorded".
 export function createSendLimit({now = Date.now} = {}) {
   const sent = new Map();
   return {
-    check(sender, recipient) {
+    take(sender, recipient) {
       const at = now();
       if (sent.size > 5000) for (const [key, entries] of sent) if (!entries.length || at - entries.at(-1).at >= 60000) sent.delete(key);
       const recent = (sent.get(sender) || []).filter(entry => at - entry.at < 60000);
@@ -26,11 +32,8 @@ export function createSendLimit({now = Date.now} = {}) {
       if (recent.length >= 20) return Math.max(1, Math.ceil((recent[recent.length - 20].at + 60000 - at) / 1000));
       const toThem = recent.filter(entry => entry.to === recipient && at - entry.at < 10000);
       if (toThem.length >= 5) return Math.max(1, Math.ceil((toThem[toThem.length - 5].at + 10000 - at) / 1000));
+      recent.push({at, to: recipient});
       return 0;
-    },
-    note(sender, recipient) {
-      if (!sent.has(sender)) sent.set(sender, []);
-      sent.get(sender).push({at: now(), to: recipient});
     },
   };
 }
@@ -64,15 +67,17 @@ export function createMessages({store = null, moderation = createModeration(), l
     if (liveGame(user.id)) throw new HttpError(403, 'Geng dan DM ditutup masa main. Guna chat meja.');
     // 3. A block reads exactly like an unknown player: no fake delivery, no hint of the block.
     if (await store.isBlocked(to, user.id)) throw new HttpError(403, REFUSED);
-    // 4. Per sender account.
-    const retryAfter = limit.check(user.id, to);
-    if (retryAfter) throw new HttpError(429, 'Slow down.', {retryAfter});
+    // 4. A refused recipient (unknown, or no handle) must not spend rate-limit budget, so this
+    // runs before the limit.
     if (!(await store.handleFor(to))) throw new HttpError(403, REFUSED);
+    // 5. Per sender account. Synchronous and records the send in the same tick as the decision
+    // — see the comment on createSendLimit for why that matters under concurrent requests.
+    const retryAfter = limit.take(user.id, to);
+    if (retryAfter) throw new HttpError(429, 'Slow down.', {retryAfter});
 
     const {message, created} = await store.insertMessage({senderId: user.id, recipientId: to, body, clientId});
     const out = shown(message);
     if (!created) return {message: out, online: !!playerFor(to)};
-    limit.note(user.id, to);
     // Written first, pushed second: a socket that closed in between loses nothing.
     let online = false;
     try { online = !!push(to, {type: 'dm-new', message: out, from: {userId: user.id, handle: await store.handleFor(user.id), name: user.name}}); }
