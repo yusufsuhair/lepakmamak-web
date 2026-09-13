@@ -620,6 +620,8 @@ webSocketServer.on('connection', ws => {
           evidence = found.evidence;
         } catch { send(ws, { type: 'notice', message: 'Could not file that report. Please try again in a moment.' }); return; }
         if (!player || !currentRoom) return;
+        // No conversation, nothing for a moderator to read: refuse rather than file an empty report.
+        if (!evidence.length) { send(ws, { type: 'notice', message: 'Open the conversation you want to report.' }); return; }
         surface = 'dm';
       } else {
         target = currentRoom.players.get(message.id);

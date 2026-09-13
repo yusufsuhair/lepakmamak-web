@@ -73,8 +73,12 @@ test('on dev a guest gets a stand-in, claims a handle, and messages across rooms
     expect((await server.call(A.token, 'GET', '/players/search?q=badrul')).body.results[0].relation).toBe('friend');
 
     // A DM report is accepted by account; on dev there is no report table, so it fails politely.
+    // No conversation with Chong, so nothing to report.
+    const chong = await server.join('kampung', 'Chong');
+    back.ws.send(JSON.stringify({type: 'report', surface: 'dm', userId: chong.welcome.standIn.userId, reason: 'harassment', note: ''}));
+    await expect.poll(() => back.seen.find(m => m.type === 'notice' && /conversation/.test(m.message))?.message).toBe('Open the conversation you want to report.');
     back.ws.send(JSON.stringify({type: 'report', surface: 'dm', userId: A.userId, reason: 'harassment', note: ''}));
-    await expect.poll(() => back.seen.find(m => m.type === 'notice' && /report/i.test(m.message))?.message).toBe('Could not file that report. Please try again in a moment.');
+    await expect.poll(() => back.seen.findLast(m => m.type === 'notice' && /report/i.test(m.message))?.message).toBe('Could not file that report. Please try again in a moment.');
   } finally { server.stop(); }
 });
 
