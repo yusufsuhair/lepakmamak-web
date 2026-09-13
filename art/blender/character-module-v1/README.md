@@ -24,7 +24,9 @@ The existing inventory now offers Body, Hair, Hair colour, Skin tone, Tops, Bott
 
 The city, bike riders, car drivers, NPCs, shop try-on and wardrobe all use `src/character-assets.ts` through the existing `createPerson` API. Stable limb/visual slots preserve dance elbows and gameplay props during asynchronous appearance changes. Models share cached geometry, with per-avatar palette materials. Disposal only releases owned palette materials. Avatar meshes opt out of static city batching so fallback bodies cannot become permanent ghost geometry.
 
-The browser exports target approximately 10.6k triangles per body plus at most 2.2k per hairstyle/tudung, with 12 body/style draws before accessories. All 38 GLBs together are approximately 2.2 MB before HTTP compression; individual avatars load a body and one style. The editable sculpt retains more detail than the web exports. These exports are stylised cute characters with sculpted facial forms; they do not include photoreal skin scans, facial blendshapes, strand simulation or cloth simulation. Existing game poses use rigid limb pivots.
+The browser exports target approximately 3.9k triangles per body plus at most 800 per hairstyle/tudung — about 4.7k per avatar — with 12 body/style draws before accessories. All 38 GLBs together are approximately 720 KB after lossless EXT_meshopt_compression and before HTTP compression; individual avatars load a body and one style. The editable sculpt retains far more detail than the web exports.
+
+`BUDGET` in `build.py` is sized against the size an avatar actually draws at: roughly 83px tall for the local player at the default camera, 60px for a neighbour at the mamak, and 280px at minimum zoom or in the wardrobe preview. Every surface is a smooth low-frequency form under smooth shading, so the silhouette rather than the triangle count carries the read. The first pass spent 5000 triangles on the head alone — nearly half the body — which is why the head is where most of the reduction came from. Remote avatars past 22 m or outside the nearest-24 detail budget are already replaced by a single shared capsule in `src/main.ts`, so the expensive articulated avatars are by construction the near ones; a per-model distance LOD would duplicate that existing mechanism rather than add to it. These exports are stylised cute characters with sculpted facial forms; they do not include photoreal skin scans, facial blendshapes, strand simulation or cloth simulation. Existing game poses use rigid limb pivots.
 
 ## Reproduce
 
@@ -32,6 +34,7 @@ Run from the repository root with Blender 5.2 and project Node dependencies inst
 
 ```sh
 /Applications/Blender.app/Contents/MacOS/Blender --background --python art/blender/character-module-v1/build.py
+node art/blender/character-module-v1/compress.mjs
 /Applications/Blender.app/Contents/MacOS/Blender --background --python art/blender/character-module-v1/render_catalog.py
 npm ci --prefix art/blender/tools
 node art/blender/character-module-v1/validate.mjs
@@ -40,7 +43,7 @@ npm run build
 PLAYWRIGHT_PORT=5197 npx playwright test tests/character-module.spec.ts tests/inventory.spec.ts tests/avatar-hidden.spec.ts tests/wardrobe.spec.ts tests/shop-try.spec.ts --output=test-results-character-module
 ```
 
-`build.py` derives the approved head/body from `character-revamp-v2/build.py`, retains editable source collections, bakes fixed colours into vertex attributes, creates material palette channels, reduces export geometry and writes a budget manifest. The validator checks all expected assets, Khronos validation, finite bounds, self-contained buffers, transfer/triangle budgets, thumbnail presence and unique style geometry.
+`build.py` derives the approved head/body from `character-revamp-v2/build.py`, retains editable source collections, bakes fixed colours into vertex attributes, creates material palette channels, reduces export geometry and writes a budget manifest, taking the asset version from `shared/character-styles.json` so the manifest cannot drift from the cache-bust key the loader uses. `compress.mjs` then applies the shared lossless EXT_meshopt_compression path to all 38 GLBs and refreshes the manifest to the sizes that actually ship, since `build.py` records each size before compression. The validator checks all expected assets, Khronos validation, finite bounds, self-contained buffers, transfer/triangle budgets, thumbnail presence and unique style geometry.
 
 Focused browser checks cover all 36 styles on both bodies, palette changes, hidden hair, static-batching exclusion, late-load races, held props, download retry, shared geometry disposal, desktop/mobile wardrobe persistence, shop try-on isolation, full-game entry and peer appearance updates. The pose review renders the actual loaded GLBs in Three.js.
 

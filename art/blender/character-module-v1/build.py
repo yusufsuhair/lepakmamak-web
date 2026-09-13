@@ -7,11 +7,19 @@ ROOT=os.path.abspath('.');OUT=ROOT+'/art/blender/generated/character-module-v1';
 scope={};exec(open(ROOT+'/art/blender/character-revamp-v2/build.py').read().split('\nmodels=[]')[0],scope)
 uv,mesh,curve,mat,person=[scope[x] for x in ['uv','mesh','curve','mat','person']]
 SKIN,HAIR,CLOTH=scope['skin'],scope['hair'],scope['scarf']
-STYLE=json.load(open(ROOT+'/shared/character-styles.json'))['styles']
+# One source of truth for the version: src/character-assets.ts cache-busts every GLB URL
+# with catalog.version, so the manifest must not carry a second copy that can drift from it.
+CATALOG=json.load(open(ROOT+'/shared/character-styles.json'));STYLE=CATALOG['styles'];VERSION=CATALOG['version']
 SCALE=.9
 PIVOTS={'body':(0,0,0),'head':(0,0,0),'style':(0,0,0),'leftLeg':(-.153,0,.846),'rightLeg':(.153,0,.846),'leftUpperArm':(-.2925,0,1.224),'leftForearm':(-.2925,0,1.224),'rightUpperArm':(.2925,0,1.224),'rightForearm':(.2925,0,1.224)}
-BUDGET={'body':900,'head':5000,'leftLeg':750,'rightLeg':750,'leftUpperArm':350,'rightUpperArm':350,'leftForearm':500,'rightForearm':500,'style':2200}
-manifest={'version':'character-module-v1','scale':SCALE,'pivots':{k:[v[0],v[2],-v[1]] for k,v in PIVOTS.items()},'assets':{}}
+# Budget is per role+channel group, so a two-channel role (a leg's trousers and its shoe)
+# spends its figure twice. Sized for how large an avatar actually draws: about 83px tall
+# for the local player at the default camera, 60px for a neighbour at the mamak, and 280px
+# at minimum zoom or in the wardrobe preview. Every surface here is a smooth low-frequency
+# form, so the silhouette, not the triangle count, carries the read. V1 spent 5000 on a
+# head that is never more than a few dozen pixels wide - nearly half the whole body.
+BUDGET={'body':400,'head':1800,'leftLeg':250,'rightLeg':250,'leftUpperArm':150,'rightUpperArm':150,'leftForearm':200,'rightForearm':200,'style':800}
+manifest={'version':VERSION,'scale':SCALE,'pivots':{k:[v[0],v[2],-v[1]] for k,v in PIVOTS.items()},'assets':{}}
 # Shared material semantics: palette channels remain editable at runtime; fixed colours are vertex-baked.
 mats={}
 for channel in ['skin','shirt','trousers','hair','tudung','fixed']:
@@ -226,7 +234,7 @@ for definition in STYLE:
  (cap if definition['kind']=='hair' else tudung)(definition['id'])
  export_parts(col,key,style=definition['kind'])
 # Persist full editable sources. Optimised GLBs are separate, reproducible exports.
-bpy.context.scene['asset_version']='character-module-v1'
+bpy.context.scene['asset_version']=VERSION
 bpy.context.scene['purpose']='Approved V2 face, modular palette channels and browser-budget exports; source collections retained.'
 bpy.ops.wm.save_as_mainfile(filepath=OUT+'/source/character-module-v1.blend')
 json.dump(manifest,open(PUBLIC+'/manifest.json','w'),indent=2)

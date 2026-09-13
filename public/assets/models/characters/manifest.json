@@ -1,5 +1,5 @@
 {
-  "version": "character-module-v1",
+  "version": "character-module-v1-lowpoly",
   "scale": 0.9,
   "pivots": {
     "body": [
@@ -51,231 +51,231 @@
   "assets": {
     "base-male": {
       "file": "base-male.glb",
-      "triangles": 10596,
+      "triangles": 3899,
       "drawCalls": 11,
-      "bytes": 286632
+      "bytes": 95008
     },
     "base-female": {
       "file": "base-female.glb",
-      "triangles": 10595,
+      "triangles": 3898,
       "drawCalls": 11,
-      "bytes": 286956
+      "bytes": 95072
     },
     "hair-short": {
       "file": "hair-short.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40636
+      "bytes": 14128
     },
     "hair-buzz": {
       "file": "hair-buzz.glb",
-      "triangles": 2160,
+      "triangles": 624,
       "drawCalls": 1,
-      "bytes": 52884
+      "bytes": 20552
     },
     "hair-crew": {
       "file": "hair-crew.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40632
+      "bytes": 14104
     },
     "hair-french-crop": {
       "file": "hair-french-crop.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40640
+      "bytes": 14088
     },
     "hair-side-part": {
       "file": "hair-side-part.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40640
+      "bytes": 14148
     },
     "hair-comb-over": {
       "file": "hair-comb-over.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40640
+      "bytes": 14196
     },
     "hair-undercut": {
       "file": "hair-undercut.glb",
-      "triangles": 2200,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 51152
+      "bytes": 15256
     },
     "hair-quiff": {
       "file": "hair-quiff.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 51688
+      "bytes": 15592
     },
     "hair-pompadour": {
       "file": "hair-pompadour.glb",
-      "triangles": 2199,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 51692
+      "bytes": 15572
     },
     "hair-curtains": {
       "file": "hair-curtains.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40640
+      "bytes": 14192
     },
     "hair-mullet": {
       "file": "hair-mullet.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40684
+      "bytes": 13620
     },
     "hair-curly-top": {
       "file": "hair-curly-top.glb",
-      "triangles": 2199,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 60300
+      "bytes": 20892
     },
     "hair-bob": {
       "file": "hair-bob.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40632
+      "bytes": 14260
     },
     "hair-lob": {
       "file": "hair-lob.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40680
+      "bytes": 13728
     },
     "hair-long-straight": {
       "file": "hair-long-straight.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40692
+      "bytes": 13756
     },
     "hair-long-wavy": {
       "file": "hair-long-wavy.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40684
+      "bytes": 13656
     },
     "hair-long-layered": {
       "file": "hair-long-layered.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40688
+      "bytes": 13732
     },
     "hair-curtain-bangs": {
       "file": "hair-curtain-bangs.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40692
+      "bytes": 13748
     },
     "hair-wolf-cut": {
       "file": "hair-wolf-cut.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40688
+      "bytes": 13684
     },
     "hair-pixie": {
       "file": "hair-pixie.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40636
+      "bytes": 14128
     },
     "hair-ponytail": {
       "file": "hair-ponytail.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 51980
+      "bytes": 16012
     },
     "hair-low-ponytail": {
       "file": "hair-low-ponytail.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 51984
+      "bytes": 16012
     },
     "hair-bun": {
       "file": "hair-bun.glb",
-      "triangles": 2200,
+      "triangles": 798,
       "drawCalls": 1,
-      "bytes": 50924
+      "bytes": 15244
     },
     "hair-braid": {
       "file": "hair-braid.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 53740
+      "bytes": 16852
     },
     "tudung-short": {
       "file": "tudung-short.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40648
+      "bytes": 13540
     },
     "tudung-long": {
       "file": "tudung-long.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40648
+      "bytes": 13536
     },
     "tudung-turban": {
       "file": "tudung-turban.glb",
-      "triangles": 2199,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 53620
+      "bytes": 17476
     },
     "tudung-shawl": {
       "file": "tudung-shawl.glb",
-      "triangles": 2199,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 40956
+      "bytes": 13684
     },
     "tudung-bawal": {
       "file": "tudung-bawal.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 49848
+      "bytes": 14164
     },
     "tudung-satin": {
       "file": "tudung-satin.glb",
-      "triangles": 2199,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 40956
+      "bytes": 13704
     },
     "tudung-instant": {
       "file": "tudung-instant.glb",
-      "triangles": 2199,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 50264
+      "bytes": 14516
     },
     "tudung-duck-luxe": {
       "file": "tudung-duck-luxe.glb",
-      "triangles": 2199,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 50236
+      "bytes": 14220
     },
     "tudung-ruffle": {
       "file": "tudung-ruffle.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40648
+      "bytes": 13560
     },
     "tudung-bawal-labuh": {
       "file": "tudung-bawal-labuh.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 49856
+      "bytes": 14172
     },
     "tudung-shawl-loose": {
       "file": "tudung-shawl-loose.glb",
-      "triangles": 2199,
+      "triangles": 799,
       "drawCalls": 1,
-      "bytes": 40964
+      "bytes": 13760
     },
     "tudung-sport": {
       "file": "tudung-sport.glb",
-      "triangles": 2200,
+      "triangles": 800,
       "drawCalls": 1,
-      "bytes": 40648
+      "bytes": 13512
     }
   }
 }
