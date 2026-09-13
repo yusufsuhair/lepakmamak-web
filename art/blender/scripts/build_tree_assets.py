@@ -1,5 +1,8 @@
 """Deterministic, opaque low-poly trees for LepakMamak's Three.js world.
 
+Now builds only the compact Mamak courtyard palm. The city rain tree and coconut palm moved to
+the photographic, textured pipeline in scripts/blender/build_trees.py (foliage version 5).
+
 Each family is authored independently, saved as an editable .blend, exported from
 EXPORT only and rendered from four review angles.  Geometry is intentionally
 texture-free so repeated trees remain cheap and predictable on mobile GPUs.
@@ -91,74 +94,6 @@ class TreeAuthor(Author):
         return obj
 
 
-def rain_tree(a):
-    """Broad Malaysian roadside rain tree with a low, umbrella-like crown."""
-    a.cylinder("Trunk", 0, 2.25, 0, .34, 4.5, WOOD, 9, .25)
-    branches = [
-        ((0, 3.0, 0), (-1.65, 4.55, .45), .24, .10),
-        ((0, 3.25, 0), (1.55, 4.85, -.55), .22, .09),
-        ((0, 3.55, 0), (-.45, 5.25, -1.35), .18, .08),
-        ((0, 3.65, 0), (.75, 5.25, 1.25), .17, .075),
-        ((-.9, 4.0, .25), (-2.45, 5.05, .8), .13, .055),
-        ((.85, 4.25, -.3), (2.35, 5.35, -.95), .12, .05),
-    ]
-    for index, values in enumerate(branches):
-        a.branch(f"Branch{index:02d}", *values)
-    # Overlapping flattened lobes make a continuous crown without alpha cards.
-    lobes = [
-        (0, 6.05, 0, 2.65, 1.35, 2.25),
-        (-2.0, 5.72, .55, 2.05, 1.08, 1.75),
-        (2.05, 5.85, -.55, 2.05, 1.12, 1.75),
-        (-.55, 5.62, -1.75, 2.15, 1.03, 1.55),
-        (.75, 5.72, 1.65, 2.15, 1.08, 1.60),
-        (-2.75, 5.48, -.75, 1.35, .82, 1.25),
-        (2.8, 5.55, .65, 1.35, .84, 1.25),
-        (-1.35, 6.55, -.55, 1.55, .82, 1.35),
-        (1.25, 6.52, .55, 1.55, .82, 1.35),
-    ]
-    for index, values in enumerate(lobes):
-        a.ico(f"CanopyLobe{index:02d}", *values, GREEN, subdivisions=1)
-
-
-def coconut_palm(a):
-    """Leaning coconut palm with layered pinnate fronds for beaches and open plazas."""
-    centres = []
-    for index in range(7):
-        t = index / 7
-        x = .62 * t * t
-        centres.append((x, .48 + index * .93, .10 * math.sin(index * .65)))
-        a.cylinder("Trunk", x, .48 + index * .93, centres[-1][2], .28 - index * .018,
-                   .96, WOOD, 8, .27 - index * .018)
-        a.cylinder("TrunkRing", x, .91 + index * .93, centres[-1][2], .292 - index * .018,
-                   .055, CREAM, 8)
-    crown = (.70, 6.80, .02)
-    a.ico("CrownSheath", *crown, .42, .54, .42, GREEN)
-    for frond in range(9):
-        angle = frond * math.tau / 9 + .07 * math.sin(frond * 1.7)
-        c, s = math.cos(angle), math.sin(angle)
-        previous = crown
-        for segment in range(5):
-            t = (segment + 1) / 5
-            distance = .35 + 3.85 * t
-            current = (crown[0] + c * distance,
-                       crown[1] + math.sin(t * math.pi) * .46 - t * (1.15 + .12 * (frond % 3)),
-                       crown[2] + s * distance)
-            a.branch("Rachis", previous, current, .045 - segment * .004, .038 - segment * .004,
-                     GREEN, 5)
-            tangent = Vector((-s, 0, c))
-            root = Vector(current)
-            length = .74 + .20 * math.sin(t * math.pi)
-            for side in (-1, 1):
-                tip = root + Vector((c, -.12 - .10 * t, s)) * length + tangent * side * .17
-                mid = root.lerp(tip, .56) + Vector((0, .07, 0))
-                half = .10 + .025 * math.sin(t * math.pi)
-                points = [tuple(root), tuple(mid + tangent * half), tuple(tip), tuple(mid - tangent * half)]
-                a.add("Leaflet", points, [(0, 1, 2), (0, 2, 3)], GREEN, False)
-            previous = current
-    for x, z in ((.52, .28), (.84, .19), (.70, -.27), (.42, -.18)):
-        a.ico("Coconut", x, 6.48, z, .21, .25, .21, WOOD)
-
-
 def mamak_palm(a):
     """Compact courtyard palm: dense crown, narrower reach and warmer trunk rings."""
     for index in range(6):
@@ -194,8 +129,6 @@ def mamak_palm(a):
 
 
 BUILDERS = {
-    "LM_TREE_RainTree": ("urban-rain-tree", rain_tree),
-    "LM_TREE_CoconutPalm": ("tropical-coconut-palm", coconut_palm),
     "LM_PROP_PalmMamak": ("mamak-courtyard-palm", mamak_palm),
 }
 

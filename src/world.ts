@@ -1400,7 +1400,8 @@ export function createWorld(scene: THREE.Scene): World {
     const parent = mamakStreetLayout.lamps.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
     streetLamp(parent, x, z, x > 0 ? -1 : 1);
   }
-  for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 91, 1]]) {
+  // The last palm keeps clear of the (-67, 92) rain tree's umbrella crown.
+  for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 104, 1]]) {
     const parent = mamakStreetLayout.palms.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
     palm(parent, x, z, s);
   }

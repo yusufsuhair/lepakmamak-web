@@ -1,0 +1,92 @@
+{
+  "LM_TREE_RainTree": {
+    "family": "urban-rain-tree",
+    "version": 5,
+    "variants": {
+      "A": {
+        "clumps": 27,
+        "cards": 1032,
+        "triangles": 4568,
+        "materials": 2,
+        "height": 7.06,
+        "width": 13.26,
+        "min_z": 0.0
+      },
+      "B": {
+        "clumps": 25,
+        "cards": 941,
+        "triangles": 4042,
+        "materials": 2,
+        "height": 7.03,
+        "width": 13.73,
+        "min_z": 0.0
+      }
+    },
+    "glb": {
+      "raw_bytes": 825732,
+      "bytes": 707396,
+      "materials": [
+        {
+          "name": "Rain tree bark",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false
+        },
+        {
+          "name": "Rain tree leaves",
+          "alphaMode": "MASK",
+          "doubleSided": true
+        }
+      ],
+      "images": [
+        "image/webp",
+        "image/webp",
+        "image/webp",
+        "image/webp"
+      ]
+    }
+  },
+  "LM_TREE_CoconutPalm": {
+    "family": "tropical-coconut-palm",
+    "version": 5,
+    "variants": {
+      "A": {
+        "fronds": 20,
+        "triangles": 2366,
+        "materials": 2,
+        "height": 10.01,
+        "width": 6.39,
+        "min_z": 0.0
+      },
+      "B": {
+        "fronds": 18,
+        "triangles": 2190,
+        "materials": 2,
+        "height": 8.86,
+        "width": 6.76,
+        "min_z": 0.0
+      }
+    },
+    "glb": {
+      "raw_bytes": 363196,
+      "bytes": 322084,
+      "materials": [
+        {
+          "name": "Palm trunk",
+          "alphaMode": "OPAQUE",
+          "doubleSided": false
+        },
+        {
+          "name": "Palm fronds",
+          "alphaMode": "MASK",
+          "doubleSided": true
+        }
+      ],
+      "images": [
+        "image/webp",
+        "image/webp",
+        "image/webp",
+        "image/webp"
+      ]
+    }
+  }
+}

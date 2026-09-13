@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
-const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+/** The game's GLB loader: every Blender export is meshopt compressed, so a bare GLTFLoader cannot read them. */
+export const gltfLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
 export type WebAssetState = 'loading' | 'ready' | 'fallback';
 
@@ -78,19 +79,32 @@ export function configureMamakLighting(asset: THREE.Group): MamakLighting {
   return { bulbCount: Number(festoon.userData.lm_bulb_count || 0), setNight, get intensity() { return intensity; } };
 }
 
-/** Prepare a complete reusable model without attaching partial results to the live world. */
+/** Stable choice among `count` variants for a placement, so a rebuild never reshuffles the street. */
+export function webAssetVariant(point: WebAssetPlacement, count: number) {
+  const seed = Math.sin(point.x * 37.719 + point.z * 17.231) * 24634.6345;
+  return Math.floor((seed - Math.floor(seed)) * count);
+}
+
+/** Prepare a complete reusable model without attaching partial results to the live world.
+ * Top-level nodes tagged `lm_variant` are alternative models: each placement gets one of them. */
 export async function loadInstancedWebAsset(url: string, placements: WebAssetPlacement[], name: string) {
-  const gltf = await loader.loadAsync(url);
+  const gltf = await gltfLoader.loadAsync(url);
   gltf.scene.updateMatrixWorld(true);
   const group = new THREE.Group(); group.name = name;
   const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3();
   const quaternion = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+  const variants = gltf.scene.children.filter(node => node.userData.lm_variant !== undefined);
   gltf.scene.traverse(object => {
     if (!(object instanceof THREE.Mesh)) return;
+    let root: THREE.Object3D = object;
+    while (root.parent && root.parent !== gltf.scene) root = root.parent;
+    const variant = variants.indexOf(root);
+    const points = variant < 0 ? placements : placements.filter(point => webAssetVariant(point, variants.length) === variant);
+    if (!points.length) { object.geometry.dispose(); return; }
     const geometry = object.geometry.clone().applyMatrix4(object.matrixWorld);
-    const mesh = new THREE.InstancedMesh(geometry, object.material, placements.length);
+    const mesh = new THREE.InstancedMesh(geometry, object.material, points.length);
     mesh.name = object.name;
-    placements.forEach((point, index) => {
+    points.forEach((point, index) => {
       position.set(point.x, point.y, point.z); scale.setScalar(point.scale);
       quaternion.setFromAxisAngle(up, point.yaw);
       mesh.setMatrixAt(index, matrix.compose(position, quaternion, scale));
@@ -117,7 +131,7 @@ export function disposeWebAsset(group: THREE.Group) {
 }
 
 export async function loadWebAsset(url: string, scene: THREE.Scene, position: THREE.Vector3, name: string) {
-  const gltf = await loader.loadAsync(url);
+  const gltf = await gltfLoader.loadAsync(url);
   const asset = gltf.scene;
   asset.name = name;
   asset.position.copy(position);

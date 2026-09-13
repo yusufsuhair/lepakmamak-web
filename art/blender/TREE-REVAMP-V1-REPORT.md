@@ -21,3 +21,7 @@ At runtime, repeated city trees are collected into one instanced batch per famil
 parent and material. The old procedural versions remain visible until the complete
 asset loads, and remain playable if a GLB request fails. Stable coordinate-derived
 rotation prevents obvious repetition without introducing nondeterministic captures.
+
+The rain tree and city coconut palm rows above are superseded by the photographic, textured
+build in `scripts/blender/build_trees.py` (foliage version 5, `?v=trees-v2`); its budgets and
+sizes are in `assets/trees/manifest.json`. The Mamak palm still comes from this pipeline.

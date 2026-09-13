@@ -20,11 +20,12 @@ test('Mamak foliage assets expose their expected versions and cache keys', async
   expect(requests.find(url=>url.includes('PalmMamak'))).toContain('v=foliage-v4');
   expect(requests.find(url=>url.includes('PlanterMamak'))).toContain('v=foliage-v3');
   const stats=await page.evaluate(async()=>{
-    const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');
+    const {gltfLoader}=await import('/src/web-assets.ts');   // the game's loader decodes meshopt
+    const THREE=await import('/node_modules/.vite/deps/three.js');
     const result:any={};
     for(const name of ['LM_PROP_PalmMamak','LM_PROP_PlanterMamak']){
       const cacheKey=name==='LM_PROP_PalmMamak'?'foliage-v4':'foliage-v3';
-      const gltf=await new GLTFLoader().loadAsync(`/assets/models/props/${name}.glb?v=${cacheKey}`);
+      const gltf=await gltfLoader.loadAsync(`/assets/models/props/${name}.glb?v=${cacheKey}`);
       let mesh:any;
       let version:any;
       gltf.scene.traverse((node:any)=>{
@@ -34,7 +35,7 @@ test('Mamak foliage assets expose their expected versions and cache keys', async
       if(!mesh)throw new Error(`${name} has no mesh node`);
       const geometry=mesh.geometry;
       const triangles=geometry.index?geometry.index.count/3:geometry.attributes.position.count/3;
-      const box=new (await import('/node_modules/three/build/three.module.js')).Box3().setFromObject(gltf.scene);
+      const box=new THREE.Box3().setFromObject(gltf.scene);
       result[name]={version,triangles,minY:box.min.y,maxY:box.max.y};
     }
     return result;
