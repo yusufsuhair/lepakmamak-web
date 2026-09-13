@@ -81,3 +81,8 @@ test('deletion is refused outright when the service role is not configured',asyn
  const accounts=createAccounts({db:null});
  expect((await call(accounts)).status).toBe(503);
 });
+
+test('deleting an account also clears handles, both sides of messages, and blocks',()=>{
+ for(const entry of [['player_handles','user_id'],['game_messages','sender_user_id'],['game_messages','recipient_user_id'],['player_blocks','blocker_user_id'],['player_blocks','blocked_user_id']])
+  expect(OWNED_ROWS).toContainEqual(entry);
+});

@@ -18,6 +18,12 @@ export const OWNED_ROWS = [
   ['player_social_stats', 'user_id'],
   ['shop_inventory', 'user_id'],
   ['chat_messages', 'user_id'],
+  // Sent messages go too, out of other players' inboxes: the spec chose that over orphans.
+  ['player_handles', 'user_id'],
+  ['game_messages', 'sender_user_id'],
+  ['game_messages', 'recipient_user_id'],
+  ['player_blocks', 'blocker_user_id'],
+  ['player_blocks', 'blocked_user_id'],
 ];
 
 export function createAccounts(services = {}) {
