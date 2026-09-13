@@ -16,6 +16,7 @@ import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
+import {cdnUrl} from './cdn';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -639,7 +640,9 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
   batchShopFallback(g);
   const asset = {mosque: 'Masjid', church: 'Church', hindu: 'HinduTemple', chinese: 'ChineseTemple'}[kind];
   // The mosque is its own photographic build (scripts/blender/build_masjid.py) with night lighting.
-  void nearLoader(g,200,340).loadAsync(`/assets/models/environment/LM_ENV_${asset}.glb?v=${kind === 'mosque' ? 'masjid-v2' : 'worship-v1'}`).then(gltf => {
+  // It is served from R2 (1.35 MB meshopt, 0.77 MB brotli); the other three stay on Pages.
+  const url = kind === 'mosque' ? cdnUrl('assets/models/environment/LM_ENV_Masjid.glb') : `/assets/models/environment/LM_ENV_${asset}.glb?v=worship-v1`;
+  void nearLoader(g,200,340).loadAsync(url).then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
     if (kind === 'mosque') lightMasjid(gltf.scene);
     for (const child of [...g.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();

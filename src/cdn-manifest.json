@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "0d004925dbc1",
+  "version": "dbfb2e852503",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -45,6 +45,12 @@
       "key": "models/LM_ENV_KLCC.a88545e2c406.glb",
       "bytes": 338601,
       "etag": "784110cafea8ec473b8247ee3c1c71a7",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Masjid.glb": {
+      "key": "models/LM_ENV_Masjid.4770b44639ce.glb",
+      "bytes": 792164,
+      "etag": "bef52a2d9b1325afb1c93e8352d176b3",
       "encoding": "br"
     }
   }
