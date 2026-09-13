@@ -29,7 +29,7 @@ const ENCODINGS = {'.glb': 'br'};
 export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3',
   'assets/models/environment/LM_ENV_MamakMaju_Realism.glb', 'assets/models/environment/LM_ENV_Petronas.glb', 'assets/models/environment/LM_ENV_Rembayung.glb',
   'assets/models/environment/LM_ENV_Beach.glb', 'assets/models/environment/LM_ENV_KLCC.glb',
-  'assets/models/environment/LM_ENV_Masjid.glb'];
+  'assets/models/environment/LM_ENV_Masjid.glb', 'assets/models/environment/LM_ENV_Furniture.glb'];
 
 const md5 = body => createHash('md5').update(body).digest('hex');
 const sha256 = body => createHash('sha256').update(body).digest('hex');

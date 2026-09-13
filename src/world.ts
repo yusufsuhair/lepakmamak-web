@@ -1457,7 +1457,7 @@ export function createWorld(scene: THREE.Scene): World {
   // signs survive the swap, so JALAN LEPAK, KLCC ↑ and the flag crescent stay the game's.
   furniture.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(furniture);
-  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Furniture.glb?v=seawall-v1').then(gltf => {
+  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Furniture.glb'))   /* R2 + brotli: every player loads it at entry */.then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; }
       // The seawall's armour rock lies at the waterline across 250 m: a shadow pass over it costs
       // more triangles than the stones' own shade is worth.
