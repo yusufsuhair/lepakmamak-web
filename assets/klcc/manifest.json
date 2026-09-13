@@ -15,8 +15,25 @@
       0
     ]
   ],
+  "roof": 76.5,
   "height": 103.5,
-  "triangles": 25108,
-  "bytes": 792520,
-  "draws": 11
+  "materials": [
+    "KLCC stainless",
+    "KLCC curtain wall",
+    "KLCC podium granite",
+    "KLCC pinnacle steel"
+  ],
+  "textures": [
+    "cladding_color",
+    "cladding_normal",
+    "curtain_color",
+    "curtain_night",
+    "curtain_normal",
+    "curtain_orm",
+    "stainless_color",
+    "stainless_normal"
+  ],
+  "triangles": 41388,
+  "bytes": 2053688,
+  "draws": 4
 }

@@ -17,6 +17,7 @@ import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {loadPetronas, type PetronasSite} from './petronas';
+import {loadKlcc} from './klcc';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 
@@ -706,11 +707,7 @@ export function createWorld(scene: THREE.Scene): World {
   }
   klcc.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(klcc);
-  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_KLCC.glb?v=klcc-v1').then(gltf => {
-    gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
-    for (const child of [...klcc.children]) child.removeFromParent();
-    klcc.add(gltf.scene);
-  }).catch(error => console.warn('[KLCC] keeping procedural towers', error));
+  loadKlcc(klcc);
   sign(group, 'SELAMAT DATANG · KLCC', 0, 3.3, -97, 16, 2, '#376052');
   for (const x of [-6.9, 6.9]) tube(group, x, 1.55, -97, .1, 3.1, '#6a8073');
   for (const x of [-48, -37, 37, 48]) for (const z of [-88, -105, -137]) palm(group, x, z, .85);
