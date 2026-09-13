@@ -567,8 +567,10 @@ webSocketServer.on('connection', ws => {
       broadcast(room.players, { type: 'players', players: snapshot(room.players) });
       syncVoiceCodec(room.players);
       // A nudge, not a gate: a failed lookup must never stand between a player and the city.
-      const accountId = identity.userId || standIn?.userId;
-      if (accountId) handles.required(accountId, identity.name).then(suggestion => { if (suggestion) send(ws, { type: 'handle-required', suggestion }); }).catch(() => {});
+      // Real accounts get the mandatory claim screen; a dev stand-in is handed a handle instead
+      // (see handles.autoClaim for why) and never sees it.
+      if (identity.userId) handles.required(identity.userId, identity.name).then(suggestion => { if (suggestion) send(ws, { type: 'handle-required', suggestion }); }).catch(() => {});
+      else if (standIn) handles.autoClaim(standIn.userId, identity.name).catch(() => {});
       return;
     }
 

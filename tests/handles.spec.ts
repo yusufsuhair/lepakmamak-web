@@ -123,3 +123,33 @@ test('the handle-required nudge suggests from the name until a handle is claimed
   expect(await module.required(yusuf.userId, 'Yusuf Suhair')).toBeNull();
   expect(await createHandles({store: null}).required(yusuf.userId, 'Yusuf')).toBeNull();
 });
+
+test('a dev stand-in is given the claim screen suggestion, passing every handle rule', async () => {
+  const store = createMemorySocialStore();
+  const module = createHandles({store});
+  const first = store.issueStandIn('Yusuf'), second = store.issueStandIn('YUSUF'), gm = store.issueStandIn('GM'), admin = store.issueStandIn('Admin Boss');
+  expect(await module.autoClaim(first.userId, 'Yusuf')).toBe('yusuf');
+  expect(await module.autoClaim(second.userId, 'YUSUF')).toBe('yusuf2');
+  expect(await module.autoClaim(gm.userId, 'GM')).toBe('gm2');
+  expect(await module.autoClaim(admin.userId, 'Admin Boss')).toBe('player');
+  // Idempotent: a returning stand-in keeps the handle it already has.
+  expect(await module.autoClaim(first.userId, 'Someone Else')).toBe('yusuf');
+  expect(await module.required(first.userId, 'Yusuf')).toBeNull();
+});
+
+test('two stand-ins with the same name racing both end up with distinct handles', async () => {
+  const store = createMemorySocialStore();
+  const module = createHandles({store});
+  const a = store.issueStandIn('Ali'), b = store.issueStandIn('Ali');
+  const handles = await Promise.all([module.autoClaim(a.userId, 'Ali'), module.autoClaim(b.userId, 'Ali')]);
+  expect(handles.sort()).toEqual(['ali', 'ali2']);
+});
+
+test('a real account is never auto-assigned a handle', async () => {
+  const fake = fakeSupabase();
+  const account = fake.addUser({name: 'Yusuf'});
+  const module = createHandles({store: createSupabaseSocialStore(fake.db)});
+  expect(await module.autoClaim(account.id, 'Yusuf')).toBeNull();
+  expect(fake.tables.player_handles).toEqual([]);
+  expect(await module.required(account.id, 'Yusuf')).toBe('yusuf');
+});

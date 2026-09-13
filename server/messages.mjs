@@ -112,13 +112,13 @@ export function createMessages({store = null, moderation = createModeration(), l
     if (path === '/messages/unread' && request.method === 'GET') return unread(user);
     const read = path.match(/^\/messages\/([^/]+)\/read$/);
     if (read && request.method === 'POST') {
-      const id = otherId(decodeURIComponent(read[1]));
+      const id = otherId(read[1]);
       if (!id) throw new HttpError(400, 'Choose another player.');
       await store.markRead(user.id, id);
       return {};
     }
     const thread = path.match(/^\/messages\/([^/]+)$/);
-    if (thread && request.method === 'GET') return page(user, otherId(decodeURIComponent(thread[1])), url.searchParams.get('before'));
+    if (thread && request.method === 'GET') return page(user, otherId(thread[1]), url.searchParams.get('before'));
     if (path === '/blocks' && request.method === 'POST') {
       const id = otherId((await readJson(request, 4096))?.userId);
       if (!id || id === user.id) throw new HttpError(400, 'Choose another player.');
@@ -127,7 +127,7 @@ export function createMessages({store = null, moderation = createModeration(), l
     }
     const unblock = path.match(/^\/blocks\/([^/]+)$/);
     if (unblock && request.method === 'DELETE') {
-      const id = otherId(decodeURIComponent(unblock[1]));
+      const id = otherId(unblock[1]);
       if (!id) throw new HttpError(400, 'Choose another player.');
       await store.unblock(user.id, id);
       return {};

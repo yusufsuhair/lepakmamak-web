@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {spawn} from 'node:child_process';
+import {createServer} from 'node:http';
 import WebSocket from 'ws';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -30,7 +31,7 @@ function start(port: string, env: Record<string, string>) {
   return {ready, call, join, stop};
 }
 
-test('on dev a guest gets a stand-in, claims a handle, and messages across rooms and reconnects', async () => {
+test('on dev a guest gets a stand-in with an automatic handle, and messages across rooms and reconnects', async () => {
   const server = start('8263', {});
   try {
     await server.ready();
@@ -40,11 +41,16 @@ test('on dev a guest gets a stand-in, claims a handle, and messages across rooms
     expect(A).toEqual({userId: expect.stringMatching(UUID), token: expect.any(String)});
     expect(B.userId).not.toBe(A.userId);
     expect(JSON.stringify(alya.welcome.players)).not.toContain(A.userId);
-    await expect.poll(() => alya.seen.find(m => m.type === 'handle-required')?.suggestion).toBe('alya');
 
-    expect((await server.call(A.token, 'POST', '/handles/claim', {handle: 'alya'})).body).toEqual({handle: 'alya'});
-    expect((await server.call(B.token, 'POST', '/handles/claim', {handle: 'badrul'})).body).toEqual({handle: 'badrul'});
-    expect((await server.call(A.token, 'GET', '/players/search?q=bad')).body.results).toEqual([{userId: B.userId, handle: 'badrul', name: 'Badrul', online: true, relation: 'none'}]);
+    // No claim screen on dev: the handle is assigned from the name, and it is as permanent as any.
+    await expect.poll(async () => (await server.call(A.token, 'GET', '/players/search?q=bad')).body.results).toEqual([{userId: B.userId, handle: 'badrul', name: 'Badrul', online: true, relation: 'none'}]);
+    expect(alya.seen.some(m => m.type === 'handle-required')).toBe(false);
+    expect(badrul.seen.some(m => m.type === 'handle-required')).toBe(false);
+    expect((await server.call(A.token, 'POST', '/handles/claim', {handle: 'alya_baru'})).body).toEqual(expect.objectContaining({error: 'claimed', handle: 'alya'}));
+    // A second guest with the same name gets the next free suffix.
+    const twin = await server.join('kampung', 'Alya');
+    await expect.poll(async () => (await server.call(A.token, 'GET', '/players/search?q=alya')).body.results.map((row: any) => row.handle)).toEqual(['alya2']);
+    expect(twin.seen.some(m => m.type === 'handle-required')).toBe(false);
 
     // Different rooms: the push still finds Badrul.
     const live = await server.call(A.token, 'POST', '/messages', {to: B.userId, body: 'jumpa kat klcc', clientId: 'm-1'});
@@ -93,4 +99,35 @@ test('with Supabase configured, no stand-in is ever issued and messages stay una
     expect((await server.call('anything', 'GET', '/messages/unread')).status).toBe(503);
     expect((await server.call('anything', 'GET', '/players/search?q=a')).status).toBe(503);
   } finally { server.stop(); }
+});
+
+test('a real account with no handle still gets the mandatory claim screen, and nothing is claimed for it', async () => {
+  // A stand-in Supabase: the auth lookup answers for the token's subject, every table reads
+  // empty (so the account has no handle), and any write is recorded so an auto-claim would show.
+  const writes: string[] = [];
+  const b64 = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const sub = '00000000-0000-4000-8000-0000000000aa';
+  const token = `${b64({alg: 'none'})}.${b64({sub, exp: Math.floor(Date.now() / 1000) + 3600})}.signature`;
+  const stub = createServer((request, response) => {
+    request.resume();
+    response.setHeader('content-type', 'application/json');
+    if ((request.url || '').startsWith('/auth/v1/user')) { response.writeHead(200); response.end(JSON.stringify({id: sub, user_metadata: {display_name: 'Yusuf Suhair'}})); return; }
+    if (request.method !== 'GET') writes.push(`${request.method} ${request.url}`);
+    response.writeHead(request.method === 'POST' ? 201 : 200); response.end('[]');
+  });
+  await new Promise<void>(resolve => stub.listen(8266, '127.0.0.1', resolve));
+  const server = start('8265', {ALLOW_GUESTS: 'false', SUPABASE_URL: 'http://127.0.0.1:8266', SUPABASE_PUBLISHABLE_KEY: 'stub', SUPABASE_SERVICE_ROLE_KEY: 'stub'});
+  try {
+    await server.ready();
+    const account = await new Promise<{seen: any[]; welcome: any}>((resolve, reject) => {
+      const ws = new WebSocket('ws://127.0.0.1:8265/ws');
+      const seen: any[] = [];
+      ws.on('error', reject);
+      ws.on('open', () => ws.send(JSON.stringify({type: 'join', room: 'kampung', accessToken: token})));
+      ws.on('message', raw => { const message = JSON.parse(String(raw)); seen.push(message); if (message.type === 'welcome') resolve({seen, welcome: message}); if (message.type === 'error') reject(Error(message.message)); });
+    });
+    expect('standIn' in account.welcome).toBe(false);
+    await expect.poll(() => account.seen.find(m => m.type === 'handle-required')?.suggestion).toBe('yusufsuhair');
+    expect(writes.filter(write => write.includes('player_handles'))).toEqual([]);
+  } finally { server.stop(); stub.close(); }
 });

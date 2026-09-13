@@ -26,18 +26,16 @@ async function enter(page: Page, name: string) {
   await page.getByRole('button', {name: 'Enter as guest', exact: true}).click();
 }
 
-async function claim(page: Page, handle: string) {
-  const dialog = page.getByRole('dialog', {name: 'Pick your @handle'});
-  await expect(dialog).toBeVisible({timeout: 90000});
-  await expect(page.locator('#handle-input')).toHaveValue(handle);
-  await expect(page.locator('#handle-status')).toHaveText(`@${handle} is free.`);
-  await page.keyboard.press('Escape');
-  await expect(dialog).toBeVisible();
-  await page.getByRole('button', {name: 'Claim handle'}).click();
-  await expect(dialog).toBeHidden();
+// On dev a guest's stand-in is handed its handle, so the city opens with no claim screen.
+// The claim screen itself is proven in tests/handle-claim.spec.ts and, for real accounts,
+// in tests/messages-socket.spec.ts.
+async function inCity(page: Page) {
+  await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', {timeout: 90000});
+  await expect(page.locator('#open-friends')).toBeVisible();
+  await expect(page.getByRole('dialog', {name: 'Pick your @handle'})).toBeHidden();
 }
 
-test('claim a handle, find a friend, message them offline, see the unread chip on return, report and block', async ({browser}) => {
+test('dev guests get a handle automatically, find a friend, message them offline, see the unread chip on return, report and block', async ({browser}) => {
   test.setTimeout(420000);
   const server = spawn(process.execPath, ['server/index.mjs'], {env: {...process.env, PORT: '8199', ALLOW_GUESTS: 'true', SUPABASE_URL: '', SUPABASE_PUBLISHABLE_KEY: '', SUPABASE_SERVICE_ROLE_KEY: ''}, stdio: 'ignore'});
   const alyaContext = await browser.newContext();
@@ -52,9 +50,9 @@ test('claim a handle, find a friend, message them offline, see the unread chip o
     badrul.on('websocket', socket => socket.on('framesent', frame => { try { badrulFrames.push(JSON.parse(String(frame.payload))); } catch { /* binary */ } }));
 
     await enter(badrul, 'Badrul');
-    await claim(badrul, 'badrul');
+    await inCity(badrul);
     await enter(alya, 'Alya');
-    await claim(alya, 'alya');
+    await inCity(alya);
 
     // Search by handle, then the existing friend request flow.
     await alya.locator('#open-friends').click();

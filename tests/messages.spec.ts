@@ -179,6 +179,15 @@ test('the body is stored raw, shown filtered, and reported raw', async () => {
   } finally { await box.http.close(); }
 });
 
+test('malformed percent-encoding in a player id is a 400, not a server error', async () => {
+  const box = await inbox();
+  try {
+    expect((await box.http.call(box.alya.token, 'GET', '/messages/%E0%A4%A')).status).toBe(400);
+    expect((await box.http.call(box.alya.token, 'POST', '/messages/%E0%A4%A/read', {})).status).toBe(400);
+    expect((await box.http.call(box.alya.token, 'DELETE', '/blocks/%E0%A4%A')).status).toBe(400);
+  } finally { await box.http.close(); }
+});
+
 test('blocking hides that sender from unread, and unblocking works', async () => {
   const box = await inbox();
   try {

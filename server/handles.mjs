@@ -103,5 +103,21 @@ export function createHandles({store = null, playerFor = () => null} = {}) {
     return true;
   }
 
-  return {handle, required, suggestFor};
+  // Dev stand-ins only. A stand-in identity resets every time the dev server restarts, so asking
+  // a guest to deliberately claim a permanent handle for it is ceremony with no value, and the
+  // undismissable claim screen would block every dev guest and every browser spec that drives the
+  // dev server. So a stand-in gets the claim screen's own suggestion, claimed for it. Real accounts
+  // (a persistent store) are never auto-assigned: they always go through the claim screen.
+  async function autoClaim(userId, name) {
+    if (!store || store.persistent || !userId) return null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const existing = await store.handleFor(userId);
+      if (existing) return existing;
+      // A lost race to the same handle simply asks for the next free suggestion.
+      if (await store.claimHandle(userId, await suggestFor(name)) !== 'taken') return store.handleFor(userId);
+    }
+    return null;
+  }
+
+  return {handle, required, autoClaim, suggestFor};
 }

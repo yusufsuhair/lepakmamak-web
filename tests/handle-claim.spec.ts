@@ -1,6 +1,6 @@
 import {test, expect} from '@playwright/test';
 
-test('the claim screen is pre-filled, checks live, cannot be dismissed, and recovers from a lost race', async ({page}) => {
+test('for a real account (session, not a guest), the claim screen is pre-filled, checks live, cannot be dismissed, and recovers from a lost race', async ({page}) => {
   await page.setViewportSize({width: 390, height: 844});
   await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me'}};export let guestName='';`}));
   const claims: unknown[] = [];
