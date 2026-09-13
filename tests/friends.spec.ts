@@ -1,6 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {createServer} from 'node:http';
 import {createFriends} from '../server/friends.mjs';
+import {createMemorySocialStore} from '../server/social-store.mjs';
 
 const ALICE = '00000000-0000-4000-8000-000000000011';
 const BOB = '00000000-0000-4000-8000-000000000012';
@@ -90,6 +91,35 @@ test('friends are persistent, authenticated, and address the live player rather 
     expect(aliceFriends.state.friends).toEqual([{id: BOB, name: 'Bob Verified', online: true, playerId: BOB_PLAYER}]);
     expect((await call('/remove', 'alice-token', 'POST', {id: BOB})).status).toBe(200);
     expect((await (await call('/state', 'alice-token')).json()).state.friends).toEqual([]);
+  } finally { server.close(); }
+});
+
+test('on dev, friends work against the in-memory store with stand-in accounts', async () => {
+  const store = createMemorySocialStore();
+  const alya = store.issueStandIn('Alya'), badrul = store.issueStandIn('Badrul');
+  const module = createFriends({store});
+  const server = createServer((request, response) => { void module.handle(request, response); });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const base = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}/friends`;
+  const call = (path: string, token: string, method = 'GET', body?: unknown) => fetch(`${base}${path}`, {method, headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`}, ...(body === undefined ? {} : {body: JSON.stringify(body)})});
+  try {
+    expect((await call('/request', alya.token, 'POST', {id: badrul.userId})).status).toBe(200);
+    expect((await (await call('/state', badrul.token)).json()).state.incoming).toEqual([expect.objectContaining({id: alya.userId, name: 'Alya'})]);
+    expect((await call('/respond', badrul.token, 'POST', {id: alya.userId, approved: true})).status).toBe(200);
+    expect((await (await call('/state', alya.token)).json()).state.friends).toEqual([{id: badrul.userId, name: 'Badrul', online: false, playerId: null}]);
+    expect((await call('/state', 'forged')).status).toBe(401);
+  } finally { server.close(); }
+});
+
+test('friends are unavailable, not faked, when Supabase is only half configured', async () => {
+  const module = createFriends({store: null});
+  const server = createServer((request, response) => { void module.handle(request, response); });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  try {
+    const response = await fetch(`http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}/friends/state`, {headers: {Authorization: 'Bearer x'}});
+    expect(response.status).toBe(503);
   } finally { server.close(); }
 });
 

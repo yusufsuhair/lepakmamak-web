@@ -1,28 +1,21 @@
-import {createClient} from '@supabase/supabase-js';
+import {cleanDisplayName, createSocialStore, createSupabaseSocialStore} from './social-store.mjs';
 import {origins} from '../shared/origins.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function cleanDisplayName(value) {
-  const clean = typeof value === 'string'
-    ? value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 18)
-    : '';
-  return clean.length >= 2 ? clean : 'Player';
-}
 
 class FriendsHttpError extends Error {
   constructor(status, message, data = {}) { super(message); this.status = status; this.data = data; }
 }
 
 export function createFriends(services = {}) {
-  const db = services.db || (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {auth: {persistSession: false, autoRefreshToken: false}})
-    : null);
+  // The server hands in the store it shares with handles and messages; on dev that store is in
+  // memory. An explicit null means Supabase is half configured, and friends stay unavailable.
+  const store = 'store' in services ? services.store
+    : services.db ? createSupabaseSocialStore(services.db) : createSocialStore();
   const resolvePlayer = typeof services.resolvePlayer === 'function' ? services.resolvePlayer : () => null;
   const playerFor = typeof services.playerFor === 'function' ? services.playerFor : () => null;
   const isOnline = typeof services.isOnline === 'function' ? services.isOnline : id => !!playerFor(id);
   const onChanged = typeof services.onChanged === 'function' ? services.onChanged : async () => {};
-  const check = result => { if (result?.error) throw Error('Database operation failed'); return result.data; };
 
   async function readBody(request) {
     const chunks = []; let size = 0;
@@ -37,16 +30,10 @@ export function createFriends(services = {}) {
 
   async function userFor(request) {
     const token = request.headers.authorization?.replace(/^Bearer\s+/i, '');
-    if (!token || token.length > 3500 || !db) throw new FriendsHttpError(db ? 401 : 503, db ? 'Please log in again.' : 'Friends are not available yet.');
-    const {data, error} = await db.auth.getUser(token);
-    if (error || !data?.user || data.user.is_anonymous) throw new FriendsHttpError(401, 'Please log in again.');
-    return data.user;
-  }
-
-  async function rows(query) {
-    const result = await query;
-    if (result?.error) throw Error('Database operation failed');
-    return result.data || [];
+    if (!token || token.length > 3500 || !store) throw new FriendsHttpError(store ? 401 : 503, store ? 'Please log in again.' : 'Friends are not available yet.');
+    const user = await store.userForToken(token);
+    if (!user) throw new FriendsHttpError(401, 'Please log in again.');
+    return user;
   }
 
   function onlineInfo(userId) {
@@ -59,21 +46,17 @@ export function createFriends(services = {}) {
   }
 
   async function state(userId) {
-    if (!db) throw new FriendsHttpError(503, 'Friends are not available yet.');
-    const [outgoingAndAccepted, incomingAndAccepted] = await Promise.all([
-      rows(db.from('game_friendships').select('user_id,friend_id,requested_by,user_name,friend_name,status,requested_at,accepted_at').eq('user_id', userId).order('requested_at', {ascending: false})),
-      rows(db.from('game_friendships').select('user_id,friend_id,requested_by,user_name,friend_name,status,requested_at,accepted_at').eq('friend_id', userId).order('requested_at', {ascending: false})),
-    ]);
+    if (!store) throw new FriendsHttpError(503, 'Friends are not available yet.');
+    const rows = await store.friendships(userId);
     const friends = new Map();
     const incoming = new Map();
     const outgoing = new Map();
-    for (const row of outgoingAndAccepted) {
-      if (row.status === 'accepted') friends.set(row.friend_id, {id: row.friend_id, name: cleanDisplayName(row.friend_name), ...onlineInfo(row.friend_id)});
-      else if (row.status === 'pending') outgoing.set(row.friend_id, requestCopy(row.friend_id, row.friend_name, row.requested_at));
-    }
-    for (const row of incomingAndAccepted) {
-      if (row.status === 'accepted') friends.set(row.user_id, {id: row.user_id, name: cleanDisplayName(row.user_name), ...onlineInfo(row.user_id)});
-      else if (row.status === 'pending') incoming.set(row.user_id, requestCopy(row.user_id, row.user_name, row.requested_at));
+    for (const row of rows) {
+      const mine = row.user_id === userId;
+      const id = mine ? row.friend_id : row.user_id;
+      const name = mine ? row.friend_name : row.user_name;
+      if (row.status === 'accepted') friends.set(id, {id, name: cleanDisplayName(name), ...onlineInfo(id)});
+      else if (row.status === 'pending') (mine ? outgoing : incoming).set(id, requestCopy(id, name, row.requested_at));
     }
     return {
       friends: [...friends.values()].sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name)),
@@ -91,10 +74,9 @@ export function createFriends(services = {}) {
     }
     const id = typeof input?.id === 'string' ? input.id.trim() : '';
     if (!UUID.test(id) || id === user.id) throw new FriendsHttpError(400, 'Choose another registered player.');
-    if (!db.auth?.admin?.getUserById) throw new FriendsHttpError(503, 'Friends are not available yet.');
-    const result = await db.auth.admin.getUserById(id);
-    if (result?.error || !result?.data?.user || result.data.user.is_anonymous) throw new FriendsHttpError(404, 'That player could not be found.');
-    return {id, name: cleanDisplayName(result.data.user.user_metadata?.display_name)};
+    const account = await store.account(id);
+    if (!account) throw new FriendsHttpError(404, 'That player could not be found.');
+    return {id, name: account.name};
   }
 
   function resultFailure(result) {
@@ -116,25 +98,19 @@ export function createFriends(services = {}) {
     if (pathname === '/friends/request') {
       const target = await targetFor(user, input);
       targetId = target.id;
-      result = check(await db.rpc('game_friend_request', {
-        p_user_id: user.id, p_friend_id: target.id,
-        p_user_name: cleanDisplayName(user.user_metadata?.display_name), p_friend_name: target.name,
-      }));
+      result = await store.friendRequest({userId: user.id, friendId: target.id, userName: user.name, friendName: target.name});
     } else if (pathname === '/friends/respond') {
       targetId = typeof input?.id === 'string' ? input.id.trim() : '';
       if (!UUID.test(targetId) || typeof input?.approved !== 'boolean') throw new FriendsHttpError(400, 'Invalid friend request.');
-      result = check(await db.rpc('game_friend_respond', {
-        p_user_id: user.id, p_friend_id: targetId,
-        p_user_name: cleanDisplayName(user.user_metadata?.display_name), p_approved: input.approved,
-      }));
+      result = await store.friendRespond({userId: user.id, friendId: targetId, userName: user.name, approved: input.approved});
     } else if (pathname === '/friends/cancel') {
       targetId = typeof input?.id === 'string' ? input.id.trim() : '';
       if (!UUID.test(targetId)) throw new FriendsHttpError(400, 'Invalid friend request.');
-      result = check(await db.rpc('game_friend_cancel', {p_user_id: user.id, p_friend_id: targetId}));
+      result = await store.friendCancel({userId: user.id, friendId: targetId});
     } else if (pathname === '/friends/remove') {
       targetId = typeof input?.id === 'string' ? input.id.trim() : '';
       if (!UUID.test(targetId)) throw new FriendsHttpError(400, 'Invalid friend.');
-      result = check(await db.rpc('game_friend_remove', {p_user_id: user.id, p_friend_id: targetId}));
+      result = await store.friendRemove({userId: user.id, friendId: targetId});
     } else throw new FriendsHttpError(404, 'Not found');
     const failure = resultFailure(result);
     if (failure) throw new FriendsHttpError(failure.status, failure.message, failure.data);
@@ -156,7 +132,7 @@ export function createFriends(services = {}) {
     }
     if (request.method === 'OPTIONS') { response.writeHead(origins.has(requestOrigin) ? 204 : 403); response.end(); return true; }
     if (requestOrigin && !origins.has(requestOrigin)) { reply(403, {error: 'Origin not allowed'}); return true; }
-    if (!db) { reply(503, {error: 'Friends are not available yet.'}); return true; }
+    if (!store) { reply(503, {error: 'Friends are not available yet.'}); return true; }
     try {
       const user = await userFor(request);
       if (url.pathname === '/friends/state' && request.method === 'GET') { reply(200, {state: await state(user.id)}); return true; }
