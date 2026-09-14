@@ -5,6 +5,7 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {box,material} from './world';
 import {stations,trackPoint,trackLength,trainState,railHeight} from '../shared/lrt.mjs';
 import type {Solid} from './physics';
+import {cdnUrl,type CdnFile} from './cdn';
 import './lrt.css';
 
 function batchStatic(group:THREE.Group,dynamic:THREE.Object3D[]=[]){
@@ -63,7 +64,10 @@ function dress(mesh:THREE.Mesh){
    totalEmissiveRadiance*=lrtGlow.rgb*mix(lrtDay,1.6,lrtNight);`);
  };
 }
-function lrtAsset(name:string){return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/lrt/${name}.glb?v=${LRT_VERSION}`).then(gltf=>{
+// Train and station shrink about half under brotli, so they come from R2 (scripts/cdn.mjs); the
+// viaduct is mostly WebP texture that brotli cannot shrink, so it stays on Pages.
+const lrtUrl=(name:string)=>name==='LM_LRT_Viaduct'?`/assets/models/lrt/${name}.glb?v=${LRT_VERSION}`:cdnUrl(`assets/models/lrt/${name}.glb` as CdnFile);
+function lrtAsset(name:string){return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(lrtUrl(name)).then(gltf=>{
  gltf.scene.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;obj.castShadow=obj.receiveShadow=true;const m=obj.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;obj.castShadow=false;}dress(obj);});
  applyNight();return gltf.scene;}).catch(error=>{console.warn(`LRT asset ${name} unavailable, keeping placeholder`,error);return null;});}
 // Drop every placeholder mesh but keep the canvas labels (station names, destinations).
