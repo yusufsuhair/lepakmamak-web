@@ -8,10 +8,12 @@ const worldPosition = new THREE.Vector3(), cameraPosition = new THREE.Vector3(),
 const worldRotation = new THREE.Quaternion(), forward = new THREE.Vector3();
 const materialSets = new Set<THREE.MeshStandardMaterial>();
 const headlightPools = new WeakMap<THREE.Scene, THREE.SpotLight[]>();
-let environment: THREE.Texture | undefined, sky: THREE.Texture | null = null;
-// Until the local probe has sampled the city, cars reflect the live sky palette (weather.ts), not a fixed one.
-onSkyProbe(texture => { sky = texture; if (!environment) for (const material of materialSets) material.envMap = texture; });
-export function currentVehicleEnvironment(): THREE.Texture | null { return environment ?? sky; }
+let sky: THREE.Texture | null = null;
+// Cars reflect the live sky palette (weather.ts). A local cube probe of the city used to replace it,
+// but rendering the whole city six times compiled a second shader for every material: a 1.1 s
+// freeze after entering, then a hitch every 20 s of moving.
+onSkyProbe(texture => { sky = texture; for (const material of materialSets) material.envMap = texture; });
+export function currentVehicleEnvironment(): THREE.Texture | null { return sky; }
 export function trackVehicleMaterial(material: THREE.MeshStandardMaterial) {
   materialSets.add(material);
   material.envMap = currentVehicleEnvironment();
@@ -153,45 +155,4 @@ export function updateVehiclePresentation(scene: THREE.Scene, camera: THREE.Came
     beam.target.position.set((i?1:-1)*1.2,.05,halfLength+14).applyMatrix4(closest.matrixWorld);
     beam.target.updateMatrixWorld();
   });
-}
-
-let probe: THREE.WebGLCubeRenderTarget | undefined, pmrem: THREE.PMREMGenerator | undefined;
-let filtered: THREE.WebGLRenderTarget | undefined, lastProbeTime = -100, lastNight: boolean | undefined;
-const lastProbePosition = new THREE.Vector3(Infinity,Infinity,Infinity);
-
-/** One small shared probe samples the actual city near the camera, at most every 20s.
- * Hide upgraded cars to avoid self-reflections; restore every render setting on failure.
- * This never assigns scene.environment or changes the two Porsche material sets.
- */
-export function updateVehicleReflections(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, night: boolean, time: number) {
-  if (!materialSets.size || time-lastProbeTime < 20) return;
-  camera.getWorldPosition(cameraPosition);
-  if (lastNight === night && lastProbePosition.distanceTo(cameraPosition) < 18) return;
-  const hidden: THREE.Object3D[] = [];
-  visibleVehicles(scene,o => { hidden.push(o); });
-  if (!hidden.length) return;
-  probe ??= new THREE.WebGLCubeRenderTarget(64, {type: THREE.HalfFloatType, generateMipmaps: false});
-  pmrem ??= new THREE.PMREMGenerator(renderer);
-  const cube = new THREE.CubeCamera(.2, 160, probe);
-  let nearestDistance=Infinity;
-  for (const car of hidden) {
-    car.getWorldPosition(worldPosition);
-    const distance=worldPosition.distanceToSquared(cameraPosition);
-    if (distance<nearestDistance) { nearestDistance=distance; cube.position.copy(worldPosition); }
-  }
-  cube.position.y += 1.3;
-  const target = renderer.getRenderTarget(), autoShadow = renderer.shadowMap.autoUpdate;
-  try {
-    hidden.forEach(o => { o.visible=false; }); renderer.shadowMap.autoUpdate=false;
-    cube.update(renderer, scene);
-    const next = pmrem.fromCubemap(probe.texture);
-    environment = next.texture;
-    for (const material of materialSets) { material.envMap = environment; material.needsUpdate = true; }
-    filtered?.dispose(); filtered=next; lastProbePosition.copy(cameraPosition); lastNight=night;
-  } catch (error) {
-    console.warn('Vehicle reflection probe unavailable; retaining previous environment',error);
-  } finally {
-    hidden.forEach(o => { o.visible=true; }); renderer.shadowMap.autoUpdate=autoShadow; renderer.setRenderTarget(target);
-    lastProbeTime=time;
-  }
 }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MeshoptDecoder } from 'meshoptimizer';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {addVehicleLevel, currentVehicleEnvironment, trackVehicleMaterial} from './vehicle-presentation';
+import {cdnUrl, type CdnFile} from './cdn';
 
 /** Deliberately excludes both owner Porsches; they never enter this asset pipeline. */
 export const vehicleCatalog = {
@@ -102,7 +103,8 @@ async function template(style: RevampedCarStyle, level = '') {
   const key = style + level;
   let pending = templates.get(key);
   if (!pending) {
-    pending = Promise.all([loader.loadAsync(`/assets/models/vehicles/${key}.glb?v=${VERSION}`), sharedTextures()]).then(([gltf, textures]) => {
+    // R2 + brotli: all 39 levels load on entry, 4.7 MB on Pages, 2.0 MB from R2.
+    pending = Promise.all([loader.loadAsync(cdnUrl(`assets/models/vehicles/${key}.glb` as CdnFile)), sharedTextures()]).then(([gltf, textures]) => {
       for (const name of wheelNames) {
         if (!gltf.scene.getObjectByName(name)) throw new Error(`${style}: missing ${name}`);
       }

@@ -122,9 +122,13 @@ export function createBeach(scene:THREE.Scene,world:World){
  }).catch(error=>console.warn('[BEACH] keeping procedural props',error));
  const position=seaGeometry.attributes.position;
  const nearbyRest=(position:{x:number;z:number})=>BEACH_REST_SPOTS.filter(spot=>Math.hypot(position.x-spot.x,position.z-spot.z)<=2.6).sort((a,b)=>Math.hypot(position.x-a.x,position.z-a.z)-Math.hypot(position.x-b.x,position.z-b.z))[0]||null;
- return {iceCream:beachMatkool,nearbyRest,exitSpot:(spot:BeachRestSpot)=>({x:spot.exitX,z:spot.exitZ}),pose:beachRestPose,update(time:number){
-  for(let i=0;i<position.count;i++)position.setY(i,seaY(position.getX(i),position.getZ(i),time));
-  position.needsUpdate=true;seaGeometry.computeVertexNormals();
+ return {iceCream:beachMatkool,nearbyRest,exitSpot:(spot:BeachRestSpot)=>({x:spot.exitX,z:spot.exitZ}),pose:beachRestPose,update(time:number,player?:{x:number;z:number}){
+  // The swell is CPU work on 7.9k vertices plus a normal pass (~2.5 ms a frame); past 130 m of the
+  // shore it cannot be seen, and the shader ripples keep moving anyway.
+  if(!player||Math.hypot(player.x-120,Math.max(0,SHORE.waterline-player.z))<130){
+   for(let i=0;i<position.count;i++)position.setY(i,seaY(position.getX(i),position.getZ(i),time));
+   position.needsUpdate=true;seaGeometry.computeVertexNormals();
+  }
   seaUniforms.uTime.value=time;seaUniforms.uSky.value.copy(scene.background instanceof THREE.Color?scene.background:seaUniforms.uSky.value);
   foam.forEach(crest=>crest.update(time));swash.forEach(wash=>wash.update(time));
   walkers.forEach((p,i)=>{const t=time*.22+i*2.1;p.group.position.set(117+i*10+Math.sin(t)*3,0,145+Math.cos(t)*.6);p.group.rotation.y=Math.cos(t)>0?Math.PI/2:-Math.PI/2;p.leftLeg.rotation.x=Math.sin(time*3+i)*.25;p.rightLeg.rotation.x=-p.leftLeg.rotation.x;});

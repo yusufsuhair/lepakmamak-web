@@ -3,7 +3,7 @@ import './vehicle-showroom.css';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createDriveableCar, vehicleSolid } from './world';
 import { setVehicleDirt, vehicleCatalog, type RevampedCarStyle } from './vehicle-assets';
-import {updateVehiclePresentation,updateVehicleReflections,vehiclePresentationState} from './vehicle-presentation';
+import {updateVehiclePresentation,vehiclePresentationState} from './vehicle-presentation';
 
 setVehicleDirt(0);   // showroom cars are freshly detailed; only traffic carries road dust
 
@@ -69,7 +69,6 @@ renderer.setAnimationLoop(now => {
   if (spinning && current) current.wheels.forEach(wheel => { wheel.rotation.x += dt * 3; });
   controls.update();
   updateVehiclePresentation(scene,camera,dt,night,current?{group:current.group,controls:{speed:previewReverse?-2:spinning?3:0,steering:previewSteering,braking:previewBraking}}:undefined,now/1000);
-  updateVehicleReflections(renderer,scene,camera,night,now/1000);
   renderer.render(scene, camera);
 });
 Object.defineProperty(window, '__vehicleStudio', {get: () => ({

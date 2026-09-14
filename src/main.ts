@@ -12,7 +12,7 @@ import {setupChatSound} from './chat-sound';
 import {setupUiSounds} from './ui-sound';
 import {audioVolume, setAudioVolume} from './audio-preferences';
 import {setupVehicleRadio} from './vehicle-radio';
-import {updateVehiclePresentation, updateVehicleReflections} from './vehicle-presentation';
+import {updateVehiclePresentation} from './vehicle-presentation';
 import {setupLocationArrival} from './location-arrival';
 import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
@@ -197,9 +197,12 @@ async function init() {
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
   const ambient=new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8);scene.add(ambient);
+  // The shadow pass was 64% of all draw calls with a 180 m box around the player. A 110 m box pushed
+  // 30 m ahead of the camera covers what is on screen (fog starts at 145) and sharpens the shadows.
+  const SHADOW_REACH = 55, SHADOW_AHEAD = 30;
   const sun = new THREE.DirectionalLight('#ffdfa3', 2.7); sun.position.set(-70, 110, 60); sun.castShadow = true;
   const shadowSize = matchMedia('(any-pointer: coarse)').matches ? 1024 : 2048;
-  sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -90; sun.shadow.camera.right = 90; sun.shadow.camera.top = 90; sun.shadow.camera.bottom = -90;
+  sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -SHADOW_REACH; sun.shadow.camera.right = SHADOW_REACH; sun.shadow.camera.top = SHADOW_REACH; sun.shadow.camera.bottom = -SHADOW_REACH;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
   let viewportResizeFrame = 0;
@@ -2513,7 +2516,8 @@ async function init() {
       target.set(pos.x, (lrtId!=null?railHeight+2:riding ? 2 : 1.6) + deckY, pos.z);
       desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * (lrtId!=null?Math.max(.55,cameraPitch):cameraPitch)), pos.z - Math.cos(heading) * cameraDistance);
       camera.position.lerp(desiredCamera, 1 - Math.exp(-9 * dt)); camera.lookAt(target);
-      sun.position.set(pos.x + weatherUI.sunOffset.x, weatherUI.sunOffset.y, pos.z + weatherUI.sunOffset.z); sun.target.position.set(pos.x, 0, pos.z);
+      const shadowX = pos.x + Math.sin(heading) * SHADOW_AHEAD, shadowZ = pos.z + Math.cos(heading) * SHADOW_AHEAD;
+      sun.position.set(shadowX + weatherUI.sunOffset.x, weatherUI.sunOffset.y, shadowZ + weatherUI.sunOffset.z); sun.target.position.set(shadowX, 0, shadowZ);
       if (rainEnabled) {
         rain.position.set(pos.x, 0, pos.z);
         const drops = graphicsQuality === 'low' ? rainCount / 2 : rainCount;
@@ -2691,14 +2695,13 @@ async function init() {
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
-    beach.update(simTime);
+    beach.update(simTime,pos);
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     updateVehiclePresentation(scene,camera,dt,mamakNight,
       riding && vehicle==='car' ? {group:car.group,controls:{speed,
         steering:THREE.MathUtils.clamp(Number(keys.has('KeyA')||keys.has('ArrowLeft'))-Number(keys.has('KeyD')||keys.has('ArrowRight'))-stickX,-1,1),
         braking:keys.has('Space')}} : undefined,simTime,.12);
-    updateVehicleReflections(renderer,scene,camera,mamakNight,simTime);
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }

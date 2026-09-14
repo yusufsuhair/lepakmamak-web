@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "9dcfe0368818",
+  "version": "d72afc22f592",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -264,6 +264,240 @@
       "key": "models/LM_ENV_Pickleball.29b7cddf0bfc.glb",
       "bytes": 134892,
       "etag": "8db9ae1511d0fe385db7c5f4d39251dc",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/avanza-far.glb": {
+      "key": "models/avanza-far.fc501d88ba99.glb",
+      "bytes": 27031,
+      "etag": "07ef30abe05199bb530f00ee584754e4",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/avanza-mid.glb": {
+      "key": "models/avanza-mid.c45b8c825093.glb",
+      "bytes": 63107,
+      "etag": "6be2134002161a26d962cde5b83400bd",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/avanza.glb": {
+      "key": "models/avanza.42f32d99b200.glb",
+      "bytes": 116657,
+      "etag": "202b576291bca14fa90ad7c3bbf810ab",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/axia-far.glb": {
+      "key": "models/axia-far.1ce672619039.glb",
+      "bytes": 26979,
+      "etag": "555e496cf07c62e69250154edec75314",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/axia-mid.glb": {
+      "key": "models/axia-mid.738bdfe3817c.glb",
+      "bytes": 62728,
+      "etag": "a985697794e926d0c0c304c4108de2b9",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/axia.glb": {
+      "key": "models/axia.d3c7d64d36ef.glb",
+      "bytes": 114291,
+      "etag": "64a9d5241174dda3195cac95107822a3",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/cybertruck-far.glb": {
+      "key": "models/cybertruck-far.c4cf7286096c.glb",
+      "bytes": 23325,
+      "etag": "c6923cc232c78e3eb3525661d26d3fc3",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/cybertruck-mid.glb": {
+      "key": "models/cybertruck-mid.4b2ea8651474.glb",
+      "bytes": 45680,
+      "etag": "971cf8eb7caf6367988816e62b78604e",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/cybertruck.glb": {
+      "key": "models/cybertruck.9dbb7e75c316.glb",
+      "bytes": 63233,
+      "etag": "a4b16f05079595ed4224e7b7dd4abd11",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/emas-far.glb": {
+      "key": "models/emas-far.64c26b6524ac.glb",
+      "bytes": 23620,
+      "etag": "053fed3a9a892aba6e72f172345472e7",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/emas-mid.glb": {
+      "key": "models/emas-mid.2c5adeec94df.glb",
+      "bytes": 54679,
+      "etag": "1abf831a1c60e99b7fbfcfedc68d2437",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/emas.glb": {
+      "key": "models/emas.a01ee97c5274.glb",
+      "bytes": 99435,
+      "etag": "b08caceb8ad752fb1ad759718e2f69ad",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/f1-far.glb": {
+      "key": "models/f1-far.c818c9d29f2e.glb",
+      "bytes": 10706,
+      "etag": "522a1b1406fa091cde0477350ede9328",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/f1-mid.glb": {
+      "key": "models/f1-mid.600b2b8169a3.glb",
+      "bytes": 22283,
+      "etag": "f71964c05105e8398d24483796c83ca2",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/f1.glb": {
+      "key": "models/f1.5f9a5a825f9d.glb",
+      "bytes": 31149,
+      "etag": "9a18db3f97ff02df11620d8d91cbb439",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/ferrari-far.glb": {
+      "key": "models/ferrari-far.5cdbfbcaccb7.glb",
+      "bytes": 26522,
+      "etag": "19c9fd7cbfe0f52a67d85ddc22065865",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/ferrari-mid.glb": {
+      "key": "models/ferrari-mid.6860d445309d.glb",
+      "bytes": 61157,
+      "etag": "55068ef8ea7effbc6604307ec539c2a5",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/ferrari.glb": {
+      "key": "models/ferrari.3e2d635e4aed.glb",
+      "bytes": 110073,
+      "etag": "b1f67bb1026b91e9b79e9be8b424d958",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/lamborghini-far.glb": {
+      "key": "models/lamborghini-far.85ff9588ac38.glb",
+      "bytes": 27390,
+      "etag": "532d2f57630af0ef7c3b9fe7f0994b28",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/lamborghini-mid.glb": {
+      "key": "models/lamborghini-mid.4f96727dac7f.glb",
+      "bytes": 63546,
+      "etag": "0124eacc1dced88c7056a68f328d82f9",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/lamborghini.glb": {
+      "key": "models/lamborghini.1e6bd2bc30f8.glb",
+      "bytes": 112384,
+      "etag": "c4def7a3a906aece4e217155edc4757a",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/model-y-far.glb": {
+      "key": "models/model-y-far.9644d4660da5.glb",
+      "bytes": 23591,
+      "etag": "c492b00b02ffe6158398a2ee459f9be3",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/model-y-mid.glb": {
+      "key": "models/model-y-mid.4b0836560b7b.glb",
+      "bytes": 53077,
+      "etag": "7d8c51fdf99fcfa0a62f5f77ceb3e816",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/model-y.glb": {
+      "key": "models/model-y.0607abd1a3a4.glb",
+      "bytes": 96247,
+      "etag": "f5e596c9f7fccba8609fdc11235f9e4d",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/myvi-far.glb": {
+      "key": "models/myvi-far.f0b8f1591438.glb",
+      "bytes": 26029,
+      "etag": "a0a3c8249f2809ebc367c81acee47904",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/myvi-mid.glb": {
+      "key": "models/myvi-mid.2e6e0660bccb.glb",
+      "bytes": 62802,
+      "etag": "ac50a4f68a30ce1685e6796fbd565083",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/myvi.glb": {
+      "key": "models/myvi.9926d5bb0a9a.glb",
+      "bytes": 114303,
+      "etag": "5a49c8b31be1acfb1f5210b2aaf815aa",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/police-far.glb": {
+      "key": "models/police-far.558ddf2dd2d7.glb",
+      "bytes": 28704,
+      "etag": "001118cc621810893d4a3c63c27993ad",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/police-mid.glb": {
+      "key": "models/police-mid.1bf52bd0aaec.glb",
+      "bytes": 66099,
+      "etag": "f698fb2a881be0ab664adb71202d7548",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/police.glb": {
+      "key": "models/police.4d304831f49b.glb",
+      "bytes": 119850,
+      "etag": "1965d783ceb9a15434fca77ce19e059a",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/sport-far.glb": {
+      "key": "models/sport-far.34d4f18ab1c3.glb",
+      "bytes": 26035,
+      "etag": "6bf455626e99f3e1af4486985c960ac4",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/sport-mid.glb": {
+      "key": "models/sport-mid.458c22b87c65.glb",
+      "bytes": 60804,
+      "etag": "c9b53e538117ab03bdd2f4b113e1c989",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/sport.glb": {
+      "key": "models/sport.d273f5ee346f.glb",
+      "bytes": 112193,
+      "etag": "72021a018dfd292896fef0587e04ed68",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/suv-far.glb": {
+      "key": "models/suv-far.99746d6495c4.glb",
+      "bytes": 27499,
+      "etag": "3fc2fa60114bcc4c699c720f6e68b02a",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/suv-mid.glb": {
+      "key": "models/suv-mid.a307ffc8dd3e.glb",
+      "bytes": 63738,
+      "etag": "abe318acc2cf0cdea37072e85b5283da",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/suv.glb": {
+      "key": "models/suv.f0c50a60bca5.glb",
+      "bytes": 116498,
+      "etag": "83774baecb4659fd49703733053b99b3",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/vellfire-far.glb": {
+      "key": "models/vellfire-far.318c061a1f19.glb",
+      "bytes": 27842,
+      "etag": "0772633f8448894804ad8efbc4d4a27f",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/vellfire-mid.glb": {
+      "key": "models/vellfire-mid.85e1f5b859fe.glb",
+      "bytes": 65995,
+      "etag": "df81c460e091c58c58c342cf6d1031c6",
+      "encoding": "br"
+    },
+    "assets/models/vehicles/vellfire.glb": {
+      "key": "models/vellfire.d37d59a73761.glb",
+      "bytes": 115716,
+      "etag": "32082c711656568a1ff3cd76e1cd5676",
       "encoding": "br"
     }
   }

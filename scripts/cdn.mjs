@@ -12,7 +12,7 @@
 //   npx wrangler r2 bucket cors set lepakmamak-assets --file scripts/cdn-cors.json
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {existsSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, extname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -36,7 +36,9 @@ export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3', 'lo
   'assets/models/environment/LM_ENV_Shell.glb', 'assets/models/environment/LM_ENV_DriveThrough.glb', 'assets/models/foliage/LM_TREE_RainTree.glb', 'assets/models/foliage/LM_TREE_CoconutPalm.glb', 'assets/models/shops/LM_SHOP_BengkelAzlan.glb', 'assets/models/shops/LM_SHOP_SevenEleven.glb', 'assets/models/shops/LM_SHOP_WarungKakAna.glb', 'assets/models/shops/LM_SHOP_ZusCoffee.glb', 'assets/models/shops/LM_SHOP_FamilyMart.glb', 'assets/models/shops/LM_SHOP_KkSuperMart.glb', 'assets/models/shops/LM_SHOP_Watsons.glb',
   'assets/models/lrt/LM_LRT_Train.glb', 'assets/models/lrt/LM_LRT_Station.glb',
   'assets/models/environment/LM_ENV_Church.glb', 'assets/models/environment/LM_ENV_HinduTemple.glb', 'assets/models/environment/LM_ENV_ChineseTemple.glb',
-  'assets/models/environment/LM_ENV_Busking.glb', 'assets/models/environment/LM_ENV_Basketball.glb', 'assets/models/environment/LM_ENV_Pickleball.glb'];
+  'assets/models/environment/LM_ENV_Busking.glb', 'assets/models/environment/LM_ENV_Basketball.glb', 'assets/models/environment/LM_ENV_Pickleball.glb',
+  // Every player loads all 39 car levels on entry, and Pages serves GLBs uncompressed.
+  ...readdirSync('public/assets/models/vehicles').filter(f => f.endsWith('.glb')).sort().map(f => `assets/models/vehicles/${f}`)];
 
 const md5 = body => createHash('md5').update(body).digest('hex');
 const sha256 = body => createHash('sha256').update(body).digest('hex');
