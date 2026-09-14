@@ -131,16 +131,6 @@ def bench(a):
         for y in (.83,1.25): a.box("Bolt",x,y,-.247,.045,.045,.01,METAL)
 
 
-def street_lamp(a):
-    a.cylinder("Plinth",0,.12,0,.19,.24,METAL,8)
-    a.cylinder("Pole",0,2.76,0,.13,5.28,METAL,8,.09)
-    a.cylinder("Collar",0,.68,0,.15,.08,CREAM,8)
-    a.box("Head",.85,5.30,0,1.70,.24,.52,METAL)
-    a.box("Diffuser",.85,5.165,0,1.46,.03,.40,CREAM)
-    a.box("SwitchPlate",0,1.22,.135,.12,.23,.035,CREAM)
-    a.box("Switch",0,1.23,.161,.05,.08,.02,METAL)
-
-
 def planter(a):
     # A kiln-coloured planter with a slightly inset soil tray, four feet and a double rim.
     a.box("Base",0,.07,0,1.84,.14,1.84,WOOD)
@@ -181,7 +171,8 @@ def planter(a):
         a.ico("SoilPebble",math.cos(angle)*radius, .93, math.sin(angle)*radius,.055,.035,.045,WOOD)
 
 
-BUILDERS={"LM_PROP_PalmMamak":palm,"LM_PROP_BenchMamak":bench,"LM_PROP_StreetLamp":street_lamp,"LM_PROP_PlanterMamak":planter}
+# LM_PROP_StreetLamp is now the photographic DBKL lamp: scripts/blender/furniture_models.py.
+BUILDERS={"LM_PROP_PalmMamak":palm,"LM_PROP_BenchMamak":bench,"LM_PROP_PlanterMamak":planter}
 
 
 def frame_preview(obj):
@@ -217,7 +208,6 @@ def main():
         obj=a.finish_prop(name)
         if name in ("LM_PROP_PalmMamak","LM_PROP_PlanterMamak"):
             obj["lm_foliage_version"]=3
-        if name=="LM_PROP_StreetLamp": obj["lm_head_anchor_m"]=[.85,5.3,0]
         if name=="LM_PROP_BenchMamak": obj["lm_role"]="decorative street bench; no player seat IDs"
         bpy.context.view_layer.update()
         frame_preview(obj)

@@ -18,6 +18,8 @@ import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {cdnUrl, type CdnFile} from './cdn';
+import {loadGltf, STREET_LAMP_URL} from './web-assets';
+import {instanceStreetFurniture} from './street-furniture';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {loadSkylineTower, type SkylineAsset} from './skyline';
@@ -1406,10 +1408,9 @@ export function createWorld(scene: THREE.Scene): World {
     batchShopFallback(kltower);
     loadSkylineTower(kltower,'LM_ENV_KLTower');
   }
-  for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) {
-    const parent = mamakStreetLayout.lamps.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
-    streetLamp(parent, x, z, x > 0 ? -1 : 1);
-  }
+  // The tall avenue lamps are instances in createStreetLights (AVENUE_LAMPS); only the two the Mamak
+  // street props replace keep a procedural body here, as that swap's fallback.
+  for (const p of mamakStreetLayout.lamps) streetLamp(mamakStreetFallback, p.x, p.z, p.x > 0 ? -1 : 1);
   // The last palm keeps clear of the (-67, 92) rain tree's umbrella crown.
   for (const [x, z, s] of [[-48, 54, 1], [-11, 19, 1], [12, 47, 1.05], [13, -32, .9], [-13, -78, 1], [58, 61, 1], [54, -45, .85], [-61, 104, 1]]) {
     const parent = mamakStreetLayout.palms.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;
@@ -1431,11 +1432,12 @@ export function createWorld(scene: THREE.Scene): World {
   }
   mamakStreetFallback.traverse(object => { object.userData.keepUnbatched = true; });
   // Malaysian flags and street signs.
+  let crescent: THREE.Material | undefined;
   function flag(x: number, z: number) {
     tube(furniture, x, 4, z, .055, 8, '#b9c1aa');
     for (let i = 0; i < 14; i++) box(furniture, x + 1.22, 7.7 - i * .1, z, 2.4, .1, .025, i % 2 ? '#f5e7cc' : '#c34d3c');
     box(furniture, x + .55, 7.37, z + .02, 1.05, .75, .02, '#344f7a');
-    sign(furniture, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57');
+    crescent = sign(furniture, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57').material as THREE.Material;
   }
   flag(-13, 54); flag(13, -77);
   sign(furniture, 'JALAN LEPAK', -11, 3.7, 14, 5, .8, '#245c4b'); tube(furniture, -11, 1.8, 14, .07, 3.6, '#728571');
@@ -1455,15 +1457,19 @@ export function createWorld(scene: THREE.Scene): World {
   box(furniture,-30.25,.57,155.7,254.5,1.14,.9,'#c9c6bc');
   box(furniture,155.7,.57,137.75,.9,1.14,24.5,'#c9c6bc');
   // The boxes above stay as the fallback until the Blender set arrives. Only the canvas text
-  // signs survive the swap, so JALAN LEPAK, KLCC ↑ and the flag crescent stay the game's.
+  // signs survive the swap, so JALAN LEPAK and KLCC ↑ stay the game's; the Jalur Gemilang cloth
+  // prints its own crescent and star. The set also carries the junction signals, bus shelters and
+  // bollards (scripts/blender/furniture_models.py), skin only: no colliders. lightBrands gives the
+  // galvanised steel its street reflection and the signal lenses and advert light their night.
   furniture.traverse(o => { o.userData.keepUnbatched = true; });
   batchShopFallback(furniture);
   void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Furniture.glb'))   /* R2 + brotli: every player loads it at entry */.then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; }
       // The seawall's armour rock lies at the waterline across 250 m: a shadow pass over it costs
       // more triangles than the stones' own shade is worth.
-      if (m.name === 'Armour granite') o.castShadow = false; });
-    for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial)) child.removeFromParent();
+      if (m.name === 'Armour granite' || m.name.startsWith('Night glow')) o.castShadow = false; });
+    lightBrands(gltf.scene); instanceStreetFurniture(gltf.scene);
+    for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) || child.material === crescent) child.removeFromParent();
     furniture.add(gltf.scene);
   }).catch(error => console.warn('[FURNITURE] keeping procedural street furniture', error));
 
@@ -1519,9 +1525,13 @@ export function createWorld(scene: THREE.Scene): World {
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can
-// never drift away from the roads. Three InstancedMeshes hold roughly eighty lamps at
-// three draw calls; real lights would be one shader recompile each and would sink the
-// phone build, so night is faked with an emissive head and a glow pool on the ground.
+// never drift away from the roads. Five InstancedMeshes hold roughly eighty lamps at five
+// draw calls; real lights would be one shader recompile each and would sink the phone build,
+// so night is faked with an emissive lens, an additive halo and a light pool on the ground.
+// Every piece of a lamp shares one instance pose (its base, turned so the arm reaches over the
+// road), so the Blender lamp (scripts/blender/furniture_models.py) swaps in by geometry alone.
+// The tall avenue lamps ride along as extra, unswitchable instances after the switchable ones.
+const AVENUE_LAMPS = [-11.5, 11.5].flatMap(x => [-47, -21, 29, 65, 99, 132].map(z => ({x, z})));
 export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
   const VERTICAL_X = [0, 76, -82], HORIZONTAL_Z = [-64, 8, 78];
   const KERB = 10.4, JUNCTION = 11, SPACING = 24, REACH = 144;
@@ -1542,77 +1552,116 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
       lamps.push({x, z: z + side * KERB, axis: 'ew', side});
     }
   }
+  // The arm always reaches out over the tarmac, whichever kerb the post stands on (the same yaw
+  // src/mamak-streets.ts gives the Blender bodies it places over switchable lamps).
+  const poses = [
+    ...lamps.map(lamp => ({x: lamp.x, z: lamp.z, scale: 1, body: true,
+      yaw: lamp.axis === 'ns' ? (lamp.side < 0 ? 0 : Math.PI) : (lamp.side < 0 ? -Math.PI / 2 : Math.PI / 2)})),
+    // The two avenue lamps the Mamak street props draw keep only their light here; one that stood a
+    // step from a switchable lamp (and in front of the KLCC sign) is left out rather than doubled.
+    ...AVENUE_LAMPS.filter(p => !lamps.some(lamp => Math.hypot(lamp.x - p.x, lamp.z - p.z) < 2)).map(p => ({x: p.x, z: p.z, scale: 1.35, yaw: p.x > 0 ? Math.PI : 0,
+      body: !mamakStreetLayout.lamps.some(m => m.x === p.x && m.z === p.z)})),
+  ];
+  const count = poses.length;
 
   const group = new THREE.Group();
   const poleMaterial = new THREE.MeshStandardMaterial({color: '#46525c', roughness: .8});
   const headMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', roughness: .5});
   // The lit shell wraps the matte head rather than replacing it, so a lamp that is off is
   // still a lamp. Every per-lamp mesh is switched by scaling its instance, because the
-  // materials are shared across all eighty of them.
+  // materials are shared across all of them.
   const litMaterial = new THREE.MeshStandardMaterial({color: '#e8e2cd', emissive: '#ffcf82', emissiveIntensity: 2.4, roughness: .5});
-  const glowMaterial = new THREE.MeshBasicMaterial({color: '#ffcf82', transparent: true, opacity: .3, depthWrite: false});
-  const bulbMaterial = new THREE.MeshBasicMaterial({color: '#ffe6b8', transparent: true, opacity: .85, blending: THREE.AdditiveBlending, depthWrite: false});
-  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(.1, .14, 5.4, 6), poleMaterial, lamps.length);
-  const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, .24, .52), headMaterial, lamps.length);
-  const lit = new THREE.InstancedMesh(new THREE.BoxGeometry(1.76, .3, .58), litMaterial, lamps.length);
-  const glows = new THREE.InstancedMesh(new THREE.CircleGeometry(4.4, 14), glowMaterial, lamps.length);
-  // A sphere reads the same from every angle, so the halo needs no per-frame billboarding.
-  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(.62, 8, 6), bulbMaterial, lamps.length);
-
-  const matrix = new THREE.Matrix4(), euler = new THREE.Euler(), quaternion = new THREE.Quaternion();
-  const scale = new THREE.Vector3(1, 1, 1), position = new THREE.Vector3();
-  const OFF = new THREE.Vector3(0, 0, 0);
-  // Where each switchable piece sits, kept so a lamp can be re-lit without rebuilding it.
-  const places: {head: THREE.Vector3; quaternion: THREE.Quaternion; bulb: THREE.Vector3; glow: THREE.Vector3; flat: THREE.Quaternion}[] = [];
-  lamps.forEach((lamp, index) => {
-    // The arm always reaches out over the tarmac, whichever kerb the post stands on.
-    const towardRoad = -lamp.side, yaw = lamp.axis === 'ns' ? 0 : Math.PI / 2;
-    const armX = lamp.axis === 'ns' ? towardRoad * .85 : 0;
-    const armZ = lamp.axis === 'ns' ? 0 : towardRoad * .85;
-
-    position.set(lamp.x, 2.7, lamp.z);
-    poles.setMatrixAt(index, matrix.compose(position, quaternion.identity(), scale));
-
-    places.push({
-      head: new THREE.Vector3(lamp.x + armX, 5.3, lamp.z + armZ),
-      quaternion: new THREE.Quaternion().setFromEuler(euler.set(0, yaw, 0)),
-      bulb: new THREE.Vector3(lamp.x + armX, 5.18, lamp.z + armZ),
-      glow: new THREE.Vector3(lamp.x + armX, .035, lamp.z + armZ),
-      flat: new THREE.Quaternion().setFromEuler(euler.set(-Math.PI / 2, 0, 0)),
-    });
-    heads.setMatrixAt(index, matrix.compose(places[index].head, places[index].quaternion, scale));
-
-    solids?.push({x: lamp.x, z: lamp.z, hx: .22, hz: .22});
+  // Light, not paint: a soft pool added onto the pavement, stretched along the road like an LED
+  // lantern's throw, and a halo that fades toward its silhouette so it never reads as a ball.
+  const glowMaterial = new THREE.MeshBasicMaterial({color: '#ffd79a', map: lightPool(), transparent: true, opacity: .8, blending: THREE.AdditiveBlending,
+    depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2});
+  const bulbMaterial = new THREE.ShaderMaterial({
+    uniforms: {color: {value: new THREE.Color('#ffe2b0')}},
+    vertexShader: `varying vec3 vNormalView; varying vec3 vToEye;
+      void main() {
+        vec4 p = vec4(position, 1.); vec3 n = normal;
+        #ifdef USE_INSTANCING
+          p = instanceMatrix * p; n = mat3(instanceMatrix) * n;
+        #endif
+        vec4 mv = modelViewMatrix * p; vToEye = -mv.xyz; vNormalView = normalMatrix * n;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform vec3 color; varying vec3 vNormalView; varying vec3 vToEye;
+      void main() {
+        float facing = abs(dot(normalize(vNormalView), normalize(vToEye)));
+        gl_FragColor = vec4(color * pow(facing, 3.) * .9, 1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
   });
+  const local = (geometry: THREE.BufferGeometry, x: number, y: number, z: number) => geometry.translate(x, y, z);
+  const poles = new THREE.InstancedMesh(local(new THREE.CylinderGeometry(.1, .14, 5.4, 6), 0, 2.7, 0), poleMaterial, count);
+  const heads = new THREE.InstancedMesh(local(new THREE.BoxGeometry(1.7, .24, .52), .85, 5.3, 0), headMaterial, count);
+  const lit = new THREE.InstancedMesh(local(new THREE.BoxGeometry(1.76, .3, .58), .85, 5.3, 0), litMaterial, count);
+  const glows = new THREE.InstancedMesh(local(new THREE.PlaneGeometry(11, 17).rotateX(-Math.PI / 2), 2.6, .14, 0), glowMaterial, count);
+  const bulbs = new THREE.InstancedMesh(local(new THREE.SphereGeometry(.42, 14, 10).scale(1.25, .5, 1), .88, 5.2, 0), bulbMaterial, count);
+  glows.renderOrder = bulbs.renderOrder = 2;
+
+  const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0), up = new THREE.Vector3(0, 1, 0);
+  const placed = poses.map(pose => new THREE.Matrix4().compose(new THREE.Vector3(pose.x, 0, pose.z),
+    new THREE.Quaternion().setFromAxisAngle(up, pose.yaw), new THREE.Vector3(pose.scale, pose.scale, pose.scale)));
+  poses.forEach((pose, index) => {
+    poles.setMatrixAt(index, pose.body ? placed[index] : HIDDEN);
+    heads.setMatrixAt(index, pose.body ? placed[index] : HIDDEN);
+  });
+  lamps.forEach(lamp => solids?.push({x: lamp.x, z: lamp.z, hx: .22, hz: .22}));
   group.add(poles, heads, lit, bulbs, glows);
   scene.add(group);
 
   // Night is only the default. A lamp somebody switched keeps its own answer, and that is
   // what `overrides` holds — sparse, so a room that nobody has touched costs nothing.
+  // The avenue lamps past the end of `lamps` cannot be switched: they follow the night.
   let night = false;
   const overrides = new Map<number, boolean>();
   const isLit = (index: number) => overrides.get(index) ?? night;
 
   function paint() {
-    for (let index = 0; index < lamps.length; index++) {
-      const on = isLit(index), place = places[index];
-      lit.setMatrixAt(index, matrix.compose(place.head, place.quaternion, on ? scale : OFF));
-      bulbs.setMatrixAt(index, matrix.compose(place.bulb, quaternion.identity(), on ? scale : OFF));
-      glows.setMatrixAt(index, matrix.compose(place.glow, place.flat, on ? scale : OFF));
+    for (let index = 0; index < count; index++) {
+      const at = (index < lamps.length ? isLit(index) : night) ? placed[index] : HIDDEN;
+      lit.setMatrixAt(index, at); bulbs.setMatrixAt(index, at); glows.setMatrixAt(index, at);
     }
     lit.instanceMatrix.needsUpdate = true;
     bulbs.instanceMatrix.needsUpdate = true;
     glows.instanceMatrix.needsUpdate = true;
   }
   paint();
+  // Switched pieces span the city and may all be hidden when a bound is taken, so never cull them.
+  lit.frustumCulled = bulbs.frustumCulled = glows.frustumCulled = false;
+
+  // The Blender lamp: the galvanised body replaces the posts, its LED lens the matte heads, and a
+  // copy of the lens lit from its own LED texture becomes the shell. The procedural lamp stays if
+  // the file never arrives.
+  void loadGltf(STREET_LAMP_URL).then(gltf => {
+    gltf.scene.updateMatrixWorld(true);
+    let body: THREE.Mesh | undefined, lens: THREE.Mesh | undefined;
+    gltf.scene.traverse(object => {
+      if (!(object instanceof THREE.Mesh)) return;
+      if ((object.material as THREE.Material).name === 'Lamp LED lens') lens = object; else body = object;
+    });
+    if (!body || !lens) return;
+    lightBrands(gltf.scene);
+    const lensMaterial = lens.material as THREE.MeshStandardMaterial;
+    poles.geometry.dispose(); poles.geometry = body.geometry.clone().applyMatrix4(body.matrixWorld); poles.material = body.material as THREE.MeshStandardMaterial;
+    heads.geometry.dispose(); heads.geometry = lens.geometry.clone().applyMatrix4(lens.matrixWorld); heads.material = lensMaterial;
+    lit.geometry.dispose(); lit.geometry = heads.geometry.clone().translate(0, -.006, 0);
+    Object.assign(litMaterial, {map: lensMaterial.map, emissiveMap: lensMaterial.map, roughness: .3});
+    litMaterial.color.set('#ffffff'); litMaterial.emissive.set('#ffe6c0'); litMaterial.emissiveIntensity = 3.2; litMaterial.needsUpdate = true;
+    poles.castShadow = true; poles.receiveShadow = heads.receiveShadow = true;
+    for (const mesh of [poles, heads]) mesh.computeBoundingSphere();
+  }).catch(error => console.warn('[street-lamps] keeping procedural lamps', error));
 
   return {
     group, lamps, headMaterial,
     useBlenderBodies(indices: number[]) {
-      const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
       for (const index of indices) {
         if (!Number.isInteger(index) || index < 0 || index >= lamps.length) continue;
-        poles.setMatrixAt(index, hidden); heads.setMatrixAt(index, hidden);
+        poles.setMatrixAt(index, HIDDEN); heads.setMatrixAt(index, HIDDEN);
       }
       poles.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true;
       // Emissive heads, glow pools and switch overrides keep the same indexed state.
@@ -1633,4 +1682,14 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
       paint();
     },
   };
+}
+
+/** A soft pool of lamp light, brightest under the lantern and fading out long along the road. */
+function lightPool() {
+  const size = 128, canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!, gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (const [at, alpha] of [[0, 1], [.3, .62], [.6, .22], [.85, .05], [1, 0]]) gradient.addColorStop(at, `rgba(255,255,255,${alpha})`);
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }

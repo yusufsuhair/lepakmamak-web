@@ -271,7 +271,8 @@ LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-mamak-browser.mjs
 ## Reusable neighbourhood props
 
 `generated/street-props/` contains four standalone Blender sources/GLBs: a palm, wooden
-bench, planter and street-lamp body. Each has four preview renders and retains named part
+bench, planter and street-lamp body. The street lamp has since moved to the photographic kit
+(`scripts/blender/furniture_models.py`); this script no longer builds it. Each has four preview renders and retains named part
 vertex groups. The per-prop profile permits 1,200 triangles, three materials/draws and 96 KiB.
 
 ```sh

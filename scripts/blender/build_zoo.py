@@ -8,11 +8,12 @@ in the park (paths, rails, the eastern leaf gateway, the flamingo pond and the l
 keeps the footprints world.ts already draws, and the game keeps painting its own canvas
 signs (ZOO NEGARA MINI LEPAK, GAJAH, SAVANA, KOLAM FLAMINGO) on top.
 
-The second asset is the city furniture world.ts scatters by hand: the two Malaysian flags,
-the two street signs, the courtyard bunting, the boundary hedges (clipped kemuning on a concrete
-planter kerb), the seawall with its granite rock armour where the city meets the sea, and the
-low fountain on the KLCC delivery plaza. Skin only - no collision box, seat or coordinate moves.
-The hedge, seawall and rock carry PBR textures (pbr_kit + ground_textures.py), embedded as WebP.
+The second asset is the city furniture: the boundary hedges (clipped kemuning on a concrete
+planter kerb) and the seawall with its granite rock armour where the city meets the sea, built
+here, plus the photographic street furniture from furniture_models.py - the two Jalur Gemilang
+flags, the street-sign frames, the courtyard bunting, the KLCC plaza fountain, traffic signals at
+every junction, LRT feeder bus shelters and crossing bollards. Skin only - no collision box, seat
+or coordinate moves. Everything carries PBR textures (pbr_kit), embedded as WebP.
 
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python scripts/blender/build_zoo.py -- --no-render
   add --only=Furniture (or --only=Zoo) to rebuild one asset; then node scripts/blender/compress-glb.mjs <glb>
@@ -29,6 +30,7 @@ from build_lrt import pt,mat,box,cyl,loft,join,finish
 from build_klcc import vloft,sphere
 import pbr_kit as kit
 import ground_textures as GT
+import furniture_models as FM
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'assets/zoo'; OUT.mkdir(parents=True,exist_ok=True)
@@ -55,19 +57,11 @@ WATER=mat('Zoo water',(.30,.56,.58),.12,alpha=.88,two_sided=True)
 ROCK=mat('Zoo rock',(.55,.47,.36),.92);ROCK2=mat('Zoo rock shade',(.47,.40,.31),.92)
 REED=mat('Zoo reed',(.42,.55,.32),.8)
 # furniture
-POLE=mat('Flagpole',(.86,.87,.83),.35);FLAGR=mat('Flag red',(.78,.16,.16),.6,two_sided=True)
-FLAGW=mat('Flag cream',(.96,.94,.88),.6,two_sided=True);FLAGB=mat('Flag navy',(.06,.15,.42),.6,two_sided=True)
-STREET=mat('Street post',(.45,.52,.45),.5);BOARD=mat('Street board',(.14,.36,.29),.7)
-BUNT1=mat('Bunting gold',(.89,.71,.30),.6,two_sided=True);BUNT2=mat('Bunting red',(.73,.32,.25),.6,two_sided=True)
-BUNT3=mat('Bunting teal',(.34,.55,.46),.6,two_sided=True);CORD=mat('Bunting cord',(.30,.30,.26),.7)
 kit.setup('furniture',ROOT/'assets/ground/textures',20260914)
 HEDGE=kit.pbr('Hedge leaves','hedge','#e8eedf',.72,1.5,strength=1.3,source=GT)
 HEDGEB=kit.pbr('Hedge planter kerb','concrete','#bdbab2',.9,2.0,source=GT)
 SEAWALL=kit.pbr('Seawall concrete','concrete','#d8d5cc',.9,2.0,source=GT)
 ARMOUR=kit.pbr('Armour granite','granite','#a7abad',.86,1.6,strength=1.4)
-FSTONE=mat('Fountain stone',(.76,.76,.68),.85);FTRIM=mat('Fountain trim',(.66,.67,.60),.8)
-FWATER=mat('Fountain water',(.42,.68,.68),.1,alpha=.8,two_sided=True)
-JET=mat('Fountain jet',(.80,.90,.90),.15,alpha=.6,two_sided=True)
 
 # ---------------------------------------------------------------- lathe helpers
 def L_of(x=0.0,z=0.0,yaw=0.0,s=1.0):
@@ -418,66 +412,6 @@ def zoo():
 # ================================================================ street furniture
 F='furniture'
 
-def flag(x,z):
-    """Pole, and the 14-stripe Jalan Merdeka flag as one rippling sheet.
-
-    Every point of the sheet stays behind z (the game's canvas crescent sits at z+.04), so
-    the ripple never fights the sign it has to live with.
-    """
-    o=[]
-    o.append(limb('flagpole',[(x,.05,z,.13),(x,.3,z,.075),(x,4.0,z,.062),(x,7.9,z,.05)],POLE,F,n=8))
-    o.append(disc('pole finial',(x,8.0,z),.085,.085,POLE,F,n=8,axis=(0,1,0),thick=.16))
-    o.append(box('pole base',x,.09,z,.62,.18,.62,FSTONE,F,.03))
-    o.append(box('pole cleat',x+.09,2.1,z,.16,.05,.05,POLE,F,0))
-    W,H,TOP,SEG=2.4,1.4,7.75,6
-    def surf(u,v,off=0.0):
-        wave=-.18*u*u*(1-.55*math.cos(math.pi*3*u))
-        return (x+.02+u*W,TOP-v*H-.06*u*u,z+wave+off)
-    for i in range(14):
-        v0,v1=i/14,(i+1)/14;m=FLAGW if i%2 else FLAGR
-        verts=[];faces=[]
-        for j in range(SEG+1):
-            u=j/SEG
-            verts.append(pt(*surf(u,v0)));verts.append(pt(*surf(u,v1)))
-        for j in range(SEG):
-            a=j*2;faces.append((a,a+2,a+3,a+1))
-        o.append(shell('flag stripe',verts,faces,m,F,False,SEG,1,(False,False)))
-    verts=[];faces=[]
-    for j in range(4):
-        u=j/3*(1.05/W)
-        verts.append(pt(*surf(u,0,.022)));verts.append(pt(*surf(u,.75/H,.022)))
-    for j in range(3):
-        a=j*2;faces.append((a,a+2,a+3,a+1))
-    o.append(shell('flag canton',verts,faces,FLAGB,F,False,3,1,(False,False)))
-    return o
-
-def street_sign(x,z,w,h):
-    """Galvanised post with a base flange, and a backing board behind the canvas face."""
-    o=[]
-    o.append(limb('sign post',[(x,3.75,z-.13,.06),(x,2.0,z-.13,.075),(x,.16,z-.13,.095),(x,.03,z-.13,.16)],STREET,F,n=8))
-    o.append(box('sign post base',x,.06,z-.13,.5,.12,.5,FSTONE,F,.02))
-    o.append(box('sign backing',x,3.7 if h<.85 else 3.6,z-.06,w+.24,h+.22,.11,BOARD,F,.02))
-    for s in (-1,1):o.append(box('sign edge',x+s*(w/2+.12),3.7 if h<.85 else 3.6,z-.06,.06,h+.22,.14,STREET,F,0))
-    o.append(disc('post cap',(x,3.94 if h<.85 else 3.86,z-.13),.075,.075,STREET,F,n=8,axis=(0,1,0),thick=.05))
-    return o
-
-def bunting():
-    """Cord on two slim poles, with the game's 18 pennants hanging from its sag."""
-    o=[];z=49
-    nodes=[(-46+i*1.9,6.63-math.sin(i/17*math.pi)*1.1) for i in range(18)]
-    for px in (-47.9,-12.1):
-        o.append(limb('bunting pole',[(px,7.2,z,.05),(px,3.6,z,.07),(px,.1,z,.09)],STREET,F,n=6))
-        o.append(box('bunting pole base',px,.07,z,.42,.14,.42,FSTONE,F,.02))
-    cord=[(-47.9,6.72,z,.035)]+[(nx,ny+.09,z,.03) for nx,ny in nodes]+[(-12.1,6.72,z,.035)]
-    o.append(limb('bunting cord',cord,CORD,F,n=4))
-    for i,(nx,ny) in enumerate(nodes):
-        m=(BUNT1,BUNT2,BUNT3)[i%3];lean=.12*math.cos(i*1.3)
-        verts=[pt(nx-.35,ny,z),pt(nx+.35,ny,z),pt(nx+.12,ny-.32,z+lean),pt(nx-.12,ny-.32,z+lean),
-               pt(nx,ny-.62,z+lean*1.6)]
-        faces=[(0,1,2,3),(3,2,4)]
-        o.append(shell('pennant',verts,faces,m,F,False,0,1,(False,False)))
-    return o
-
 HEDGE_PROFILE=[(-1.38,0),(1.38,0),(1.5,1.3),(1.34,1.95),(.75,2.2),(-.75,2.2),(-1.34,1.95),(-1.5,1.3)]
 def hedge_vary(station,profile):
     """Uneven clipping: the crown dips and bulges along the run instead of a regular scallop."""
@@ -570,26 +504,8 @@ def seawall():
         armour(rocks,x,.35-max(0,z-SEAWALL_EAST_TO)*.06+R.uniform(-.1,.1),z,R.uniform(.55,.95),R)
     return o+rocks
 
-# One cross-section, walked from the outer footing up over the rim, down the inside, across
-# the floor and back up the pedestal to the finial: a single watertight solid whose faces all
-# end up pointing out of it. Basin radius 4 and centre height 1.65 match the tubes in world.ts.
-FOUNTAIN=[(.00,4.18),(.10,4.18),(.58,4.02),(.70,4.16),(.78,4.10),(.78,3.80),(.70,3.74),(.34,3.70),
-          (.28,3.44),(.28,1.10),(.66,1.04),(.80,.70),(1.02,.56),(1.22,.52),(1.34,.74),(1.48,1.06),
-          (1.58,1.22),(1.62,1.14),(1.52,.72),(1.44,.34),(1.48,.20),(1.68,.14),(1.74,.02)]
-def fountain():
-    """Low fountain on the KLCC delivery plaza: basin, rim, dished bowl and water arcs."""
-    o=[];x,z=19,-87
-    o.append(lathe('fountain',x,z,FOUNTAIN,FSTONE,F,n=24))
-    o.append(disc('fountain water',(x,.70,z),3.68,3.68,FWATER,F,n=24,axis=(0,1,0),thick=.04,smooth=False))
-    o.append(disc('fountain bowl water',(x,1.54,z),1.08,1.08,FWATER,F,n=16,axis=(0,1,0),thick=.03,smooth=False))
-    # Just a modest plume. Arcing jets rendered as spider legs whatever the taper, and a
-    # spill veil off the bowl rim looked fine from above but became a milky tent at the eye
-    # height a player actually walks past it at.
-    o.append(limb('fountain plume',[(x,1.62,z,.115),(x,1.88,z,.06),(x,2.06,z,.02)],JET,F,n=8))
-    return o
-
 def furniture():
-    return flag(-13,54)+flag(13,-77)+street_sign(-11,14,5,.8)+street_sign(11.5,-48,3.8,.9)+bunting()+hedges()+seawall()+fountain()
+    return FM.furniture(F)+hedges()+seawall()
 
 # ================================================================ build / export
 SETS={'Zoo':('zoo',zoo),'Furniture':('furniture',furniture)}
@@ -602,7 +518,8 @@ def build():
         if ONLY and name not in ONLY:continue
         e=bpy.data.objects.new(node,None);s.collection.objects.link(e)
         for ob in fn():
-            ob.parent=e;kit.uv_metres(ob)   # only the seawall's PBR materials carry a tile size
+            ob.parent=e
+            if 'uv' not in ob:kit.uv_metres(ob)   # furniture_models.py lays its own UVs
         roots[name]=e
     return roots
 
@@ -614,17 +531,17 @@ def export(roots):
             batches.setdefault(tuple(m.name for m in ob.data.materials),[]).append(ob)
         for key,objs in batches.items():
             j=join(objs,f'{name} | {" + ".join(key)}')
-            if not any('tile' in m for m in j.data.materials if m):
+            if not any('tile' in m or 'keep_uv' in m for m in j.data.materials if m):
                 for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
         bpy.ops.object.select_all(action='DESELECT');e.select_set(True)
-        for c in e.children:c.select_set(True)
+        for c in e.children_recursive:c.select_set(True)   # prototypes keep their meshes under an empty
         path=PUBLIC/f'LM_ENV_{name}.glb'
         bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,
             export_yup=True,export_cameras=False,export_lights=False,export_extras=False,
             export_image_format='WEBP',export_image_quality=82,export_vertex_color='ACTIVE',export_all_vertex_colors=False)
-        tris=sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children if c.type=='MESH')
+        tris=sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children_recursive if c.type=='MESH')
         report[name]={'asset':f'LM_ENV_{name}','node':e.name,'triangles':tris,'bytes':path.stat().st_size,
-                      'draws':len([c for c in e.children if c.type=='MESH'])}
+                      'draws':len([c for c in e.children_recursive if c.type=='MESH'])}
     if 'Zoo' in report:report['Zoo']['origin']=[-123,0,-112]
     if 'Furniture' in report:report['Furniture']['origin']=[0,0,0]
     manifest=OUT/'manifest.json';report={**(json.loads(manifest.read_text()) if manifest.exists() else {}),**report}

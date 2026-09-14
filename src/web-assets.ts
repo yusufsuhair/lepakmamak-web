@@ -5,6 +5,16 @@ import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 /** The game's GLB loader: every Blender export is meshopt compressed, so a bare GLTFLoader cannot read them. */
 export const gltfLoader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 
+/** The DBKL street lamp (scripts/blender/furniture_models.py): every city lamp and the Mamak street share it. */
+export const STREET_LAMP_URL = '/assets/models/props/LM_PROP_StreetLamp.glb?v=furniture-v1';
+
+// One fetch per URL: the city lamps (world.ts) and the Mamak street props both place the street lamp.
+const pending = new Map<string, ReturnType<typeof gltfLoader.loadAsync>>();
+export function loadGltf(url: string) {
+  if (!pending.has(url)) pending.set(url, gltfLoader.loadAsync(url).catch(error => { pending.delete(url); throw error; }));
+  return pending.get(url)!;
+}
+
 export type WebAssetState = 'loading' | 'ready' | 'fallback';
 
 export interface WebAssetPlacement { x: number; y: number; z: number; yaw: number; scale: number }
@@ -88,7 +98,7 @@ export function webAssetVariant(point: WebAssetPlacement, count: number) {
 /** Prepare a complete reusable model without attaching partial results to the live world.
  * Top-level nodes tagged `lm_variant` are alternative models: each placement gets one of them. */
 export async function loadInstancedWebAsset(url: string, placements: WebAssetPlacement[], name: string) {
-  const gltf = await gltfLoader.loadAsync(url);
+  const gltf = await loadGltf(url);
   gltf.scene.updateMatrixWorld(true);
   const group = new THREE.Group(); group.name = name;
   const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), scale = new THREE.Vector3();

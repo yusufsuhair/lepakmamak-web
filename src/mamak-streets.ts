@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import layout from '../shared/mamak-streets.json';
-import { disposeWebAsset, loadInstancedWebAsset } from './web-assets';
+import { disposeWebAsset, loadInstancedWebAsset, STREET_LAMP_URL } from './web-assets';
 
 interface StreetLights {
   lamps: {x: number; z: number; axis: 'ns' | 'ew'; side: number}[];
@@ -21,7 +21,7 @@ export async function installMamakStreets(scene: THREE.Scene, fallback: THREE.Gr
     ['LM_PROP_PlanterMamak', layout.planters], ['LM_PROP_StreetLamp', lamps],
   ] as const;
   const results = await Promise.allSettled(assets.map(([name, points]) =>
-    loadInstancedWebAsset(`/assets/models/props/${name}.glb${name === 'LM_PROP_PalmMamak' ? '?v=foliage-v4' : name === 'LM_PROP_PlanterMamak' ? '?v=foliage-v3' : ''}`, [...points], name)));
+    loadInstancedWebAsset(name === 'LM_PROP_StreetLamp' ? STREET_LAMP_URL : `/assets/models/props/${name}.glb${name === 'LM_PROP_PalmMamak' ? '?v=foliage-v4' : name === 'LM_PROP_PlanterMamak' ? '?v=foliage-v3' : ''}`, [...points], name)));
   const failed = results.find(result => result.status === 'rejected');
   if (failed) {
     for (const result of results) if (result.status === 'fulfilled') disposeWebAsset(result.value);
