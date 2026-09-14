@@ -12,7 +12,9 @@ test('photographic lamps and street furniture swap in without moving anything th
   const state = await page.evaluate(async () => {
     const THREE = await import('/node_modules/.vite/deps/three.js');
     const {createWorld, createStreetLights} = await import('/src/world.ts');
-    const {setBrandsNight} = await import('/src/brands.ts');
+    // The world's own brands module instance (Vite may add ?t= after an edit), so night reaches its materials.
+    const brandsUrl = ((await (await fetch('/src/world.ts')).text()).match(/from\s*["'](\/src\/brands\.ts[^"']*)["']/) || [])[1] || '/src/brands.ts';
+    const {setBrandsNight} = await import(/* @vite-ignore */ brandsUrl);
     const {BUS_STOPS, JUNCTIONS} = await import('/src/street-furniture.ts');
     const {ROAD_X, ROAD_Z, ROAD_HALF} = await import('/src/ground.ts');
     const scene = new THREE.Scene();
