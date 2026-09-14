@@ -1,14 +1,64 @@
 {
   "Basketball": {
     "asset": "LM_ENV_Basketball",
-    "triangles": 4278,
-    "bytes": 204892,
-    "draws": 12
+    "triangles": 7526,
+    "draws": 11,
+    "bytes": {
+      "raw": 462120,
+      "meshopt": 276400,
+      "brotli": 158316
+    },
+    "materials": [
+      "Backboard",
+      "Bench timber",
+      "Chain link",
+      "Court concrete",
+      "Galvanised steel",
+      "Ground acrylic",
+      "Net cord",
+      "Night glow floodlight",
+      "Night wash floodlight",
+      "Painted steel",
+      "Rim orange"
+    ],
+    "textures": [
+      "acrylic_color",
+      "acrylic_normal",
+      "wash",
+      "wood_color",
+      "wood_normal",
+      "chainlink_color",
+      "netting_color"
+    ]
   },
   "Pickleball": {
     "asset": "LM_ENV_Pickleball",
-    "triangles": 2208,
-    "bytes": 99796,
-    "draws": 13
+    "triangles": 3698,
+    "draws": 9,
+    "bytes": {
+      "raw": 283068,
+      "meshopt": 200524,
+      "brotli": 134892
+    },
+    "materials": [
+      "Bench timber",
+      "Chain link",
+      "Court concrete",
+      "Galvanised steel",
+      "Ground acrylic",
+      "Net cord",
+      "Night glow floodlight",
+      "Night wash floodlight",
+      "Painted steel"
+    ],
+    "textures": [
+      "acrylic_color",
+      "acrylic_normal",
+      "wash",
+      "wood_color",
+      "wood_normal",
+      "chainlink_color",
+      "netting_color"
+    ]
   }
 }

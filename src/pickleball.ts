@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {batchShopFallback,box,material,type Person,type World} from './world';
+import {dressDistrict} from './district-night';
 import court from '../shared/pickleball.json';
 import './pickleball.css';
 export const insidePickleball=(p:{x:number;z:number})=>Math.abs(p.x-court.x)<=court.apronWidth&&Math.abs(p.z-court.z)<=court.apronLength;
@@ -22,8 +23,8 @@ export function createPickleball(scene:THREE.Scene,world:World){
  g.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(g);
  const status={state:'loading' as 'loading'|'ready'|'fallback',fallbackMeshes:g.children.length};
- void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Pickleball.glb?v=courts-v1').then(gltf=>{
-  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+ void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Pickleball.glb?v=courts-v2').then(gltf=>{
+  dressDistrict(gltf.scene);
   for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   g.add(gltf.scene);
   status.state='ready';status.fallbackMeshes=g.children.length-1;

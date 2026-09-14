@@ -42,8 +42,16 @@ test('the Blender court keeps every collider and leaves the rim where the server
    if(!names.some((n:any)=>String(n).includes('Rim orange')))return;   // not 'Backboard trim'
    const b=new THREE.Box3().setFromObject(o);boxes.push([b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z]);
   });
-  return {state:game.status.state,collidersUnchanged:snapshot()===before,boxes};
+  // floodlights: lenses dark and pools hidden by day, both on at night (src/district-night.ts)
+  const night=((await (await fetch('/src/basketball.ts')).text()).match(/from\s*["'](\/src\/district-night\.ts[^"']*)["']/)||[])[1]||'/src/district-night.ts';
+  const {setDistrictNight}=await import(/* @vite-ignore */ night);
+  const lights:any[]=[];group.traverse((o:any)=>{if(o.isMesh&&o.material.name.startsWith('Night'))lights.push(o);});
+  const lit=()=>lights.every((m:any)=>m.material.name.startsWith('Night wash')?m.visible:m.material.emissiveIntensity>0);
+  const dark=()=>lights.every((m:any)=>m.material.name.startsWith('Night wash')?!m.visible:m.material.emissiveIntensity===0);
+  setDistrictNight(true);const onAtNight=lit();setDistrictNight(false);const offByDay=dark();
+  return {state:game.status.state,collidersUnchanged:snapshot()===before,boxes,lights:lights.length,onAtNight,offByDay};
  },court);
+ expect(result.lights).toBeGreaterThan(1);expect(result.onAtNight).toBe(true);expect(result.offByDay).toBe(true);
  expect(result.state).toBe('ready');
  expect(result.collidersUnchanged).toBe(true);
  expect(result.boxes.length).toBeGreaterThan(0);

@@ -24,7 +24,7 @@ const leafNormals=THREE.ShaderChunk.normal_fragment_begin.replace('normal *= fac
 const leafEdges=`float lmFacing=abs(dot(normalize(cross(dFdx(vViewPosition),dFdy(vViewPosition))),normalize(vViewPosition)));
 diffuseColor.a*=smoothstep(.06,.3,lmFacing);
 #include <alphatest_fragment>`;
-function prepareLeaves(asset:THREE.Object3D){
+export function prepareLeaves(asset:THREE.Object3D){
   asset.traverse(object=>{
     const material=(object as THREE.Mesh).material as THREE.MeshStandardMaterial;
     if(!(object as THREE.Mesh).isMesh||!material.alphaTest)return;

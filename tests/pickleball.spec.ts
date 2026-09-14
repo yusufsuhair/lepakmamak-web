@@ -22,3 +22,42 @@ test('court is clear, rackets equip and stow, mobile HUD fits',async({page})=>{
  await page.screenshot({path:'/tmp/pickleball-court.png'});
  await page.setViewportSize({width:375,height:812});await page.locator('canvas').evaluate(el=>el.style.display='none');await expect(page.getByRole('button',{name:'Serve / Pukul'})).toBeVisible();const box=await page.locator('#pickleball-hud').boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(375);
 });
+// The server reads the net as the line z=court.z, |x|<3.5, y<1.1 and bounces the ball at y=.22. The
+// Blender court (scripts/blender/build_courts.py) must keep its net there, its surface under the
+// bounce, the collider and the canvas sign, and switch its floodlights on only after dark.
+test('the Blender pickleball court keeps the net line and surface the server plays on, and lights up at night',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/');
+ const result=await page.evaluate(async court=>{
+  const source=await (await fetch('/src/pickleball.ts')).text();
+  const three=(source.match(/from\s*["'](\/node_modules\/\.vite\/deps\/three\.js[^"']*)["']/)||[])[1];
+  const night=(source.match(/from\s*["'](\/src\/district-night\.ts[^"']*)["']/)||[])[1]||'/src/district-night.ts';
+  const THREE:any=await import(/* @vite-ignore */ three);
+  const {setDistrictNight}=await import(/* @vite-ignore */ night);
+  const {createWorld}=await import('/src/world.ts');const {createPickleball}=await import('/src/pickleball.ts');
+  document.body.innerHTML='';const scene=new THREE.Scene(),world=createWorld(scene);
+  const snapshot=()=>JSON.stringify({solids:world.solids,chairs:world.chairs,map:world.mapBuildings});
+  const game=createPickleball(scene,world);const before=snapshot();
+  for(let i=0;i<600&&game.status.state==='loading';i++)await new Promise(done=>setTimeout(done,100));
+  const group=scene.getObjectByName('pickleball');group.updateMatrixWorld(true);
+  const meshes:any[]=[];group.traverse((o:any)=>{if(o.isMesh)meshes.push(o);});
+  const bounds=(name:string)=>{const b=new THREE.Box3();for(const m of meshes)if(m.material.name===name)b.union(new THREE.Box3().setFromObject(m));return b;};
+  const net=bounds('Net cord'),surface=bounds('Ground acrylic');
+  const washes=meshes.filter(m=>m.material.name.startsWith('Night wash')),glows=meshes.filter(m=>m.material.name.startsWith('Night glow'));
+  const state=()=>({washes:washes.every(m=>m.visible),dark:glows.every(m=>m.material.emissiveIntensity===0)});
+  setDistrictNight(false);const day=state();setDistrictNight(true);const lit=state();setDistrictNight(false);
+  return {state:game.status.state,unchanged:snapshot()===before,signs:group.children.filter((c:any)=>c.isMesh&&c.material.isMeshBasicMaterial).length,
+   net:{z:(net.min.z+net.max.z)/2-court.z,depth:net.max.z-net.min.z,halfWidth:Math.max(court.x-net.min.x,net.max.x-court.x),top:net.max.y},
+   surfaceTop:surface.max.y,washes:washes.length,glows:glows.length,day,lit};
+ },court);
+ expect(result.state).toBe('ready');
+ expect(result.unchanged).toBe(true);
+ expect(result.signs).toBe(1);
+ expect(Math.abs(result.net.z)).toBeLessThan(.05);expect(result.net.depth).toBeLessThan(.1);
+ expect(result.net.halfWidth).toBeLessThan(3.5);expect(result.net.top).toBeLessThan(1.1);
+ expect(result.surfaceTop).toBeLessThan(.22);
+ expect(result.washes).toBeGreaterThan(0);expect(result.glows).toBeGreaterThan(0);
+ expect(result.day).toEqual({washes:false,dark:true});
+ expect(result.lit).toEqual({washes:true,dark:false});
+ expect(errors).toEqual([]);
+});
