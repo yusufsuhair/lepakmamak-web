@@ -46,7 +46,7 @@ import {createVillageResidents,villageOrigin,villageResidents} from './durian-vi
 import {watsonsSpot,watsonsVolume} from './watsons';
 import {familyMartSpot,familyMartVolume} from './familymart';
 import {masjidVolume,nearestMasjidDistance,setMasjidNight} from './masjid';
-import {setShoplotNight} from './shoplots';
+import {setShoplotNight,shoplotFloorHeight} from './shoplots';
 import {setBrandsNight} from './brands';
 import {createStallWorld,nearestStallDistance,setupStalls,stallVoiceVolume} from './stalls';
 import {locationKey, readLocation, writeLocation} from './location-save';
@@ -2471,7 +2471,7 @@ async function init() {
           }
         }
         const travelled = Math.hypot(pos.x - previousX, pos.z - previousZ);
-        if(!skyDining&&!klccLiftRide){const height=rembayungGroundHeight(pos);if(height!==null)deckY=height;}
+        if(!skyDining&&!klccLiftRide){const height=rembayungGroundHeight(pos)??shoplotFloorHeight(world.shoplots.lots,pos);if(height!==null)deckY=height;}
         if (!(skyDining&&inSkyPool(pos)) && jumpHeight === 0 && travelled > .001) {
           footstepDistance += travelled;
           if (footstepDistance >= (running ? 1.65 : 1.15)) { movementSound('step', running); footstepDistance = 0; }

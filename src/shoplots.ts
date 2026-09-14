@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {gltfLoader} from './web-assets';
 import {cdnUrl} from './cdn';
+import type {Solid} from './physics';
 
 /** The generic two-storey shophouse rows (every shop()/retail() in world.ts that has no branded GLB),
  * built from the Blender kit in scripts/blender/build_shoplots.py. Each row is split into bays of
@@ -13,8 +14,8 @@ import {cdnUrl} from './cdn';
  * row's colour for that class. The render and tiles are projected in world space, so they run on across
  * bays, and the render shader lays rain streaks under the ledges and algae at the foot in world space.
  * At night the shop interiors, ceiling tubes, pendant lamps and about half the upper windows light up,
- * and additive pools of lamp light appear on the five-foot-way. Colliders, map footprints and the canvas
- * signs stay world.ts's. */
+ * and additive pools of lamp light appear on the five-foot-way. Map footprints and the canvas signs stay
+ * world.ts's; the colliders world.ts adds come from shoplotSolids(), which leaves the five-foot-way open. */
 // Served from R2 with brotli (0.70 MB meshopt -> 0.41 MB): every player loads it at world creation.
 export const SHOPLOTS_URL = cdnUrl('assets/models/environment/LM_ENV_Shoplots.glb');
 
@@ -26,6 +27,32 @@ export const shoplotStatus = {state: 'loading' as 'loading' | 'ready' | 'fallbac
 
 const BAY = 6.5;
 const SIGN_INSET = .1;
+/** Kit dimensions in a row's local frame (+z toward the street), shared with build_shoplots.py: the back
+ * wall, the shopfront line, the plinth's front edge and height, and the columns at every party wall. */
+export const ARCADE = {back: -6, shopfront: 3.8, nose: 6.28, floor: .55, columnZ: [5.4, 6.05], columnHalf: .3, cornerWidth: .55} as const;
+
+/** Colliders for one generic row: the building behind the shopfront, and a small box for each column,
+ * so the five-foot-way in front of the shops is open to walk along. */
+export function shoplotSolids(lot: Pick<Shoplot, 'x' | 'z' | 'width' | 'facing'>): Solid[] {
+  const cos = Math.cos(lot.facing), sin = Math.sin(lot.facing), count = Math.max(1, Math.round(lot.width / BAY)), bay = lot.width / count;
+  const place = (lx: number, lz: number, hx: number, hz: number, id: string): Solid =>
+    ({x: lot.x + lx * cos + lz * sin, z: lot.z - lx * sin + lz * cos, hx, hz, id, ...(lot.facing ? {yaw: lot.facing} : {})});
+  const [z0, z1] = ARCADE.columnZ, half = lot.width / 2;
+  const solids = [place(0, (ARCADE.back + ARCADE.shopfront) / 2, half, (ARCADE.shopfront - ARCADE.back) / 2, 'shoplot-interior')];
+  for (let k = 1; k < count; k++) solids.push(place(-half + bay * k, (z0 + z1) / 2, ARCADE.columnHalf, (z1 - z0) / 2, 'shoplot-column'));
+  for (const side of [-1, 1]) solids.push(place(side * (half - ARCADE.cornerWidth / 2), (z0 + z1) / 2, ARCADE.cornerWidth / 2, (z1 - z0) / 2, 'shoplot-column'));
+  return solids;
+}
+
+/** The five-foot-way floor height under a point, or null when it is not on any row's plinth. */
+export function shoplotFloorHeight(lots: readonly Shoplot[], point: {x: number; z: number}): number | null {
+  for (const lot of lots) {
+    const dx = point.x - lot.x, dz = point.z - lot.z, cos = Math.cos(lot.facing), sin = Math.sin(lot.facing);
+    const lx = dx * cos - dz * sin, lz = dx * sin + dz * cos;
+    if (Math.abs(lx) <= lot.width / 2 && lz >= ARCADE.shopfront && lz <= ARCADE.nose) return ARCADE.floor;
+  }
+  return null;
+}
 /** The awning colour world.ts gives a plain shop(); retail() replaces it with the brand. */
 export const DEFAULT_ACCENT = '#c57552';
 const TRIM = new THREE.Color('#f1e9d6'), BASE = new THREE.Color('#474a44'), SOFFIT = new THREE.Color('#cdc7b6'), INTERIOR = new THREE.Color('#aaa596');

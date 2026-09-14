@@ -24,7 +24,7 @@ import {lightBrands} from './brands';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
-import {DEFAULT_ACCENT, loadShoplots, shoplotKind, type Shoplot, type ShoplotSite} from './shoplots';
+import {DEFAULT_ACCENT, loadShoplots, shoplotKind, shoplotSolids, type Shoplot, type ShoplotSite} from './shoplots';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -869,7 +869,9 @@ export function createWorld(scene: THREE.Scene): World {
     }
     sign(g, label, 0, 3.96, 6.19, width - .3, 1.05, '#355d50', '#f6e4ba');
     const awning = box(g, 0, 3.22, 7.1, width + .1, .13, 2.3, '#c57552'); awning.rotation.x = .13;
-    solid(x, z, width, 12); mapBuildings.push({ x, z, w: width, d: 12, color });
+    // Branded shops keep the whole block; a generic row leaves its five-foot-way walkable (shoplots.ts).
+    if (replacement) solid(x, z, width, 12); else solids.push(...shoplotSolids(shoplots[shoplots.length - 1]));
+    mapBuildings.push({ x, z, w: width, d: 12, color });
     box(g, width / 2 - 1.1, 5.65, 6.5, 1.4, .7, .7, '#e1d5b9');
     return g;
   }
