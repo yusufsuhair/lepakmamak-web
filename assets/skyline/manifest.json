@@ -179,7 +179,7 @@
         0,
         37
       ],
-      "triangles": 1300,
+      "triangles": 1040,
       "draws": 4,
       "materials": [
         "Skyline podium granite",
@@ -195,13 +195,13 @@
         "stone_color",
         "stone_normal"
       ],
-      "bytes": 115284,
-      "height": 47.2
+      "bytes": 97784,
+      "height": 38.9
     }
   },
   "total": {
-    "triangles": 9682,
+    "triangles": 9422,
     "draws": 28,
-    "bytes": 870732
+    "bytes": 853232
   }
 }

@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "4720608ab44d",
+  "version": "9dcfe0368818",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -63,9 +63,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_SkyDining.glb": {
-      "key": "models/LM_ENV_SkyDining.f70143533db3.glb",
-      "bytes": 72268,
-      "etag": "60248c1b0207e11991cca589d361a717",
+      "key": "models/LM_ENV_SkyDining.93e66da94cd5.glb",
+      "bytes": 398129,
+      "etag": "ecdacb0d1c53df7c9d3c4e4486b6cba9",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Kampung.glb": {
@@ -81,9 +81,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Saloma.glb": {
-      "key": "models/LM_ENV_Saloma.90f968bec385.glb",
-      "bytes": 71023,
-      "etag": "89a30bbbbb2245510eeec0edf7be8ea3",
+      "key": "models/LM_ENV_Saloma.f1b0a64b7a9e.glb",
+      "bytes": 272084,
+      "etag": "67e21d30a4e9a23d10f2a45646bacc57",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Zoo.glb": {
@@ -141,9 +141,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_TowerMahkota.glb": {
-      "key": "models/LM_ENV_TowerMahkota.711c8ca669e2.glb",
-      "bytes": 40816,
-      "etag": "f68f8adbdcc22e4f670295fd56e93654",
+      "key": "models/LM_ENV_TowerMahkota.2e59bc3a9052.glb",
+      "bytes": 37490,
+      "etag": "5d400593c2b2dd8497d66e5d3e184385",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_TowerUOB.glb": {

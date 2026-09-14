@@ -12,7 +12,7 @@ four named city towers (UOB, HSBC, the DAP Pusat Komuniti and Hotel Mahkota).
   * city towers: each its own commercial language on the old footprints: UOB a chamfered unitised
     curtain wall with a rooftop screen, HSBC a granite grid of punched windows with proud pilasters
     and cornices, the Pusat Komuniti tropical-modern concrete with a sunshade ledge per floor, Hotel
-    Mahkota cream precast with a stepped gold crown
+    Mahkota cream precast under the Wet Deck rooftop
   * materials: facade texture sets from skyline_textures.py laid out in world metres (whole bays per
     face or ring, v in floors), each with a night mask that src/skyline.ts turns into lit windows and
     floodlit frames; brushed aluminium, podium granite and Menara KL concrete from the same module.
@@ -339,11 +339,8 @@ def mahkota(T,w,d,H,accent):
         for sz in (-1,1):o.append(box('pilaster',sx*(w/2-.45),(H+5)/2,sz*(d/2-.45),.9,H-5,.9,STONE,T,.03))
     for y in (5.1,H-.2):o.append(box('band',0,y,0,w+.2,.4,d+.2,STONE,T,.03))
     o.append(box('porte cochere',0,4.2,d/2+2.6,w*.7,.3,3.2,GOLD,T,.03))
+    # No crown: the Wet Deck rooftop (build_skydining.py, deck at 44) is this tower's top.
     o.append(box('parapet',0,H+.45,0,w+.5,.9,d+.5,accent,T,.03))
-    o.append(box('crown',0,H+2.0,0,9,2.2,9,GOLD,T,.05))
-    o.append(box('crown step',0,H+3.7,0,6.2,1.2,6.2,GOLD,T,.04))
-    o.append(loft('crown roof',T,[(H+4.3,chamfer(3.1,3.1,.01),GOLD),(H+7.6,chamfer(.25,.25,.01),None)]))
-    o.append(cyl('finial',0,H+8.4,0,.09,1.6,GOLD,T,verts=8))
     for s in (-1,1):o.append(cyl('hotel pole',w/2+1.2,3.6,s*4.6,.08,7.2,GOLD,T,verts=8))
     return o
 
