@@ -599,8 +599,14 @@ async function init() {
   const INITIAL_RETRY_LIMIT = 3;
   let entryLoadingTimer: number | null = null;
   let connectedOnceThisEntry = false, connectionAttempts = 0;
+  // Once a retryable failure has hidden the overlay for this entry, later retry attempts update
+  // the small network-status badge only. They used to call showLoading again on every attempt,
+  // so the overlay flashed away and snapped back with new text on each retry — reported as the
+  // loading state "merapu". A player who connects cleanly never sees this flag change.
+  let entryOverlayDismissed = false;
   function finishEntryLoading() {
     if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
+    entryOverlayDismissed = true;
     hideLoading();
     onboarding.showOnce();
   }
@@ -609,12 +615,12 @@ async function init() {
     entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); onboarding.showOnce(); }, 320);
   }
   function beginEntryLoading() {
-    connectedOnceThisEntry = false; connectionAttempts = 0;
+    connectedOnceThisEntry = false; connectionAttempts = 0; entryOverlayDismissed = false;
     showLoading('Entering Kampung Maju', 'Starting your character and joining the city…', 68);
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
     entryLoadingTimer = window.setTimeout(() => {
       entryLoadingTimer = null;
-      showLoading('Still joining the city', 'Keeping your place ready while the city responds…', 82);
+      if (!entryOverlayDismissed) showLoading('Still joining the city', 'Keeping your place ready while the city responds…', 82);
     }, 7000);
   }
   let recallUntil = 0, punchUntil = 0, punchCount = 0;
@@ -1267,7 +1273,7 @@ async function init() {
     rejection = null;
     connectionAttempts++;
     setNetworkStatus(connectedOnceThisEntry ? 'RECONNECTING…' : 'JOINING CITY', 'connecting', 1);
-    if (!connectedOnceThisEntry) showLoading(connectionAttempts > 1 ? 'Still joining the city' : 'Connecting to LepakMamak', connectionAttempts > 1 ? `Connection attempt ${connectionAttempts}…` : 'Opening a secure connection to the city…', connectionAttempts > 1 ? 80 : 74);
+    if (!connectedOnceThisEntry && !entryOverlayDismissed) showLoading(connectionAttempts > 1 ? 'Still joining the city' : 'Connecting to LepakMamak', connectionAttempts > 1 ? `Connection attempt ${connectionAttempts}…` : 'Opening a secure connection to the city…', connectionAttempts > 1 ? 80 : 74);
     try {
       const accessToken = auth && !guestName ? (await auth.auth.getSession()).data.session?.access_token : undefined;
       if (!started) return;
@@ -1290,7 +1296,7 @@ async function init() {
       socket.addEventListener('close',()=>{clearInterval(heartbeatTimer);frames.close();cancelAnimationFrame(renderPlayers);pendingPlayers=null;});
       socket.addEventListener('open', () => {
         if (socket !== networkSocket) return;
-        if (!connectedOnceThisEntry) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
+        if (!connectedOnceThisEntry && !entryOverlayDismissed) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         carFinder.clear();
         socket.send(JSON.stringify({ type: 'join', sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined, standInToken: guestName ? standInTokenFor() || undefined : undefined }));
@@ -1318,7 +1324,7 @@ async function init() {
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
-        if (message.type === 'welcome' && message.id) { voice.transport((message as any).voiceTransport || 'legacy'); const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
+        if (message.type === 'welcome' && message.id) { voice.transport((message as any).voiceTransport || 'legacy'); const firstWelcome=!connectedOnceThisEntry; connectedOnceThisEntry=true; connectionAttempts=0; refresher.check(appVersion, String((message as unknown as {version?:string}).version || '')); if(invitedTableId){invitedTableId=undefined;const url=new URL(location.href);url.searchParams.delete('table');history.replaceState(null,'',url); } networkPlayerId = message.id; networkConnected = true; rejection = null; retryDelay = 2500; { const self = message.players?.find(p=>p.id===message.id); if(self){pos.set(self.x,.12,self.z);yaw=self.yaw;riding=false;seated=false;beachResting=null;beachRestSpot=null;beachRestPose(player,null);speed=0;jumpHeight=0;} } voice.connected(true); if (localName) updateNameTagGeng(localName, geng, gengLeader); if(firstWelcome){if(!entryOverlayDismissed)showLoading('Welcome to LepakMamak', 'City online. Jumpa member, jom lepak!', 100);startBackgroundMusic();completeEntryLoading();} }
         if (message.type === 'welcome' && message.id) {
           // Dev only: the server hands a guest a stand-in account for handles and stored messages.
           const standIn = (message as unknown as {standIn?: {token?: string}}).standIn;

@@ -43,12 +43,26 @@ test('a transient first socket failure retries before reporting entry failure',a
       else ws.send(JSON.stringify({type:'welcome',id:'retry-player',players:[{id:'retry-player',name:'Retry Friend',color:'#72c8ba',x:0,z:0,yaw:0,riding:false,guest:true}]}));
     });
   });
+  // The overlay used to hide on the first transient close (a retry was already scheduled), then
+  // pop back with new text on every later attempt, flashing the raw HUD in between — reported as
+  // the loading state "merapu". It now hides at most once for the whole entry: either right after
+  // the first failure, or at the final welcome if no failure happened at all — never both.
+  await page.addInitScript(()=>{
+    (window as any).__hiddenFlips=0;
+    const watch=()=>{const loader=document.getElementById('loading');if(!loader){requestAnimationFrame(watch);return;}
+      let wasHidden=loader.hidden;
+      new MutationObserver(()=>{if(loader.hidden&&!wasHidden)(window as any).__hiddenFlips++;wasHidden=loader.hidden;}).observe(loader,{attributes:true,attributeFilter:['hidden']});};
+    watch();
+  });
   await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();
   await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Retry Friend');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE',{timeout:15000});
   await expect(page.locator('#loading')).toBeHidden();
   await expect(page.locator('#force-refresh')).toBeHidden();
   expect(connections).toBe(3);
+  // One hide for the landing screen becoming ready (before login), one for this entry settling —
+  // never a third: that third would be the flash-and-reshow cycle this test guards against.
+  expect(await page.evaluate(()=>(window as any).__hiddenFlips)).toBe(2);
 });
 
 // A returning member never sees the title screen: init() finishes the world and auto-enters.
