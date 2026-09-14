@@ -35,6 +35,8 @@ test('wheel, drag and pinch keep the map focused on the area being explored',asy
  await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  const map=page.locator('#expanded-map');
  const bounds=await map.boundingBox();expect(bounds).not.toBeNull();
+ // The safe default is 2D; exercise the opt-in 3D camera before testing its pan math.
+ await page.getByRole('button',{name:'3D',exact:true}).click();
  const cx=bounds!.x+bounds!.width/2,cy=bounds!.y+bounds!.height/2;
  const before=await map.evaluate(element=>({x:element.getAttribute('data-pan-x'),z:element.getAttribute('data-pan-z')}));
  await page.mouse.move(bounds!.x+bounds!.width*.82,bounds!.y+bounds!.height*.3);

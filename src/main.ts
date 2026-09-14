@@ -2017,7 +2017,11 @@ async function init() {
 
     else toast('City offline','Reconnect before teleporting.');
   };
-  let mapMode:'2d'|'3d'='3d';
+  // Opening the 3D overview creates a second WebGL context and renders the whole city
+  // into an off-screen canvas. That is too much GPU memory for phones (and became more
+  // noticeable once avatars gained real GLB geometry). Start with the lightweight 2D
+  // directory map; 3D remains an explicit opt-in from the map controls.
+  let mapMode:'2d'|'3d'='2d';
   const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
   let mapZoom=defaultMapZoom;
   let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
