@@ -32,6 +32,7 @@ import teleports from '../shared/teleports.json';
 import {horizontalDistance,remoteIsVisible,remoteNeedsSnap} from './remote-visibility';
 import {setupWeather} from './weather';
 import {setKlccNight} from './klcc';
+import {setSkylineNight} from './skyline';
 import {createClouds} from './clouds';
 import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
@@ -1679,7 +1680,7 @@ async function init() {
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;setKlccNight(night);streetLights.setNight(night);mamakLighting?.setNight(night);mamakFacade.setNight(night);setMasjidNight(night);setShoplotNight(night);},value=>clouds.setWeather(value));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;setKlccNight(night);streetLights.setNight(night);mamakLighting?.setNight(night);mamakFacade.setNight(night);setMasjidNight(night);setShoplotNight(night);setSkylineNight(night);},value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }

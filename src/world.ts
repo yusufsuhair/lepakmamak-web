@@ -19,6 +19,7 @@ import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {cdnUrl} from './cdn';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
+import {loadSkylineTower, type SkylineAsset} from './skyline';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
@@ -1179,7 +1180,7 @@ export function createWorld(scene: THREE.Scene): World {
     box(group,x,3.8,z,6,.12,5,'#bc875b');for(const side of [-1,1])for(const front of [-1,1]){box(group,x+side*2.8,1.9,z+front*2.3,.12,3.8,.12,'#755741');solid(x+side*2.8,z+front*2.3,.15,.15);}
   }
   // Named city block: recognisable silhouettes replace four generic towers.
-  function cityLandmark(x:number,z:number,name:string,accent:string,height:number,kind:'bank'|'civic'|'hotel',asset:string){
+  function cityLandmark(x:number,z:number,name:string,accent:string,height:number,kind:'bank'|'civic'|'hotel',asset:SkylineAsset){
     const landmark=new THREE.Group();landmark.position.set(x,0,z);group.add(landmark);
     const w=kind==='hotel'?17:16,d=17,body=kind==='hotel'?'#e4d7bd':'#c8d0c9';
     box(landmark,0,height/2,0,w,height,d,body);
@@ -1197,11 +1198,7 @@ export function createWorld(scene: THREE.Scene): World {
     landmark.name=asset;
     landmark.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(landmark);
-    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${asset}.glb?v=skyline-v1`).then(gltf=>{
-      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
-      for(const child of [...landmark.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
-      landmark.add(gltf.scene);
-    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${asset}`,error));
+    loadSkylineTower(landmark,asset);
   }
   cityLandmark(-127,-37,'UOB','#b52e35',30,'bank','LM_ENV_TowerUOB');
   cityLandmark(-106,-37,'HSBC','#d33b3e',27,'bank','LM_ENV_TowerHSBC');
@@ -1219,11 +1216,7 @@ export function createWorld(scene: THREE.Scene): World {
     trx.name='LM_ENV_TRX';
     trx.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(trx);
-    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_TRX'}.glb?v=skyline-v1`).then(gltf=>{
-      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
-      for(const child of [...trx.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
-      trx.add(gltf.scene);
-    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_TRX'}`,error));
+    loadSkylineTower(trx,'LM_ENV_TRX');
   }
   {
     const x=129,z=-95,tower118=new THREE.Group();tower118.position.set(x,0,z);group.add(tower118);
@@ -1236,11 +1229,7 @@ export function createWorld(scene: THREE.Scene): World {
     tower118.name='LM_ENV_Merdeka118';
     tower118.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(tower118);
-    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_Merdeka118'}.glb?v=skyline-v1`).then(gltf=>{
-      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
-      for(const child of [...tower118.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
-      tower118.add(gltf.scene);
-    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_Merdeka118'}`,error));
+    loadSkylineTower(tower118,'LM_ENV_Merdeka118');
   }
   // Saloma Link: raised pedestrian deck with its distinctive illuminated faceted canopy.
   {
@@ -1407,11 +1396,7 @@ export function createWorld(scene: THREE.Scene): World {
     kltower.name='LM_ENV_KLTower';
     kltower.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(kltower);
-    void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${'LM_ENV_KLTower'}.glb?v=skyline-v1`).then(gltf=>{
-      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
-      for(const child of [...kltower.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
-      kltower.add(gltf.scene);
-    }).catch(error=>console.warn(`[SKYLINE] keeping procedural ${'LM_ENV_KLTower'}`,error));
+    loadSkylineTower(kltower,'LM_ENV_KLTower');
   }
   for (const x of [-11.5, 11.5]) for (const z of [-47, -21, 29, 65, 99, 132]) {
     const parent = mamakStreetLayout.lamps.some(p => p.x === x && p.z === z) ? mamakStreetFallback : group;

@@ -7,9 +7,26 @@
         0,
         -95
       ],
-      "triangles": 1036,
-      "bytes": 51108,
-      "draws": 6
+      "triangles": 686,
+      "draws": 4,
+      "materials": [
+        "TRX crown",
+        "Skyline podium granite",
+        "Skyline aluminium",
+        "TRX curtain wall"
+      ],
+      "textures": [
+        "metal_color",
+        "metal_normal",
+        "stone_color",
+        "stone_normal",
+        "trx_wall_color",
+        "trx_wall_night",
+        "trx_wall_normal",
+        "trx_wall_orm"
+      ],
+      "bytes": 77644,
+      "height": 100.2
     },
     "Merdeka118": {
       "asset": "LM_ENV_Merdeka118",
@@ -18,9 +35,26 @@
         0,
         -95
       ],
-      "triangles": 5022,
-      "bytes": 255108,
-      "draws": 6
+      "triangles": 2254,
+      "draws": 4,
+      "materials": [
+        "Skyline podium granite",
+        "Merdeka 118 curtain wall",
+        "Merdeka 118 spire",
+        "Merdeka 118 facet frame"
+      ],
+      "textures": [
+        "m118_wall_color",
+        "m118_wall_night",
+        "m118_wall_normal",
+        "m118_wall_orm",
+        "metal_color",
+        "metal_normal",
+        "stone_color",
+        "stone_normal"
+      ],
+      "bytes": 219220,
+      "height": 142.0
     },
     "KLTower": {
       "asset": "LM_ENV_KLTower",
@@ -29,9 +63,30 @@
         0,
         -145
       ],
-      "triangles": 1208,
-      "bytes": 54724,
-      "draws": 7
+      "triangles": 2348,
+      "draws": 4,
+      "materials": [
+        "KL Tower mast",
+        "KL Tower concrete",
+        "KL Tower deck glass",
+        "KL Tower pod"
+      ],
+      "textures": [
+        "concrete_color",
+        "concrete_normal",
+        "klt_deck_color",
+        "klt_deck_night",
+        "klt_deck_normal",
+        "klt_deck_orm",
+        "klt_pod_color",
+        "klt_pod_night",
+        "klt_pod_normal",
+        "klt_pod_orm",
+        "metal_color",
+        "metal_normal"
+      ],
+      "bytes": 161504,
+      "height": 98.6
     },
     "TowerUOB": {
       "asset": "LM_ENV_TowerUOB",
@@ -40,9 +95,26 @@
         0,
         -37
       ],
-      "triangles": 2648,
-      "bytes": 148376,
-      "draws": 9
+      "triangles": 694,
+      "draws": 4,
+      "materials": [
+        "Skyline aluminium",
+        "Skyline podium granite",
+        "UOB curtain wall",
+        "UOB accent"
+      ],
+      "textures": [
+        "metal_color",
+        "metal_normal",
+        "office_ribbon_color",
+        "office_ribbon_night",
+        "office_ribbon_normal",
+        "office_ribbon_orm",
+        "stone_color",
+        "stone_normal"
+      ],
+      "bytes": 71116,
+      "height": 34.3
     },
     "TowerHSBC": {
       "asset": "LM_ENV_TowerHSBC",
@@ -51,9 +123,26 @@
         0,
         -37
       ],
-      "triangles": 2648,
-      "bytes": 148376,
-      "draws": 9
+      "triangles": 1256,
+      "draws": 4,
+      "materials": [
+        "Skyline podium granite",
+        "HSBC granite wall",
+        "Skyline aluminium",
+        "HSBC accent"
+      ],
+      "textures": [
+        "granite_punched_color",
+        "granite_punched_night",
+        "granite_punched_normal",
+        "granite_punched_orm",
+        "metal_color",
+        "metal_normal",
+        "stone_color",
+        "stone_normal"
+      ],
+      "bytes": 121368,
+      "height": 31.3
     },
     "TowerDAP": {
       "asset": "LM_ENV_TowerDAP",
@@ -62,9 +151,26 @@
         0,
         37
       ],
-      "triangles": 2428,
-      "bytes": 137944,
-      "draws": 10
+      "triangles": 1144,
+      "draws": 4,
+      "materials": [
+        "Skyline podium granite",
+        "Pusat Komuniti wall",
+        "DAP accent",
+        "Skyline aluminium"
+      ],
+      "textures": [
+        "civic_concrete_color",
+        "civic_concrete_night",
+        "civic_concrete_normal",
+        "civic_concrete_orm",
+        "metal_color",
+        "metal_normal",
+        "stone_color",
+        "stone_normal"
+      ],
+      "bytes": 104596,
+      "height": 24.69
     },
     "TowerMahkota": {
       "asset": "LM_ENV_TowerMahkota",
@@ -73,13 +179,29 @@
         0,
         37
       ],
-      "triangles": 3440,
-      "bytes": 191152,
-      "draws": 9
+      "triangles": 1300,
+      "draws": 4,
+      "materials": [
+        "Skyline podium granite",
+        "Hotel Mahkota wall",
+        "Hotel Mahkota gold",
+        "Mahkota accent"
+      ],
+      "textures": [
+        "hotel_precast_color",
+        "hotel_precast_night",
+        "hotel_precast_normal",
+        "hotel_precast_orm",
+        "stone_color",
+        "stone_normal"
+      ],
+      "bytes": 115284,
+      "height": 47.2
     }
   },
   "total": {
-    "triangles": 18430,
-    "bytes": 986788
+    "triangles": 9682,
+    "draws": 28,
+    "bytes": 870732
   }
 }
