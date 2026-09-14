@@ -35,6 +35,28 @@ These are more detailed original realtime interpretations, not scan-quality fact
 replicas or a claim of photographic accuracy. Solar glass is tinted alpha glazing in
 Three.js; Blender preview lighting is intentionally a separate studio setup.
 
+## Photographic pass V3
+
+`vehicle_textures.py` (numpy) generates one shared 1024 px detail atlas (colour, normal,
+ORM) and a tiling paint-flake normal. `atlas_pass()` in the builder gives every trim, alloy,
+caliper, interior, tyre, rotor, plate, badge and lamp lens UVs into it, and every one of
+those parts except the lamps one material, `Vehicle detail atlas`. A car is therefore
+paint + atlas + glass + its animated lamp materials on the chassis and one call per wheel:
+12 draw calls at every level (police 13, Formula 6), down from 22-33. Tyres carry tread
+blocks, sipes and embossed sidewalls; open rim barrels show a drilled rotor and caliper.
+Plates and POLIS markings are textured plates, not font geometry. Plate strings all use
+the letter I, which JPJ never issues, so none can be a real registration; badges are
+generic chrome shapes with no manufacturer marks.
+
+The GLBs embed 4 px stand-ins (`placeholders()`); the game loads
+`public/assets/textures/vehicles/*.webp` once and `src/vehicle-assets.ts` swaps them in by
+material name, keeping gltfpack's UV dequantisation transform. At runtime the paint is a
+clearcoat over a metallic base (flake on the near level only), glass is dark and
+dielectric, lamp lenses double as emissive maps, and traffic carries road dust on its
+lower body (`setVehicleDirt`, 0 in the showroom). Until the local probe samples the city,
+vehicles reflect the live sky from `weather.ts`. Positions pack at 12 bits near and
+11 bits mid/far, UVs at 10 bits; tangents are derived in the shader.
+
 ## Model coverage
 
 | Game key | Model direction |
@@ -100,8 +122,9 @@ npx playwright test --config=playwright.vehicles.config.ts \
 ```
 
 The pack step requires all 13 models and creates 39 GLBs, preserving named pivots/materials and extras,
-generates tangents, uses EXT Meshopt, and verifies zero glTF errors and warnings before
-copying any model to public. Per-car limits: 45,000 triangles and 650,000 transfer bytes.
+uses EXT Meshopt, and verifies zero glTF errors and warnings (bar the shader-derived tangent
+notice) before copying any model to public. Per-car limits: 45,000 triangles, 650,000
+transfer bytes, 14 draw calls and stand-in textures only.
 See `runtime-manifest.json` for measured sizes, triangles and SHA-256 values. The runtime
 shares each detail-level download, geometry and static material set per style;
 instances have independent wheel transforms. Private fallback geometry and labels are

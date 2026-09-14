@@ -249,10 +249,7 @@ def wheel(style,s,side,z,front):
    pts=[(x+side*(.146 if i in [0,3] else .153),y+rad*cos(an),z+rad*sin(an)) for i,(rad,an) in enumerate(zip(radii,angles))]
    o=quad('Specific forged or aero spoke',pts,M['darkmetal'] if aero else M['metal'])
    mod=o.modifiers.new('Spoke casting depth','SOLIDIFY');mod.thickness=.018;bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)
-  if style not in ['axia','avanza','police','f1']:
-   for rr in [.44,.53]:
-    for off in [0,.12]:
-     tt=t+off;cyl('Brake disc drilled recess',(x+side*.114,y+r*rr*cos(tt),z+r*rr*sin(tt)),.008,.003,M['trim'],n=8)
+  # Drilled rotor holes now live in the shared atlas disc texture (atlas_pass), not in geometry.
  path('Rim valve stem',[(x+side*.15,y+r*.61,z),(x+side*.173,y+r*.61,z)],.007,M['trim'])
  for o in set(bpy.context.scene.objects)-before:
   mw=o.matrix_world.copy();o.parent=pivot;o.matrix_world=mw

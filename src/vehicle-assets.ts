@@ -24,54 +24,101 @@ const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const templates = new Map<string, Promise<THREE.Group>>();
 const wheelNames = ['wheel_FL', 'wheel_FR', 'wheel_RL', 'wheel_RR'] as const;
 const cabinHeights: Record<RevampedCarStyle, number> = {axia:1.505,myvi:1.515,emas:1.67,avanza:1.7,vellfire:1.935,suv:1.69,sport:1.3,ferrari:1.21,lamborghini:1.136,'model-y':1.624,cybertruck:1.79,police:1.69,f1:1.12};
-let reflections: THREE.DataTexture | undefined;
-
-/** A shared neutral outdoor reflection probe, scoped to vehicle materials only.
- * The city has no scene.environment. Metallic GLBs otherwise appear black there.
- * No renderer/global lighting mutation, so the two owner cars stay visually unchanged.
- */
-function vehicleReflections() {
-  if (reflections) return reflections;
-  const width = 256, height = 128, data = new Uint8Array(width * height * 4);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const latitude = y / (height - 1), longitude = x / width * Math.PI * 2;
-    const sky = latitude > .5;
-    const horizon = Math.exp(-Math.abs(latitude - .5) * 10);
-    const cloud = sky ? Math.pow(Math.max(0, Math.sin(longitude * 3 + latitude * 14)), 8) * 24 : 0;
-    const building = !sky && latitude > .32 && Math.sin(longitude * 11) > .35 ? .55 : 1;
-    const rgb = sky ? [110 + horizon * 90 + cloud, 144 + horizon * 70 + cloud, 180 + horizon * 40 + cloud]
-      : [51 + horizon * 80, 59 + horizon * 78, 61 + horizon * 74];
-    const offset = (y * width + x) * 4;
-    rgb.forEach((v, i) => { data[offset + i] = Math.min(255, v * building); });
-    data[offset + 3] = 255;
+const VERSION = 'vehicles-v3';
+interface SharedTextures {color: THREE.Texture; normal: THREE.Texture; orm: THREE.Texture; flake: THREE.Texture}
+let shared: Promise<SharedTextures | null> | undefined;
+/** One colour/normal/ORM atlas for every trim, alloy, tyre, rotor, plate, badge and lamp lens in the fleet,
+ * plus the tiling paint flake, loaded once (art/blender/vehicles/vehicle_textures.py). The GLBs carry 4 px
+ * stand-ins, so thirteen styles and three detail levels share these four GPU textures. */
+function sharedTextures(): Promise<SharedTextures | null> {
+  return shared ??= Promise.all(['atlas-color', 'atlas-normal', 'atlas-orm', 'paint-flake'].map(name =>
+    new THREE.TextureLoader().loadAsync(`/assets/textures/vehicles/${name}.webp?v=${VERSION}`))).then(([color, normal, orm, flake]) => {
+    color.colorSpace = THREE.SRGBColorSpace;
+    for (const texture of [color, normal, orm, flake]) { texture.flipY = false; texture.anisotropy = 4; }
+    flake.wrapS = flake.wrapT = THREE.RepeatWrapping;
+    return {color, normal, orm, flake};
+  }).catch(() => null);
+}
+/** A clone shares the loaded image and its GPU upload, and keeps the glTF slot's KHR_texture_transform:
+ * gltfpack uses it to dequantise the UVs. `scale` tiles the texture within that transform. */
+function adopt(slot: THREE.Texture | null, texture: THREE.Texture, scale = 1) {
+  const next = texture.clone();
+  if (slot) {
+    next.offset.copy(slot.offset).multiplyScalar(scale); next.repeat.copy(slot.repeat).multiplyScalar(scale);
+    next.rotation = slot.rotation; next.center.copy(slot.center); next.channel = slot.channel; slot.dispose();
   }
-  reflections = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
-  reflections.mapping = THREE.EquirectangularReflectionMapping;
-  reflections.colorSpace = THREE.SRGBColorSpace;
-  reflections.minFilter = THREE.LinearFilter; reflections.magFilter = THREE.LinearFilter;
-  reflections.needsUpdate = true;
-  return reflections;
+  return next;
+}
+const dirt = {value: 1};
+/** Road dust on the sills, bumpers and wheels of traffic; the showroom sets 0 for clean cars. */
+export function setVehicleDirt(amount: number) { dirt.value = amount; }
+function dusty(material: THREE.MeshStandardMaterial) {
+  // World height above the road, so the grime sits on the lower body at every detail level.
+  material.onBeforeCompile = shader => {
+    shader.uniforms.vehicleDirt = dirt;
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying float vDirtHeight;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvDirtHeight = (modelMatrix * vec4(transformed, 1.0)).y;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform float vehicleDirt;\nvarying float vDirtHeight;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\nfloat dirt = vehicleDirt * smoothstep(.66, .12, vDirtHeight);\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(.36, .31, .25), dirt * .42);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, .9, dirt * .75);')
+      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= 1. - dirt * .55;')
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_CLEARCOAT\nmaterial.clearcoat *= 1. - dirt * .85;\n#endif');
+  };
+  material.customProgramCacheKey = () => 'vehicle-dirt';
+}
+const lampNames = /Red LED|White LED|Indicator |Reverse optics|Police blue LED/;
+function dress(material: THREE.MeshStandardMaterial, textures: SharedTextures | null, near: boolean) {
+  const name = material.name;
+  if (name === 'Vehicle detail atlas') {
+    if (textures) {
+      material.map = adopt(material.map, textures.color);
+      material.roughnessMap = material.metalnessMap = material.aoMap = adopt(material.roughnessMap ?? material.map, textures.orm);
+      material.normalMap = adopt(material.normalMap, textures.normal);
+      material.roughness = material.metalness = 1;
+    } else {
+      material.map = material.roughnessMap = material.metalnessMap = material.normalMap = null;
+      material.color.set('#1b1e22'); material.roughness = .55; material.metalness = .2;
+    }
+    dusty(material);
+  } else if (lampNames.test(name)) {
+    // The lens cell doubles as the emissive map, so LED rows and reflector edges stay legible at night.
+    material.map = material.emissiveMap = textures ? adopt(material.map, textures.color) : null;
+    // An unlit lens reads as tinted plastic, not as a lamp already on; the police bar keeps its blue.
+    material.color.set(name === 'Police blue LED' ? '#2f62e0' : '#8c8c8c');
+  } else if (name === 'Automotive clearcoat' && material instanceof THREE.MeshPhysicalMaterial) {
+    // Metallic base under a mirror-smooth coat: the coat carries the fresnel reflection, the flake the
+    // sparkle (near level only; 5 cm tiles that mip away to plain metallic with distance).
+    material.normalMap = near && textures && material.normalMap ? adopt(material.normalMap, textures.flake, 20) : null;
+    if (!material.roughnessMap) { material.metalness = .45; material.roughness = .42; }
+    material.clearcoat = 1; material.clearcoatRoughness = .04;
+    dusty(material);
+  } else if (name === 'Solar glass') {
+    material.color.set('#0a0f12'); material.metalness = 0; material.roughness = .03;
+    material.transparent = true; material.opacity = .8; material.depthWrite = false; material.side = THREE.DoubleSide;
+  }
 }
 
 async function template(style: RevampedCarStyle, level = '') {
   const key = style + level;
   let pending = templates.get(key);
   if (!pending) {
-    pending = loader.loadAsync(`/assets/models/vehicles/${key}.glb?v=vehicles-v2`).then(gltf => {
+    pending = Promise.all([loader.loadAsync(`/assets/models/vehicles/${key}.glb?v=${VERSION}`), sharedTextures()]).then(([gltf, textures]) => {
       for (const name of wheelNames) {
         if (!gltf.scene.getObjectByName(name)) throw new Error(`${style}: missing ${name}`);
       }
+      const dressed = new Set<THREE.Material>();
       gltf.scene.traverse(object => {
         if (!(object instanceof THREE.Mesh)) return;
         const materials = Array.isArray(object.material) ? object.material : [object.material];
-        object.castShadow = materials.some(m => /Automotive clearcoat|Tyre rubber|Carbon twill/.test(m.name));
+        // The painted shell and the tyres make the shadow; the atlas chassis (interior, grilles, sills) only
+        // adds shadow-pass triangles, except on the open-wheel Formula car where it is the wings and floor.
+        let wheel = false;
+        for (let parent = object.parent; parent && !wheel; parent = parent.parent) wheel = parent.name.startsWith('wheel_');
+        object.castShadow = materials.some(m => m.name === 'Automotive clearcoat' || (m.name === 'Vehicle detail atlas' && (wheel || style === 'f1')));
         object.receiveShadow = true;
-        for (const source of materials) if (source instanceof THREE.MeshStandardMaterial) {
-          source.envMap = currentVehicleEnvironment() ?? vehicleReflections(); source.envMapIntensity = .85;
-          if (source.name === 'Solar glass') {
-            source.transparent = true; source.opacity = .74; source.depthWrite = false; source.side = THREE.DoubleSide;
-            object.castShadow = false;
-          }
+        for (const source of materials) if (source instanceof THREE.MeshStandardMaterial && !dressed.has(source)) {
+          dressed.add(source); dress(source, textures, !level);
+          source.envMap = currentVehicleEnvironment(); source.envMapIntensity = source.name === 'Solar glass' ? 1.5 : 1;
           trackVehicleMaterial(source);
         }
       });
@@ -113,7 +160,7 @@ export async function upgradeVehicle(model: VehicleModel, style: RevampedCarStyl
     model.driver.position.set(style==='f1'?0:spec.width*.20,style==='f1'?.10:.03,style==='f1'?-.5:spec.length*front-.85);
     model.group.userData.driverScale=driverScale;
     model.group.userData.assetState = 'ready';
-    model.group.userData.assetVersion = 'vehicles-v2';
+    model.group.userData.assetVersion = VERSION;
     // Optional detail levels never invalidate a working near asset on network failure.
     void Promise.all([template(style,'-mid'),template(style,'-far')]).then(([mid,far]) => {
       addVehicleLevel(model.group,mid.clone(true),18);

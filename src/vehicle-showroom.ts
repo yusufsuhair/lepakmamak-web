@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import './vehicle-showroom.css';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createDriveableCar, vehicleSolid } from './world';
-import { vehicleCatalog, type RevampedCarStyle } from './vehicle-assets';
+import { setVehicleDirt, vehicleCatalog, type RevampedCarStyle } from './vehicle-assets';
 import {updateVehiclePresentation,updateVehicleReflections,vehiclePresentationState} from './vehicle-presentation';
+
+setVehicleDirt(0);   // showroom cars are freshly detailed; only traffic carries road dust
 
 const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -78,4 +80,5 @@ Object.defineProperty(window, '__vehicleStudio', {get: () => ({
   rotations: current?.wheels.map(wheel => wheel.rotation.x),
   presentation: current ? vehiclePresentationState(current.group) : undefined,
   setDistance: (distance: number) => { camera.position.set(0,3,distance); controls.update(); },
+  setView: (position: number[], target = [0, .65, 0]) => { camera.position.fromArray(position); controls.target.fromArray(target); controls.update(); },
 })});

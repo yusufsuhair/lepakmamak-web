@@ -4,9 +4,12 @@ Meshes are authored in game metres via coord(); no downloaded model/texture asse
 """
 import argparse, json, math, sys, hashlib
 from pathlib import Path
-import bpy
+import bpy, bmesh
+import numpy as np
 from mathutils import Vector
 from math import sin, cos, pi, sqrt
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import vehicle_textures as VT
 
 P = argparse.ArgumentParser()
 P.add_argument('--output', type=Path, required=True)
@@ -18,20 +21,22 @@ if OUT.exists(): raise RuntimeError('Choose a fresh output directory to preserve
 for d in ['source','exports','previews','textures','reports']: (OUT/d).mkdir(parents=True,exist_ok=True)
 # Dimensions guide the silhouette, with original approximations for unnamed legacy styles.
 SPECS = {
- 'axia': dict(name='Perodua Axia AV', l=3.76,w=1.665,h=1.505,wb=2.525,r=.285,color='41bac2',kind='hatch',plate='VAX 2301'),
- 'myvi': dict(name='Perodua Myvi AV',l=3.895,w=1.735,h=1.515,wb=2.5,r=.302,color='bf263b',kind='hatch',plate='VMY 1500'),
- 'emas': dict(name='Proton e.MAS 7',l=4.615,w=1.901,h=1.67,wb=2.75,r=.36,color='718f89',kind='ev',plate='VEV 7007'),
- 'avanza': dict(name='Toyota Avanza',l=4.395,w=1.73,h=1.70,wb=2.75,r=.325,color='889bab',kind='mpv',plate='WVA 2381'),
- 'vellfire': dict(name='Toyota Vellfire',l=4.995,w=1.85,h=1.935,wb=3.0,r=.355,color='201e29',kind='van',plate='VVL 888'),
- 'suv': dict(name='Lepak SUV',l=4.48,w=1.86,h=1.69,wb=2.67,r=.365,color='375d72',kind='suv',plate='WSU 4040'),
- 'sport': dict(name='Lepak GT Coupe',l=4.38,w=1.86,h=1.30,wb=2.57,r=.335,color='e6b04a',kind='coupe',plate='VGT 386'),
- 'ferrari': dict(name='Ferrari inspired berlinetta',l=4.56,w=1.95,h=1.21,wb=2.65,r=.345,color='c90918',kind='super',plate='VFR 488'),
- 'lamborghini': dict(name='Lamborghini Aventador SVJ',l=4.943,w=2.098,h=1.136,wb=2.7,r=.355,color='74952d',kind='svj',plate='VSJ 63'),
- 'model-y': dict(name='Tesla Model Y',l=4.79,w=1.92,h=1.624,wb=2.89,r=.36,color='e2e7e9',kind='fastback',plate='VTY 2025'),
- 'cybertruck': dict(name='Tesla Cybertruck',l=5.683,w=2.032,h=1.79,wb=3.635,r=.438,color='a1a6ad',kind='truck',plate='VCT 800'),
- 'police': dict(name='Polis Malaysia Patrol',l=4.48,w=1.86,h=1.69,wb=2.67,r=.365,color='edf1f3',kind='suv',plate='WPL 999'),
- 'f1': dict(name='Lepak Formula',l=5.15,w=2.0,h=1.12,wb=3.15,r=.36,color='088c82',kind='formula',plate=''),
+ 'axia': dict(name='Perodua Axia AV', l=3.76,w=1.665,h=1.505,wb=2.525,r=.285,color='41bac2',kind='hatch'),
+ 'myvi': dict(name='Perodua Myvi AV',l=3.895,w=1.735,h=1.515,wb=2.5,r=.302,color='bf263b',kind='hatch'),
+ 'emas': dict(name='Proton e.MAS 7',l=4.615,w=1.901,h=1.67,wb=2.75,r=.36,color='718f89',kind='ev'),
+ 'avanza': dict(name='Toyota Avanza',l=4.395,w=1.73,h=1.70,wb=2.75,r=.325,color='889bab',kind='mpv'),
+ 'vellfire': dict(name='Toyota Vellfire',l=4.995,w=1.85,h=1.935,wb=3.0,r=.355,color='201e29',kind='van'),
+ 'suv': dict(name='Lepak SUV',l=4.48,w=1.86,h=1.69,wb=2.67,r=.365,color='375d72',kind='suv'),
+ 'sport': dict(name='Lepak GT Coupe',l=4.38,w=1.86,h=1.30,wb=2.57,r=.335,color='e6b04a',kind='coupe'),
+ 'ferrari': dict(name='Ferrari inspired berlinetta',l=4.56,w=1.95,h=1.21,wb=2.65,r=.345,color='c90918',kind='super'),
+ 'lamborghini': dict(name='Lamborghini Aventador SVJ',l=4.943,w=2.098,h=1.136,wb=2.7,r=.355,color='74952d',kind='svj'),
+ 'model-y': dict(name='Tesla Model Y',l=4.79,w=1.92,h=1.624,wb=2.89,r=.36,color='e2e7e9',kind='fastback'),
+ 'cybertruck': dict(name='Tesla Cybertruck',l=5.683,w=2.032,h=1.79,wb=3.635,r=.438,color='a1a6ad',kind='truck'),
+ 'police': dict(name='Polis Malaysia Patrol',l=4.48,w=1.86,h=1.69,wb=2.67,r=.365,color='edf1f3',kind='suv'),
+ 'f1': dict(name='Lepak Formula',l=5.15,w=2.0,h=1.12,wb=3.15,r=.36,color='088c82',kind='formula'),
 }
+# Plates come from the shared atlas: Malaysian-style strings that can never be a real registration.
+for _style,_spec in SPECS.items():_spec['plate']=VT.PLATES.get(_style,'')
 
 def coord(p): return (p[0],-p[2],p[1])
 def rgba(s):
@@ -41,7 +46,9 @@ def mat(name,c,rough=.4,metal=0,coat=0,emission=0):
  m=bpy.data.materials.new(name);m.diffuse_color=rgba(c);m.use_nodes=True
  b=m.node_tree.nodes.get('Principled BSDF');b.inputs['Base Color'].default_value=rgba(c)
  b.inputs['Metallic'].default_value=metal;b.inputs['Roughness'].default_value=rough
- b.inputs['Coat Weight'].default_value=coat;b.inputs['Coat Roughness'].default_value=.16
+ # Coat roughness only where there is a coat: any value writes KHR_materials_clearcoat, which makes
+ # three build a MeshPhysicalMaterial for trims and lamps that have no clearcoat at all.
+ if coat:b.inputs['Coat Weight'].default_value=coat;b.inputs['Coat Roughness'].default_value=.16
  if emission: b.inputs['Emission Color'].default_value=rgba(c);b.inputs['Emission Strength'].default_value=emission
  return m
 
@@ -50,17 +57,106 @@ def tex(name,kind,n=128):
  pix=[]
  for y in range(n):
   for x in range(n):
-   if kind=='carbon':
-    v=.12+.055*((x//8+y//8)%2)+.025*sin((x if (x//8+y//8)%2 else y)*pi/4)
-    pix.extend([v,v,v,1])
-   elif kind=='steel':
-    v=.38+.008*sin(y*2.31)+.004*sin(y*.61+x*.05);pix.extend([v,v,v,1])
-   else:
-    # Tangent normal: four circumferential channels plus alternating diagonal tread.
-    slope=.32*sin(x*pi/8)+.15*sin(y*pi/8+x*pi/16)
-    pix.extend([.5+slope*.55,.5+.16*cos(y*pi/8+x*pi/16),.96,1])
+   v=.38+.008*sin(y*2.31)+.004*sin(y*.61+x*.05);pix.extend([v,v,v,1])
  im.pixels.foreach_set(pix);im.filepath_raw=str(OUT/'textures'/f'{name}.png');im.file_format='PNG';im.save();im.pack()
  return im
+
+# ------------------------------------------------------------------ shared detail atlas (V3)
+RUNTIME_TEXTURES=Path(__file__).resolve().parents[3]/'public/assets/textures/vehicles'
+ATLAS_FILES={'color':'atlas-color','normal':'atlas-normal','orm':'atlas-orm','flake':'paint-flake'}
+def write_shared_textures():
+ """Generate once per build: PNG review copies beside the sources, WebP runtime copies in public/.
+ The GLBs only carry 4 px stand-ins (see placeholders()); the game loads these files once."""
+ RUNTIME_TEXTURES.mkdir(parents=True,exist_ok=True)
+ color,normal,orm=VT.build()
+ for key,arr,data,quality in [('color',color,False,92),('normal',normal,True,94),('orm',orm,True,94),('flake',VT.flake(),True,95)]:
+  h,w=arr.shape[:2];im=bpy.data.images.new(ATLAS_FILES[key],w,h)
+  if data:im.colorspace_settings.name='Non-Color'
+  im.pixels.foreach_set(np.flipud(np.concatenate([arr,np.ones((h,w,1))],-1)).astype(np.float32).ravel())
+  im.file_format='WEBP';im.save(filepath=str(RUNTIME_TEXTURES/f'{ATLAS_FILES[key]}.webp'),quality=quality)
+  im.file_format='PNG';im.save(filepath=str(OUT/'textures'/f'{ATLAS_FILES[key]}.png'));bpy.data.images.remove(im)
+
+def shared_image(key):
+ im=bpy.data.images.load(str(OUT/'textures'/f'{ATLAS_FILES[key]}.png'),check_existing=True);im.name='LM_VEH_'+ATLAS_FILES[key]
+ if key!='color':im.colorspace_settings.name='Non-Color'
+ im.pack();return im
+
+def atlas_material():
+ m=bpy.data.materials.new('Vehicle detail atlas');m.use_nodes=True;nt=m.node_tree;b=nt.nodes['Principled BSDF']
+ col=nt.nodes.new('ShaderNodeTexImage');col.image=shared_image('color');nt.links.new(col.outputs['Color'],b.inputs['Base Color'])
+ orm=nt.nodes.new('ShaderNodeTexImage');orm.image=shared_image('orm');sep=nt.nodes.new('ShaderNodeSeparateColor')
+ nt.links.new(orm.outputs['Color'],sep.inputs['Color']);nt.links.new(sep.outputs['Green'],b.inputs['Roughness']);nt.links.new(sep.outputs['Blue'],b.inputs['Metallic'])
+ image_node(m,shared_image('normal'),'Normal');nt.nodes['Normal Map'].inputs['Strength'].default_value=1
+ return m
+
+def placeholders(swap):
+ """Swap every shared image for a 4 px stand-in around the glTF export (swap=True), then back.
+ The export keeps texture references and UVs; the runtime replaces the stand-ins by material name."""
+ for m in bpy.data.materials:
+  if not m.node_tree:continue
+  for node in m.node_tree.nodes:
+   if node.type!='TEX_IMAGE' or not node.image:continue
+   if swap and node.image.name.startswith('LM_VEH_'):
+    stub=bpy.data.images.get('STUB_'+node.image.name) or bpy.data.images.new('STUB_'+node.image.name,4,4)
+    stub['original']=node.image.name;stub.pack();node.image=stub
+   elif not swap and node.image.name.startswith('STUB_'):node.image=bpy.data.images[node.image['original']]
+
+def atlas_pass(style,s):
+ """Give every trim/alloy/tyre/plate/badge part UVs into the shared atlas and ONE material, and
+ map lamp and paint UVs, so the export joins each chassis and wheel into few draw calls."""
+ ATLAS=atlas_material();keys={m.name:k for k,m in M.items()}
+ # Boolean arch cuts leave the cutter's trim faces on the painted shell: give them their own object,
+ # or the join files them under paint and they cost an extra draw per car.
+ for o in [o for o in bpy.context.scene.objects if o.type=='MESH' and len({p.material_index for p in o.data.polygons})>1]:
+  bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o
+  bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.separate(type='MATERIAL');bpy.ops.object.mode_set(mode='OBJECT')
+ for o in bpy.context.scene.objects:
+  if o.type=='MESH' and len(o.data.materials)>1 and o.data.polygons:
+   used=o.data.materials[o.data.polygons[0].material_index];o.data.materials.clear();o.data.materials.append(used)
+   o.data.polygons.foreach_set('material_index',[0]*len(o.data.polygons))
+ lamp_cells={'white':'white','blueled':'white','red':'red','indicatorL':'amber','indicatorR':'amber','reverse':'reverse'}
+ flat_alias={'caliper':'caliper_red' if s['kind'] in ['super','svj','coupe','formula'] else 'caliper'}
+ for o in list(bpy.context.scene.objects):
+  if o.type!='MESH' or not o.data.materials:continue
+  key=keys.get(o.data.materials[0].name)
+  if key in ['glass',None]:continue
+  me=o.data;uvl=me.uv_layers.active or me.uv_layers.new(name='UVMap');mw=o.matrix_world;rot=mw.to_3x3()
+  game=[(p.x,p.z,-p.y) for p in (mw@v.co for v in me.vertices)]
+  lo=[min(g[i] for g in game) for i in range(3)];hi=[max(g[i] for g in game) for i in range(3)];ext=[max(hi[i]-lo[i],1e-6) for i in range(3)]
+  if key=='paint':
+   # Continuous, seam-free metric UVs for the flake: u along the car (skewed by x), v up and round.
+   for li,loop in enumerate(me.loops):
+    x,y,z=game[loop.vertex_index];uvl.data[li].uv=(z+.5*x,y+abs(x))
+   continue
+  if key in lamp_cells:
+   a,b=sorted(range(3),key=lambda i:-ext[i])[:2]
+   rect=(*VT.LAMPS[lamp_cells[key]],VT.CELL,VT.CELL)
+   for li,loop in enumerate(me.loops):
+    g=game[loop.vertex_index];uvl.data[li].uv=VT.uv(rect,.08+.84*(g[a]-lo[a])/ext[a],.08+.84*(g[b]-lo[b])/ext[b])
+   continue
+  base=flat_alias.get(key,key)
+  if o.name.startswith('Inset optical reflector well'):base='gunmetal'   # chrome reflector behind the lens
+  if base not in VT.FLAT:base='trim'
+  rect=o.get('atlas_rect');face=o.get('atlas_face');n=VT.TYRE_U
+  for poly in me.polygons:
+   nrm=rot@poly.normal;nrm=(nrm.x,nrm.z,-nrm.y)
+   ids=[me.loops[li].vertex_index for li in poly.loop_indices]
+   for li,vi in zip(poly.loop_indices,ids):
+    g=game[vi];value=VT.flat_uv(base)
+    if rect and {'front':nrm[2]>.7,'rear':nrm[2]<-.7,'right':nrm[0]>.7,'left':nrm[0]<-.7}[face]:
+     t=(g[1]-lo[1])/ext[1]
+     s_=((g[0]-lo[0])/ext[0] if face=='front' else (hi[0]-g[0])/ext[0] if face=='rear' else (hi[2]-g[2])/ext[2] if face=='right' else (g[2]-lo[2])/ext[2])
+     value=VT.uv(tuple(rect),s_,t)
+    elif o.name.startswith('Tyre shoulder and tread') and style!='f1':
+     ring=48;j=vi//ring;k=vi%ring;ks=[i%ring for i in ids];js=[i//ring for i in ids]
+     if k==0 and max(ks)==ring-1:k=ring          # close the loop without a smeared seam face
+     if j==0 and max(js)==len(n)-1:j=len(n)-1    # the hidden inner barrel face
+     value=VT.uv(VT.TYRE,n[j],.01+.98*k/ring)
+    elif o.name.startswith('Brushed brake rotor') and abs(nrm[0])>.7:
+     cy,cz=(lo[1]+hi[1])/2,(lo[2]+hi[2])/2;R=max(ext[1],ext[2])/2
+     value=VT.uv(VT.DISC,.5+(g[2]-cz)/R*.49,.5+(g[1]-cy)/R*.49)
+    uvl.data[li].uv=value
+  for i in range(len(me.materials)):me.materials[i]=ATLAS
 
 def image_node(m,im,socket):
  nodes=m.node_tree.nodes;links=m.node_tree.links;b=nodes.get('Principled BSDF')
@@ -115,12 +211,13 @@ def cyl(name,p,r,depth,m,axis='x',n=40):
  for f in o.data.polygons:f.use_smooth=len(f.vertices)==4
  o.select_set(False);return o
 
-def label(name,text,p,width,height,m,face='front'):
- cu=bpy.data.curves.new(name,'FONT');cu.body=text;cu.align_x='CENTER';cu.align_y='CENTER';cu.size=1;cu.extrude=.0005;cu.resolution_u=2
- o=bpy.data.objects.new(name,cu);bpy.context.collection.objects.link(o);cu.materials.append(m);o.location=coord(p)
- o.rotation_euler=(pi/2,0,0) if face=='front' else ((pi/2,0,pi) if face=='rear' else (pi/2,0,pi/2 if face=='right' else -pi/2))
- bpy.context.view_layer.update();factor=min(width/max(o.dimensions.x,o.dimensions.y,.01),height/max(o.dimensions.z,.01));o.scale=(factor,)*3
- bpy.context.view_layer.objects.active=o;o.select_set(True);bpy.ops.object.convert(target='MESH');o.select_set(False)
+def label(name,text,p,width,height,m,face='front',depth=.012):
+ """A thin atlas-textured plate instead of extruded font geometry: registration plates, POLIS and
+ the Formula number keep their characters; any other badge text becomes a generic chrome bar."""
+ cell=(VT.plate_cell(next(k for k,v in VT.PLATES.items() if v==text)) if text in VT.PLATES.values()
+  else VT.BADGES['polis' if text=='POLIS' else 'roundel' if text=='63' else 'emblem' if not text else 'bar'])
+ size=(width,height,depth) if face in ['front','rear'] else (depth,height,width)
+ o=box(name,p,size,m,min(.004,depth*.3));o['atlas_rect']=cell;o['atlas_face']=face
  return o
 
 def quad(name,pts,m):return mesh(name,pts,[(0,1,2,3)],m)
@@ -153,7 +250,11 @@ def wheel(style,s,side,z,front):
  for poly in tyre.data.polygons:
   for li in poly.loop_indices:
    vi=tyre.data.loops[li].vertex_index;tyre.data.uv_layers.active.data[li].uv=(vi//n/(len(profile)-1),vi%n/n*4)
- cyl('Forged rim barrel',(x,y,z),r*.71,.22,M['darkmetal'])
+ barrel=cyl('Forged rim barrel',(x,y,z),r*.71,.22,M['darkmetal'])
+ # Open the outboard end so the drilled rotor and caliper read between the spokes.
+ bm=bmesh.new();bm.from_mesh(barrel.data)
+ bmesh.ops.delete(bm,geom=[f for f in bm.faces if len(f.verts)>4 and f.normal.x*side>.5],context='FACES_ONLY')
+ bm.to_mesh(barrel.data);bm.free()
  cyl('Brushed brake rotor',(x+side*.103,y,z),r*.60,.012,M['metal'])
  cyl('Wheel centre lock',(x+side*.147,y,z),r*.17,.035,M['metal'])
  for k in range(10 if style!='cybertruck' else 7):
@@ -330,21 +431,18 @@ def trim_and_lights(style,s,belt,stations):
  if s['plate']:
   for rear in [False,True]:
    pz=(-1 if rear else 1)*(z+.065)
-   box('Malaysian black plate',(0,.47,pz),(.51,.115,.022),M['plate'])
-   label('Plate lettering',s['plate'],(0,.47,pz+(-.013 if rear else .013)),.46,.073,M['whiteletter'],'rear' if rear else 'front')
+   label('Malaysian registration plate',s['plate'],(0,.47,pz),.51,.115,M['plate'],'rear' if rear else 'front',.022)
  # Compact marque/model identification at rear, not replacing the registration plate.
  badge={'myvi':'MYVI','axia':'AXIA','emas':'e.MAS 7','avanza':'AVANZA','vellfire':'VELLFIRE','lamborghini':'SVJ','model-y':'T E S L A','cybertruck':'CYBERTRUCK','sport':'GT','ferrari':'FERRARI','suv':'LEPAK','police':'POLIS'}[style]
  label('Model badge',badge,(w*.25,belt-.14,-z-.045),.35,.045,M['metal'],'rear')
  if style in ['myvi','axia']:
-  # Oval Perodua crest outline at front.
-  path('Perodua crest',[(.058*cos(t*2*pi/32),belt-.115+.032*sin(t*2*pi/32),z+.065) for t in range(33)],.006,M['metal'])
-  path('Perodua crest diagonal',[(-.035,belt-.135,z+.067),(.032,belt-.097,z+.067)],.007,M['metal'])
+  # Generic oval chrome emblem at the front: a shape, never a manufacturer mark.
+  label('Front emblem','',(0,belt-.115,z+.062),.12,.07,M['metal'],'front')
  if style=='lamborghini':
   box('SVJ carbon rear wing',(0,h-.025,-l*.37),(1.88,.045,.34),M['carbon'],.009)
   for side in [-1,1]:
    box('SVJ wing support',(side*.49,.91,-l*.36),(.038,.34,.11),M['carbon'])
    box('SVJ wing endplate',(side*.91,h-.005,-l*.37),(.035,.115,.39),M['carbon'])
-   label('SVJ side decal','SVJ',(side*(w/2+.018),belt-.13,-.73),.36,.095,M['whiteletter'],'right' if side>0 else 'left')
   for i in range(7):box('Engine cover louvre',(0,belt+.065,-l*.19-i*.09),(w*.5,.016,.043),M['carbon'],.003)
   path('Bonnet central crease',[(0,belt+.042,l*.25),(0,belt-.04,l*.46)],.006,M['trim'])
  if style=='cybertruck':
@@ -358,7 +456,7 @@ def trim_and_lights(style,s,belt,stations):
  if style=='police':
   for side in [-1,1]:
    box('Police blue side stripe',(side*(w/2+.014),belt-.16,0),(.018,.22,1.95),M['blue'])
-   label('Police door marking','POLIS',(side*(w/2+.026),belt-.13,.03),.70,.15,M['whiteletter'],'right' if side>0 else 'left')
+   label('Police door marking','POLIS',(side*(w/2+.026),belt-.13,.03),.70,.15,M['blue'],'right' if side>0 else 'left')
   box('Lightbar mount',(0,h+.045,0),(1.10,.07,.23),M['trim'])
   box('Emergency blue light',(-.29,h+.12,0),(.48,.105,.21),M['blueled'])
   box('Emergency red light',(.29,h+.12,0),(.48,.105,.21),M['red'])
@@ -398,6 +496,7 @@ def formula(s):
 exec(compile((Path(__file__).parent/'realism.py').read_text(), 'realism.py', 'exec'))
 
 reports=[]
+write_shared_textures()
 for style,s in SPECS.items():
  if a.only and style not in a.only.split(','):continue
  bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -405,7 +504,7 @@ for style,s in SPECS.items():
  M={
  'paint':mat('Automotive clearcoat',s['color'],.28,.32,1),
  'trim':mat('Satin black trim','10151b',.46),
- 'glass':mat('Solar glass','172830',.115,.32,.9),
+ 'glass':mat('Solar glass','0d1519',.05),
  'rubber':mat('Tyre rubber','171a1c',.78),
  'metal':mat('Machined aluminium','b3bec5',.26,.9),
  'darkmetal':mat('Graphite alloy','30343b',.32,.75),
@@ -423,8 +522,10 @@ for style,s in SPECS.items():
  'reverse':mat('Reverse optics','d4d9db',.25,.1),
  'lens':mat('Optical lens','50616a',.12,.2,.8),
  }
- if style!='f1':image_node(M['rubber'],tex('Tyre_tread_normal','tread'),'Normal')
- image_node(M['carbon'],tex('Carbon_twill','carbon'),'Base Color')
+ if style!='cybertruck':image_node(M['paint'],shared_image('flake'),'Normal');M['paint'].node_tree.nodes['Normal Map'].inputs['Strength'].default_value=.2
+ for key in ['white','red','indicatorL','indicatorR','reverse','blueled']:
+  # Lamps sample the atlas lens cells; the runtime also uses them as emissive maps.
+  image_node(M[key],shared_image('color'),'Base Color')
  if style=='cybertruck':
   M['paint'].node_tree.nodes.get('Principled BSDF').inputs['Metallic'].default_value=.92
   M['paint'].node_tree.nodes.get('Principled BSDF').inputs['Coat Weight'].default_value=.05
@@ -435,7 +536,7 @@ for style,s in SPECS.items():
  pivots=[]
  for side in [-1,1]:
   for front in [False,True]:pivots.append(wheel(style,s,side,s['wb']/2*(1 if front else -1),front))
- bpy.context.view_layer.update();finish_panels(s)
+ bpy.context.view_layer.update();finish_panels(s);atlas_pass(style,s)
  # Body and calipers can move with suspension independently of rolling axles.
  chassis=bpy.data.objects.new('chassis',None);scene.collection.objects.link(chassis)
  for o in list(scene.objects):
@@ -485,6 +586,7 @@ for style,s in SPECS.items():
  for o in export.objects:
   if o.type=='MESH':o.data.calc_loop_triangles();triangles+=len(o.data.loop_triangles)
  glb=OUT/'exports'/f'{style}.glb'
+ placeholders(True)
  bpy.ops.export_scene.gltf(filepath=str(glb),export_format='GLB',use_selection=True,export_yup=True,export_apply=True,export_extras=True,export_cameras=False,export_lights=False,export_texcoords=True,export_normals=True)
  # Preview studio exists only in the editable .blend, never in runtime GLBs.
  scene.render.engine='CYCLES';scene.cycles.samples=24;scene.cycles.use_denoising=True
@@ -496,6 +598,7 @@ for style,s in SPECS.items():
   data=bpy.data.lights.new(name,'AREA');data.energy=energy;data.shape='RECTANGLE';data.size=size;data.size_y=2
   o=bpy.data.objects.new(name,data);scene.collection.objects.link(o);o.location=coord(loc);o.rotation_euler=(Vector(coord((0,.7,0)))-o.location).to_track_quat('-Z','Y').to_euler()
  camd=bpy.data.cameras.new('Preview');cam=bpy.data.objects.new('Preview',camd);scene.collection.objects.link(cam);cam.location=coord((7.3,4.1,8.4));cam.rotation_euler=(Vector(coord((0,.65,0)))-cam.location).to_track_quat('-Z','Y').to_euler();camd.type='ORTHO';camd.ortho_scale=7.7;scene.camera=cam
+ placeholders(False)
  bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'source'/f'{style}.blend'),compress=True)
  if not a.skip_render:
   scene.render.filepath=str(OUT/'previews'/f'{style}.png');bpy.ops.render.render(write_still=True)

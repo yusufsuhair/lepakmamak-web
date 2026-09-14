@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {onSkyProbe} from './weather';
 
 const wheelNames = ['wheel_FL','wheel_FR','wheel_RL','wheel_RR'];
 const states = new WeakMap<THREE.Group, Presentation>();
@@ -7,11 +8,13 @@ const worldPosition = new THREE.Vector3(), cameraPosition = new THREE.Vector3(),
 const worldRotation = new THREE.Quaternion(), forward = new THREE.Vector3();
 const materialSets = new Set<THREE.MeshStandardMaterial>();
 const headlightPools = new WeakMap<THREE.Scene, THREE.SpotLight[]>();
-let environment: THREE.Texture | undefined;
-export function currentVehicleEnvironment() { return environment; }
+let environment: THREE.Texture | undefined, sky: THREE.Texture | null = null;
+// Until the local probe has sampled the city, cars reflect the live sky palette (weather.ts), not a fixed one.
+onSkyProbe(texture => { sky = texture; if (!environment) for (const material of materialSets) material.envMap = texture; });
+export function currentVehicleEnvironment(): THREE.Texture | null { return environment ?? sky; }
 export function trackVehicleMaterial(material: THREE.MeshStandardMaterial) {
   materialSets.add(material);
-  if (environment) material.envMap = environment;
+  material.envMap = currentVehicleEnvironment();
 }
 interface Level {
   root: THREE.Group;
