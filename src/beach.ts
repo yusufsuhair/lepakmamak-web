@@ -3,6 +3,7 @@ import {batchShopFallback,box,createIceCreamBike,createPerson,material,palm,type
 import tables from '../shared/tables.json';
 import chairs from '../shared/chairs.json';
 import {cdnUrl} from './cdn';
+import {NIGHT_SUN,onSkyChange} from './weather';
 
 export const BEACH={minX:95,maxX:153,minZ:131,shoreZ:152};
 export type BeachRestKind = 'sunbed' | 'hammock';
@@ -167,11 +168,14 @@ function createSea(g:THREE.Group){
   const a=depthColour(z-SHORE.waterline,colour);colours.set([colour.r,colour.g,colour.b,a],i*4);
  }
  seaGeometry.setAttribute('color',new THREE.BufferAttribute(colours,4));seaGeometry.computeVertexNormals();seaGeometry.computeBoundingSphere();
- const seaUniforms={uTime:{value:0},uSky:{value:new THREE.Color('#b9dcec')}};
+ const seaUniforms={uTime:{value:0},uSky:{value:new THREE.Color('#b9dcec')},uLight:{value:new THREE.Color(1,1,1)}};
  const seaMaterial=new THREE.MeshStandardMaterial({vertexColors:true,transparent:true,roughness:.07,metalness:0,normalMap:waterNormal,normalScale:new THREE.Vector2(.32,.32)});
  seaMaterial.onBeforeCompile=shader=>{
   Object.assign(shader.uniforms,seaUniforms);
-  shader.fragmentShader='uniform float uTime;\nuniform vec3 uSky;\n'+shader.fragmentShader
+  shader.fragmentShader='uniform float uTime;\nuniform vec3 uSky;\nuniform vec3 uLight;\n'+shader.fragmentShader
+   // The depth colours are daylight turquoise and the city's night ambient is strong: the sky's light
+   // scales the ambient on the water body only, so sun, moon, lamp and fire light and glints still read.
+   .replace('#include <lights_fragment_end>','#include <lights_fragment_end>\n     reflectedLight.indirectDiffuse *= uLight;')
    .replace('vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;',
     `vec3 mapN = texture2D( normalMap, vNormalMapUv + vec2( uTime * .011, uTime * .019 ) ).xyz * 2.0 - 1.0;
      vec3 mapN2 = texture2D( normalMap, vNormalMapUv * 2.3 + vec2( -uTime * .021, uTime * .007 ) ).xyz * 2.0 - 1.0;
@@ -209,7 +213,7 @@ function createSea(g:THREE.Group){
  // dissolve before the shore. Each pass picks a new span, so the sets never repeat in place.
  const foam=Array.from({length:8},(_,i)=>{
   const s=strip('beach-foam',2.4,28,4);
-  return {update(time:number){
+  return {material:s.material,update(time:number){
    const t=time*.045+i/8,phase=t%1,n=Math.floor(t);
    const seed=Math.sin((i+1)*12.9898+n*78.233)*43758.5453,f=seed-Math.floor(seed);
    const len=18+f*24,x0=SHORE.west+2+f*(SHORE.east-SHORE.west-len-4),x1=x0+len,bend=(f-.5)*2,z=180-phase*27;
@@ -220,12 +224,23 @@ function createSea(g:THREE.Group){
  // Swash: two sheets of lace that rush up the wet sand, stall, and drain back fading.
  const swash=[0,.5].map(offset=>{
   const s=strip('beach-swash',1.8,56,4);
-  return {update(time:number){
+  return {material:s.material,update(time:number){
    const phase=(time/7.5+offset)%1,rushing=phase<.32;
    const reach=152.9-1.7*(rushing?smooth(phase/.32):1-smooth((phase-.32)/.68));
    s.material.opacity=.85*(rushing?1:1-smooth((phase-.32)/.6));
    s.place(SHORE.west+.5,SHORE.east-.5,x=>reach+Math.sin(x*.37+offset*9)*.28+Math.sin(x*1.13+offset*3)*.1,time,offset*3+time*.01);
   }};
+ });
+ // Dusk warms and dims the water, night takes it to blue-black; the foam dims with it but keeps
+ // enough to trace the surf. Driven by the one sky (weather.ts), only when it changes.
+ const white=new THREE.Color(1,1,1),hue=new THREE.Color(),nightSea=new THREE.Color('#7d97c8'),foamColour=new THREE.Color('#f3faf7');
+ sea.userData.light=seaUniforms.uLight.value;
+ onSkyChange(sky=>{
+  const day=smooth((sky.lightIntensity-NIGHT_SUN)/(1.5-NIGHT_SUN));
+  // Sunlight's hue at unit brightness, part way to white, so dusk warms the water without darkening it twice.
+  hue.copy(sky.light).multiplyScalar(1/Math.max(.05,sky.light.r*.2126+sky.light.g*.7152+sky.light.b*.0722)).lerp(white,.45).multiplyScalar(.25+.75*day);
+  seaUniforms.uLight.value.copy(nightSea).multiplyScalar(.16).lerp(hue,day);
+  for(const crest of [...foam,...swash])crest.material.color.copy(foamColour).multiplyScalar(.28+.72*day);
  });
  return {seaGeometry,seaUniforms,foam,swash};
 }

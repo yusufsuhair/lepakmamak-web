@@ -49,3 +49,32 @@ test('the Blender beach replaces the procedural props and palms and leaves the a
  expect(result.foam).toBe(8);expect(result.swash).toBe(2);expect(result.waveMoved).toBe(true); // the animated sea is outside the swap
  expect(result.dryAboveWater).toBe(true);expect(result.floorUnderWater).toBe(true);           // and meets the sand without holes
 });
+
+// The depth colours are daylight turquoise; the sky's light (weather.ts) scales the water body and the
+// foam, so dusk reads warm and dim and night blue-black, while the fresnel still takes the background.
+test('the sea and its foam darken with the sky: warm at dusk, blue-black at night',async({page})=>{
+ await page.route('**/sea-harness',r=>r.fulfill({contentType:'text/html',body:'<label><input id="rain-toggle" type="checkbox"></label><p id="weather-label"></p>'}));
+ await page.route('**/weather',r=>r.fulfill({json:{available:false}}));
+ await page.clock.install({time:'2026-09-12T05:00:00Z'});
+ await page.goto('/sea-harness');
+ const result=await page.evaluate(async()=>{
+  const beachUrl=((await (await fetch('/src/world.ts')).text()).match(/from\s*["'](\/src\/beach\.ts[^"']*)["']/)||[])[1]||'/src/beach.ts';
+  const B=await import(/* @vite-ignore */ beachUrl);
+  const W=await import(/* @vite-ignore */ ((await (await fetch(beachUrl)).text()).match(/from\s*["'](\/src\/weather\.ts[^"']*)["']/)||[])[1]||'/src/weather.ts');
+  const THREE=await import('/node_modules/.vite/deps/three.js' as string);
+  const {createWorld}=await import('/src/world.ts');
+  const scene=new THREE.Scene();scene.background=new THREE.Color();scene.fog=new THREE.Fog(0,1,100);
+  const beach=B.createBeach(scene,createWorld(new THREE.Scene()));
+  const group=(beach.iceCream as any).parent,sea=group.getObjectByName('beach-sea'),foam=group.children.filter((c:any)=>c.name==='beach-foam'||c.name==='beach-swash');
+  const weather=W.setupWeather(scene,new THREE.DirectionalLight(),new THREE.HemisphereLight(),'',()=>{},()=>true);
+  const read=(time:string,condition='sunny')=>{weather.preview({condition,time});return {sea:sea.userData.light.toArray(),foam:foam.map((f:any)=>f.material.color.getHex()),background:scene.background.isColor===true};};
+  return {noon:read('13:00'),dusk:read('19:05'),night:read('21:00'),rain:read('13:00','rain')};
+ });
+ const lum=([r,g,b]:number[])=>r*.2126+g*.7152+b*.0722;
+ expect(lum(result.noon.sea)).toBeGreaterThan(.9);
+ expect(lum(result.dusk.sea)).toBeLessThan(lum(result.noon.sea)*.6);expect(result.dusk.sea[0]).toBeGreaterThan(result.dusk.sea[2]);   // warm and dim
+ expect(lum(result.night.sea)).toBeLessThan(.1);expect(result.night.sea[2]).toBeGreaterThan(result.night.sea[0]);                     // blue-black
+ expect(lum(result.rain.sea)).toBeLessThan(lum(result.noon.sea));
+ expect(new Set(result.night.foam).size).toBe(1);expect(result.night.foam[0]).toBeLessThan(result.noon.foam[0]);
+ for(const state of Object.values(result))expect(state.background).toBe(true);
+});
