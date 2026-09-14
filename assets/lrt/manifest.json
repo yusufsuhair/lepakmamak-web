@@ -4,25 +4,75 @@
       "cab",
       "mid"
     ],
-    "triangles": 12950,
-    "bytes": 684300,
-    "draws": 43
+    "triangles": 5078,
+    "bytes": 357160,
+    "draws": {
+      "cab": 10,
+      "mid": 10
+    },
+    "materials": [
+      "LRT Innovia"
+    ]
   },
   "LM_LRT_Station.glb": {
     "nodes": [
       "station"
     ],
-    "triangles": 6532,
-    "bytes": 326076,
-    "draws": 14
+    "triangles": 7018,
+    "bytes": 629068,
+    "draws": {
+      "station": 7
+    },
+    "materials": [
+      "LRT night wash",
+      "LRT platform floor",
+      "LRT station cladding",
+      "LRT station concrete",
+      "LRT station glass",
+      "LRT station roof",
+      "LRT station steel"
+    ]
   },
   "LM_LRT_Viaduct.glb": {
     "nodes": [
       "girder",
       "pier"
     ],
-    "triangles": 504,
-    "bytes": 33320,
-    "draws": 8
-  }
+    "triangles": 528,
+    "bytes": 216256,
+    "draws": {
+      "girder": 2,
+      "pier": 2
+    },
+    "materials": [
+      "LRT girder concrete",
+      "LRT pier concrete",
+      "LRT track"
+    ]
+  },
+  "textures": [
+    "cladding_color",
+    "cladding_emission",
+    "cladding_normal",
+    "cladding_orm",
+    "concrete_color",
+    "concrete_normal",
+    "girder_color",
+    "girder_normal",
+    "innovia_color",
+    "innovia_emission",
+    "innovia_normal",
+    "innovia_orm",
+    "pier_color",
+    "pier_normal",
+    "platform_color",
+    "platform_normal",
+    "roof_color",
+    "roof_emission",
+    "roof_normal",
+    "track_color",
+    "track_normal",
+    "track_orm",
+    "wash"
+  ]
 }
