@@ -308,7 +308,11 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   let online = false;
   const statusText = () => !online ? 'Connecting to the city…'
     : active === 'all' ? 'Visible to everyone in this city'
-    : active === 'party' ? 'Only your Geng sees this' : `Private to ${threads.get(active)?.name}`;
+    : active === 'party' ? 'Only your Geng sees this'
+    // The table thread has no `name` (it is not a person), which fell through to the DM case
+    // below and read as "Private to undefined".
+    : active === 'table' ? 'Visible to everyone at this table'
+    : `Private to ${threads.get(active)?.name}`;
 
   function openDm(id: string, name: string) {
     const key = `dm:${id}`;

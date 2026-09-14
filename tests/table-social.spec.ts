@@ -88,3 +88,18 @@ test('a running game can minimize while table chat and voice stay in the dialog'
  await expect(dialog.locator('#table-minimize')).toHaveAttribute('aria-label','Restore table game');
  await dialog.locator('#table-minimize').click();await expect(dialog).not.toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeVisible();
 });
+
+// A bare #table-social{display:flex} would outrank the UA sheet's dialog:not([open]){display:
+// none} by specificity, leaving the empty dialog visible over the whole page before anyone
+// ever opens a table.
+test('the table dialog stays hidden until a table is actually opened',async({page})=>{
+ await page.route('**/table-hidden',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><aside id="voice-panel"><div id="voice-audience"></div></aside><div id="city-chat"></div></div>'}));
+ await page.goto('/table-hidden');
+ await page.evaluate(async()=>{
+  const {setupTableSocial}=await import('/src/table-social.ts');
+  (window as any).ui=setupTableSocial(()=>true,'geng',()=>{},()=>{},()=>true,()=>document.getElementById('voice-panel'));
+ });
+ await expect(page.locator('#table-social')).toBeHidden();
+ await page.evaluate(()=>{(window as any).ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);(window as any).ui.open('meja-1');});
+ await expect(page.locator('#table-social[open]')).toBeVisible();
+});

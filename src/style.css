@@ -861,9 +861,24 @@ body:has(#loading:not([hidden]),#pause:not([hidden]),#auth-panel:not([hidden]),#
    it on top of the game — visible, and swallowing every click meant for the buttons under
    it. Inside the dialog it flows as an ordinary block at the end of the content instead, so
    it can never intercept a press, and the same rule holds at 375px. */
-#table-social #city-chat { position: static; left: auto; right: auto; top: auto; bottom: auto; transform: none; width: auto; max-width: none; margin: 14px 0 0; z-index: auto; }
+#table-social #city-chat { position: static; left: auto; right: auto; top: auto; bottom: auto; transform: none; width: auto; max-width: none; margin: 14px 0 0; z-index: auto; flex: none; }
 #table-social #city-chat.chat-expanded { position: static; width: auto; transform: none; }
 #table-social #chat-messages { max-height: 150px; }
+/* The narrow floating HUD chat stacks name above area to save width; the table dialog has
+   plenty of it, and the stacked layout left the area tag orphaned under the name with a
+   blank gap beside it. */
+#table-social .chat-who { flex-direction: row; align-items: baseline; gap: 6px; }
+/* The dialog used to scroll as one block, so a tall game menu (or even one chat message) could
+   push the compose box and mic/speaker controls below the fold with no visible way back to
+   them. The game content now scrolls on its own, and chat plus voice stay pinned in view. */
+/* overflow stays auto (set on the base rule above) as a fallback for an extreme case where
+   even the fixed rows and #table-detail at its floor still do not fit. [open] matters here:
+   an unqualified #table-social{display:flex} would outrank the UA sheet's
+   dialog:not([open]){display:none} and leave the empty dialog visible at all times. */
+#table-social[open] { display: flex; flex-direction: column; }
+#table-social > header, #table-social > #table-seats, #table-social > #table-invite-destination, #table-social > #table-rosters { flex: none; }
+#table-social > #table-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+#table-social #voice-panel { flex: none; }
 
 /* Fullscreen chat stays open until the user leaves fullscreen. */
 #chat-controls button:disabled { opacity: .35; cursor: default; background: #ffffff14; color: #cdd8c0; }
