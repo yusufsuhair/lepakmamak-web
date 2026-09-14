@@ -141,3 +141,60 @@ test('village greeting uses a local speech bubble instead of a modal or city cha
  const style=await (await page.request.get('/src/style.css')).text();
  expect(style).not.toContain('.village-dialog');
 });
+
+// LM_ENV_Kampung.glb (scripts/blender/build_kampung.py) swaps in over the boxes: the canvas signs,
+// every collider and map footprint stay the game's, nothing new stands between a sign and the yard,
+// and the windows, serambi bulbs and their pools only light after dark.
+test('the Blender kampung keeps its signs readable and its colliders, and lights up only at night',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('/');
+ const result=await page.evaluate(async()=>{
+  const source=await (await fetch('/src/durian-village.ts')).text();
+  const three=(source.match(/from\s*["'](\/node_modules\/\.vite\/deps\/three\.js[^"']*)["']/)||[])[1];
+  const night=(source.match(/from\s*["'](\/src\/district-night\.ts[^"']*)["']/)||[])[1]||'/src/district-night.ts';
+  const THREE:any=await import(/* @vite-ignore */ three);
+  const {setDistrictNight}=await import(/* @vite-ignore */ night);
+  const {createDurianVillage}=await import('/src/durian-village.ts');
+  const worldUrl=(source.match(/from\s*["'](\/src\/world\.ts[^"']*)["']/)||[])[1]||'/src/world.ts';
+  const {streamAllNow}=await import(/* @vite-ignore */ worldUrl);
+  const world={group:new THREE.Group(),solids:[] as any[],mapBuildings:[] as any[]};
+  createDurianVillage(world as any);
+  const snapshot=()=>JSON.stringify({solids:world.solids,map:world.mapBuildings});
+  const before=snapshot();
+  streamAllNow();   // the GLB streams in once a player is near; start it now
+  const village:any=world.group.getObjectByName('kampung');
+  const loaded=()=>village.children.find((c:any)=>c.children?.some((k:any)=>k.name==='kampung'));
+  for(let i=0;i<600&&!loaded();i++)await new Promise(done=>setTimeout(done,100));
+  const meshes:any[]=[];loaded()?.traverse((o:any)=>{if(o.isMesh)meshes.push(o);});
+  const signs=village.children.filter((c:any)=>c.isMesh&&c.material.isMeshBasicMaterial);
+  world.group.updateMatrixWorld(true);
+  const ray=new THREE.Raycaster();const blocked:string[]=[];
+  for(const sign of signs){
+   const bounds=new THREE.Box3().setFromObject(sign),centre=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+   for(const along of [-.3,0,.3]){   // the middle and either side of every sign, seen from 5 m out in the yard
+    const target=centre.clone().add(new THREE.Vector3(size.x*along,0,0));
+    const eye=target.clone().add(new THREE.Vector3(0,0,5));eye.y=Math.max(1.7,target.y-1.5);
+    ray.set(eye,target.clone().sub(eye).normalize());
+    const hit=ray.intersectObjects([village],true).find((h:any)=>!h.object.isSprite);
+    if(hit?.object!==sign)blocked.push(`${hit?.object.material?.name} before sign at ${centre.x.toFixed(1)},${centre.y.toFixed(1)}`);
+   }
+  }
+  const washes=meshes.filter(m=>m.material.name.startsWith('Night wash')),glows=meshes.filter(m=>m.material.name.startsWith('Night glow'));
+  const state=()=>({washes:washes.every(m=>m.visible),dark:glows.every(m=>m.material.emissiveIntensity===0)});
+  setDistrictNight(false);const day=state();setDistrictNight(true);const lit=state();setDistrictNight(false);
+  return {loaded:!!loaded(),signs:signs.length,fallbackGone:village.children.length===signs.length+1,blocked,unchanged:snapshot()===before,
+   textured:meshes.filter(m=>m.material.map&&m.material.normalMap).length,leaves:meshes.some(m=>m.material.alphaTest>0),
+   washes:washes.length,glows:glows.length,day,lit};
+ });
+ expect(result.loaded).toBe(true);
+ expect(result.signs).toBe(7);                  // five house labels, the village name and the badminton board
+ expect(result.fallbackGone).toBe(true);
+ expect(result.blocked).toEqual([]);
+ expect(result.unchanged).toBe(true);           // house, gate, swing, table, bench, tree and court colliders
+ expect(result.textured).toBeGreaterThan(8);
+ expect(result.leaves).toBe(true);
+ expect(result.washes).toBeGreaterThan(0);expect(result.glows).toBeGreaterThan(0);
+ expect(result.day).toEqual({washes:false,dark:true});
+ expect(result.lit).toEqual({washes:true,dark:false});
+ expect(errors).toEqual([]);
+});

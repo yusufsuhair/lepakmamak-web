@@ -1,13 +1,62 @@
 {
   "Kampung": {
     "asset": "LM_ENV_Kampung",
+    "triangles": 30652,
+    "draws": 19,
+    "bytes": {
+      "raw": 2946564,
+      "meshopt": 1765328,
+      "brotli": 975075
+    },
+    "materials": [
+      "Ground halaman",
+      "Ground lawn",
+      "Kampung attap",
+      "Kampung batik",
+      "Kampung batik sarong",
+      "Kampung concrete",
+      "Kampung foliage",
+      "Kampung kerawang",
+      "Kampung painted",
+      "Kampung papan",
+      "Kampung rattan",
+      "Kampung riser tiles",
+      "Kampung timber",
+      "Kampung zinc",
+      "Kampung zinc cap",
+      "Net cord",
+      "Night glow lamp",
+      "Night glow window",
+      "Night wash lamp"
+    ],
+    "textures": [
+      "acrylic_color",
+      "acrylic_normal",
+      "batik_color",
+      "batik_normal",
+      "halaman_color",
+      "halaman_normal",
+      "lawn_color",
+      "lawn_normal",
+      "papan_color",
+      "papan_normal",
+      "thatch_color",
+      "thatch_normal",
+      "tiles_color",
+      "tiles_normal",
+      "wash",
+      "wood_color",
+      "wood_normal",
+      "zinc_color",
+      "zinc_normal",
+      "foliage_color",
+      "kerawang_color",
+      "netting_color"
+    ],
     "origin": [
       122,
       0,
       -132
-    ],
-    "triangles": 17240,
-    "bytes": 861176,
-    "draws": 31
+    ]
   }
 }

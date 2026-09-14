@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
-import {batchShopFallback,box,createPerson,material,type World} from './world';
+import {batchShopFallback,box,createPerson,material,nearLoader,type World} from './world';
 import {createVillageChores,createVillageCycle,groupRoute,villageActivity} from './village-activities';
 import {cdnUrl} from './cdn';
+import {dressDistrict} from './district-night';
 
 // All authored coordinates are relative to this origin: relocate the whole neighbourhood here.
 export const villageOrigin={x:122,z:-132};
@@ -78,8 +77,8 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  for(let i=0;i<48;i++){const a=i/48*Math.PI*2;box(g,18+Math.sin(a)*4.7,.16,16.8+Math.cos(a)*1.65,.18,.04,.18,'#d4bf90');}
  for(const x of [-6,6]){box(g,x,.55,17,3,.15,.7,'#b98b53');for(const dx of [-1,1])box(g,x+dx,.3,17,.15,.5,.5,'#71553a');solid(x,17,3,.7);}
  // The Blender kampung (scripts/blender/build_kampung.py) replaces the boxes above: stilt houses
- // on tiang, the timber gerbang, the swing, the vegetable beds, the court and net, the washing
- // line and four durian trees. It is authored in village-local coordinates, so its origin is
+ // on tiang with tangga batu, trees, the gerbang, the swing, the vegetable beds, the court and net, the washing
+ // lines, a kapcai and a water tank (night via src/district-night.ts). It is authored in village-local coordinates, so its origin is
  // this group's origin and nothing shifts. Every solid() and mapBuildings footprint above is
  // untouched, so the residents' cleared routes still thread between the same colliders. The
  // canvas MeshBasicMaterial children are kept: those are the game's own text signs (village
@@ -87,8 +86,9 @@ export function createDurianVillage(world:Pick<World,'group'|'solids'|'mapBuildi
  g.name='kampung';
  g.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(g);
- void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Kampung.glb')).then(gltf=>{
-  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+ // Streamed like the zoo: fetched once a player comes within 170 m, hidden beyond 300 m.
+ void nearLoader(g,170,300).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Kampung.glb')).then(gltf=>{
+  dressDistrict(gltf.scene);
   for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   g.add(gltf.scene);
  }).catch(error=>console.warn('[KAMPUNG] keeping procedural village',error));
