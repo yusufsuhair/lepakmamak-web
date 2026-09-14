@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('music player follows playback, skips tracks and stays above speed on mobile', async ({ page }) => {
+test('music player follows playback, skips tracks and stays below speed on mobile', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#loading')).toBeHidden();
   // Exercise the real HUD and controls without requiring a live multiplayer server.
@@ -28,6 +28,7 @@ test('music player follows playback, skips tracks and stays above speed on mobil
     const speed = (await page.locator('#speed').boundingBox())!;
     expect(player.x).toBeGreaterThanOrEqual(0);
     expect(player.x + player.width).toBeLessThanOrEqual(width);
-    expect(player.y + player.height).toBeLessThan(speed.y);
+    expect(player.y).toBeGreaterThan(speed.y + speed.height);
+    expect(player.y + player.height).toBeLessThanOrEqual(844);
   }
 });
