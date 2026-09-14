@@ -31,7 +31,7 @@ void main() {
 const fragmentShader=`
 uniform sampler2D uNoise;
 uniform vec3 uZenith, uHorizon, uGlow, uCloudLight, uCloudShadow, uSun, uSunColor, uMoon;
-uniform float uTime, uCoverage, uClouds, uDetail, uSunDisc, uStars, uMoonLit, uMoonGlow;
+uniform float uTime, uCoverage, uClouds, uDetail, uSunDisc, uStars, uMoonLit, uMoonGlow, uFlash;
 varying vec3 vSkyDirection;
 float noise(vec2 p) {
   vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -108,6 +108,8 @@ void main() {
     sky+=vec3(0.5,0.56,0.68)*(pow(max(cosMoon,0.0),1200.0)*0.35+pow(max(cosMoon,0.0),60.0)*0.07)*uMoonGlow*uMoonLit*(1.0-alpha*0.4);
     sky=mix(sky,vec3(0.93,0.91,0.84),disc*mix(0.05,1.0,lit)*uMoonGlow*(1.0-alpha*0.75));
   }
+  // Lightning somewhere in the storm: the cloud deck brightens for a moment, most where it is thickest.
+  sky+=vec3(0.46,0.5,0.6)*uFlash*(0.3+0.7*alpha)*smoothstep(-0.05,0.25,d.y);
   gl_FragColor=vec4(sky,1.0);
   #include <colorspace_fragment>
   // Break up 8-bit banding in the long night and dusk gradients.
@@ -119,14 +121,23 @@ export function createClouds(scene:THREE.Scene) {
   const texture=noiseTexture();
   const color=()=>({value:new THREE.Color()}),vector=()=>({value:new THREE.Vector3(0,1,0)});
   const uniforms={uNoise:{value:texture},uTime:{value:0},uCoverage:{value:.43},uClouds:{value:1},uDetail:{value:1},
-    uSunDisc:{value:1},uStars:{value:0},uMoonLit:{value:0},uMoonGlow:{value:0},
+    uSunDisc:{value:1},uStars:{value:0},uMoonLit:{value:0},uMoonGlow:{value:0},uFlash:{value:0},
     uZenith:color(),uHorizon:color(),uGlow:color(),uCloudLight:color(),uCloudShadow:color(),uSunColor:color(),uSun:vector(),uMoon:vector()};
   const material=new THREE.ShaderMaterial({uniforms,vertexShader,fragmentShader,
     side:THREE.BackSide,depthWrite:false,depthTest:true,toneMapped:false});
   const dome=new THREE.Mesh(new THREE.SphereGeometry(10,32,16),material);
   dome.name='LM_SKY_Atmosphere';dome.frustumCulled=false;dome.renderOrder=1000;
   scene.add(dome);
-  let weather:CloudWeather={condition:'sunny',night:false,twilight:0},smooth=false;
+  let weather:CloudWeather={condition:'sunny',night:false,twilight:0},smooth=false,flashAt=-1,nextFlash=0,flashes=0;
+  // Rare lightning in a storm: one soft flash (50 ms up, gone in half a second), 20 to 60 s apart, never
+  // strobing and never with reduced motion. The dome only: no light or shadow changes with it.
+  function lightning(elapsed:number,reducedMotion:boolean) {
+    if(weather.condition!=='rain'||reducedMotion){nextFlash=0;return 0;}
+    if(!nextFlash||elapsed<flashAt)nextFlash=elapsed+20+Math.random()*25;
+    if(elapsed>=nextFlash){flashAt=elapsed;nextFlash=elapsed+20+Math.random()*40;flashes++;}
+    const t=elapsed-flashAt;
+    return flashAt<0||t>.6?0:Math.min(1,t/.05)*Math.exp(-t*8);
+  }
   function setWeather(value:CloudWeather) {
     weather={condition:value.condition,night:value.night,twilight:THREE.MathUtils.clamp(value.twilight??0,0,1)};
     const sky=value.sky??skyPalette(value.night?GM_NIGHT_SUN:GM_DAY_SUN,value.condition);
@@ -143,11 +154,12 @@ export function createClouds(scene:THREE.Scene) {
       dome.position.copy(camera.position);smooth=reducedQuality;
       uniforms.uTime.value=reducedMotion?0:elapsed*.12;
       uniforms.uDetail.value=smooth?0:1;
+      uniforms.uFlash.value=lightning(elapsed,reducedMotion);
     },
     dispose(){scene.remove(dome);dome.geometry.dispose();material.dispose();texture.dispose();},
     get status(){return {state:'ready',mode:'photographic-sky-v3',visible:uniforms.uClouds.value>0,
       drawCalls:1,rotation:uniforms.uTime.value,quality:smooth?'smooth':'detailed',
-      layers:smooth?1:2,noiseSize:128,weather:{...weather},
+      layers:smooth?1:2,noiseSize:128,weather:{...weather},lightning:{flashes,flash:uniforms.uFlash.value},
       sun:uniforms.uSun.value.toArray(),stars:uniforms.uStars.value,horizon:`#${uniforms.uHorizon.value.getHexString()}`};},
   };
 }

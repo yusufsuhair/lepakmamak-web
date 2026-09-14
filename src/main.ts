@@ -785,11 +785,13 @@ async function init() {
   }
   player.group.position.copy(pos); player.group.rotation.y = yaw;
 
-  const rainCount = 1100;
+  // A monsoon downpour: long, fast, wind-slanted streaks packed into a box around the player (about five
+  // times the old density). One draw; low graphics draws and moves half of them.
+  const rainCount = 4000, RAIN_HEIGHT = 32;
   const rainPositions = new Float32Array(rainCount * 6);
-  for (let i = 0; i < rainCount; i++) { const j = i * 6; rainPositions[j] = (Math.random() - .5) * 85; rainPositions[j + 1] = Math.random() * 45; rainPositions[j + 2] = (Math.random() - .5) * 85; }
+  for (let i = 0; i < rainCount; i++) { const j = i * 6; rainPositions[j] = (Math.random() - .5) * 70; rainPositions[j + 1] = Math.random() * RAIN_HEIGHT; rainPositions[j + 2] = (Math.random() - .5) * 70; }
   const rainGeometry = new THREE.BufferGeometry(); rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
-  const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: '#d7e5de', transparent: true, opacity: .45 })); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
+  const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: '#c9d5dc', transparent: true, opacity: .42 })); rain.visible = false; rain.frustumCulled = false; scene.add(rain);
 
   let audioContext: AudioContext | null = null, engine: OscillatorNode | null = null, engineGain: GainNode | null = null;
   const trainDoorStates = new Map<number, boolean>();
@@ -2511,12 +2513,13 @@ async function init() {
       sun.position.set(pos.x + weatherUI.sunOffset.x, weatherUI.sunOffset.y, pos.z + weatherUI.sunOffset.z); sun.target.position.set(pos.x, 0, pos.z);
       if (rainEnabled) {
         rain.position.set(pos.x, 0, pos.z);
-        for (let i = 0; i < rainCount; i++) {
-          const j = i * 6; rainPositions[j + 1] -= dt * 23;
-          if (rainPositions[j + 1] < 0) rainPositions[j + 1] = 45;
-          rainPositions[j + 3] = rainPositions[j] + .2; rainPositions[j + 4] = rainPositions[j + 1] - .85; rainPositions[j + 5] = rainPositions[j + 2] + .12;
+        const drops = graphicsQuality === 'low' ? rainCount / 2 : rainCount;
+        for (let i = 0; i < drops; i++) {
+          const j = i * 6; rainPositions[j + 1] -= dt * 30;
+          if (rainPositions[j + 1] < 0) rainPositions[j + 1] += RAIN_HEIGHT;
+          rainPositions[j + 3] = rainPositions[j] + .4; rainPositions[j + 4] = rainPositions[j + 1] - 2.1; rainPositions[j + 5] = rainPositions[j + 2] + .1;
         }
-        rainGeometry.attributes.position.needsUpdate = true;
+        rainGeometry.setDrawRange(0, drops * 2); rainGeometry.attributes.position.needsUpdate = true;
       }
       sendNetworkState(dt);
     }

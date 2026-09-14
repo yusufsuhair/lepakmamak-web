@@ -30,6 +30,11 @@ test('one palette: dark starry night, warm sunset, weather flattens and closes i
  const clear=at('2026-09-12T08:00:00Z'),rain=at('2026-09-12T08:00:00Z','rain'),haze=at('2026-09-12T08:00:00Z','haze');
  expect(lum(rain.horizon)).toBeLessThan(lum(clear.horizon));
  expect(rain.sunDisc).toBe(0);expect(rain.fogFar).toBeLessThan(clear.fogFar);
+ // A monsoon storm, not bright overcast: much darker, flat cloud, dim sun, fog closing in, wet ground.
+ expect(lum(rain.horizon)).toBeLessThan(lum(clear.horizon)*.5);expect(lum(rain.zenith)).toBeLessThan(lum(clear.zenith)*.6);
+ expect(lum(rain.cloudLight)/lum(rain.cloudShadow)).toBeLessThan(Math.min(1.3,lum(clear.cloudLight)/lum(clear.cloudShadow)));
+ expect(rain.lightIntensity).toBeLessThan(clear.lightIntensity*.25);expect(rain.fogNear).toBeLessThan(30);
+ expect(rain.wet).toBe(1);expect(clear.wet).toBe(0);expect(haze.wet).toBe(0);
  expect(haze.clouds).toBe(0);expect(haze.fogFar).toBeLessThan(rain.fogFar);
  // Fog must hide the far clip (camera far is 600) so distant geometry melts into the horizon.
  for(const p of [noon,rain,haze])expect(p.fogFar).toBeLessThan(600);

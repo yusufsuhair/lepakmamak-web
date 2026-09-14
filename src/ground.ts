@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {onSkyChange} from './weather';
 
 /** The photographic city ground. The road, kerb, slab and apron boxes in createWorld keep their
  * sizes and heights; only their materials change. Each material projects its textures in world
@@ -23,7 +24,14 @@ const shared = {
   gGrass: {value: null as THREE.Texture | null}, gGrassN: {value: null as THREE.Texture | null},
   gMacro: {value: null as THREE.Texture | null}, gMask: {value: null as THREE.Texture | null},
   gReady: {value: 0},
+  // Rain (weather.ts): 1 soaks every surface, and the wet sheen takes the sky's horizon colour.
+  gWet: {value: 0}, gSky: {value: new THREE.Color('#9aa6ab')},
 };
+/** Read-only view of the wet-ground state, for tests and debugging. */
+export const groundWeather = {get wet() { return shared.gWet.value; }, get sky() { return `#${shared.gSky.value.getHexString()}`; }};
+onSkyChange(sky => { shared.gWet.value = sky.wet; shared.gSky.value.copy(sky.horizon); });
+/** How each surface takes the rain: [darkening when soaked, wet roughness ceiling, puddle share]. */
+const WET: Record<Kind, [number, number, number]> = {asphalt: [.45, .3, 1], lines: [.25, .32, .6], kerb: [.3, .45, .35], slab: [.22, .62, .2], apron: [.18, .8, 0]};
 let loading: Promise<void> | undefined;
 function loadTextures() {
   if (loading) return;
@@ -71,8 +79,8 @@ const COMMON = /* glsl */`
 varying vec3 vGPos;
 varying vec3 vGNrm;
 uniform sampler2D gAsphalt, gAsphaltN, gPaver, gPaverN, gConcrete, gConcreteN, gGrass, gGrassN, gMacro, gMask;
-uniform float gReady;
-uniform vec3 gFallback;
+uniform float gReady, gWet;
+uniform vec3 gFallback, gSky;
 const vec3 G_X = vec3(0., 76., -82.);
 const vec3 G_Z = vec3(-64., 8., 78.);
 float gHash(vec2 p) { vec3 q = fract(vec3(p.xyx) * .1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
@@ -287,10 +295,20 @@ export function groundMaterial(kind: Kind) {
       .replace('#include <map_fragment>', `GFrame gf = gFrame(normalize(vGNrm));
   vec3 alb = vec3(1.); vec3 tn = vec3(0., 0., 1.); float rough = 1.;
   {${SURFACE[kind]}}
+  // Monsoon rain: soaked surfaces darken and go glossy, and still water lies in the hollows of the macro
+  // field (one extra sample; gWet is 0 in the dry).
+  float gTop = step(.5, gf.N.y);
+  float gPuddle = gWet * gTop * ${WET[kind][2].toFixed(2)} * smoothstep(.6, .7, texture2D(gMacro, vGPos.xz / 19. + .37).g);
+  alb *= 1. - gWet * ${WET[kind][0].toFixed(2)} - gPuddle * .2;
+  rough = mix(mix(rough, min(rough, ${WET[kind][1].toFixed(2)}), gWet), .04, gPuddle);
+  tn = mix(tn, vec3(0., 0., 1.), gPuddle);
   alb = mix(gFallback, alb, gReady); tn = normalize(mix(vec3(0., 0., 1.), tn, gReady));
   diffuseColor.rgb *= alb;`)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(roughness, clamp(rough, .04, 1.), gReady);')
-      .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(normalize(gf.T * tn.x + gf.B * tn.y + gf.N * tn.z), 0.)).xyz);');
+      .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(normalize(gf.T * tn.x + gf.B * tn.y + gf.N * tn.z), 0.)).xyz);')
+      // The wet sheen: there is no environment map, so the sky's colour is laid on at grazing angles.
+      .replace('#include <opaque_fragment>', `outgoingLight = mix(outgoingLight, gSky, gWet * gTop * (pow(1. - saturate(dot(normalize(vViewPosition), normal)), 5.) * .5 + gPuddle * .22));
+  #include <opaque_fragment>`);
   };
   material.customProgramCacheKey = () => `lepak-ground-${kind}`;
   material.name = `ground-${kind}`;

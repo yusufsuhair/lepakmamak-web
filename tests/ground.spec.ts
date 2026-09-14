@@ -1,5 +1,28 @@
 import {test,expect} from '@playwright/test';
 
+// Rain soaks the ground: the shared ground uniforms follow the weather's wet flag and take the fog's
+// horizon colour for their sheen, and dry out again when the rain stops.
+test('the ground goes wet when it rains and dries when it stops',async({page})=>{
+ await page.route('**/wet-harness',r=>r.fulfill({contentType:'text/html',body:'<label><input id="rain-toggle" type="checkbox"></label><p id="weather-label"></p>'}));
+ await page.route('**/weather',r=>r.fulfill({json:{available:false}}));
+ await page.clock.install({time:'2026-09-12T08:00:00Z'});
+ await page.goto('/wet-harness');
+ const result=await page.evaluate(async()=>{
+  const groundUrl=((await (await fetch('/src/world.ts')).text()).match(/from\s*["'](\/src\/ground\.ts[^"']*)["']/)||[])[1]||'/src/ground.ts';
+  const G=await import(/* @vite-ignore */ groundUrl);
+  const W=await import(/* @vite-ignore */ ((await (await fetch(groundUrl)).text()).match(/from\s*["'](\/src\/weather\.ts[^"']*)["']/)||[])[1]||'/src/weather.ts');
+  const THREE=await import('/node_modules/.vite/deps/three.js' as string);
+  const scene=new THREE.Scene();scene.background=new THREE.Color();scene.fog=new THREE.Fog(0,1,100);
+  let wetSwitch=false;
+  const weather=W.setupWeather(scene,new THREE.DirectionalLight(),new THREE.HemisphereLight(),'',(v:boolean)=>{wetSwitch=v;},()=>true);
+  const read=(condition:string)=>{weather.preview({condition,time:'16:00'});return {wet:G.groundWeather.wet,sky:G.groundWeather.sky,fog:`#${scene.fog.color.getHexString()}`,rain:wetSwitch};};
+  return {dry:read('sunny'),rain:read('rain'),after:read('cloudy')};
+ });
+ expect(result.dry).toMatchObject({wet:0,rain:false});
+ expect(result.rain).toMatchObject({wet:1,rain:true});expect(result.rain.sky).toBe(result.rain.fog);
+ expect(result.after).toMatchObject({wet:0,rain:false});
+});
+
 // The photographic ground is a skin: the boxes keep the sizes and heights gameplay and the beach's
 // sea depend on, the kerbs no longer cross the east-west carriageways, the world-space shaders
 // compile, and the seawall GLB takes over the sea edges from the hedge.

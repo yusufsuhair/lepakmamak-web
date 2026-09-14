@@ -38,6 +38,8 @@ export interface SkyPalette {
   zenith: THREE.Color; horizon: THREE.Color; glow: THREE.Color; cloudLight: THREE.Color; cloudShadow: THREE.Color;
   light: THREE.Color; lightIntensity: number; ambientSky: THREE.Color; ambientIntensity: number;
   clouds: number; coverage: number; sunDisc: number; stars: number; fogNear: number; fogFar: number;
+  /** 1 while it rains: the ground (ground.ts) goes dark and glossy. */
+  wet: number;
 }
 // Clear-sky keys by sun altitude in degrees, all display sRGB: zenith, horizon away from the sun,
 // horizon under the sun, lit cloud, cloud shade, sunlight, sunlight intensity, hemisphere sky, hemisphere intensity.
@@ -70,16 +72,18 @@ export function skyPalette(sun: THREE.Vector3, condition: string, moon = new THR
     moonGlow: THREE.MathUtils.smoothstep(-altitude, 2, 8) * THREE.MathUtils.smoothstep(moon.y, -.02, .06),
     zenith: mix(1), horizon: mix(2), glow: mix(3), cloudLight: mix(4), cloudShadow: mix(5),
     light: mix(6), lightIntensity: THREE.MathUtils.lerp(a[7], b[7], t), ambientSky: mix(8), ambientIntensity: THREE.MathUtils.lerp(a[9], b[9], t),
-    clouds: 1, coverage: .43, sunDisc: 1, stars: THREE.MathUtils.smoothstep(-altitude, 5, 13), fogNear: 120, fogFar: 560};
+    clouds: 1, coverage: .43, sunDisc: 1, stars: THREE.MathUtils.smoothstep(-altitude, 5, 13), fogNear: 120, fogFar: 560, wet: 0};
   const night = 1 - THREE.MathUtils.smoothstep(altitude, -8, -1);
   if (condition === 'cloudy') {
     for (const c of [p.zenith, p.horizon, p.cloudShadow]) tint(c, .5, '#dfe4e6', .92);
     for (const c of [p.glow, p.cloudLight]) tint(c, .45, '#eeeae4');
     p.lightIntensity *= .6; p.coverage = .34; p.sunDisc = .35; p.stars *= .3; p.moonGlow *= .5; p.fogNear = 100; p.fogFar = 480;
   } else if (condition === 'rain') {
-    // Monsoon cloud base: slate by day, lit brown-orange from below by the city at night.
-    for (const c of [p.zenith, p.horizon, p.glow, p.cloudLight, p.cloudShadow]) tint(c, .88, night > .5 ? '#c09a80' : '#b8c6cc', .42 + night * .7);
-    p.lightIntensity *= .3; p.ambientIntensity *= .9; p.coverage = .2; p.sunDisc = 0; p.stars = p.moonGlow = 0; p.fogNear = 70; p.fogFar = 300;
+    // Monsoon storm: a low, flat cloud base, dark slate-blue by day and lit brown-orange from below by the
+    // city at night, almost no contrast between lit and shaded cloud, and the rain curtain closing the view in.
+    for (const c of [p.zenith, p.horizon, p.glow, p.cloudShadow]) tint(c, .95, night > .5 ? '#b89a86' : '#8e9cab', .3 + night * .72);
+    p.cloudLight.copy(p.cloudShadow).multiplyScalar(1.25);
+    p.lightIntensity *= .2; p.ambientIntensity *= .62 + night * .2; p.coverage = .12; p.sunDisc = 0; p.stars = p.moonGlow = 0; p.fogNear = 16; p.fogFar = 240; p.wet = 1;
   } else if (condition === 'haze' || condition === 'fog') {
     const haze = condition === 'haze';
     // Jerebu turns the whole sky a flat yellow-brown with the sun a dim orange ball; fog is a soft white-grey.
@@ -112,7 +116,7 @@ function publishSky(next: SkyPalette) {
   // colours or the sun visibly move (a few times an hour by day, more often through twilight).
   const q = (v: number, steps = 40) => Math.round(v * steps);
   const key = [next.zenith, next.horizon, next.glow, next.light].map(c => `${q(c.r)},${q(c.g)},${q(c.b)}`).join('|') +
-    `|${q(next.sun.x, 16)},${q(next.sun.y, 16)},${q(next.sun.z, 16)}|${q(next.lightIntensity, 10)}|${q(next.sunDisc, 10)}`;
+    `|${q(next.sun.x, 16)},${q(next.sun.y, 16)},${q(next.sun.z, 16)}|${q(next.lightIntensity, 10)}|${q(next.sunDisc, 10)}|${next.wet}`;
   if (key === skyKey) return;
   skyKey = key; currentSky = next;
   if (probe) { const old = probe; probe = paintSkyProbe(next); for (const listener of probeListeners) listener(probe); old.dispose(); }
