@@ -1,53 +1,55 @@
-"""KFC and McDonald's drive-throughs for the pair at (105,60) and (129,60).
+"""KFC and McDonald's drive-throughs at (105,60) and (129,60), photographic pass.
 
-KFC follows the Malaysian outlet language: red roof canopy and window coping, the
-red-and-white striped "tent" fascia that echoes the Colonel's suit, and a scaled-up
-chicken bucket on the roof as the landmark beacon. McDonald's is the modern neutral
-box with the golden arches on the roof and on a tall pole sign, red base band and a
-McCafe wing. Both keep the 14 x 12 body, the lane at x = laneSide*8 and the street
-face at z = +6 that world.ts already collides against and signposts.
+KFC in its Malaysian outlet language: white render box, the red-and-white stripe feature at the
+lane corner, a red brand band with the roundel and red-lit letters, a glazed front onto red
+booths, a counter under lit menu boards and a stainless kitchen, the bucket up on a pole sign.
+McDonald's in the current look: charcoal panel box, timber slats on the McCafe wing, the yellow
+brow blade carrying the arches over the roof, a white wordmark, a red and yellow pole sign.
 
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python scripts/blender/build_fastfood.py -- --no-render
+Both lanes: textured asphalt between painted kerbs, flat arrows and DRIVE THRU painted on the
+lane, a clearance bar at the entry, a canopied order point with lit menu boards and a speaker
+post, and a pickup window in the lane-side wall under its own awning with the counter behind it.
+
+Contract with src/world.ts driveThrough(), unchanged: body 14 x 12 at x = -laneSide*2.5 with its
+street face at z +6 (the only collider), the lane at x = laneSide*8 kept clear, the pole sign
+beside the road. The game clears its own boxes and canvas signs when this arrives, so the
+lettering here is geometry. Night: 'Night ...' materials are driven by src/brands.ts.
+
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python scripts/blender/build_fastfood.py
+node scripts/blender/compress-glb.mjs public/assets/models/environment/LM_ENV_DriveThrough.glb
 
 Output: public/assets/models/environment/LM_ENV_DriveThrough.glb, nodes 'kfc' and 'mcd'.
 """
 import bpy, math, json, sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from build_lrt import pt,mat,box,cyl,loft,join
-from build_zus import text,ring,disc
+from build_lrt import pt, join, loft
+import brand_kit as BK
+from brand_kit import box, cyl, plate, disc, ring, text, card, ground_quad, arrow
 
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'assets/fastfood'; OUT.mkdir(parents=True,exist_ok=True)
-PUBLIC=ROOT/'public/assets/models/environment'; PUBLIC.mkdir(parents=True,exist_ok=True)
-ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
+OUT=ROOT/'assets/fastfood'
+PUBLIC=ROOT/'public/assets/models/environment'
+BK.setup('fastfood',OUT/'textures',20260916)
 
-RED=mat('KFC red',(.72,.06,.09),.42);WHITE=mat('Outlet white',(.94,.94,.92),.5);CREAM=mat('Outlet cream',(.90,.87,.79),.7)
-YELLOW=mat('Arches yellow',(.99,.76,.03),.35);DARKRED=mat('Deep red',(.55,.05,.07),.45)
-CHAR=mat('Charcoal cladding',(.20,.20,.21),.7);WOOD=mat('Timber panel',(.52,.35,.19),.65)
-GLASS=mat('Outlet glass',(.62,.74,.84),.09,alpha=.30,two_sided=True);BLACK=mat('Frame black',(.09,.09,.10),.5)
-ASPHALT=mat('Lane asphalt',(.28,.29,.28),.95);PAINT=mat('Lane paint',(.93,.88,.45),.6);KERB=mat('Kerb',(.76,.76,.72),.85)
-STEEL=mat('Steel post',(.55,.56,.58),.4);SCREEN=mat('Menu screen',(.06,.07,.09),.3)
-LIT=mat('Menu glow',(1,.93,.72),.4,emit=1.8);LAMP=mat('Canopy light',(1,.96,.88),.4,emit=2.6)
-ROOFM=mat('Roof deck',(.62,.62,.60),.9);GREEN=mat('Planter green',(.24,.40,.22),.8)
+L=BK.Lib()
+ASPH=BK.textured('Asphalt','asphalt',.9,3.0,strength=.8)
+PAVE=BK.textured('Paving','paving',.78,1.2,strength=.6)
+SLATS=BK.textured('Timber slats','slats',.62,1.2,strength=.7)
 
-def frustum(name,cx,cz,base,top,r0,r1,m,tag,n=28,smooth=True):
-    """Vertical tapered tube: radius r0 at y=base, r1 at y=top."""
+KFC_RED='#e4002b';DEEP_RED='#a3081c';WHITE='#f5f4f0';CREAM='#ece6da';CHAR='#38393b';BLACK='#141516'
+MCD_YELLOW='#ffbc0d';MCD_RED='#db0007';STEEL='#c7cacc';CONC='#c9c6be';GREEN='#3d6b35'
+
+def frustum(name,cx,cz,base,top,r0,r1,m,col,n=24):
+    """Vertical tapered tube: radius r0 at y=base, r1 at y=top (the bucket)."""
     verts=[];faces=[]
     for y,r in ((base,r0),(top,r1)):
-        for i in range(n):
-            a=2*math.pi*i/n;verts.append(pt(cx+r*math.cos(a),y,cz+r*math.sin(a)))
+        for i in range(n):a=2*math.pi*i/n;verts.append(pt(cx+r*math.cos(a),y,cz+r*math.sin(a)))
     for i in range(n):faces.append((i,(i+1)%n,n+(i+1)%n,n+i))
     faces.append(tuple(range(n))[::-1]);faces.append(tuple(n+i for i in range(n)))
-    mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update()
-    ob=bpy.data.objects.new(name,mesh);bpy.context.scene.collection.objects.link(ob);ob.data.materials.append(m);ob['asset']=tag
-    for f in mesh.polygons:f.use_smooth=smooth
-    bpy.ops.object.select_all(action='DESELECT');ob.select_set(True);bpy.context.view_layer.objects.active=ob
-    bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')
-    return ob
+    return BK.paint(BK.kit.mesh(name,verts,faces,m,closed=True),col)
 
-def arch_stroke(cx,cy,base,r_out,r_in,n=16):
-    """One leg of the golden arches: a semicircular stroke on two straight legs."""
+def arch_stroke(cx,cy,base,r_out,r_in,n=14):
     pts=[(cx-r_out,base)]
     for i in range(n+1):a=math.pi*(1-i/n);pts.append((cx+r_out*math.cos(a),cy+r_out*math.sin(a)))
     pts.append((cx+r_out,base));pts.append((cx+r_in,base))
@@ -55,180 +57,219 @@ def arch_stroke(cx,cy,base,r_out,r_in,n=16):
     pts.append((cx-r_in,base))
     return pts
 
-def arches(x,base,z,height,m,tag,thick=.18):
-    """The M: two strokes that meet in the middle, four units wide for `height` tall."""
+def arches(x,base,z,height,thick,m=None,col=MCD_YELLOW):
+    """The M: two arch strokes that meet in the middle."""
     r_out=height*.42;r_in=r_out*.55;cy=base+height-r_out
-    parts=[]
-    for side in (-1,1):
-        prof=[(x+px,py) for px,py in arch_stroke(side*r_out,cy,base,r_out,r_in)]
-        parts.append(loft('arch',[(z,prof),(z+thick,prof)],m,tag,closed=True))
-    return join(parts,'arches')
+    parts=[loft('arch',[(z,[(x+px,py) for px,py in arch_stroke(s*r_out,cy,base,r_out,r_in)]),(z+thick,[(x+px,py) for px,py in arch_stroke(s*r_out,cy,base,r_out,r_in)])],m or L.SIGN,'fastfood',closed=True) for s in (-1,1)]
+    return BK.paint(join(parts,'arches'),col)
 
-def font():
-    for candidate in ['/System/Library/Fonts/Supplemental/Arial Bold.ttf','/System/Library/Fonts/Helvetica.ttc']:
-        try:return bpy.data.fonts.load(candidate)
-        except Exception:pass
+def shell(ls,wall_m,wall_col,trim_col):
+    """The 14 x 12 x 8.4 body as walls round a real ground-floor room, with the pickup window cut
+    into the lane-side wall. Returns the parts and the x of the lane-side wall face."""
+    o=[];bx=-ls*2.5;far=bx-ls*7;near=bx+ls*7
+    o.append(box('rear wall',bx,4.2,-5.85,14,8.4,.3,wall_m,wall_col,0,grime=.4))
+    o.append(box('far wall',far+ls*.15,4.2,0,.3,8.4,12,wall_m,wall_col,0,grime=.4))
+    # lane-side wall, with the pickup opening at z -5.6..-4.2, y 1.0..2.4
+    nx=near-ls*.15
+    o.append(box('lane wall',nx,4.2,.9,.3,8.4,10.2,wall_m,wall_col,0,grime=.4))
+    o.append(box('lane wall',nx,.5,-4.9,.3,1.0,1.4,wall_m,wall_col,0,grime=.4))
+    o.append(box('lane wall',nx,5.4,-4.9,.3,6.0,1.4,wall_m,wall_col,0,grime=.4))
+    o.append(box('lane wall',nx,4.2,-5.8,.3,8.4,.4,wall_m,wall_col,0))
+    o.append(box('pickup glass',nx,1.7,-4.9,.04,1.4,1.4,L.GLASS))
+    o+=BK.frame('pickup frame',nx+ls*.16,1.7,-4.9,1.4,1.4,.08,.06,L.METAL,'#2c2e30',plane='x')
+    o.append(box('pickup sill',nx+ls*.3,1.02,-4.9,.5,.06,1.6,L.METAL,STEEL,.01))
+    o.append(box('pickup counter',nx-ls*.6,1.0,-4.9,.9,1.0,1.6,L.METAL,STEEL,.01))
+    o.append(ground_quad('pickup pool',near+ls*1.8,.08,-4.9,4,4,L.WASH))
+    o.append(box('plinth',bx,.25,0,14.08,.5,12.08,L.PANEL,'#595b5d',0))
+    o.append(box('roof',bx,8.3,0,14,.2,12,L.PANEL,'#8a8c8e',0))
+    for zz,w,d in ((6.05,14.3,.3),(-6.05,14.3,.3)):o.append(box('parapet cap',bx,8.5,zz,w,.2,d,L.METAL,trim_col,.01))
+    for xx in (far,near):o.append(box('parapet cap',xx,8.5,0,.3,.2,12.4,L.METAL,trim_col,.01))
+    o.append(box('floor',bx,.52,0,13.4,.04,11.4,L.TILES))
+    o.append(box('ceiling',bx,4.15,0,13.4,.1,11.4,L.LED,'#8f9395',0))
+    for dx in (-4.5,-1.5,1.5,4.5):
+        for z in (-3.5,.5,4.0):o.append(box('ceiling light',bx+dx,4.09,z,1.2,.03,.5,L.LED,'#ffffff',0))
+    o.append(ground_quad('dining pool',bx,.55,2.5,12,7,L.WASH))
+    # interior lining in the LED material at a low vertex colour: a lit room by day and at night
+    o.append(box('lining rear',bx,2.35,-5.68,13.3,3.7,.04,L.LED,'#6f6d68',0))
+    o.append(box('lining side',far+ls*.32,2.35,0,.04,3.7,11.3,L.LED,'#6f6d68',0))
+    o.append(box('lining side',near-ls*.32,2.35,.78,.04,3.7,9.74,L.LED,'#6f6d68',0))   # stops short of the pickup window
+    for dx,dz in ((-3.5,-2),(3.5,-2)):
+        o.append(box('roof plant',bx+dx,8.8,dz,2.2,.8,1.4,L.PANEL,'#d6d8d9',.02))
+        o.append(cyl('fan',bx+dx,9.21,dz,.45,.02,L.PLASTIC,'#2b2d2f',verts=16))
+    return o,bx,near
 
-def lane(tag,lane_side,canopy_material,trim_material,letter_material,dual=False):
-    """Drive-thru lane: kerbed asphalt, canopied order bay with lit menu boards, speaker post,
-    clearance bar and a canopied pickup window. Lettering is baked, not painted by the game."""
-    lx=lane_side*8;o=[];f=font()
-    o.append(box('lane',lx,.035,0,5.5,.07,23,ASPHALT,tag,0))
-    for dz in range(-9,10,4):o.append(box('lane dash',lx,.08,dz,.16,.03,1.8,PAINT,tag,0))
-    for s in (-1,1):o.append(box('lane kerb',lx+s*2.85,.12,0,.25,.16,23,KERB,tag,.02))
-    o.append(box('lane arrow',lx,.085,8.5,.5,.02,1.6,PAINT,tag,0))
-    ox=lx-lane_side*2.5
-    o.append(box('order canopy',ox+lane_side*.9,3.55,1.3,5.0,.24,4.4,canopy_material,tag,.04))
-    o.append(box('order canopy trim',ox+lane_side*.9,3.36,1.3,5.1,.14,4.5,trim_material,tag,.02))
-    o.append(text('DRIVE THRU',ox+lane_side*.9,3.55,3.52,.42,letter_material,.05,font=f))
-    for dz in (-.6,3.2):o.append(cyl('canopy post',ox+lane_side*2.9,1.75,dz,.09,3.5,STEEL,tag,verts=10))
-    boards=(-.9,.9) if dual else (0,)
-    for k,dx in enumerate(boards):
-        bxo=ox+dx*lane_side*0
-        o.append(box('menu board back',ox,1.55,1.3+dx*1.2,1.6,3.1,.9,BLACK,tag,.03))
-    for dz in (-.42,.42):
-        o.append(box('menu screen',ox-lane_side*.47,1.95,1.3+dz,.06,1.6,.74,SCREEN,tag,0))
-        o.append(box('menu glow',ox-lane_side*.5,1.95,1.3+dz,.02,1.4,.62,LIT,tag,0))
-    o.append(text('ORDER HERE',ox-lane_side*.52,3.0,1.3,.16,letter_material,.02,font=f))
-    o.append(cyl('speaker post',ox-lane_side*1.1,1.1,-1.6,.06,2.2,STEEL,tag,verts=8))
-    o.append(box('speaker',ox-lane_side*1.1,2.25,-1.6,.34,.42,.3,BLACK,tag,.03))
-    o.append(cyl('clearance bar',lx,3.9,9.0,.06,5.6,trim_material,tag,axis='x',verts=8))
-    o.append(box('clearance sign',lx,3.9,9.0,1.6,.36,.06,canopy_material,tag,0))
-    o.append(text('2.2 m',lx,3.9,9.04,.2,letter_material,.02,font=f))
-    for s in (-1,1):o.append(cyl('clearance post',lx+s*2.7,1.95,9.0,.08,3.9,STEEL,tag,verts=8))
-    px=lx-lane_side*4.9
-    o.append(box('pickup canopy',px,3.4,-5.0,2.8,.2,3.8,canopy_material,tag,.03))
-    o.append(box('pickup window',px-lane_side*.05,1.9,-5.0,.12,1.6,1.8,GLASS,tag,0))
-    o.append(box('pickup frame',px-lane_side*.02,1.9,-5.0,.1,1.8,2.0,BLACK,tag,0))
-    o.append(text('PICK UP',px+lane_side*.02,2.95,-5.0,.16,letter_material,.02,font=f))
-    for dz in (-6.6,-3.4):o.append(cyl('pickup light',px+lane_side*.6,3.26,dz,.12,.05,LAMP,tag,verts=10))
+def interior(ls,bx,menu,seat_col,counter_col):
+    """Counter under lit menu boards, stainless kitchen behind, seating by the windows."""
+    o=[];cx=bx-ls*1.0
+    o.append(box('counter',cx,1.05,-2.4,8.0,1.1,.8,L.PANEL,counter_col,.02))
+    o.append(box('counter top',cx,1.63,-2.4,8.2,.06,.95,L.METAL,STEEL,.01))
+    for k in range(3):o.append(box('pos',cx-2.5+k*2.5,1.85,-2.5,.35,.35,.3,L.PLASTIC,BLACK,.02))
+    for k,dx in enumerate((-1.9,1.9)):
+        o.append(box('menu frame',cx+dx,3.3,-3.6,3.9,1.1,.08,L.PLASTIC,BLACK,0))
+        o.append(card('menu board',cx+dx,3.3,-3.55,3.7,1.0,L.menu(menu),'+z'))
+    for dx in (-3,-1,1,3):
+        o.append(box('fryer',cx+dx,1.2,-4.8,1.6,1.3,1.1,L.METAL,STEEL,.02))
+        o.append(box('hood',cx+dx,3.6,-5.1,1.8,.6,1.2,L.METAL,'#a9adb0',.02))
+    o.append(card('back shelves',cx,2.2,-5.68,6,1.2,L.SHELVES,'+z',u_repeat=5))
+    for k,dx in enumerate((-5.2,-2.2,.8,3.8)):
+        x=bx-ls*dx*.9
+        o.append(box('table',x,1.25,4.2,1.3,.06,.8,L.PANEL,'#efece6',.01))
+        o.append(box('table leg',x,.88,4.2,.08,.7,.08,L.METAL,CHAR,0))
+        for s in (-1,1):
+            o.append(box('bench seat',x+s*.95,.95,4.2,.5,.12,1.5,L.PLASTIC,seat_col,.03))
+            o.append(box('bench back',x+s*1.2,1.4,4.2,.12,.9,1.5,L.PLASTIC,seat_col,.03))
+        o.append(cyl('pendant',x,3.2,4.2,.18,.2,L.LED,'#ffe2b0',verts=12))
+        o.append(box('pendant cord',x,3.7,4.2,.01,.9,.01,L.PLASTIC,BLACK,0))
+    return o
+
+def lane(tag,ls,canopy_col,trim_col,menu):
+    """Drive-thru lane: asphalt between kerbs, painted arrows and DRIVE THRU, clearance bar at the
+    entry, canopied order point with menu boards and speaker, lit at night."""
+    o=[];lx=ls*8
+    o.append(box('lane',lx,.045,0,5.5,.05,23,ASPH,'#ffffff',0))
+    for s in (-1,1):
+        o.append(box('lane kerb',lx+s*2.85,.12,0,.25,.2,23,L.PANEL,CONC,.03,grime=.3))
+        for k in range(12):o.append(box('kerb paint',lx+s*2.85,.225,-11+k*2,.27,.006,1.0,L.PLASTIC,MCD_YELLOW if k%2 else BLACK,0))
+    for z in (7.5,-1.0,-8.5):o.append(arrow('lane arrow',lx,.073,z,2.4,1.0,L.PLASTIC,'#f2efe4','-z'))
+    o.append(text('DRIVE THRU',lx,.073,4.2,.55,L.PLASTIC,'#f2efe4',depth=.004,facing='up',width=3.6))
+    for z in (-11.4,11.4):o.append(box('lane edge line',lx,.072,z,5.4,.004,.14,L.PLASTIC,'#f2efe4',0))
+    # clearance bar at the entry
+    for s in (-1,1):o.append(cyl('clearance post',lx+s*2.7,1.95,9.6,.08,3.9,L.METAL,STEEL,verts=10))
+    for k in range(7):o.append(box('clearance stripe',lx-2.4+k*.8,3.9,9.6,.8,.16,.16,L.SIGN,MCD_YELLOW if k%2 else BLACK,0))
+    o.append(box('clearance sign',lx,3.55,9.6,1.4,.4,.05,L.SIGN,WHITE,0))
+    o.append(text('2.2 m',lx,3.55,9.64,.24,L.SIGN,BLACK,depth=.02))
+    # order point
+    ox=ls*4.85;face='+x' if ls>0 else '-x'
+    o.append(box('order canopy',ls*6.6,3.6,1.2,4.6,.22,4.6,L.PANEL,canopy_col,.03))
+    o.append(box('order canopy fascia',ls*6.6,3.6,1.2,4.7,.32,4.7,L.SIGN,canopy_col,.02))
+    o.append(box('order canopy soffit',ls*6.6,3.46,1.2,4.4,.02,4.4,L.LED,'#a3a7a9',0))
+    for z in (0,2.4):o.append(cyl('canopy downlight',ls*7.4,3.44,z,.12,.02,L.LED,'#ffffff',verts=12))
+    o.append(ground_quad('order pool',lx,.08,1.2,5,5,L.WASH))
+    for dz in (-.8,3.2):o.append(BK.paint(BK.kit.strut('canopy tie',(ls*4.5,5.2,dz),(ls*8.7,3.72,dz),.05,L.METAL),STEEL))
+    o.append(box('menu plinth',ox,.35,1.6,.5,.5,2.0,L.PANEL,CONC,.02))
+    o.append(box('menu housing',ox,1.8,1.6,.3,2.4,1.9,L.PANEL,CHAR,.02))
+    for k,y in enumerate((2.35,1.55)):o.append(card('lane menu',ox+ls*.16,y,1.6,1.6,.8,L.menu(menu),face))
+    o.append(box('menu header',ox+ls*.02,3.1,1.6,.34,.3,1.95,L.SIGN,canopy_col,.01))
+    o.append(cyl('speaker post',ox,.9,-.4,.06,1.8,L.METAL,STEEL,verts=8))
+    o.append(box('speaker',ox,1.55,-.4,.2,.45,.35,L.PLASTIC,CHAR,.02))
+    o.append(box('order display',ox+ls*.105,1.62,-.4,.01,.18,.26,L.SIGN,'#9fd8ff',0))
+    o.append(box('pickup awning',ls*5.3,2.95,-4.9,1.9,.12,2.6,L.SIGN,canopy_col,.02))
+    o.append(text('PICK UP',ls*4.51,2.62,-4.9,.22,L.SIGN,WHITE,depth=.02,facing=face))
     return o
 
 def kfc():
-    """Malaysian KFC drive-thru: white box, red 3D letters, red stripe wall, Colonel band with
-    the roundel, red drive-thru canopy, and the bucket up on a pole sign by the road."""
-    tag='kfc';ls=1;bx=-ls*2.5;o=[];f=font()
-    o.append(box('body',bx,4.2,0,14,8.4,12,WHITE,tag,.05))
-    o.append(box('plinth',bx,.3,0,14.1,.6,12.1,CHAR,tag,.03))
-    o.append(box('parapet',bx,8.6,0,14.3,.4,12.3,WHITE,tag,.03))
-    o.append(box('roof deck',bx,8.3,0,13.4,.2,11.4,ROOFM,tag,.02))
-    for dz in (-3,2):o.append(box('roof plant',bx-4,8.7,dz,2.2,.6,1.6,ROOFM,tag,.04))
-    # red stripe wall on the lane side of the frontage
-    sx=bx+ls*4.8
-    o.append(box('stripe wall',sx,4.5,6.05,4.2,7.8,.16,WHITE,tag,.02))
-    for i in range(7):o.append(box('stripe',sx-1.8+i*.6,4.5,6.14,.3,7.8,.04,RED,tag,0))
-    # Colonel band: red strip across the frontage with the roundel and the wordmark beside it
-    o.append(box('brand band',bx-ls*2.0,6.3,6.06,9.6,1.7,.2,RED,tag,.02))
-    rx=bx-ls*5.3
-    o.append(disc(rx,6.3,.78,6.17,.06,WHITE));o.append(disc(rx,6.3,.64,6.24,.03,RED));o.append(disc(rx,6.3,.5,6.28,.03,WHITE))
-    o.append(text('KFC',rx,6.3,6.32,.42,RED,.03,font=f))
-    o.append(text('KFC',bx-ls*1.2,6.3,6.17,1.35,WHITE,.22,font=f))
-    # glazing with bronze frames under the band, red portal at the entrance
-    for wx in (-4.6,-1.4,1.8):
-        o.append(box('window',bx+wx,2.75,6.08,2.9,3.9,.1,GLASS,tag,0))
-        for mx in (-1.45,1.45):o.append(box('mullion',bx+wx+mx,2.75,6.12,.1,3.9,.14,BLACK,tag,0))
-    o.append(box('window head',bx-ls*1.4,4.8,6.12,9.8,.16,.18,BLACK,tag,0))
-    ex=bx+ls*4.8
-    o.append(box('entrance glass',ex,1.3,6.1,2.0,2.4,.12,GLASS,tag,0))
-    o.append(box('portal',ex,1.45,6.2,2.5,2.9,.3,RED,tag,.03))
-    o.append(box('portal void',ex,1.3,6.36,2.0,2.4,.04,GLASS,tag,0))
-    # bucket on a red pole sign by the road
-    pxs,pzs=bx-ls*8.4,9.4
-    o.append(cyl('sign pole',pxs,5.0,pzs,.28,10,RED,tag,verts=14))
-    o.append(box('sign base',pxs,.35,pzs,1.3,.7,1.3,CHAR,tag,.03))
-    o.append(frustum('bucket',pxs,pzs,10.0,12.6,1.3,1.7,WHITE,tag))
-    for i in range(0,12,2):
-        a=2*math.pi*i/12;o.append(box('bucket stripe',pxs+1.42*math.cos(a),11.3,pzs+1.42*math.sin(a),.3,2.3,.3,RED,tag,0))
-    o.append(frustum('bucket rim',pxs,pzs,12.6,12.9,1.7,1.78,RED,tag));o.append(frustum('bucket foot',pxs,pzs,9.85,10.05,1.25,1.3,RED,tag))
-    o.append(disc(pxs,11.4,.8,pzs+1.48,.05,RED));o.append(disc(pxs,11.4,.66,pzs+1.52,.04,WHITE));o.append(text('KFC',pxs,11.4,pzs+1.56,.45,RED,.03,font=f))
-    o.append(box('drive thru plate',pxs,8.0,pzs+.3,2.4,.7,.1,RED,tag,.02));o.append(text('DRIVE THRU',pxs,8.0,pzs+.37,.28,WHITE,.03,font=f))
-    for dx in (-6.4,-3.2):o.append(box('planter',bx+dx,.35,8.6,2.0,.7,1.1,KERB,tag,.04));o.append(box('shrub',bx+dx,.85,8.6,1.7,.45,.85,GREEN,tag,.12))
-    return o+lane(tag,ls,RED,DARKRED,WHITE)
+    ls=1;o,bx,near=shell(ls,L.RENDER,WHITE,'#d9d9d6')
+    o+=interior(ls,bx,'kfc',KFC_RED,WHITE)
+    f=6.0
+    # street face: pilaster, glazing, entrance portal, stripe feature at the lane corner
+    o.append(box('pilaster',bx-6.75,2.1,f,.5,4.2,.3,L.RENDER,WHITE,0))
+    o.append(box('sill wall',bx-2.35,.3,f,8.3,.6,.3,L.PANEL,'#595b5d',0))
+    o.append(box('glazing',bx-2.35,2.35,f,8.3,3.5,.04,L.GLASS))
+    for k in range(5):o.append(box('mullion',bx-6.5+k*2.075,2.35,f+.03,.08,3.5,.1,L.METAL,'#2c2e30',0))
+    o.append(box('window head',bx-2.35,4.13,f+.03,8.4,.06,.12,L.METAL,'#2c2e30',0))
+    ex=bx+3.0
+    o.append(box('door glass',ex,1.6,f,2.2,3.0,.04,L.GLASS))
+    o.append(box('door rail',ex,1.6,f+.03,.06,3.0,.06,L.METAL,'#2c2e30',0))
+    o+=BK.frame('portal',ex,1.7,f+.18,2.2,3.2,.3,.36,L.PANEL,KFC_RED)
+    o.append(box('above door',ex,3.8,f,2.2,.8,.3,L.RENDER,WHITE,0))
+    o.append(box('upper face',bx-1.2,6.3,f,11.6,4.2,.3,L.RENDER,WHITE,0,grime=.2))
+    sx=bx+5.8
+    o.append(box('stripe panel',sx,4.2,f+.02,2.4,8.4,.34,L.PANEL,WHITE,.01))
+    for k in range(3):o.append(box('stripe',sx-.8+k*.8,4.2,f+.2,.4,8.4,.04,L.PANEL,KFC_RED,0))
+    o.append(box('brand band',bx-1.2,5.45,f+.2,11.6,1.8,.12,L.SIGN,KFC_RED,.02))
+    rx=bx-5.6
+    o.append(disc('roundel',rx,5.45,.85,f+.26,.05,L.SIGN,WHITE))
+    o.append(disc('roundel red',rx,5.45,.72,f+.31,.03,L.SIGN,KFC_RED))
+    o.append(text('KFC',rx,5.45,f+.35,.46,L.SIGN,WHITE,depth=.03))
+    o.append(text('KFC',bx,5.45,f+.27,1.4,L.SIGN,WHITE,depth=.12))
+    o.append(box('canopy over glazing',bx-2.35,4.35,f+.6,8.6,.12,1.2,L.LED,'#8e9294',.01))
+    for dx in (-5.5,-2.35,.8):o.append(cyl('glazing downlight',bx+dx,4.28,f+.8,.1,.02,L.LED,'#ffffff',verts=10))
+    o.append(ground_quad('front pool',bx-1,.06,f+1.8,13,3.5,L.WASH))
+    # lane-side lettering
+    o.append(box('lane side band',near+.02,6.1,0,.12,1.3,9.0,L.SIGN,KFC_RED,.01))
+    o.append(text('DRIVE THRU',near+.1,6.1,0,.72,L.SIGN,WHITE,depth=.05,facing='+x'))
+    # apron, planters, bucket on its pole sign
+    o.append(box('apron',bx,.02,f+1.4,14.6,.04,2.8,PAVE,'#ffffff',0))
+    for dx in (-6.4,-3.6):
+        o.append(box('planter',bx+dx,.4,8.7,2.2,.8,1.0,L.PANEL,CONC,.04,grime=.3))
+        o.append(box('shrub',bx+dx,.95,8.7,1.9,.4,.8,L.PLASTIC,GREEN,.15))
+    px,pz=bx-8.4,9.4
+    o.append(cyl('sign pole',px,5.0,pz,.26,10,L.PANEL,KFC_RED,verts=16))
+    o.append(box('sign base',px,.4,pz,1.2,.8,1.2,L.PANEL,CONC,.03))
+    o.append(frustum('bucket',px,pz,10.0,12.6,1.3,1.7,L.SIGN,WHITE))
+    for i in range(0,16,2):
+        a=2*math.pi*(i+.5)/16;r=1.52
+        o.append(box('bucket stripe',px+r*math.cos(a),11.3,pz+r*math.sin(a),.5,2.62,.06,L.SIGN,KFC_RED,0,ry=math.atan2(-math.cos(a),-math.sin(a))))
+    o.append(frustum('bucket rim',px,pz,12.6,12.9,1.72,1.8,L.SIGN,KFC_RED));o.append(frustum('bucket foot',px,pz,9.85,10.05,1.25,1.3,L.SIGN,KFC_RED))
+    o.append(disc('bucket roundel',px,11.35,.78,pz+1.62,.05,L.SIGN,WHITE));o.append(disc('bucket roundel red',px,11.35,.64,pz+1.67,.03,L.SIGN,KFC_RED))
+    o.append(text('KFC',px,11.35,pz+1.71,.44,L.SIGN,WHITE,depth=.03))
+    o.append(box('drive thru plate',px,8.0,pz+.3,2.6,.7,.12,L.SIGN,KFC_RED,.02))
+    o.append(text('DRIVE THRU',px,8.0,pz+.37,.3,L.SIGN,WHITE,depth=.03))
+    o.append(ground_quad('pole pool',px,.06,pz,3,3,L.WASH))
+    return o+lane('kfc',ls,KFC_RED,DEEP_RED,'kfc')
 
 def mcd():
-    """Malaysian McDonald's drive-thru: charcoal box, yellow corner brow with the arches on the
-    roof edge, red McDonald's wordmark, McCafe wing, yellow Drive-Thru canopy and dual boards."""
-    tag='mcd';ls=-1;bx=-ls*2.5;o=[];f=font()
-    o.append(box('body',bx,4.2,0,14,8.4,12,CHAR,tag,.05))
-    o.append(box('plinth',bx,.3,0,14.1,.6,12.1,BLACK,tag,.03))
-    o.append(box('roof coping',bx,8.55,0,14.4,.3,12.4,CHAR,tag,.03));o.append(box('roof deck',bx,8.3,0,13.4,.2,11.4,ROOFM,tag,.02))
-    for dz in (-3,2):o.append(box('roof plant',bx+4,8.7,dz,2.2,.6,1.6,ROOFM,tag,.04))
-    # yellow corner brow: a tall blade at the lane-side corner carrying the arches above the roof
-    cx=bx+ls*6.4
-    o.append(box('brow blade',cx,5.6,6.1,2.2,11.2,.5,YELLOW,tag,.04))
-    o.append(box('brow return',cx+ls*.85,5.6,3.0,.5,11.2,6.6,YELLOW,tag,.04))
-    o.append(arches(cx-ls*.1,9.0,6.2,2.9,YELLOW,tag,.5))
-    # wordmark on a white eyebrow band, McCafe wing on the other end
-    o.append(box('eyebrow',bx-ls*1.0,5.35,6.1,9.4,.9,.24,WHITE,tag,.02))
-    o.append(text("McDonald's",bx-ls*1.0,5.35,6.24,.62,RED,.08,font=f))
-    o.append(arches(bx-ls*5.0,4.95,6.26,.8,YELLOW,tag,.06))
-    o.append(box('mccafe wing',bx-ls*5.0,3.2,6.06,3.8,6.4,.2,WOOD,tag,.03))
-    o.append(box('mccafe band',bx-ls*5.0,6.7,6.18,3.6,.7,.08,DARKRED,tag,.02))
-    o.append(text('McCafe',bx-ls*5.0,6.7,6.24,.36,WHITE,.03,font=f))
-    for wx in (-1.7,1.7):
-        o.append(box('window',bx+ls*1.0+wx,2.65,6.08,3.2,4.0,.1,GLASS,tag,0))
-        for mx in (-1.6,1.6):o.append(box('mullion',bx+ls*1.0+wx+mx,2.65,6.12,.1,4.0,.14,BLACK,tag,0))
-    o.append(box('window head',bx+ls*1.0,4.72,6.13,6.9,.16,.2,BLACK,tag,0))
-    o.append(box('cafe window',bx-ls*5.0,2.0,6.1,2.6,2.6,.1,GLASS,tag,0))
-    ex=bx+ls*4.6
-    o.append(box('entrance glass',ex,1.3,6.1,2.0,2.4,.12,GLASS,tag,0));o.append(box('entrance frame',ex,1.3,6.14,2.2,2.6,.1,BLACK,tag,0))
-    o.append(box('entrance canopy',ex,3.9,7.0,3.2,.16,2.0,CHAR,tag,.03));o.append(box('canopy lip',ex,3.82,7.95,3.2,.1,.12,YELLOW,tag,0))
-    for s in (-1,1):o.append(cyl('canopy tie',ex+s*1.3,4.5,6.6,.04,1.2,STEEL,tag,verts=6))
-    # tall pole sign: red rounded panel with the arches and Drive-Thru
-    pxs,pzs=bx-ls*8.4,9.6
-    o.append(cyl('pole',pxs,5.0,pzs,.22,10,CHAR,tag,verts=14));o.append(box('pole base',pxs,.35,pzs,1.3,.7,1.3,BLACK,tag,.03))
-    o.append(box('sign panel',pxs,10.6,pzs,3.2,3.4,.36,DARKRED,tag,.12))
-    o.append(arches(pxs,9.4,pzs+.19,2.4,YELLOW,tag,.14));o.append(arches(pxs,9.4,pzs-.33,2.4,YELLOW,tag,.14))
-    o.append(box('drive thru plate',pxs,8.35,pzs,2.6,.6,.3,YELLOW,tag,.03));o.append(text('Drive-Thru',pxs,8.35,pzs+.16,.28,BLACK,.02,font=f))
-    for dx in (-5.6,-2.6):
-        o.append(cyl('table top',bx+dx,.76,8.6,.5,.06,WHITE,tag,verts=18));o.append(cyl('table leg',bx+dx,.4,8.6,.05,.7,CHAR,tag,verts=8))
-        for s in (-1,1):o.append(box('seat',bx+dx+s*.9,.44,8.6,.42,.06,.42,DARKRED,tag,.01))
-    return o+lane(tag,ls,YELLOW,CHAR,BLACK,dual=True)
+    ls=-1;o,bx,near=shell(ls,L.PANEL,'#5a5d61','#2a2b2d')
+    o+=interior(ls,bx,'mcd','#b5813f','#3a3b3d')
+    f=6.0
+    # brow blade at the lane corner, carrying the arches over the roof
+    cx=bx+ls*5.9
+    o.append(box('brow blade',cx,5.6,f+.05,2.2,11.2,.5,L.PANEL,MCD_YELLOW,.04))
+    o.append(box('brow return',near+ls*.15,5.6,5.4,.3,11.2,1.6,L.PANEL,MCD_YELLOW,.04))
+    o.append(arches(cx,9.0,f+.1,2.9,.45))
+    ex=bx+ls*3.6
+    o.append(box('door glass',ex,1.6,f,2.4,3.0,.04,L.GLASS))
+    o.append(box('door rail',ex,1.6,f+.03,.06,3.0,.06,L.METAL,'#2c2e30',0))
+    o+=BK.frame('door frame',ex,1.6,f+.04,2.4,3.0,.1,.1,L.METAL,'#2c2e30')
+    o.append(box('above door',ex,3.7,f,2.4,1.0,.3,L.PANEL,'#5a5d61',0))
+    o.append(box('entrance canopy',ex,3.9,f+1.0,3.2,.16,2.0,L.PANEL,'#2a2b2d',.02))
+    o.append(box('canopy lip',ex,3.84,f+1.98,3.2,.1,.08,L.SIGN,MCD_YELLOW,0))
+    o.append(cyl('canopy downlight',ex,3.8,f+1.0,.12,.02,L.LED,'#ffffff',verts=12))
+    wx0,wx1=bx+ls*2.3,bx-ls*2.9
+    wc=(wx0+wx1)/2;ww=abs(wx1-wx0)
+    o.append(box('sill wall',wc,.3,f,ww,.6,.3,L.PANEL,'#2a2b2d',0))
+    o.append(box('glazing',wc,2.35,f,ww,3.5,.04,L.GLASS))
+    for k in range(4):o.append(box('mullion',wx0-ls*k*ww/3,2.35,f+.03,.08,3.5,.1,L.METAL,'#1f2022',0))
+    o.append(box('upper face',bx-ls*.1,6.3,f,9.8,4.2,.3,L.PANEL,'#5a5d61',0))
+    o.append(box('eyebrow',wc,4.7,f+.2,ww+.4,.9,.18,L.SIGN,'#2a2b2d',.02))
+    o.append(text("McDonald's",wc,4.72,f+.3,.6,L.SIGN,WHITE,depth=.06,width=ww-.6))
+    # McCafe wing: timber slats, its own window and lettering
+    mx=bx-ls*5.0
+    o.append(box('mccafe slats',mx,4.2,f+.02,4.0,8.4,.34,SLATS,'#ffffff',0))
+    o.append(box('mccafe window',mx,1.9,f+.2,2.6,2.6,.04,L.GLASS))
+    o+=BK.frame('mccafe frame',mx,1.9,f+.22,2.6,2.6,.1,.06,L.METAL,'#1f2022')
+    o.append(box('mccafe band',mx,6.7,f+.22,3.6,.8,.1,L.SIGN,'#3a2a20',.01))
+    o.append(text('McCafe',mx,6.72,f+.28,.4,L.SIGN,WHITE,depth=.03))
+    o.append(arches(mx,7.35,f+.2,.7,.05))
+    o.append(ground_quad('front pool',bx,.06,f+1.8,13,3.5,L.WASH))
+    o.append(box('lane side band',near-.02,6.1,0,.12,1.3,9.0,L.SIGN,'#2a2b2d',.01))
+    o.append(text('Drive-Thru',near-.1,6.1,0,.72,L.SIGN,MCD_YELLOW,depth=.05,facing='-x'))
+    o.append(box('apron',bx,.02,f+1.4,14.6,.04,2.8,PAVE,'#ffffff',0))
+    # outdoor tables in front of the McCafe wing
+    for dx in (-1.2,1.2):
+        x=mx+dx
+        o.append(cyl('table top',x,.76,8.5,.5,.05,L.PANEL,WHITE,verts=20));o.append(cyl('table leg',x,.4,8.5,.05,.7,L.METAL,CHAR,verts=8))
+        for s in (-1,1):o.append(box('seat',x+s*.9,.45,8.5,.42,.06,.42,L.PLASTIC,MCD_RED,.01))
+    # pole sign: red panel, arches both faces, Drive-Thru plate
+    px,pz=bx-ls*8.4,9.6
+    o.append(cyl('pole',px,5.0,pz,.22,10,L.PANEL,CHAR,verts=16));o.append(box('pole base',px,.4,pz,1.2,.8,1.2,L.PANEL,CONC,.03))
+    o.append(box('sign panel',px,10.6,pz,3.2,3.4,.36,L.SIGN,MCD_RED,.1))
+    o.append(arches(px,9.4,pz+.19,2.4,.12));o.append(arches(px,9.4,pz-.31,2.4,.12))
+    o.append(box('drive thru plate',px,8.35,pz,2.6,.6,.3,L.SIGN,MCD_YELLOW,.03))
+    o.append(text('Drive-Thru',px,8.35,pz+.16,.28,L.SIGN,BLACK,depth=.02))
+    o.append(ground_quad('pole pool',px,.06,pz,3,3,L.WASH))
+    return o+lane('mcd',ls,MCD_YELLOW,CHAR,'mcd')
 
 def build():
     s=bpy.context.scene;s.unit_settings.system='METRIC'
     for ob in list(s.objects):bpy.data.objects.remove(ob,do_unlink=True)
-    empties={}
+    roots=[]
     for tag,maker in (('kfc',kfc),('mcd',mcd)):
-        e=bpy.data.objects.new(tag,None);s.collection.objects.link(e);empties[tag]=e
-        for ob in maker():ob.parent=e
-    return empties
-
-def export(empties):
-    report={}
-    for tag,e in empties.items():
-        batches={}
-        for ob in [c for c in e.children if c.type=='MESH']:batches.setdefault(tuple(m.name for m in ob.data.materials),[]).append(ob)
-        for key,objs in batches.items():
-            j=join(objs,f'{tag} | {" + ".join(key)}')
-            for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
-    bpy.ops.object.select_all(action='DESELECT')
-    for tag,e in empties.items():
-        e.select_set(True)
-        for c in e.children:c.select_set(True)
-    path=PUBLIC/'LM_ENV_DriveThrough.glb'
-    bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_cameras=False,export_lights=False,export_extras=False)
-    for tag,e in empties.items():
-        report[tag]={'triangles':sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children if c.type=='MESH'),'draws':len(e.children)}
-    report['bytes']=path.stat().st_size
-    (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n');print('FASTFOOD WEB EXPORT',json.dumps(report),flush=True)
-
-def render(empties):
-    s=bpy.context.scene
-    empties['mcd'].location=pt(24,0,0)
-    engines=[i.identifier for i in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items]
-    s.render.engine=next(e for e in ('BLENDER_EEVEE_NEXT','BLENDER_EEVEE','BLENDER_WORKBENCH') if e in engines)
-    s.render.resolution_x=1600;s.render.resolution_y=1000;s.view_settings.view_transform='AgX'
-    w=bpy.data.worlds.new('sky');s.world=w;w.use_nodes=True;w.node_tree.nodes['Background'].inputs[0].default_value=(.55,.7,.9,1)
-    sun=bpy.data.objects.new('sun',bpy.data.lights.new('sun','SUN'));s.collection.objects.link(sun);sun.data.energy=4;sun.rotation_euler=(math.radians(52),math.radians(15),math.radians(200))
-    bpy.ops.mesh.primitive_plane_add(size=300,location=(0,0,-.02));bpy.context.object.data.materials.append(mat('Ground',(.34,.38,.31),.9))
-    cam=bpy.data.objects.new('cam',bpy.data.cameras.new('cam'));s.collection.objects.link(cam);s.camera=cam;cam.data.lens=32
-    from mathutils import Vector
-    for name,(eye,at) in {'kfc':((-18,6,24),(-3,5,3)),'mcd':((44,6,24),(27,5,3)),'pair':((12,16,44),(12,5,0)),'lane':((16,4,-16),(6,3,0))}.items():
-        cam.location=pt(*eye);d=Vector(pt(*at))-cam.location;cam.rotation_euler=d.to_track_quat('-Z','Y').to_euler()
-        s.render.filepath=str(OUT/f'preview-{name}.png');bpy.ops.render.render(write_still=True)
+        root=bpy.data.objects.new(tag,None);s.collection.objects.link(root);BK.finalize(root,maker());roots.append(root)
+    return roots
 
 if __name__=='__main__':
-    empties=build();export(empties)
-    if '--no-render' not in ARGS:render(empties)
-    bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'fastfood.blend'))
+    roots=build();path=PUBLIC/'LM_ENV_DriveThrough.glb'
+    report=BK.export(roots,path,{'asset':'LM_ENV_DriveThrough','origins':{'kfc':[105,0,60],'mcd':[129,0,60]},
+        'body':{'size':[14,8.4,12],'x':'-laneSide*2.5'},'lane':{'x':'laneSide*8','width':5.5,'length':23}})
+    (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n');print('FASTFOOD WEB EXPORT',json.dumps(report),flush=True)

@@ -1,11 +1,69 @@
 {
-  "kfc": {
-    "triangles": 10144,
-    "draws": 15
+  "asset": "LM_ENV_DriveThrough",
+  "origins": {
+    "kfc": [
+      105,
+      0,
+      60
+    ],
+    "mcd": [
+      129,
+      0,
+      60
+    ]
   },
-  "mcd": {
-    "triangles": 12744,
-    "draws": 16
+  "body": {
+    "size": [
+      14,
+      8.4,
+      12
+    ],
+    "x": "-laneSide*2.5"
   },
-  "bytes": 956764
+  "lane": {
+    "x": "laneSide*8",
+    "width": 5.5,
+    "length": 23
+  },
+  "nodes": {
+    "kfc": {
+      "triangles": 7646,
+      "draws": 13,
+      "materials": [
+        "Asphalt",
+        "Floor tiles",
+        "Night glow LED",
+        "Night glow menu kfc",
+        "Night glow shelves",
+        "Night glow sign",
+        "Night wash",
+        "Painted panel",
+        "Paving",
+        "Plastic",
+        "Render wall",
+        "Satin metal",
+        "Shopfront glass"
+      ]
+    },
+    "mcd": {
+      "triangles": 9033,
+      "draws": 13,
+      "materials": [
+        "Asphalt",
+        "Floor tiles",
+        "Night glow LED",
+        "Night glow menu mcd",
+        "Night glow shelves",
+        "Night glow sign",
+        "Night wash",
+        "Painted panel",
+        "Paving",
+        "Plastic",
+        "Satin metal",
+        "Shopfront glass",
+        "Timber slats"
+      ]
+    }
+  },
+  "bytes": 1213472
 }

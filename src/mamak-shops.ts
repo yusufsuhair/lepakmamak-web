@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import shops from '../shared/mamak-shops.json';
 import { loadWebAsset, type WebAssetState } from './web-assets';
+import { lightBrands } from './brands';
 
 /** Each shop retains its own fallback; a missing facade cannot hide its neighbours. */
 export function loadMamakShops(scene: THREE.Scene, fallbacks: Map<string, THREE.Group>) {
@@ -9,8 +10,9 @@ export function loadMamakShops(scene: THREE.Scene, fallbacks: Map<string, THREE.
     const fallback = fallbacks.get(shop.asset);
     if (!fallback) { status[shop.asset] = 'fallback'; return; }
     try {
-      await loadWebAsset(`/assets/models/shops/${shop.asset}.glb${'version' in shop ? `?v=${shop.version}` : ''}`, scene,
+      const asset = await loadWebAsset(`/assets/models/shops/${shop.asset}.glb${'version' in shop ? `?v=${shop.version}` : ''}`, scene,
         new THREE.Vector3(shop.x, 0, shop.z), shop.asset);
+      lightBrands(asset);
       fallback.visible = false;
       status[shop.asset] = 'ready';
     } catch (error) {

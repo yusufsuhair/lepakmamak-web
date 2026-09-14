@@ -296,28 +296,21 @@ desktop and touch-mobile game. These are not physical-device frame-rate benchmar
 
 ## Mamak neighbourhood shopfronts
 
-Six editable shop sources live in `generated/mamak-shops/source/`: Bengkel Azlan,
-7-Eleven, Warung Kak Ana, ZUS Coffee, FamilyMart and KK Super Mart. Their scale and world
-positions come from `shared/mamak-shops.json`. `shop-profile.json` extends the shared
-Principled palette for this batch without changing the base template palette. Each shop
-permits 4,000 triangles, seven materials/draws and 256 KiB; no textures or transparency.
+The seven branded shoplots in `shared/mamak-shops.json` (Bengkel Azlan, 7-Eleven, Warung
+Kak Ana, ZUS Coffee, FamilyMart, KK Super Mart, Watsons) moved out of this pipeline to the
+photographic kit in `scripts/blender/`: `build_shops.py` writes all seven straight to
+`public/assets/models/shops/`, sharing materials and textures with the Shell forecourt and
+the drive-throughs (`brand_kit.py`, `brand_textures.py`). The flat-palette v1 builder,
+profile, validator and generated sources are in git history. See `SHOPFRONTS-REPORT.md`.
 
 ```sh
-/Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
-  --python-exit-code 1 --python art/blender/scripts/build_mamak_shops.py -- \
-  --output /tmp/lepakmamak-shopfronts-v1
-node art/blender/tools/validate-mamak-shops.mjs /tmp/lepakmamak-shopfronts-v1
-LM_BASE_URL=http://127.0.0.1:5192 node art/blender/tools/test-shops-browser.mjs
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 \
+  --python scripts/blender/build_shops.py
+node scripts/blender/compress-glb.mjs public/assets/models/shops/LM_SHOP_ZusCoffee.glb   # each
 ```
 
-Use a fresh output directory for generation. The builder reopens each saved `.blend`
-before exporting only `EXPORT`, and retains named part vertex groups. The validator checks
-source/GLB hashes, Khronos errors/warnings, actual body raycast dimensions, front-facing
-baked sign geometry, materials and budgets. Copy only validated exports into
-`public/assets/models/shops/`. See `SHOPFRONTS-REPORT.md` for measured batch results.
-
 `src/mamak-shops.ts` replaces each facade independently. A failed request leaves that
-shop's batched procedural fallback visible; the other five can still load. Existing map
+shop's batched procedural fallback visible; the others can still load. Existing map
 entries, building colliders, ZUS tables and all twelve playable ZUS chairs remain authoritative.
 These assets are exterior scenery, not enterable interiors or new shop gameplay.
 

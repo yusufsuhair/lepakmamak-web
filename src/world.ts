@@ -20,6 +20,7 @@ import {cdnUrl} from './cdn';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {loadSkylineTower, type SkylineAsset} from './skyline';
+import {lightBrands} from './brands';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
@@ -51,7 +52,7 @@ const textMaterials = new Map<string, THREE.MeshBasicMaterial>();
 // Both drive-throughs live in one asset, so the two sites share a single fetch.
 let driveThroughModel: Promise<THREE.Group | null> | undefined;
 const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-  .loadAsync('/assets/models/environment/LM_ENV_DriveThrough.glb?v=drivethru-v1')
+  .loadAsync('/assets/models/environment/LM_ENV_DriveThrough.glb?v=drivethru-v2')
   .then(gltf => {
     gltf.scene.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -59,6 +60,7 @@ const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader().setMeshop
       const material = object.material as THREE.MeshStandardMaterial;
       if (material.transparent) { material.depthWrite = false; object.castShadow = false; }
     });
+    lightBrands(gltf.scene);   // before the per-site clones, which share these materials
     return gltf.scene;
   })
   .catch(error => { console.warn('[drive-through] keeping procedural outlets', error); return null; });
@@ -1002,18 +1004,20 @@ export function createWorld(scene: THREE.Scene): World {
     const yellow='#f8c900',red='#d9272e',white='#fff8e8';
     box(g,0,.04,0,25,.08,25,'#7d817d');
     box(g,0,3.1,7,20,6.2,8,white);box(g,0,6.35,7,20.5,.3,8.5,yellow);
-    sign(g,'SHELL SELECT',0,5.2,2.92,12,.8,red,white);
+    // The signs face the street (-z): turned half round so the lettering reads forwards from the pumps.
+    sign(g,'SHELL SELECT',0,5.2,2.92,12,.8,red,white,Math.PI);
     box(g,0,5,-4,18,.5,10,white);box(g,0,4.7,-8.9,18,.45,.25,yellow);box(g,0,4.7,.9,18,.45,.25,red);
     for(const x of [-7,7]){box(g,x,2.5,-4,.4,5,.4,white);box(g,x,1.3,-4,2,2.6,.8,yellow);box(g,x,1.7,-4,1.2,.55,.84,red);}
-    box(g,11,5,-9,2.5,10,1,white);sign(g,'SHELL',11,7,-9.54,2.1,.65,red,yellow);sign(g,'95 · 97',11,4.8,-9.55,2,.8,white,red);
-    sign(g,'deli2go',-6.5,4.4,2.92,3,.5,red,white);
+    box(g,11,5,-9,2.5,10,1,white);sign(g,'SHELL',11,7,-9.54,2.1,.65,red,yellow,Math.PI);sign(g,'95 · 97',11,4.8,-9.55,2,.8,white,red,Math.PI);
+    sign(g,'deli2go',-6.5,4.4,2.92,3,.5,red,white,Math.PI);
     solid(x,z+7,20,8);solid(x-7,z-4,2,2.6);solid(x+7,z-4,2,2.6);solid(x+11,z-9,2.5,1);
     mapBuildings.push({x,z:z+7,w:20,d:8,color:yellow});
     // The boxes above stay out of the world batch so the Blender forecourt
     // (scripts/blender/build_shell.py) can replace them; the text signs stay on top.
     g.traverse(o=>{o.userData.keepUnbatched=true;});
-    void nearLoader(g,170,300).loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v1').then(gltf=>{
+    void nearLoader(g,170,300).loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v2').then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      lightBrands(gltf.scene);
       for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       g.add(gltf.scene);
     }).catch(error=>console.warn('[SHELL] keeping procedural station',error));

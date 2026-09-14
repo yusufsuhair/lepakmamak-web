@@ -1,0 +1,237 @@
+{
+  "LM_SHOP_BengkelAzlan": {
+    "asset": "LM_SHOP_BengkelAzlan",
+    "origin": [
+      -60,
+      0,
+      58
+    ],
+    "body": [
+      18,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_BengkelAzlan": {
+        "triangles": 4745,
+        "draws": 10,
+        "materials": [
+          "Night glow LED",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Roller shutter",
+          "Rubber",
+          "Satin metal",
+          "Upper floor glass",
+          "Workshop floor"
+        ]
+      }
+    },
+    "bytes": 340160
+  },
+  "LM_SHOP_SevenEleven": {
+    "asset": "LM_SHOP_SevenEleven",
+    "origin": [
+      -59,
+      0,
+      32
+    ],
+    "body": [
+      17,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_SevenEleven": {
+        "triangles": 3138,
+        "draws": 12,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow shelves",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Rubber",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass"
+        ]
+      }
+    },
+    "bytes": 274756
+  },
+  "LM_SHOP_WarungKakAna": {
+    "asset": "LM_SHOP_WarungKakAna",
+    "origin": [
+      27,
+      0,
+      34
+    ],
+    "body": [
+      19,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_WarungKakAna": {
+        "triangles": 4009,
+        "draws": 12,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow shelves",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass",
+          "Zinc sheet"
+        ]
+      }
+    },
+    "bytes": 301436
+  },
+  "LM_SHOP_ZusCoffee": {
+    "asset": "LM_SHOP_ZusCoffee",
+    "origin": [
+      27,
+      0,
+      58
+    ],
+    "body": [
+      19,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_ZusCoffee": {
+        "triangles": 6084,
+        "draws": 11,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow menu zus",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass"
+        ]
+      }
+    },
+    "bytes": 418560
+  },
+  "LM_SHOP_FamilyMart": {
+    "asset": "LM_SHOP_FamilyMart",
+    "origin": [
+      49,
+      0,
+      34
+    ],
+    "body": [
+      22,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_FamilyMart": {
+        "triangles": 3492,
+        "draws": 12,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow shelves",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Rubber",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass"
+        ]
+      }
+    },
+    "bytes": 283600
+  },
+  "LM_SHOP_KkSuperMart": {
+    "asset": "LM_SHOP_KkSuperMart",
+    "origin": [
+      49,
+      0,
+      58
+    ],
+    "body": [
+      19,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_KkSuperMart": {
+        "triangles": 3393,
+        "draws": 12,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow shelves",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Rubber",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass"
+        ]
+      }
+    },
+    "bytes": 267876
+  },
+  "LM_SHOP_Watsons": {
+    "asset": "LM_SHOP_Watsons",
+    "origin": [
+      -56,
+      0,
+      -40
+    ],
+    "body": [
+      19,
+      11,
+      12
+    ],
+    "nodes": {
+      "LM_SHOP_Watsons": {
+        "triangles": 4688,
+        "draws": 12,
+        "materials": [
+          "Floor tiles",
+          "Night glow LED",
+          "Night glow shelves",
+          "Night glow sign",
+          "Night wash",
+          "Painted panel",
+          "Plastic",
+          "Render wall",
+          "Rubber",
+          "Satin metal",
+          "Shopfront glass",
+          "Upper floor glass"
+        ]
+      }
+    },
+    "bytes": 331692
+  }
+}
