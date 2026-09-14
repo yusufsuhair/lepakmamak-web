@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "c65ee5ab08c8",
+  "version": "4720608ab44d",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -69,9 +69,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Kampung.glb": {
-      "key": "models/LM_ENV_Kampung.fd7ef5b4f1de.glb",
-      "bytes": 52107,
-      "etag": "656af870f0298e7abca7a5c7395825e2",
+      "key": "models/LM_ENV_Kampung.b2912e05973b.glb",
+      "bytes": 975075,
+      "etag": "885428a53f7bc5ab8f837be4e290567e",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Stalls.glb": {
@@ -87,9 +87,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Zoo.glb": {
-      "key": "models/LM_ENV_Zoo.7d30656c5508.glb",
-      "bytes": 138236,
-      "etag": "97fbfbc0d73b6520053fe8ac82434a31",
+      "key": "models/LM_ENV_Zoo.126d780125b9.glb",
+      "bytes": 1123770,
+      "etag": "6a05f4c976a4ab4a1208d8a6feaec6f5",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Masjid.glb": {
@@ -252,6 +252,18 @@
       "key": "models/LM_ENV_Busking.ef2467c40491.glb",
       "bytes": 270450,
       "etag": "b7004556da0b5eba3883525795e4ca39",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Basketball.glb": {
+      "key": "models/LM_ENV_Basketball.6b16e66893e6.glb",
+      "bytes": 158316,
+      "etag": "f803ba617568f39b381e7d31526a1353",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Pickleball.glb": {
+      "key": "models/LM_ENV_Pickleball.29b7cddf0bfc.glb",
+      "bytes": 134892,
+      "etag": "8db9ae1511d0fe385db7c5f4d39251dc",
       "encoding": "br"
     }
   }

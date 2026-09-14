@@ -3,6 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {batchShopFallback,box,material,type World,type Person} from './world';
 import {dressDistrict} from './district-night';
+import {cdnUrl} from './cdn';
 import court from '../shared/basketball.json';
 import './basketball.css';
 export const insideBasketball=(p:{x:number;z:number})=>Math.abs(p.x-court.x)<=court.halfWidth+1&&Math.abs(p.z-court.z)<=court.halfLength+1;
@@ -25,7 +26,7 @@ export function createBasketball(scene:THREE.Scene,world:World){
  group.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(group);
  const status={state:'loading' as 'loading'|'ready'|'fallback',fallbackMeshes:group.children.length};
- void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync('/assets/models/environment/LM_ENV_Basketball.glb?v=courts-v2').then(gltf=>{
+ void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Basketball.glb')).then(gltf=>{
   dressDistrict(gltf.scene);
   for(const child of [...group.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   group.add(gltf.scene);
