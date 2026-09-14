@@ -26,7 +26,9 @@ test('the Blender LRT swaps in and keeps rail, platform, floor and footprint geo
   const THREE:any=await import('/node_modules/.vite/deps/three.js');
   const {createWorld}:any=await import('/src/world.ts');const L:any=await import('/src/lrt.ts');const {trackPoint}:any=await import('/shared/lrt.mjs');
   const scene=new THREE.Scene();const world=createWorld(scene);const lrt=L.createLrt(scene,world.solids);
-  for(let i=0;i<600&&(L.lrtStatus.viaduct==='loading'||L.lrtStatus.station==='loading'||L.lrtStatus.train==='loading');i++)await new Promise(r=>setTimeout(r,200));
+  // lrtStatus is shared with the app's own LRT on this page, so wait for this scene's swap itself.
+  const swapped=()=>!scene.getObjectByName('Lepak LRT elevated line').children.some((c:any)=>c.geometry?.type==='BoxGeometry')&&!!scene.getObjectByName(stations[0].name+' LRT').getObjectByName('station')&&!!scene.getObjectByName('LRT 1 coach 2').getObjectByName('mid');
+  for(let i=0;i<600&&!swapped();i++)await new Promise(r=>setTimeout(r,200));
   lrt.update(0,{x:0,z:0},null);scene.updateMatrixWorld(true);
   const ray=new THREE.Raycaster();
   const hit=(root:any,o:number[],d:number[])=>{ray.set(new THREE.Vector3(...o),new THREE.Vector3(...d).normalize());ray.far=40;const h=ray.intersectObject(root,true).filter((x:any)=>!x.object.userData.label)[0];return h?h.point:null;};
