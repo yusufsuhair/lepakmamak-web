@@ -30,7 +30,8 @@ test('photographic Shell, drive-throughs and shoplots swap in under the deployed
   const THREE=await import('/node_modules/three/build/three.module.js');
   const {createWorld,streamAllNow}=await import('/src/world.ts');
   const {loadMamakShops}=await import('/src/mamak-shops.ts');
-  const {setBrandsNight}=await import('/src/brands.ts');
+  // The world's own brands module instance (Vite adds ?t= after an edit), so night reaches the materials it lit.
+  const {setBrandsNight}=await import(/* @vite-ignore */ ((await (await fetch('/src/world.ts')).text()).match(/from\s*["'](\/src\/brands\.ts[^"']*)["']/)||[])[1]||'/src/brands.ts');
   const shops=(await import('/shared/mamak-shops.json')).default;
   const world=createWorld(new THREE.Scene() as any);const scene=world.group.parent as any;
   const snapshot=()=>JSON.stringify({solids:world.solids,map:world.mapBuildings});const before=snapshot();
@@ -41,7 +42,7 @@ test('photographic Shell, drive-throughs and shoplots swap in under the deployed
   const materials=(root:any)=>{const m=new Map<string,any>();root.traverse((o:any)=>{if(o.isMesh)m.set(o.material.name,o.material);});return m;};
   const outlets:any[]=[shell,kfc,mcd,...shops.map((s:any)=>scene.getObjectByName(s.asset))];
   const summary=()=>outlets.map(root=>{const m=materials(root),wash=m.get('Night wash'),led=m.get('Night glow LED'),glass=m.get('Shopfront glass')??m.get('Upper floor glass'),panel=m.get('Painted panel');
-   return {name:root.name,textured:!!panel?.map?.image&&!!panel?.normalMap?.image,glassReflects:!!glass?.envMap,washVisible:wash?.visible,sign:led?.emissiveIntensity??0};});
+   return {name:root.name,textured:!!panel?.map?.image&&!!panel?.normalMap?.image,glassReflects:!!glass?.envMap,probe:glass?.envMap?.uuid,washVisible:wash?.visible,sign:led?.emissiveIntensity??0};});
   const day=summary();setBrandsNight(true);const night=summary();setBrandsNight(false);
   const canvas=shell.children.filter((o:any)=>o.isMesh&&o.material.isMeshBasicMaterial);
   return {unchanged:before===snapshot(),day,night,
@@ -55,6 +56,7 @@ test('photographic Shell, drive-throughs and shoplots swap in under the deployed
  expect(state.day).toHaveLength(10);
  for(const [index,outlet] of state.day.entries()){
   expect(outlet,outlet.name).toMatchObject({textured:true,glassReflects:true,washVisible:false});
+  expect(state.night[index].probe,outlet.name).not.toBe(outlet.probe);   // the street probe repaints for the night sky
   expect(state.night[index].washVisible,outlet.name).toBe(true);
   expect(state.night[index].sign,outlet.name).toBeGreaterThan(outlet.sign);
  }

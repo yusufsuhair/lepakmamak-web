@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {GM_DAY_SUN, GM_NIGHT_SUN, onSkyChange, paintSky, skyPalette, skyState, type SkyPalette} from './weather';
 
 /** Night lighting and glass reflections for the branded stops: the Shell forecourt, the KFC and
  * McDonald's drive-throughs and the LM_SHOP shoplots (scripts/blender/brand_kit.py). The material
@@ -7,7 +8,7 @@ import * as THREE from 'three';
  *                                          lights every colour of a fascia; dimmer by day
  *   'Night glow menu ...' / 'Night glow shelves'   pictures that are their own emission map
  *   'Night wash'                           additive pools of light, drawn only at night
- *   '... glass', 'Satin metal'             reflect a small painted street and sky of their own,
+ *   '... glass', 'Satin metal'             reflect a small painted street under the current sky,
  *                                          never scene.environment, so no other asset changes
  * Night is a flag, so an outlet that streams in after dark still lights up. */
 const GLOW: [prefix: string, day: number, night: number][] = [
@@ -16,42 +17,52 @@ const GLOW: [prefix: string, day: number, night: number][] = [
 const glows: {material: THREE.MeshStandardMaterial; day: number; night: number}[] = [];
 const washes: THREE.Material[] = [];
 const reflective: {material: THREE.MeshStandardMaterial; day: number; night: number}[] = [];
-const envs: Record<'day' | 'night', THREE.Texture | null> = {day: null, night: null};
-let brandsNight = false;
+let brandsNight = false, street: THREE.CanvasTexture | null = null;
 
-/** Equirectangular street: sky above, a band of buildings, trees and lamps at the horizon, pavement
- * below. Row 0 is straight up. A shopfront has the street, not the sky, in most of its glass. */
-function paintStreet(night: boolean) {
+/** Equirectangular street: the current sky (weather.ts) above, a band of buildings, trees and lamps at
+ * the horizon, pavement below, all dimmed with the light. Row 0 is straight up. A shopfront has the
+ * street, not the sky, in most of its glass. */
+function paintStreet(sky: Readonly<SkyPalette>, night: boolean) {
   const w = 512, h = 256, canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d')!, horizon = h / 2;
-  const sky = ctx.createLinearGradient(0, 0, 0, horizon);
-  for (const [at, colour] of (night ? [[0, '#050a14'], [.7, '#121c2e'], [1, '#2c3346']] : [[0, '#4d80bd'], [.65, '#9cc3e0'], [1, '#e2ecef']]) as [number, string][]) sky.addColorStop(at, colour);
-  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, horizon);
+  paintSky(ctx, w, h, sky);
+  // How lit the street is: the horizon's own brightness, full by day, about a fifth at night, less in rain.
+  const hz = sky.horizon.clone().convertLinearToSRGB(), level = THREE.MathUtils.clamp((hz.r * .2126 + hz.g * .7152 + hz.b * .0722) / .8, .12, 1);
+  const grey = (v: number, r = 1, g = .98, b = .95) => `rgb(${Math.round(v * level * r)},${Math.round(v * level * g)},${Math.round(v * level * b)})`;
   const ground = ctx.createLinearGradient(0, horizon, 0, h);
-  ground.addColorStop(0, night ? '#2a2724' : '#8d8a83'); ground.addColorStop(1, night ? '#0c0c0d' : '#3e3d3b');
+  ground.addColorStop(0, grey(141, 1, .98, .93)); ground.addColorStop(1, grey(62));
   ctx.fillStyle = ground; ctx.fillRect(0, horizon, w, h - horizon);
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let x = 0; x < w;) {
-    const bw = 14 + rnd() * 40, bh = 10 + rnd() * 46, tone = night ? 18 + rnd() * 20 : 120 + rnd() * 70;
-    ctx.fillStyle = `rgb(${tone},${tone * .98},${tone * .95})`; ctx.fillRect(x, horizon - bh, bw, bh + 2);
+    const bw = 14 + rnd() * 40, bh = 10 + rnd() * 46;
+    ctx.fillStyle = grey(120 + rnd() * 70); ctx.fillRect(x, horizon - bh, bw, bh + 2);
     if (night) for (let k = 0; k < bw * bh / 30; k++) { ctx.fillStyle = rnd() > .5 ? '#ffd9a0' : '#bcd4ff'; ctx.fillRect(x + rnd() * bw, horizon - rnd() * bh, 1.5, 1.5); }
     x += bw + rnd() * 6;
   }
-  ctx.fillStyle = night ? '#0d140f' : '#4f6b45';
+  ctx.fillStyle = grey(107, .74, 1, .65);
   for (let x = 0; x < w; x += 9 + rnd() * 20) { ctx.beginPath(); ctx.arc(x, horizon - 4, 5 + rnd() * 7, 0, Math.PI * 2); ctx.fill(); }
   const texture = new THREE.CanvasTexture(canvas);
-  texture.mapping = THREE.EquirectangularReflectionMapping; texture.colorSpace = THREE.SRGBColorSpace;
+  texture.mapping = THREE.EquirectangularReflectionMapping; texture.colorSpace = THREE.SRGBColorSpace; texture.name = 'brands street probe';
   return texture;
 }
 
+/** A new street probe when the sky or night changes, never per frame: three caches the PMREM per texture. */
+function repaintStreet() {
+  if (!reflective.length) return;
+  const old = street;
+  street = paintStreet(skyState() ?? skyPalette(brandsNight ? GM_NIGHT_SUN : GM_DAY_SUN, 'sunny'), brandsNight);
+  for (const entry of reflective) apply(entry, 'reflect');
+  old?.dispose();
+}
+onSkyChange(repaintStreet);
+
 function apply(entry: {material: THREE.MeshStandardMaterial; day: number; night: number}, kind: 'glow' | 'reflect') {
   if (kind === 'glow') entry.material.emissiveIntensity = brandsNight ? entry.night : entry.day;
-  else { entry.material.envMap = brandsNight ? envs.night : envs.day; entry.material.envMapIntensity = brandsNight ? entry.night : entry.day; }
+  else { entry.material.envMap = street; entry.material.envMapIntensity = brandsNight ? entry.night : entry.day; }
 }
 
 /** Register a freshly loaded branded model. Materials are shared by clones, so once is enough. */
 export function lightBrands(model: THREE.Object3D) {
-  envs.day ??= paintStreet(false); envs.night ??= paintStreet(true);
   const seen = new Set<THREE.Material>();
   model.traverse(object => {
     const mesh = object as THREE.Mesh;
@@ -80,14 +91,17 @@ export function lightBrands(model: THREE.Object3D) {
     } else if (material.name.endsWith('glass') || material.name === 'Satin metal') {
       const glass = material.name.endsWith('glass');
       if (glass) { material.depthWrite = false; material.side = THREE.DoubleSide; }
-      const entry = {material, day: glass ? 1.0 : .55, night: glass ? .9 : .35}; reflective.push(entry); apply(entry, 'reflect');
+      const entry = {material, day: glass ? 1.0 : .55, night: glass ? .9 : .35}; reflective.push(entry);
+      if (street) apply(entry, 'reflect'); else repaintStreet();
       material.needsUpdate = true;
     }
   });
 }
 
 export function setBrandsNight(night: boolean) {
+  const changed = night !== brandsNight;
   brandsNight = night;
+  if (changed) repaintStreet();
   for (const entry of glows) apply(entry, 'glow');
   for (const entry of reflective) apply(entry, 'reflect');
   for (const material of washes) material.visible = night;

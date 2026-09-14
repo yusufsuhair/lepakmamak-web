@@ -40,8 +40,17 @@ test('KLCC towers keep the lifts clear, stay on the podium footprint and light u
   const steel=meshes.map(m=>m.material).find((m:any)=>m.name==='KLCC stainless');
   K.setKlccNight(true);const night={glow:steel.emissive.getHex(),intensity:steel.emissiveIntensity};
   K.setKlccNight(false);const day={glow:steel.emissive.getHex()};
+  // The glass reflects the shared sky probe (weather.ts, as klcc.ts imports it) and follows a sky change.
+  const Wx:any=await import((await (await fetch(source.match(/from\s+"(\/src\/klcc\.ts[^"]*)"/)?.[1]||'/src/klcc.ts')).text()).match(/from\s+"(\/src\/weather\.ts[^"]*)"/)?.[1]||'/src/weather.ts');
+  let probe:any=null;Wx.onSkyProbe((t:any)=>{probe=t;});
+  const glass=meshes.map(m=>m.material).filter((m:any)=>m.name!=='KLCC podium granite');
+  const noonProbe=glass.every((m:any)=>m.envMap===probe);const first=probe;
+  document.body.innerHTML='<label><input id="rain-toggle" type="checkbox"></label><p id="weather-label"></p>';
+  scene.background=new THREE.Color();scene.fog=new THREE.Fog(0,1,100);
+  Wx.setupWeather(scene,new THREE.DirectionalLight(),new THREE.HemisphereLight(),'',()=>{},()=>true).preview({condition:'rain',time:'20:30'});
+  const followed=probe!==first&&glass.every((m:any)=>m.envMap===probe);
   return {state:K.klccStatus.state,top,lifts:world.klccLifts.map((l:any)=>[l.x,l.z,l.topY]),podiums:podiums.length,
-   materials:meshes.map(m=>m.material.name).sort(),triangles,inShaft,onPlatform,outsidePodium,rayHits,night,day};
+   materials:meshes.map(m=>m.material.name).sort(),triangles,inShaft,onPlatform,outsidePodium,rayHits,night,day,noonProbe,followed};
  });
  expect(result.state).toBe('ready');
  expect(result.top).toBe(76.5);
@@ -52,4 +61,5 @@ test('KLCC towers keep the lifts clear, stay on the podium footprint and light u
  expect({inShaft:result.inShaft,onPlatform:result.onPlatform,rayHits:result.rayHits,outsidePodium:result.outsidePodium}).toEqual({inShaft:0,onPlatform:0,rayHits:0,outsidePodium:0});
  expect(result.night.glow).not.toBe(0);expect(result.night.intensity).toBeGreaterThan(0);
  expect(result.day.glow).toBe(0);
+ expect({noonProbe:result.noonProbe,followed:result.followed}).toEqual({noonProbe:true,followed:true});
 });

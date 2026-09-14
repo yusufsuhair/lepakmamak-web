@@ -91,6 +91,66 @@ export function skyPalette(sun: THREE.Vector3, condition: string, moon = new THR
   return p;
 }
 
+let currentSky: SkyPalette | null = null, skyKey = '', probe: THREE.CanvasTexture | null = null;
+const skyListeners = new Set<(sky: Readonly<SkyPalette>) => void>(), probeListeners = new Set<(texture: THREE.Texture) => void>();
+/** The sky the city is lit by now (null until setupWeather first applies one). Read-only: copy before changing. */
+export function skyState(): Readonly<SkyPalette> | null { return currentSky; }
+/** Called at once (when a sky exists) and whenever the sky changes enough to show, never per frame. */
+export function onSkyChange(listener: (sky: Readonly<SkyPalette>) => void) {
+  skyListeners.add(listener); if (currentSky) listener(currentSky);
+  return () => { skyListeners.delete(listener); };
+}
+/** The shared reflection probe for the glass towers (klcc.ts, skyline.ts): a 256×128 equirect painted from
+ * the palette. three caches a PMREM per texture, so a change paints a new texture and disposes the old one
+ * after every listener has swapped: one PMREM per sky change for all the towers, none per frame. */
+export function onSkyProbe(listener: (texture: THREE.Texture) => void) {
+  probeListeners.add(listener);
+  listener(probe ??= paintSkyProbe(currentSky ?? skyPalette(GM_DAY_SUN, 'sunny')));
+}
+function publishSky(next: SkyPalette) {
+  // The 30 s clock tick moves the sun an eighth of a degree: quantise, so probes repaint only when the
+  // colours or the sun visibly move (a few times an hour by day, more often through twilight).
+  const q = (v: number, steps = 40) => Math.round(v * steps);
+  const key = [next.zenith, next.horizon, next.glow, next.light].map(c => `${q(c.r)},${q(c.g)},${q(c.b)}`).join('|') +
+    `|${q(next.sun.x, 16)},${q(next.sun.y, 16)},${q(next.sun.z, 16)}|${q(next.lightIntensity, 10)}|${q(next.sunDisc, 10)}`;
+  if (key === skyKey) return;
+  skyKey = key; currentSky = next;
+  if (probe) { const old = probe; probe = paintSkyProbe(next); for (const listener of probeListeners) listener(probe); old.dispose(); }
+  for (const listener of skyListeners) listener(next);
+}
+const smooth = THREE.MathUtils.smoothstep;
+/** Paint the sky dome (clouds.ts) into an equirectangular canvas, row 0 straight up: zenith to the milky
+ * horizon, the glow band under the sun's azimuth, the aureole and sun, and a ground that is the horizon
+ * darkened toward the nadir. Used as a local envMap, never scene.environment. */
+export function paintSky(ctx: CanvasRenderingContext2D, width: number, height: number, sky: Readonly<SkyPalette>) {
+  const c = new THREE.Color(), rowOf = (elevation: number) => (90 - elevation) / 180;
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  for (const e of [90, 60, 40, 25, 14, 7, 3, 0]) gradient.addColorStop(rowOf(e), c.lerpColors(sky.horizon, sky.zenith, Math.pow(smooth(Math.sin(e * Math.PI / 180), -.02, .85), .48)).getStyle());
+  for (const [e, dark] of [[-4, .62], [-30, .42], [-90, .3]]) gradient.addColorStop(rowOf(e), c.copy(sky.horizon).multiplyScalar(dark).getStyle());
+  ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+  const x = (Math.atan2(sky.sun.z, sky.sun.x) / (2 * Math.PI) + .5) * width, y = rowOf(Math.asin(THREE.MathUtils.clamp(sky.sun.y, -1, 1)) * 180 / Math.PI) * height;
+  const glow = (cx: number, cy: number, radius: number, colour: THREE.Color, alpha: number, squash = 1) => {
+    if (alpha <= .01) return;
+    for (const dx of [-width, 0, width]) {
+      ctx.save(); ctx.translate(cx + dx, cy); ctx.scale(1, squash);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, radius), rgb = colour.getStyle().replace('rgb(', 'rgba(').replace(')', ',');
+      g.addColorStop(0, `${rgb}${alpha})`); g.addColorStop(1, `${rgb}0)`);
+      ctx.fillStyle = g; ctx.fillRect(-radius, -radius, radius * 2, radius * 2); ctx.restore();
+    }
+  };
+  const up = smooth(sky.sun.y, -.15, 0);
+  glow(x, height / 2, width * .3, sky.glow, .9, .22);                                // the horizon warming under the sun
+  glow(x, y, width * .16, sky.glow, .5 * up * sky.sunDisc);                          // aureole
+  glow(x, y, width * .035, c.copy(sky.light), .9 * sky.sunDisc * smooth(sky.sun.y, -.04, .03));   // the sun
+}
+function paintSkyProbe(sky: Readonly<SkyPalette>) {
+  const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
+  paintSky(canvas.getContext('2d')!, 256, 128, sky);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.mapping = THREE.EquirectangularReflectionMapping; texture.colorSpace = THREE.SRGBColorSpace; texture.name = 'sky probe';
+  return texture;
+}
+
 // The light direction follows the sun but stays between these elevations: a horizon sun would stretch
 // the one shadow map across the city, and a KL noon sun straight overhead flattens every facade.
 const LIGHT_MIN = 18 * Math.PI / 180, LIGHT_MAX = 70 * Math.PI / 180, LIGHT_DISTANCE = 144;
@@ -152,6 +212,7 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
     lightOffset(sky.sun.y<-.07?moon.direction:sky.sun,sunOffset);
     setNight(night);
     setClouds({condition:look,night,twilight,sky});
+    publishSky(sky);
     const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',hour:'2-digit',minute:'2-digit'}).format(visualNow);
     label.textContent=`${time} MYT · ${night?'Night':'Daytime'} · ${!fresh&&override.condition==='live'&&preview.condition==='live'?'Weather unavailable':night&&condition==='sunny'?'Clear':condition}${previewing?' · Local preview':manual?' · GM override':''}`;
     label.title=manual?'Game Master override · real MYT clock':fresh?`${report.source} · observed ${new Date(report.observedAt!).toLocaleString('en-GB',{timeZone:'Asia/Kuala_Lumpur'})}`:'Weather unavailable; showing KL day/night only';

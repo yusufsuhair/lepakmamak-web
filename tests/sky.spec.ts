@@ -62,6 +62,37 @@ test('background stays a Color equal to the fog and the dome horizon, and the li
  expect(result.rain.background).not.toBe(result.noon.background);
 });
 
+// klcc.ts and skyline.ts reflect one shared probe painted from this palette. three caches a PMREM per
+// texture, so a visible change must hand out a new texture (and dispose the old); an unchanged sky,
+// like the 30 s clock tick, must not.
+test('the glass reflection probe follows the sky and repaints only when it visibly changes',async({page})=>{
+ await page.route('**/probe-harness',r=>r.fulfill({contentType:'text/html',body:'<label><input id="rain-toggle" type="checkbox"></label><p id="weather-label"></p>'}));
+ await page.route('**/weather',r=>r.fulfill({json:{available:false}}));
+ await page.clock.install({time:'2026-09-12T05:00:00Z'});
+ await page.goto('/probe-harness');
+ const result=await page.evaluate(async()=>{
+  const THREE=await import('/node_modules/.vite/deps/three.js' as string);
+  const W=await import('/src/weather.ts' as string);
+  const scene=new THREE.Scene();scene.background=new THREE.Color();scene.fog=new THREE.Fog(0,1,100);
+  const weather=W.setupWeather(scene,new THREE.DirectionalLight(),new THREE.HemisphereLight(),'',()=>{},()=>true);
+  let probe:any=null,handed=0,skies=0;const disposed=new Set<string>();
+  W.onSkyProbe((t:any)=>{probe=t;handed++;t.addEventListener('dispose',()=>disposed.add(t.uuid));});
+  W.onSkyChange(()=>skies++);
+  // Mean sRGB of a row of the equirect (row 0 is straight up); the horizon row is the middle.
+  const row=(y:number)=>{const d=probe.image.getContext('2d').getImageData(0,y,256,1).data;let r=0,g=0,b=0;for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];}return [r,g,b].map(v=>v/256);};
+  const look=(condition:string,time:string)=>{weather.preview({condition,time});return {uuid:probe.uuid,zenith:row(2),horizon:row(62),handed,skies,horizonColour:`#${W.skyState().horizon.getHexString()}`};};
+  const noon=look('sunny','13:00'),again=look('sunny','13:00'),minute=look('sunny','13:01'),night=look('sunny','21:00'),rain=look('rain','13:00');
+  return {noon,again,minute,night,rain,disposed:[...disposed],fog:`#${scene.fog.color.getHexString()}`};
+ });
+ const lum=([r,g,b]:number[])=>r*.2126+g*.7152+b*.0722;
+ expect(result.again.uuid).toBe(result.noon.uuid);expect(result.minute.uuid).toBe(result.noon.uuid);   // no repaint for a tick
+ expect(result.again.skies).toBe(result.noon.skies);
+ expect(result.night.uuid).not.toBe(result.noon.uuid);expect(result.disposed).toContain(result.noon.uuid);
+ expect(lum(result.night.zenith)).toBeLessThan(lum(result.noon.zenith)*.25);
+ expect(lum(result.rain.horizon)).toBeLessThan(lum(result.noon.horizon));
+ expect(result.rain.horizonColour).toBe(result.fog);   // the probe's sky is the one the fog and dome use
+});
+
 test('the running game lights its sky from the KL clock',async({page})=>{
  const now=Date.parse('2026-09-12T10:30:00Z');   // 18:30 MYT, golden hour
  await page.clock.install({time:now});

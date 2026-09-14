@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {cdnUrl} from './cdn';
+import {onSkyProbe} from './weather';
 
 /** The Blender KL skyline (scripts/blender/build_skyline.py): The Exchange 106, Merdeka 118, Menara KL
  * and the four city towers. Each GLB replaces its procedural stand-in, keeping the game's canvas name
- * signs. Like the KLCC set, glass and metal reflect a small painted sky of their own, never
+ * signs. Like the KLCC set, glass and metal reflect the shared sky probe (weather.ts onSkyProbe), never
  * scene.environment. At night each facade's emissive mask becomes lit windows (a hash of bay and storey)
  * and floodlit frames, the crowns, spires and Menara KL glow, and the aviation lights come on. */
 export const SKYLINE_ASSETS = ['LM_ENV_TRX', 'LM_ENV_Merdeka118', 'LM_ENV_KLTower', 'LM_ENV_TowerUOB', 'LM_ENV_TowerHSBC', 'LM_ENV_TowerDAP', 'LM_ENV_TowerMahkota'] as const;
@@ -33,37 +34,13 @@ const GLOWS: Record<string, [string, number]> = {
 };
 
 const nightUniform = {value: 0};
-const envs: Record<'day' | 'night', THREE.Texture | null> = {day: null, night: null};
 const reflective: THREE.MeshStandardMaterial[] = [];
 const glows: {material: THREE.MeshStandardMaterial; colour: string; intensity: number}[] = [];
 const beacons: THREE.Sprite[] = [];
 const textures = new Map<string, THREE.Texture>();
-let beaconMaterial: THREE.SpriteMaterial | null = null;
+let beaconMaterial: THREE.SpriteMaterial | null = null, probe: THREE.Texture | null = null;
 
-/** Equirectangular sky, row 0 straight up. Stops are [elevation in degrees, sRGB]. */
-function paintSky(stops: [number, string][], glow?: {azimuth: number; elevation: number; colour: string}) {
-  const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
-  const ctx = canvas.getContext('2d')!;
-  const gradient = ctx.createLinearGradient(0, 0, 0, 128);
-  for (const [elevation, colour] of stops) gradient.addColorStop((90 - elevation) / 180, colour);
-  ctx.fillStyle = gradient; ctx.fillRect(0, 0, 256, 128);
-  if (glow) {
-    const x = (glow.azimuth / 360 + .5) * 256, y = (90 - glow.elevation) / 180 * 128;
-    for (const dx of [-256, 0, 256]) {
-      const g = ctx.createRadialGradient(x + dx, y, 0, x + dx, y, 70); g.addColorStop(0, glow.colour); g.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 128);
-    }
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.mapping = THREE.EquirectangularReflectionMapping; texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function skies() {
-  // The city sun sits at (-70, 110, 60): azimuth atan2(60, -70), 48 degrees up.
-  envs.day ??= paintSky([[90, '#4c7fbd'], [35, '#8bb7da'], [8, '#d4e3e8'], [0, '#e6ebe8'], [-8, '#b9bdb9'], [-90, '#7d8480']],
-    {azimuth: Math.atan2(60, -70) * 180 / Math.PI, elevation: 48, colour: 'rgba(255,246,222,.85)'});
-  envs.night ??= paintSky([[90, '#070d18'], [30, '#101b2c'], [4, '#26314a'], [0, '#4a4038'], [-6, '#2a2622'], [-90, '#0b0d10']]);
+function beacon() {
   if (!beaconMaterial) {
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
     const ctx = canvas.getContext('2d')!, g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -105,7 +82,6 @@ function lightFacade(material: THREE.MeshStandardMaterial, look: typeof FACADES[
 function applyNight() {
   const night = skylineStatus.night;
   nightUniform.value = night ? 1 : 0;
-  for (const material of reflective) material.envMap = night ? envs.night : envs.day;
   for (const {material, colour, intensity} of glows) { material.emissive.set(night ? colour : '#000000'); material.emissiveIntensity = night ? intensity : 1; }
   for (const beacon of beacons) beacon.visible = night;
 }
@@ -117,7 +93,7 @@ export function setSkylineNight(night: boolean) { skylineStatus.night = night; a
 export function loadSkylineTower(holder: THREE.Object3D, asset: SkylineAsset) {
   skylineStatus.towers[asset] = 'loading';
   void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl(`assets/models/environment/${asset}.glb`)).then(gltf => {
-    skies();
+    beacon();
     const lights: THREE.Object3D[] = [];
     gltf.scene.traverse(o => {
       if (o.name.startsWith('aviation_light')) { lights.push(o); return; }
@@ -125,7 +101,7 @@ export function loadSkylineTower(holder: THREE.Object3D, asset: SkylineAsset) {
       o.castShadow = o.receiveShadow = true;
       const m = o.material as THREE.MeshStandardMaterial;
       m.map = share(m.map); m.normalMap = share(m.normalMap); m.roughnessMap = share(m.roughnessMap); m.metalnessMap = share(m.metalnessMap);
-      m.envMap = envs.day; reflective.push(m);
+      reflective.push(m);
       const look = FACADES[m.name], glow = GLOWS[m.name];
       if (look) { m.side = THREE.FrontSide; lightFacade(m, look); }
       else if (glow) { m.emissiveMap = m.map; glows.push({material: m, colour: glow[0], intensity: glow[1]}); }
@@ -138,5 +114,8 @@ export function loadSkylineTower(holder: THREE.Object3D, asset: SkylineAsset) {
     holder.add(gltf.scene);
     skylineStatus.towers[asset] = 'ready';
     applyNight();
+    // Every tower shares the one sky probe (weather.ts), repainted only when the sky visibly changes.
+    if (!probe) onSkyProbe(texture => { probe = texture; for (const material of reflective) material.envMap = texture; });
+    for (const material of reflective) material.envMap = probe;
   }).catch(error => { skylineStatus.towers[asset] = 'fallback'; console.warn(`[SKYLINE] keeping procedural ${asset}`, error); });
 }

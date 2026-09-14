@@ -15,12 +15,12 @@ test('skyline towers swap in on unchanged footprints, face outward and light up 
   const S:any=await import(source.match(/from\s+"(\/src\/skyline\.ts[^"]*)"/)?.[1]||'/src/skyline.ts');
   const scene=new THREE.Scene();const world=W.createWorld(scene);
   for(let i=0;i<400&&S.SKYLINE_ASSETS.some((a:string)=>S.skylineStatus.towers[a]==='loading');i++)await new Promise(r=>setTimeout(r,150));
-  const ray=new THREE.Raycaster(),normal=new THREE.Vector3(),materials=new Map<string,any>(),aluminium=new Set(),textures=new Set<any>();
+  const ray=new THREE.Raycaster(),normal=new THREE.Vector3(),materials=new Map<string,any>(),aluminium=new Set(),textures=new Set<any>(),probes=new Set<any>();
   const towers=S.SKYLINE_ASSETS.map((asset:string)=>{
    const holder=scene.getObjectByName(asset);holder.updateMatrixWorld(true);
    const meshes:any[]=[],signs:any[]=[],beacons:any[]=[];
    holder.traverse((o:any)=>{if(o.isSprite)beacons.push(o);else if(o.isMesh)(o.material.isMeshBasicMaterial?signs:meshes).push(o);});
-   let triangles=0;for(const m of meshes){triangles+=(m.geometry.index?.count??m.geometry.getAttribute('position').count)/3;materials.set(m.material.name,m.material);if(m.material.name==='Skyline aluminium')aluminium.add(m.material.map);for(const k of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap'])if(m.material[k])textures.add(m.material[k]);}
+   let triangles=0;for(const m of meshes){triangles+=(m.geometry.index?.count??m.geometry.getAttribute('position').count)/3;materials.set(m.material.name,m.material);if(m.material.name==='Skyline aluminium')aluminium.add(m.material.map);probes.add(m.material.envMap);for(const k of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap'])if(m.material[k])textures.add(m.material[k]);}
    const top=new THREE.Box3();for(const m of meshes)top.expandByObject(m);
    // Rays in from 80 m at every 22.5 degrees and every 6 m of height: the first hit must be a front face.
    // Double-sided while casting, or the raycaster would skip an inside-out face instead of reporting it.
@@ -42,7 +42,7 @@ test('skyline towers swap in on unchanged footprints, face outward and light up 
   const spire=materials.get('Merdeka 118 spire'),beacons:any[]=[];scene.traverse((o:any)=>{if(o.isSprite&&o.name==='aviation glow')beacons.push(o);});
   S.setSkylineNight(true);const night={spire:spire.emissive.getHex(),beacons:beacons.filter(b=>b.visible).length};
   S.setSkylineNight(false);const day={spire:spire.emissive.getHex(),beacons:beacons.filter(b=>b.visible).length};
-  return {towers,solids,footprints,materials:[...materials.keys()].sort(),night,day,aluminiumTextures:aluminium.size,
+  return {towers,solids,footprints,materials:[...materials.keys()].sort(),night,day,aluminiumTextures:aluminium.size,probes:[...probes].map((t:any)=>t?.name),
    textureMB:[...textures].reduce((n:number,t:any)=>n+t.image.width*t.image.height*4*4/3,0)/1048576};
  });
  const byAsset=Object.fromEntries(result.towers.map((t:any)=>[t.asset,t]));
@@ -67,6 +67,8 @@ test('skyline towers swap in on unchanged footprints, face outward and light up 
  expect(result.day).toEqual({spire:0,beacons:0});
  // Six towers carry the aluminium; the GPU gets one copy of its texture.
  expect(result.aluminiumTextures).toBe(1);
+ // Every tower reflects the one shared sky probe (weather.ts), not a painted sky of its own.
+ expect(result.probes).toEqual(["sky probe"]);
  // RGBA with mipmaps: the whole pack stays near what the KLCC set alone uploads.
  expect(result.textureMB).toBeLessThan(24);
 });
