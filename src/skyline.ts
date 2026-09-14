@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
+import {cdnUrl} from './cdn';
 
 /** The Blender KL skyline (scripts/blender/build_skyline.py): The Exchange 106, Merdeka 118, Menara KL
  * and the four city towers. Each GLB replaces its procedural stand-in, keeping the game's canvas name
@@ -111,10 +112,11 @@ function applyNight() {
 
 export function setSkylineNight(night: boolean) { skylineStatus.night = night; applyNight(); }
 
-/** Swap a tower's procedural stand-in for its GLB, keeping the canvas name signs (MeshBasicMaterial). */
+/** Swap a tower's procedural stand-in for its GLB, keeping the canvas name signs (MeshBasicMaterial).
+ * The seven GLBs load at world creation, so they come from R2 with brotli (643 KB -> 384 KB). */
 export function loadSkylineTower(holder: THREE.Object3D, asset: SkylineAsset) {
   skylineStatus.towers[asset] = 'loading';
-  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`/assets/models/environment/${asset}.glb?v=skyline-v2`).then(gltf => {
+  void new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(cdnUrl(`assets/models/environment/${asset}.glb`)).then(gltf => {
     skies();
     const lights: THREE.Object3D[] = [];
     gltf.scene.traverse(o => {

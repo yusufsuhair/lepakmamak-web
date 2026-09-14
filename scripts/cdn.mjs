@@ -30,7 +30,8 @@ export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3', 'lo
   'assets/models/environment/LM_ENV_MamakMaju_Realism.glb', 'assets/models/environment/LM_ENV_Petronas.glb', 'assets/models/environment/LM_ENV_Rembayung.glb',
   'assets/models/environment/LM_ENV_Beach.glb', 'assets/models/environment/LM_ENV_KLCC.glb',
   'assets/models/environment/LM_ENV_Masjid.glb', 'assets/models/environment/LM_ENV_Furniture.glb',
-  'assets/models/environment/LM_ENV_Shoplots.glb'];
+  'assets/models/environment/LM_ENV_Shoplots.glb',
+  'assets/models/environment/LM_ENV_KLTower.glb', 'assets/models/environment/LM_ENV_Merdeka118.glb', 'assets/models/environment/LM_ENV_TRX.glb', 'assets/models/environment/LM_ENV_TowerDAP.glb', 'assets/models/environment/LM_ENV_TowerHSBC.glb', 'assets/models/environment/LM_ENV_TowerMahkota.glb', 'assets/models/environment/LM_ENV_TowerUOB.glb'];
 
 const md5 = body => createHash('md5').update(body).digest('hex');
 const sha256 = body => createHash('sha256').update(body).digest('hex');

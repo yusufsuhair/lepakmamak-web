@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "dfa4f9dc6467",
+  "version": "c052c7cdf8b8",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -73,6 +73,48 @@
       "key": "models/LM_ENV_Shoplots.220a93fe1c24.glb",
       "bytes": 413481,
       "etag": "d5deef52a0085de604c0e07de2851db1",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_KLTower.glb": {
+      "key": "models/LM_ENV_KLTower.515ff6267041.glb",
+      "bytes": 85790,
+      "etag": "15f83bd05ed4363d2b22faa7d73fa53f",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Merdeka118.glb": {
+      "key": "models/LM_ENV_Merdeka118.daa54ec1cd53.glb",
+      "bytes": 94076,
+      "etag": "62727c3f50f7a006fe75dd71e23aa68b",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_TRX.glb": {
+      "key": "models/LM_ENV_TRX.5eda9b5ada58.glb",
+      "bytes": 46872,
+      "etag": "35e96a7953aac8b28fe0dbc595df4898",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_TowerDAP.glb": {
+      "key": "models/LM_ENV_TowerDAP.e9e5b0ea93f1.glb",
+      "bytes": 36729,
+      "etag": "6d8427b46272b7cc9ae32cde5f85a89c",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_TowerHSBC.glb": {
+      "key": "models/LM_ENV_TowerHSBC.fd7f714d7c99.glb",
+      "bytes": 48856,
+      "etag": "982305b8dbae07d56959c13fa971db34",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_TowerMahkota.glb": {
+      "key": "models/LM_ENV_TowerMahkota.711c8ca669e2.glb",
+      "bytes": 40816,
+      "etag": "f68f8adbdcc22e4f670295fd56e93654",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_TowerUOB.glb": {
+      "key": "models/LM_ENV_TowerUOB.da4720d3ec0b.glb",
+      "bytes": 31310,
+      "etag": "cbd7b112afe28455f87ae165795ec90b",
       "encoding": "br"
     }
   }
