@@ -585,6 +585,11 @@ async function init() {
   // Why the server last turned us away, kept across the close that follows it.
   let rejection: { code?: string } | null = null;
   let retryDelay = 2500;
+  // A cold Railway instance, a sleeping mobile radio, or a brief edge hiccup can
+  // reject the first WebSocket while the rest of the page is already loaded. Give
+  // the initial join the same recovery path as a returning player, but stop after
+  // a few attempts so a genuinely unavailable city still gets a clear error.
+  const INITIAL_RETRY_LIMIT = 3;
   let entryLoadingTimer: number | null = null;
   let connectedOnceThisEntry = false, connectionAttempts = 0;
   function finishEntryLoading() {
@@ -1208,9 +1213,11 @@ async function init() {
     $('session-replaced-message').hidden = false;
   }
   function retryMultiplayer() {
-    // Reconnect is meaningful only after this entry has been online once. A failed first
-    // connection gets a clear restart action instead of pretending it is reconnecting.
-    if (!started || !connectedOnceThisEntry || !multiplayerEndpoint || networkReconnectTimer !== null) return;
+    if (!started || !multiplayerEndpoint || networkReconnectTimer !== null) return;
+    // Before the first welcome, connectionAttempts is the number of sockets that have
+    // already failed. Keep a small retry budget for transient startup failures; after
+    // that, leave the actionable failure state in place instead of retrying forever.
+    if (!connectedOnceThisEntry && connectionAttempts >= INITIAL_RETRY_LIMIT) return;
     networkReconnectTimer = window.setTimeout(() => { networkReconnectTimer = null; connectMultiplayer(); }, retryDelay);
     // A full city refuses everyone at once, and each retry costs a fresh auth check, so
     // backing off keeps a crowd from hammering the server at a fixed 2.5s forever.
@@ -1415,13 +1422,21 @@ async function init() {
         // Keep a real transport failure red and actionable while the background retry runs.
         // A full room has its own orange state and does not ask the player to restart.
         if (rejection?.code === 'ROOM_FULL') { finishEntryLoading(); setNetworkStatus('CITY FULL', 'connecting', 1); }
+        else if (!connectedOnceThisEntry && connectionAttempts < INITIAL_RETRY_LIMIT) { finishEntryLoading(); setNetworkStatus('JOINING CITY', 'connecting', 1); }
         else if (!connectedOnceThisEntry) { finishEntryLoading(); setNetworkStatus('CONNECTION FAILED', 'offline', 1); }
         else { finishEntryLoading(); setNetworkStatus('OFFLINE', 'offline', 1); }
         retryMultiplayer(); });
       // Browsers fire `error` before `close`, often without a useful reason. Let close own
       // the visible state so the loader does not flash a failure during sign-in.
       socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; });
-    } catch { finishEntryLoading(); setNetworkStatus('OFFLINE · SOLO', 'offline', 1); }
+    } catch {
+      finishEntryLoading();
+      const canRetry = connectedOnceThisEntry || connectionAttempts < INITIAL_RETRY_LIMIT;
+      if (canRetry) {
+        setNetworkStatus(connectedOnceThisEntry ? 'RECONNECTING…' : 'JOINING CITY', 'connecting', 1);
+        retryMultiplayer();
+      } else setNetworkStatus('CONNECTION FAILED', 'offline', 1);
+    }
   }
   function sendNetworkState(dt: number) {
     if(teleportPending)return;

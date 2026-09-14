@@ -33,23 +33,22 @@ test('entering online keeps a real loading state until the welcome arrives',asyn
   }finally{vite.kill();for(const client of server.clients)client.terminate();await new Promise<void>(resolve=>server.close(()=>resolve()));}
 });
 
-test('a failed first socket reports entry failure instead of pretending to reconnect',async({page})=>{
+test('a transient first socket failure retries before reporting entry failure',async({page})=>{
   let connections=0;
   await page.routeWebSocket('**/ws',ws=>{
     connections++;
     ws.onMessage(raw=>{
       if(JSON.parse(String(raw)).type!=='join')return;
-      ws.close({code:1012,reason:'Temporary restart'});
+      if (connections < 3) ws.close({code:1012,reason:'Temporary restart'});
+      else ws.send(JSON.stringify({type:'welcome',id:'retry-player',players:[{id:'retry-player',name:'Retry Friend',color:'#72c8ba',x:0,z:0,yaw:0,riding:false,guest:true}]}));
     });
   });
   await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();
   await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Retry Friend');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
-  await expect(page.locator('#multiplayer-status-text')).toHaveText('CONNECTION FAILED');
+  await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE',{timeout:15000});
   await expect(page.locator('#loading')).toBeHidden();
   await expect(page.locator('#force-refresh')).toBeHidden();
-  await page.waitForTimeout(3000);
-  expect(connections).toBe(1);
-  await expect(page.locator('#multiplayer-status-text')).not.toContainText('RECONNECT');
+  expect(connections).toBe(3);
 });
 
 // A returning member never sees the title screen: init() finishes the world and auto-enters.
