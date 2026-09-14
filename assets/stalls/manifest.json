@@ -12,7 +12,67 @@
       "z": 65
     }
   ],
-  "triangles": 13630,
-  "bytes": 600520,
-  "draws": 40
+  "anchors": {
+    "air-balang": {
+      "steam": [
+        -10.749999999999998,
+        1.8,
+        59.9
+      ]
+    },
+    "pisang-goreng": {
+      "flame": [
+        -23.78,
+        1.46,
+        64.95
+      ],
+      "smoke": [
+        -22.58,
+        0.96,
+        64.4
+      ],
+      "embers": true
+    }
+  },
+  "triangles": 17352,
+  "draws": 16,
+  "materials": [
+    "Night bulb",
+    "Night ember",
+    "Night tube",
+    "Night wash",
+    "Stall canvas",
+    "Stall fried food",
+    "Stall glass",
+    "Stall iron",
+    "Stall liquid",
+    "Stall paint",
+    "Stall plastic",
+    "Stall puddle",
+    "Stall slab",
+    "Stall steel",
+    "Stall wood",
+    "Stall zinc"
+  ],
+  "textures": [
+    "batter_color",
+    "batter_normal",
+    "canvas_color",
+    "canvas_normal",
+    "pad_color",
+    "pad_normal",
+    "paint_color",
+    "paint_normal",
+    "plastic_color",
+    "plastic_normal",
+    "puddle",
+    "steel_color",
+    "steel_normal",
+    "wash",
+    "wood_small_color",
+    "wood_small_normal",
+    "zinc_color",
+    "zinc_normal"
+  ],
+  "bytes": 1242808
 }

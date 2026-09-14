@@ -1,305 +1,495 @@
-"""The two street hawker pushcarts from shared/stalls.json, authored as real Malaysian
-gerai: a painted plywood cart on wheels with an open service shelf, a stainless serving
-top, a striped canvas awning with a scalloped valance on four steel posts, a hanging
-tin-shade bulb, the cooking end (sunken wok in hot oil for Pisang Goreng Mak Cik, kettle
-on a burner plus three glass balang for Air Balang Pak Din), a gas bottle on the shelf,
-condiment tray, stacked bowls and cups, plastic stools out front and an empty price
-board frame. No lettering is baked: the stall name and the price board wording stay the
-game's canvas text, drawn on top of this mesh (src/stalls.ts).
+"""The two street hawker gerai from shared/stalls.json, photographic pass.
+
+Each gerai is a steel-framed counter on the slab it has worn into the verge: painted apron in the
+stall's colour, brushed stainless top, an open back shelf for stock, a pallet for the hawker to
+stand on (the vendor rig stands at y .12, z -1.4), hanging bulbs and fluorescent tubes, and the
+empty frame the game's canvas name board hangs in.
+
+  Pisang Goreng Mak Cik   corrugated zinc roof on painted posts, a kuali of oil on a wok burner fed
+                          by an LPG cylinder, a glass food cabinet of pisang goreng, keledek and
+                          cucur, batter basin and a banana bunch, and a charcoal satay trough at
+                          the side with skewers over glowing coals
+  Air Balang Pak Din      striped canvas awning, three balang jars with brass taps and ice, the
+                          teh tarik kettle on its burner, a cup sealer, air bungkus hanging on a
+                          string, a cooler, and a folding table of nasi lemak and kuih
+  both                    plastic stools, sauce bottles, crates, oil tins, grease-stained slab
+                          with puddles
+
+The wok flame, the satay smoke and the kettle steam are runtime effects in src/stalls.ts, placed on
+the anchors this script writes to assets/stalls/manifest.json. Materials whose names begin
+'Night' are lamps the runtime brightens after dark ('Night wash' pools are only drawn then).
+Nothing moves the gameplay: colliders, the vendor anchor and the canvas boards stay in stalls.ts,
+and no lettering is baked.
 
 Authored in absolute game coordinates, so the GLB drops in at the world origin.
 
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python scripts/blender/build_stalls.py
+node scripts/blender/compress-glb.mjs public/assets/models/environment/LM_ENV_Stalls.glb
 
 Output: public/assets/models/environment/LM_ENV_Stalls.glb, root node 'stalls'.
 """
-import bpy, math, json, sys
+import bpy, math, json, sys, random
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from build_lrt import pt,mat,box,cyl,loft,join
-from build_klcc import vloft,sphere
+from build_lrt import pt,mat,box,cyl,loft
+from build_klcc import sphere
+import pbr_kit as kit
+from pbr_kit import srgb,uv_metres,strut,tube
+import hawker_textures as HT
+import shoplot_textures as ST
+from hawker_kit import vc,lathe,quad,alpha_mat,glow_mat,metallic,face_up,export,rgba_image
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'assets/stalls'; OUT.mkdir(parents=True,exist_ok=True)
 PUBLIC=ROOT/'public/assets/models/environment'; PUBLIC.mkdir(parents=True,exist_ok=True)
-ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 T='stalls'
+kit.setup(T,OUT/'textures',20260914)
+RNG=kit.RNG
 STALLS=json.loads((ROOT/'shared/stalls.json').read_text())
 
-def hexcol(h):
-    """#rrggbb (sRGB) -> linear base colour."""
-    return tuple(c/12.92 if c<=.04045 else ((c+.055)/1.055)**2.4 for c in (int(h[i:i+2],16)/255 for i in (1,3,5)))
+# ------------------------------------------------------------------ materials: one draw each
+def P(name,kind,rough,tile,source=HT,**kw):return kit.pbr(name,kind,'#ffffff',rough,tile,source=source,**kw)
+STEEL=metallic(P('Stall steel','steel',.32,.6),.35)
+PAINT=P('Stall paint','paint',.55,1.0)
+CANVAS=P('Stall canvas','canvas',.85,1.0,two_sided=True)
+ZINC=metallic(P('Stall zinc','zinc',.5,2.0,source=ST),.4)
+PLASTIC=P('Stall plastic','plastic',.42,.5)
+FOOD=P('Stall fried food','batter',.62,.25,strength=1.3)
+WOOD=P('Stall wood','wood_small',.72,.8)
+SLAB=P('Stall slab','pad',.92,3.0)
+IRON=mat('Stall iron',(1,1,1),.62)
+LIQUID=mat('Stall liquid',(1,1,1),.1)
+GLASS=mat('Stall glass',(.86,.93,.94),.04,alpha=.24,two_sided=True)
+PUDDLE=alpha_mat('Stall puddle',rgba_image('puddle',HT.puddle()),.06)
+TUBE=mat('Night tube',srgb('#eaf6ff'),.3,emit=1)
+BULB=mat('Night bulb',srgb('#ffd29a'),.3,emit=1)
+EMBER=mat('Night ember',srgb('#ff6a22'),.6,emit=1)
+WASH=glow_mat('Night wash',kit.image('wash',HT.wash()))
 
-def shade(c,k):return tuple(max(0,min(1,v*k)) for v in c)
+# colours (sRGB hex, painted as vertex colours)
+GALV='#b9bdbd';DARK='#2a2b2c';BLACK='#141414';RUBBER='#1d1d1e';CAST='#262422'
+RED='#c42a26';BLUE='#2658a8';GREEN='#2f8a4a';YELLOW='#e9b925';WHITE='#ffffff';CREAM='#efe6cf'
+KRAFT='#b98a57';PAPER='#ede6d3';LEAF='#4d7a2c';RATTAN='#b58a52';BAMBOO='#d8bb7c'
+OIL='#b4741c';CHILLI='#8c1410';SOY='#1e120b';SYRUP='#8e2440';BATTER_RAW='#e8cf86'
 
-CANVAS=mat('Stall canvas',(.93,.91,.83),.72);PLY=mat('Stall plywood',(.55,.40,.26),.75)
-STEEL=mat('Stall stainless',(.70,.72,.74),.32);TUBE=mat('Stall post steel',(.56,.58,.60),.45)
-DARK=mat('Stall shadow ply',(.10,.10,.11),.8);IRON=mat('Stall cast iron',(.06,.06,.07),.55)
-WOK=mat('Stall wok iron',(.07,.07,.08),.5,two_sided=True)  # you look down into it, so both faces
-OIL=mat('Stall frying oil',(.55,.32,.06),.20);GAS=mat('Stall gas bottle',(.52,.05,.05),.5)
-GASGREY=mat('Stall regulator',(.32,.33,.34),.5);GLASS=mat('Stall balang glass',(.82,.88,.90),.08,alpha=.42,two_sided=True)
-BRASS=mat('Stall brass tap',(.62,.45,.11),.28);CHALK=mat('Stall chalk board',(.05,.09,.07),.7)
-CHALKLINE=mat('Stall chalk line',(.88,.89,.84),.8);BULB=mat('Stall bulb',(1,.86,.56),.3,emit=5)
-SHADEMAT=mat('Stall bulb shade',(.30,.26,.21),.5,two_sided=True);CORD=mat('Stall lamp cord',(.09,.09,.10),.6)
-STRIP=mat('Stall sign strip',(1,.95,.78),.35,emit=1.6)
-STOOL_A=mat('Stall stool red',(.60,.06,.07),.55);STOOL_B=mat('Stall stool blue',(.06,.16,.42),.55)
-CRATE=mat('Stall crate',(.05,.30,.16),.6);TUB=mat('Stall plastic tub',(.72,.72,.70),.55)
-WATER=mat('Stall ice water',(.70,.84,.88),.15,alpha=.55,two_sided=True)
-CERAMIC=mat('Stall bowl',(.88,.88,.85),.35);CUP=mat('Stall cup',(.90,.91,.92),.4)
-SAUCE_A=mat('Stall sauce chilli',(.48,.03,.03),.4);SAUCE_B=mat('Stall sauce soy',(.06,.05,.04),.4)
-SAUCE_C=mat('Stall sauce syrup',(.55,.14,.28),.4);FOIL=mat('Stall foil tray',(.62,.63,.64),.4)
-PAPER=mat('Stall paper',(.86,.83,.74),.8)
+def hexmix(a,b,t):
+    a,b=srgb(a),srgb(b);return tuple(x+(y-x)*t for x,y in zip(a,b))
+def shade(c,k):return tuple(v*k for v in (srgb(c) if isinstance(c,str) else c))
 
-def ring(cx,cz,r,n=16):
-    """Circle as a vloft profile: profile points are (x, -z)."""
-    return [(cx+r*math.cos(i*math.tau/n),-(cz+r*math.sin(i*math.tau/n))) for i in range(n)]
+def item_col(item):return item['color']
+def food_col(item):return hexmix(item['color'],'#ffffff',.5)   # the batter texture is golden already
 
-def cone(name,cx,cz,y0,r0,y1,r1,m,n=12,cap=True):
-    """Vertical truncated cone, y0 below y1. vloft is the vertical loft; loft would lie it flat."""
-    return vloft(name,[(y0,ring(cx,cz,r0,n)),(y1,ring(cx,cz,r1,n))],[m],T,cap=cap)
+# ------------------------------------------------------------------ builders in a stall's frame
+class Stall:
+    """Local frame of one gerai: +x along the counter, +z toward the customers."""
+    def __init__(self,s):
+        self.s=s;self.X=s['x'];self.Z=s['z'];self.o=[]
+        self.paint=s['color'];self.trim=shade(s['color'],.42)
+    def add(self,ob,c=WHITE):
+        vc(ob,c)
+        if any('tile' in m for m in ob.data.materials if m):uv_metres(ob)
+        self.o.append(ob);return ob
+    def B(self,name,x,y,z,w,h,d,m,c=WHITE,bevel=0,rx=0,ry=0):
+        ob=box(name,self.X+x,y,self.Z+z,w,h,d,m,T,bevel,rx)
+        if ry:ob.rotation_euler.z=ry
+        return self.add(ob,c)
+    def C(self,name,x,y,z,r,h,m,c=WHITE,verts=12,axis='y'):
+        return self.add(cyl(name,self.X+x,y,self.Z+z,r,h,m,T,axis=axis,verts=verts),c)
+    def L(self,name,x,z,prof,m,c=WHITE,n=16,**kw):
+        return self.add(lathe(name,self.X+x,self.Z+z,prof,m,n,**kw),c)
+    def S(self,name,p0,p1,w,m,c=WHITE,h=None):
+        ob=strut(name,(self.X+p0[0],p0[1],self.Z+p0[2]),(self.X+p1[0],p1[1],self.Z+p1[2]),w,m,h)
+        return self.add(ob,c) if ob else None
+    def U(self,name,points,r,m,c=WHITE,sides=6):
+        return self.add(tube(name,[(self.X+x,y,self.Z+z) for x,y,z in points],r,m,sides),c)
+    def Q(self,name,x,y,z,w,d,m,yaw=0,c=WHITE):
+        return self.add(quad(name,self.X+x,y,self.Z+z,w,d,m,yaw),c)
+    def ball(self,name,x,y,z,r,m,c=WHITE,seg=8,rings=5):
+        return self.add(sphere(name,self.X+x,y,self.Z+z,r,m,T,seg,rings),c)
+    def lump(self,name,x,y,z,r,m,c=WHITE):
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=r,location=pt(self.X+x,y,self.Z+z))
+        ob=bpy.context.object
+        for v in ob.data.vertices:v.co*=RNG.uniform(.72,1.18)
+        ob.scale=(RNG.uniform(.8,1.25),RNG.uniform(.8,1.25),RNG.uniform(.55,.8));ob.rotation_euler.z=RNG.random()*6.3
+        from build_lrt import finish
+        finish(ob,name,m,T);return self.add(ob,c)
 
-def bowl_out(name,cx,cz,rings,m,n=16):
-    """Open-topped vessel built bottom-up so the outside faces out; fill it to hide the inside."""
-    return vloft(name,[(y,ring(cx,cz,r,n)) for y,r in rings],[m]*(len(rings)-1),T,cap=False)
+# ------------------------------------------------------------------ slab, puddles, pallet
+def ground(st,wet):
+    """The worn slab: a chipped rounded rectangle 6.4 x 4.8 m, 12 mm proud of the verge."""
+    X,Z=st.X,st.Z;n=48;verts=[pt(X,.012,Z)];R=random.Random(int(X*7+Z))
+    for i in range(n):
+        a=2*math.pi*i/n;c,s=math.cos(a),math.sin(a)
+        k=(abs(c)**7+abs(s)**7)**(-1/7)*(1+R.uniform(-.035,.02)*(1+2*(R.random()<.15)))   # squarish edge, chipped
+        verts.append(pt(X+3.2*c*k,.012,Z+.2+2.4*s*k))
+    ob=kit.mesh('stall slab',verts,[(0,1+i,1+(i+1)%n) for i in range(n)],SLAB,smooth=False);face_up(ob)
+    # the edge ring is a hair lower so the slab sinks into the grass instead of standing on it
+    for v in ob.data.vertices[1:]:v.co.z=.004
+    st.add(ob,'#c9c3b8')
+    for x,z,w,yaw in wet:st.Q('puddle',x,.016,z,w,w*RNG.uniform(.6,.9),PUDDLE,yaw)
+    # the hawker's pallet, under the vendor anchor
+    for i in range(5):st.B('pallet board',-.36+i*.18,.105,-1.4,.14,.02,.9,WOOD,'#a88f6c')
+    for x in (-.38,0,.38):st.B('pallet block',x,.05,-1.4,.1,.09,.84,WOOD,'#8a7152')
 
-# ------------------------------------------------------------------ the cart
-def cart(s,paint,trim):
-    """Pushcart body, awning, posts, lamp and price-board frame. Local x/z about (s.x, s.z),
-    +z is the customer side. Collision in stalls.ts is x +-2, z +-.8 about the origin."""
-    X,Z=s['x'],s['z'];o=[]
-    def B(name,x,y,z,w,h,d,m,bevel=.015):return box(name,X+x,y,Z+z,w,h,d,m,T,bevel)
-    def C(name,x,y,z,r,h,m,verts=12,axis='y'):return cyl(name,X+x,y,Z+z,r,h,m,T,axis=axis,verts=verts)
-    # carcass: painted front apron, end cheeks, low back kick panel, open service shelf
-    o.append(B('cart front',0,.82,.60,3.80,1.02,.10,paint))
-    o.append(B('cart front rail',0,1.26,.60,3.86,.10,.14,trim,.01))
-    o.append(B('cart kick rail',0,.36,.60,3.80,.12,.13,trim,.01))
-    for x in (-1.85,1.85):o.append(B('cart cheek',x,.82,0,.10,1.02,1.30,paint))
-    o.append(B('cart back panel',0,.60,-.60,3.70,.58,.08,paint))
-    o.append(B('service shelf',0,.34,-.05,3.60,.05,1.05,PLY,.01))
-    o.append(B('shelf lip',0,.40,-.58,3.60,.08,.04,PLY,0))
-    for x in (-1.6,1.6):
-        for z in (-.5,.5):o.append(C('cart leg',x,.16,z,.045,.32,TUBE,8))
-    for x in (-1.45,1.45):
-        o.append(C('cart wheel',x,.24,-.5,.24,.09,IRON,14,axis='x'))
-        o.append(C('wheel hub',x,.24,-.5,.07,.12,TUBE,8,axis='x'))
-    o.append(C('push handle',1.98,1.05,0,.028,1.10,TUBE,8,axis='z'))
-    for z in (-.45,.45):o.append(C('handle arm',1.94,1.05,z,.028,.20,TUBE,8,axis='x'))
-    # serving top with a raised splash lip at the back
-    o.append(B('serving top',0,1.34,0,4.00,.10,1.55,STEEL,.02))
-    o.append(B('splash lip',0,1.50,-.74,4.00,.22,.06,STEEL,.01))
-    o.append(B('top front edge',0,1.30,.80,4.00,.05,.06,STEEL,0))
-    # four posts and the frame the awning sits on
-    for x in (-1.85,1.85):
-        for z in (-.72,.72):o.append(C('awning post',x,1.78,z,.035,3.05,TUBE,8))
-    for z in (-.72,.72):o.append(B('awning rail',0,3.26,z,3.86,.055,.055,TUBE,0))
-    for x in (-1.85,1.85):o.append(B('awning rail',x,3.26,0,.055,.055,1.50,TUBE,0))
-    o.append(B('awning ridge',0,3.50,0,4.20,.06,.06,TUBE,0))
-    # striped canvas awning: loft runs along the game z axis, so each stripe is one loft
-    for i in range(8):
-        x0,x1=-2.10+i*.525,-2.10+(i+1)*.525
-        m=paint if i%2 else CANVAS
-        prof=lambda y:[(X+x0,y),(X+x1,y),(X+x1,y+.05),(X+x0,y+.05)]
-        o.append(loft('awning stripe',[(Z+z,prof(y)) for z,y in ((-1.45,3.10),(-.78,3.36),(0,3.45),(.78,3.36),(1.45,3.10))],m,T))
-        # Scalloped hem, pointing down between the stripes. Kept shallow on purpose: a deep
-        # valance hangs in front of the canvas name sign (y 2.2-3.0 at z .80) and hides the
-        # wording from the third-person camera.
-        hem=[(X+x0,3.02),(X+(x0+x1)/2,2.93),(X+x1,3.02),(X+x1,3.14),(X+x0,3.14)]
-        o.append(loft('awning valance',[(Z+1.44,hem),(Z+1.48,hem)],m,T))
-        back=[(X+x0,3.00),(X+x1,3.00),(X+x1,3.14),(X+x0,3.14)]
-        o.append(loft('awning back skirt',[(Z-1.48,back),(Z-1.44,back)],m,T))
-    # hanging bulb in a tin shade: the scene has only two real lights, so this one is emissive
-    # Behind the sign board, or under it, the bulb was hidden from the third-person camera
-    # looking down at the stall. It hangs off the awning's front edge, over the customers.
-    # Low on a long cord: level with the board it covered the canvas name text, and behind
-    # the board it was invisible from above.
+# ------------------------------------------------------------------ counter, frame, board
+def counter(st):
+    """Steel-framed counter: painted apron and cheeks, stainless top with a splash lip, open back
+    with a stock shelf. Collision in stalls.ts is x +-2, z +-.8."""
+    p,t=st.paint,st.trim
+    st.B('apron',0,.8,.70,3.9,.92,.04,PAINT,p)
+    st.B('apron rail',0,1.27,.72,3.94,.06,.08,PAINT,t)
+    st.B('kick plate',0,.2,.71,3.9,.38,.05,STEEL,GALV)
+    for x in (-1.93,1.93):st.B('cheek',x,.8,0,.04,.92,1.4,PAINT,p)
+    for x in (-1.95,1.95):
+        for z in (-.7,.7):st.B('counter leg',x,.62,z,.05,1.24,.05,STEEL,GALV)
+    st.B('stock shelf',0,.42,-.08,3.82,.03,1.28,STEEL,GALV)
+    st.B('shelf lip',0,.46,-.72,3.82,.06,.03,STEEL,GALV)
+    st.B('serving top',0,1.34,0,4.02,.08,1.58,STEEL,WHITE)
+    st.B('splash lip',0,1.47,-.77,4.02,.18,.03,STEEL,WHITE)
+    st.B('top nosing',0,1.3,.8,4.02,.08,.03,STEEL,WHITE)
+    for x in (-1.93,1.93):
+        for z in (-.7,.7):st.C('rubber foot',x,.02,z,.04,.04,IRON,RUBBER,8)
+
+def board(st):
+    """Frame for the game's canvas board (3.9 x .8 at y 2.6, z .8): backing, bezel, lamp hood."""
+    p,t=st.paint,st.trim
+    st.B('board backing',0,2.6,.7,4.06,.86,.06,PAINT,p)
+    for y in (3.06,2.14):st.B('board bezel',0,y,.76,4.14,.08,.1,PAINT,t)
+    for x in (-2.03,2.03):st.B('board bezel',x,2.6,.76,.08,1.0,.1,PAINT,t)
+    st.B('board lamp hood',0,3.2,.86,3.0,.04,.16,STEEL,GALV)
+    st.B('board lamp tube',0,3.16,.88,2.8,.035,.035,TUBE)
+    for x in (-1.2,0,1.2):st.B('lamp bracket',x,3.14,.78,.03,.1,.12,STEEL,GALV)
+
+def posts(st,front_top,back_top):
+    """Four painted steel posts on base plates, rails and the drop cord for the tube."""
+    t=st.trim
+    for x in (-1.97,1.97):
+        st.B('post',x,front_top/2,.76,.06,front_top,.06,PAINT,t)
+        st.B('post',x,back_top/2,-.76,.06,back_top,.06,PAINT,t)
+        for z in (-.76,.76):st.B('base plate',x,.01,z,.16,.02,.16,STEEL,GALV)
+        st.B('side rail',x,back_top-.05,0,.05,.05,1.58,PAINT,t)
+    st.B('front rail',0,front_top-.05,.76,3.98,.05,.05,PAINT,t)
+    st.B('back rail',0,back_top-.05,-.76,3.98,.05,.05,PAINT,t)
+    # fluorescent batten on chains from a cross bar, over the hawker's side of the counter
+    top=min(front_top,back_top)-.05;y=top-.32
+    st.B('tube cross bar',0,top,-.35,3.98,.04,.04,PAINT,t)
+    st.B('tube batten',0,y+.03,-.35,1.3,.04,.07,STEEL,GALV)
+    st.B('tube',0,y-.01,-.35,1.22,.028,.028,TUBE)
+    for x in (-.55,.55):st.B('tube chain',x,(y+top)/2,-.35,.012,top-y,.012,IRON,DARK)
+
+def bulbs(st,cord_top):
+    """Bare bulbs in tin shades on long cords over the customers, low enough to read from above."""
     for x in (-1.05,1.05):
-        o.append(C('lamp cord',x,2.69,1.20,.008,1.00,CORD,4))
-        o.append(cone('lamp shade',X+x,Z+1.20,2.02,.23,2.19,.07,SHADEMAT,12))
-        o.append(sphere('bulb',X+x,1.95,Z+1.20,.072,BULB,T))
-        o.append(B('bulb collar',x,2.06,1.20,.05,.10,.05,TUBE,0))
-    # price board: an empty frame sized to the game's canvas sign (3.9 x .8 at y 2.60, z .80).
-    # A taller backing hangs low enough to crop the balang jars behind it.
-    o.append(B('board backing',0,2.60,.70,4.06,.86,.09,paint))
-    o.append(B('board bezel',0,3.07,.76,4.14,.09,.11,trim,.01))
-    o.append(B('board bezel',0,2.13,.76,4.14,.09,.11,trim,.01))
-    for x in (-2.02,2.02):o.append(B('board bezel',x,2.60,.76,.10,1.00,.11,trim,.01))
-    o.append(B('board lamp hood',0,3.24,.86,3.00,.05,.16,TUBE,0))
-    o.append(B('board lamp strip',0,3.18,.86,2.90,.05,.07,STRIP,0))
-    # chalk A-board on the kerb, blank: chalk marks are geometry lines, never letters
-    for x in (-2.62,-2.14):o.append(B('chalk leg',x,.95,.62,.07,1.90,.07,PLY,.01))
-    o.append(B('chalk board',-2.38,1.36,.62,.62,1.00,.05,CHALK,.01))
-    o.append(B('chalk frame',-2.38,1.36,.58,.70,1.08,.04,PLY,.01))
-    for i in range(4):o.append(B('chalk line',-2.38,1.66-i*.22,.653,.40-.06*(i%2),.035,.01,CHALKLINE,0))
-    # three plastic stools out front, past the counter collider
-    for i,x in enumerate((-1.30,0,1.30)):
-        m=STOOL_A if i%2==0 else STOOL_B
-        o.append(cone('stool body',X+x,Z+1.78,.03,.215,.44,.155,m,10,cap=False))
-        o.append(C('stool seat',x,.465,1.78,.175,.05,m,12))
-        o.append(C('stool ring',x,.22,1.78,.19,.03,m,10))
-    # crates and a tub where the procedural cooler stood, off the walkable side
-    for i in range(2):o.append(B('crate',2.22,.24+i*.34,-.30,.66,.32,.50,CRATE,.01))
-    o.append(cone('plastic tub',X+2.22,Z-.30,.92,.26,1.20,.31,TUB,10,cap=False))
-    o.append(C('tub water',2.22,1.16,-.30,.29,.03,WATER,10))
-    o.append(B('bin bag hook',1.90,1.00,.66,.05,.05,.05,TUBE,0))
-    return o
+        st.B('lamp cord',x,(cord_top+2.19)/2,1.2,.012,cord_top-2.19,.012,IRON,BLACK)
+        st.L('lamp shade',x,1.2,[(2.03,.24),(2.12,.16),(2.2,.07),(2.22,.02)],PAINT,'#3a5a52',n=14,cap_top=True)
+        st.L('lamp shade inside',x,1.2,[(2.025,.235),(2.11,.155),(2.2,.065)],STEEL,'#e4e2da',n=14,inward=True)
+        st.ball('bulb',x,1.96,1.2,.07,BULB,seg=10,rings=6)
+        st.C('bulb holder',x,2.06,1.2,.028,.08,IRON,BLACK,8)
 
-def shelf_stock(s,o):
-    """Gas bottle feeding the burner, plus stock under the counter."""
-    X,Z=s['x'],s['z']
-    o.append(cyl('gas bottle',X+1.28,.67,Z-.28,.185,.60,GAS,T,verts=12))
-    o.append(cone('gas shoulder',X+1.28,Z-.28,.97,.185,1.06,.09,GAS,12))
-    o.append(cyl('gas valve',X+1.28,1.10,Z-.28,.035,.10,GASGREY,T,verts=8))
-    o.append(cyl('gas regulator',X+1.28,1.17,Z-.28,.065,.06,GASGREY,T,verts=8))
-    o.append(cyl('gas hose',X+1.28,1.24,Z-.20,.018,.20,GASGREY,T,axis='z',verts=6))
-    for i in range(2):o.append(box('stock crate',X-1.30,.44+i*.30,Z-.20,.62,.28,.44,CRATE,T,.01))
-    for i in range(3):o.append(cyl('stock bottle',X-1.55+i*.25,.80,Z-.20,.055,.30,SAUCE_C,T,verts=6))
-    o.append(box('paper stack',X-.10,.42,Z-.20,.50,.11,.36,PAPER,T,0))
+def stools(st,spots):
+    """Kopitiam plastic stools: flared skirt with a rolled seat."""
+    for x,z,c in spots:
+        # four splayed legs under a skirt that stops short of the ground, like the real mould
+        st.L('stool skirt',x,z,[(.2,.2),(.36,.158),(.42,.152)],PLASTIC,c,n=14,cap_bottom=False)
+        for k in range(4):
+            a=k*math.pi/2+math.pi/4
+            st.S('stool leg',(x+math.cos(a)*.15,.22,z+math.sin(a)*.15),(x+math.cos(a)*.2,0,z+math.sin(a)*.2),.05,PLASTIC,c,h=.03)
+        st.L('stool seat',x,z,[(.41,.168),(.44,.172),(.45,.165)],PLASTIC,shade(c,1.05),n=14,cap_top=True)
+        st.C('stool handle hole',x,.452,z,.035,.006,IRON,shade(c,.25),10)
 
-def counter_kit(s,o,sauces):
-    """Condiment tray, stacked bowls, cups and cutlery: repeated small props, bevel 0."""
-    X,Z=s['x'],s['z'];top=1.39
-    o.append(box('condiment tray',X+.22,top+.03,Z+.50,.52,.06,.28,FOIL,T,0))
-    for i,m in enumerate(sauces):
-        o.append(cyl('sauce bottle',X+.03+i*.19,top+.20,Z+.50,.048,.28,m,T,verts=6))
-        o.append(cyl('sauce cap',X+.03+i*.19,top+.36,Z+.50,.036,.04,DARK,T,verts=6))
-    for j,(bx,bz) in enumerate(((.02,-.38),(.36,-.38))):
-        for i in range(4):o.append(cyl('bowl stack',X+bx,top+.035+i*.055,Z+bz,.115-.004*i,.055,CERAMIC,T,verts=10))
-    for i in range(5):o.append(cyl('cup stack',X+.52,top+.05+i*.075,Z+.46,.052,.12,CUP,T,verts=8))
-    o.append(cyl('cutlery jar',X-.16,top+.13,Z-.34,.065,.20,TUB,T,verts=8))
-    for i in range(5):o.append(box('cutlery',X-.19+.015*i,top+.30,Z-.34,.012,.22,.012,STEEL,T,0))
-    o.append(box('tissue box',X+.62,top+.06,Z-.30,.22,.10,.14,PAPER,T,0))
+def crate(st,x,y,z,c,yaw=0):
+    st.B('crate',x,y+.15,z,.6,.3,.42,PLASTIC,c,ry=yaw)
+    st.B('crate slot shadow',x,y+.24,z,.52,.06,.43,IRON,shade(c,.4),ry=yaw)
+
+def gas(st,x,z,c=RED):
+    """14 kg LPG cylinder with a guard ring, valve, regulator and a hose up to the burner."""
+    st.L('gas cylinder',x,z,[(.46,.165),(.5,.185),(.98,.185),(1.06,.15),(1.1,.07)],PAINT,c,n=16,cap_top=True)
+    st.L('gas foot ring',x,z,[(.44,.17),(.52,.17)],STEEL,GALV,n=16)
+    st.L('gas guard',x,z,[(1.1,.1),(1.2,.1)],STEEL,GALV,n=12)
+    st.C('gas valve',x,1.16,z,.03,.1,STEEL,'#a38a4a',8)
+    st.B('regulator',x,1.24,z,.1,.06,.1,IRON,'#5a5d5e')
+
+def oil_tin(st,x,z,y=.44):
+    st.B('oil tin',x,y+.18,z,.24,.36,.24,STEEL,'#c8c1a8',bevel=.008)
+    st.C('tin spout',x+.07,y+.38,z+.06,.02,.04,STEEL,'#9a9486',8)
+
+def sauces(st,x,z,cols):
+    st.B('condiment tray',x,1.415,z,.6,.05,.24,STEEL,GALV)
+    for i,c in enumerate(cols):
+        st.C('sauce bottle',x-.2+i*.2,1.55,z,.045,.24,PLASTIC,c,8)
+        st.C('sauce nozzle',x-.2+i*.2,1.69,z,.018,.05,PLASTIC,WHITE if c!=WHITE else RED,6)
 
 # ------------------------------------------------------------------ pisang goreng
-def fryer(s,o):
-    X,Z=s['x'],s['z'];items=s['items'];top=1.39
-    wx,wz=1.22,-.05
-    # The wok stands on its burner on the counter. Sunk level with the serving top, the
-    # slab swallowed the bowl and a collar box lay across its mouth: a dark sliver, no wok.
-    o.append(cyl('burner base',X+wx,1.44,Z+wz,.30,.10,IRON,T,verts=12))
-    o.append(cone('burner ring',X+wx,Z+wz,1.49,.30,1.56,.22,IRON,12,cap=False))
-    o.append(bowl_out('wok',X+wx,Z+wz,((1.46,.14),(1.55,.33),(1.66,.47),(1.76,.55)),WOK))
-    # A cylinder for the rim is a solid disc: it lidded the wok and hid the oil. Flared ring.
-    o.append(cone('wok rim',X+wx,Z+wz,1.76,.55,1.80,.60,WOK,16,cap=False))
-    o.append(cyl('frying oil',X+wx,1.68,Z+wz,.46,.03,OIL,T,verts=16))
-    for x in (-.62,.62):o.append(box('wok ear',X+wx+x,1.79,Z+wz,.10,.04,.20,IRON,T,0))
-    # fritters half-sunk in the oil, rotated for variety; plain cubes, no bevel
-    hot=mat(f"Stall item {items[0]['id']}",hexcol(items[0]['color']),.55)
-    for i in range(5):
-        a=i*1.26
-        f=box('frying fritter',X+wx+math.cos(a)*.24,1.70,Z+wz+math.sin(a)*.22,.15,.06,.09,hot,T,0)
-        f.rotation_euler.z=a;o.append(f)
-    # wire drainer over a foil tray, with the skimmer resting across it
-    o.append(box('drainer tray',X+wx,1.43,Z+wz+.62,.96,.07,.32,FOIL,T,0))
-    for i in range(7):o.append(box('drainer bar',X+wx-.42+i*.14,1.48,Z+wz+.62,.02,.02,.32,STEEL,T,0))
-    for i in range(3):o.append(box('drained fritter',X+wx-.22+i*.22,1.53,Z+wz+.60,.15,.06,.09,hot,T,0))
-    o.append(cyl('skimmer handle',X+wx-.30,1.84,Z+wz+.34,.014,.62,PLY,T,verts=6,axis='z'))
-    o.append(cyl('skimmer mesh',X+wx-.30,1.82,Z+wz-.04,.13,.02,STEEL,T,verts=12))
-    # a dark rubber mat: without it the serving top is one unbroken pale sheet
-    o.append(box('counter mat',X-.96,1.393,Z+.02,2.00,.012,.72,DARK,T,0))
-    # three trays of finished goreng along the counter, one per item
+WOK=(1.22,-.05);SATAY=(2.42,-.6);GRILL_Y=.9
+def zinc_roof(st):
+    """Mono-pitch zinc from a front eave at 3.52 down to 3.02 at the back, on painted purlins."""
+    z0,z1,y0,y1=1.6,-1.72,3.52,3.02
+    slope=lambda z:y1+(y0-y1)*(z-z1)/(z0-z1)
+    X,Z=st.X,st.Z
+    prof=lambda y:[(X-2.35,y),(X+2.35,y),(X+2.35,y+.018),(X-2.35,y+.018)]
+    st.add(loft('zinc roof',[(Z+z1,prof(y1)),(Z+z0,prof(y0))],ZINC,T),'#ffffff')
+    # corrugated eave strips so the sheet edge reads in silhouette
+    for z in (z0,z1):
+        wave=[(X-2.35+i*.0755,slope(z)+.016+.016*math.sin(i*math.pi/2)) for i in range(63)]
+        edge=wave+[(px,py-.022) for px,py in wave[::-1]]
+        st.add(loft('zinc edge',[(Z+z-.01,edge),(Z+z+.01,edge)],ZINC,T),'#d0d2d0')
+    for x in (-1.97,0,1.97):st.S('rafter',(x,slope(z1+.08)-.04,z1+.08),(x,slope(z0-.08)-.04,z0-.08),.05,PAINT,st.trim)
+    for z in (-1.1,0,1.1):st.B('purlin',0,slope(z)-.02,z,4.5,.035,.05,PAINT,st.trim)
+    st.B('fascia',0,slope(z0)-.07,z0+.02,4.72,.12,.025,PAINT,st.paint)
+    # a rolled blue tarp tied under the back eave for the afternoon rain
+    st.C('rolled tarp',0,y1-.12,z1+.1,.07,4.3,CANVAS,'#2b5f9e',10,axis='x')
+    for x in (-1.6,0,1.6):st.C('tarp tie',x,y1-.12,z1+.1,.075,.03,IRON,'#e0d6b8',10,axis='x')
+
+def cabinet(st):
+    """Glass food cabinet on the customer half of the counter: stainless frame, sloped front glass,
+    a glass shelf and trays of the three goreng inside."""
+    x0,x1,z0,z1,y0=-1.95,-.08,-.12,.72,1.38
+    cx,w=(x0+x1)/2,x1-x0
+    st.B('cabinet base',cx,y0+.02,(z0+z1)/2,w,.04,z1-z0,STEEL,WHITE)
+    for x in (x0+.02,x1-.02):
+        st.B('cabinet post',x,y0+.34,z0+.02,.03,.64,.03,STEEL,WHITE)
+        st.B('cabinet post',x,y0+.2,z1-.02,.03,.36,.03,STEEL,WHITE)
+        st.S('cabinet slope rail',(x,y0+.38,z1-.02),(x,y0+.66,z0+.3),.025,STEEL,WHITE)
+        st.B('cabinet top rail',x,y0+.66,(z0+z0+.3)/2,.03,.03,.34,STEEL,WHITE)
+        side=[pt(st.X+x,y,st.Z+z) for y,z in ((y0+.04,z1-.02),(y0+.38,z1-.02),(y0+.66,z0+.3),(y0+.66,z0+.02),(y0+.04,z0+.02))]
+        st.add(kit.mesh('cabinet side glass',side,[(0,1,2,3,4)],GLASS,smooth=False))
+    st.B('cabinet roof',cx,y0+.66,z0+.15,w,.02,.32,STEEL,WHITE)
+    # sloped front glass from the front sill up to the roof
+    X,Z=st.X,st.Z;a=math.atan2(.28,z1-z0-.3);L=math.hypot(.28,z1-z0-.32)
+    g=box('cabinet front glass',X+cx,y0+.52,Z+(z1+z0+.3)/2,w-.05,L,.008,GLASS,T,0);g.rotation_euler.x=-(math.pi/2-a)
+    st.add(g)
+    st.B('cabinet front sill',cx,y0+.38,z1-.02,w,.03,.03,STEEL,WHITE)
+    st.B('cabinet front glass low',cx,y0+.2,z1-.02,w-.05,.34,.008,GLASS)
+    st.B('cabinet shelf',cx,y0+.35,z0+.28,w-.08,.012,.5,GLASS)
+    for i,x in enumerate((x0+.38,x0+.95,x0+1.52)):
+        st.B('cabinet sliding door',x,y0+.34,z0+.01,.55,.6,.008,GLASS)
+    items=st.s['items']
     for i,item in enumerate(items):
-        m=mat(f"Stall item {item['id']}",hexcol(item['color']),.55)
-        tx=-1.62+i*.66
-        o.append(box('goreng tray',X+tx,top+.03,Z+.02,.60,.06,.62,FOIL,T,0))
-        o.append(box('tray liner',X+tx,top+.07,Z+.02,.54,.02,.56,PAPER,T,0))
-        for j in range(6):
-            f=box('goreng',X+tx-.17+(j%3)*.17,top+.13+(j//3)*.07,Z-.12+(j//3)*.24,.16,.07,.12,m,T,0)
-            f.rotation_euler.z=.5*(1 if j%2 else -1);o.append(f)
-    o.append(box('price peg',X+.02,top+.40,Z+.02,.18,.12,.01,PAPER,T,0))
+        tx=x0+.33+i*.61
+        st.B('goreng tray',tx,y0+.065,.3,.56,.03,.66,STEEL,'#c9c9c4')
+        st.B('tray paper',tx,y0+.085,.3,.5,.008,.6,PAINT,PAPER)
+        for j in range(8):
+            gx=tx-.17+(j%3)*.17+RNG.uniform(-.02,.02);gz=.08+(j//3)*.19+RNG.uniform(-.02,.02)
+            if item['id']=='cucur':st.lump('cucur',gx,y0+.13,gz,.07,FOOD,food_col(item))
+            elif item['id']=='keledek-goreng':st.B('keledek',gx,y0+.12,gz,.15,.045,.08,FOOD,food_col(item),ry=RNG.uniform(-.6,.6))
+            else:st.B('pisang goreng',gx,y0+.12,gz,.07,.05,.19,FOOD,food_col(item),ry=RNG.uniform(-.5,.5))
+    # second tier: more pisang on a paper-lined tray and folded paper bags
+    st.B('shelf tray',x0+.5,y0+.37,z0+.3,.7,.02,.4,STEEL,'#c9c9c4')
+    for j in range(6):st.B('pisang goreng',x0+.28+(j%3)*.2,y0+.41,z0+.2+(j//3)*.2,.07,.05,.19,FOOD,food_col(items[0]),ry=RNG.uniform(-.4,.4))
+    for i in range(6):st.B('paper bag',x0+1.35,y0+.365+i*.012,z0+.3,.42,.01,.3,PAINT,KRAFT,ry=.05*i)
+
+def fryer(st):
+    """Kuali of oil on a ring burner, fritters in the oil, a wire drainer tray and the skimmer."""
+    wx,wz=WOK;items=st.s['items'];top=1.38
+    # pot ring on three legs over a low burner head, so the flame shows in the gap under the kuali
+    st.L('pot ring',wx,wz,[(1.53,.25),(1.57,.235)],IRON,CAST,n=16)
+    for i in range(3):
+        a=i*2.094+.5;st.S('burner leg',(wx+.31*math.cos(a),top,wz+.31*math.sin(a)),(wx+.245*math.cos(a),1.56,wz+.245*math.sin(a)),.035,IRON,CAST)
+    st.L('burner head',wx,wz,[(top,.12),(top+.06,.105),(top+.08,.07)],IRON,'#403a33',n=12,cap_top=True)
+    # the kuali: outside up to the rim, then back down the inside to a bottom that faces up
+    k=.08
+    st.L('kuali',wx,wz,[(1.5+k,.1),(1.55+k,.26),(1.64+k,.42),(1.76+k,.54),(1.78+k,.55),(1.74+k,.52),(1.63+k,.4),(1.54+k,.24),(1.52+k,.08)],
+         IRON,'#1b1b1c',n=20,cap_bottom=True,cap_top=True)
+    for x in (-.6,.6):st.B('kuali ear',wx+x,1.76+k,wz,.12,.03,.18,IRON,'#1b1b1c')
+    st.L('frying oil',wx,wz,[(1.655+k,.405),(1.665+k,.415)],LIQUID,OIL,n=20,cap_top=True)
+    for i in range(6):
+        a=i*1.05+.3;r=.2+.08*(i%2)
+        st.B('frying fritter',wx+math.cos(a)*r,1.675+k,wz+math.sin(a)*r,.07,.04,.18,FOOD,hexmix(item_col(items[0]),'#ffffff',.7),ry=a)
+    # drainer: wire rack over a tray on the customer side of the wok
+    dz=wz+.6
+    st.B('drainer tray',wx,top+.03,dz,.9,.05,.3,STEEL,'#b8b8b2')
+    for i in range(8):st.B('drainer wire',wx-.42+i*.12,top+.07,dz,.008,.008,.3,STEEL,'#9a9a95')
+    for i in range(4):st.B('drained fritter',wx-.3+i*.2,top+.1,dz+RNG.uniform(-.04,.04),.07,.05,.18,FOOD,food_col(items[0]),ry=RNG.uniform(-.4,.4))
+    st.U('skimmer handle',[(wx-.95,1.94,wz-.25),(wx-.55,1.88,wz-.1),(wx-.28,1.8,wz)],.012,WOOD,'#7a5a3a',5)
+    st.L('skimmer mesh',wx-.22,wz+.03,[(1.77,.12),(1.78,.13)],STEEL,'#9d9d98',n=12,cap_top=True)
+
+def goreng_prep(st):
+    """Behind the cabinet: batter basin, banana bunch, paper and the sauces."""
+    top=1.38
+    st.L('batter basin',.42,-.42,[(top,.16),(top+.14,.25),(top+.15,.26),(top+.13,.24),(top+.02,.14)],PLASTIC,'#d9dcdc',n=18,cap_bottom=True,cap_top=True)
+    st.L('batter',.42,-.42,[(top+.105,.225),(top+.11,.23)],LIQUID,BATTER_RAW,n=18,cap_top=True)
+    st.U('batter ladle',[(.42,top+.11,-.42),(.52,top+.2,-.5),(.6,top+.34,-.6)],.012,STEEL,GALV,5)
+    # pisang raja bunch on a chopping board
+    st.B('chopping board',-.35,top+.02,-.5,.5,.04,.34,WOOD,'#c49a6a')
+    for j in range(7):
+        bx=-.5+j*.05;pts=[(bx,top+.05,-.44),(bx+.02,top+.1,-.52),(bx,top+.12,-.62)]
+        st.U('banana',pts,[.024,.028,.016],PLASTIC,'#e5c341' if j%3 else '#d6b43a',6)
+    st.B('banana crown',-.35,top+.12,-.42,.34,.05,.05,PLASTIC,'#6b6a2c')
+    sauces(st,-1.55,-.55,(CHILLI,SOY,'#e06a1b'))
+
+def goreng_stock(st):
+    gas(st,1.3,-.28)
+    st.U('gas hose',[(1.3,1.24,-.28),(1.42,1.3,-.5),(1.36,1.42,-.66),(1.25,1.47,-.3)],.014,IRON,'#222222',5)
+    oil_tin(st,.8,-.3);oil_tin(st,.5,-.3)
+    for i,x in enumerate((-.25,-.65)):st.B('flour sack',x,.58,-.3,.34,.28,.26,PAINT,'#ece6d6',bevel=.03,ry=.1*i)
+    crate(st,-1.35,.44,-.3,BLUE);crate(st,-1.35,.74,-.3,GREEN,.08)
+
+def satay(st):
+    """Charcoal trough on folding legs beside the counter, skewers across it, a woven fan."""
+    sx,sz=SATAY;y=GRILL_Y;L,W=1.1,.28
+    st.B('trough floor',sx,y-.12,sz,W,.02,L,STEEL,'#6a6560')
+    for dx in (-1,1):st.B('trough side',sx+dx*W/2,y-.05,sz,.02,.16,L,STEEL,'#5b5650')
+    for dz in (-1,1):st.B('trough end',sx,y-.05,sz+dz*L/2,W,.16,.02,STEEL,'#5b5650')
+    for dx in (-1,1):
+        for dz in (-1,1):st.S('grill leg',(sx+dx*.1,y-.13,sz+dz*.45),(sx+dx*.16,0,sz+dz*.52),.025,STEEL,'#4d4a46')
+    st.S('grill brace',(sx-.14,.25,sz-.5),(sx-.14,.25,sz+.5),.018,STEEL,'#4d4a46')
+    for i in range(34):
+        cx,cz=sx+RNG.uniform(-.1,.1),sz+RNG.uniform(-.5,.5)
+        hot=RNG.random()<.55
+        st.lump('charcoal',cx,y-.07+RNG.uniform(0,.03),cz,.035,EMBER if hot else IRON,WHITE if hot else '#1e1c1b')
+    st.B('ash bed',sx,y-.1,sz,W-.03,.02,L-.03,PAINT,'#8a8580')
+    for z in (sz-.4,sz,sz+.4):st.B('grill bar',sx,y+.035,z,W+.04,.012,.012,IRON,'#2c2a28')
+    for i in range(16):
+        z=sz-.45+i*.06
+        st.B('skewer',sx+.05,y+.05,z,.52,.008,.008,WOOD,BAMBOO)
+        for k in range(4):st.B('satay meat',sx-.02+k*.045,y+.06,z,.04,.022,.03,FOOD,'#c98f5e' if i%3 else '#d49a62')
+    # kuah kacang waiting at the end of the counter
+    st.B('satay tray',1.84,1.405,.5,.3,.03,.3,STEEL,'#b6b6b0')
+    st.C('kuah kacang',1.84,1.45,.5,.1,.06,LIQUID,'#9b5a22',12)
+    fan=box('kipas',st.X+sx-.3,.55,st.Z+sz-.1,.02,.3,.24,WOOD,T,0);fan.rotation_euler.y=.35;st.add(fan,'#c9a56b')
 
 # ------------------------------------------------------------------ air balang
-def balang(s,o):
-    X,Z=s['x'],s['z'];items=s['items'];top=1.39
-    for i,item in enumerate(items):
-        m=mat(f"Stall item {item['id']}",hexcol(item['color']),.25)
-        x=-1.50+i*1.10
-        o.append(box('jar stand',X+x,top+.03,Z-.02,.74,.06,.74,STEEL,T,0))
-        # A half-metre jar, with brass rings and a real tap. Taller and the sign board at
-        # z .70 cuts its head off from any camera above eye level; at alpha .26 the glass
-        # read as nothing and the jar looked like a drum of colour.
-        o.append(bowl_out('balang jar',X+x,Z-.02,((1.45,.28),(1.51,.345),(1.71,.355),(1.79,.29)),GLASS))
-        o.append(cyl('balang drink',X+x,1.59,Z-.02,.325,.26,m,T,verts=16))
-        o.append(cyl('balang base ring',X+x,1.48,Z-.02,.295,.05,BRASS,T,verts=16))
-        o.append(cyl('balang neck ring',X+x,1.78,Z-.02,.305,.04,BRASS,T,verts=16))
-        o.append(cone('balang lid',X+x,Z-.02,1.80,.30,1.86,.12,STEEL,12))
-        o.append(cyl('lid knob',X+x,1.88,Z-.02,.035,.05,STEEL,T,verts=8))
-        o.append(box('balang tap',X+x,1.56,Z+.36,.09,.11,.22,BRASS,T,0))
-        o.append(cyl('tap spout',X+x,1.46,Z+.44,.022,.14,BRASS,T,verts=6))
-        o.append(cyl('tap lever',X+x,1.66,Z+.36,.014,.12,BRASS,T,verts=6))
-    # teh tarik end: kettle on a single burner, pull cups, straw jar
-    bx=1.62
-    o.append(cyl('burner ring',X+bx,1.43,Z-.10,.24,.06,IRON,T,verts=12))
-    for i in range(3):
-        arm=box('burner arm',X+bx,1.47,Z-.10,.44,.02,.06,IRON,T,0);arm.rotation_euler.z=i*1.05;o.append(arm)
-    o.append(bowl_out('kettle',X+bx,Z-.10,((1.48,.09),(1.55,.20),(1.78,.22),(1.86,.16)),STEEL))
-    o.append(cyl('kettle lid',X+bx,1.88,Z-.10,.175,.035,STEEL,T,verts=12))
-    o.append(cyl('kettle knob',X+bx,1.92,Z-.10,.028,.05,STEEL,T,verts=6))
-    o.append(cyl('kettle spout',X+bx-.26,1.74,Z-.10,.028,.26,STEEL,T,verts=6,axis='x'))
-    o.append(box('kettle handle',X+bx,2.02,Z-.10,.28,.025,.025,TUBE,T,0))
-    for z in (-.22,.02):o.append(box('kettle handle arm',X+bx+.13,1.95,Z+z,.025,.16,.025,TUBE,T,0))
-    o.append(cyl('straw jar',X+.98,top+.14,Z+.48,.075,.22,TUB,T,verts=8))
-    for i in range(6):o.append(box('straw',X+.95+.02*i,top+.34,Z+.48,.012,.26,.012,SAUCE_C,T,0))
-    o.append(box('ice box',X-.18,.60,Z-.30,.62,.46,.40,TUB,T,.01))
-    o.append(box('ice box lid',X-.18,.85,Z-.30,.66,.05,.44,STEEL,T,0))
+def canvas_roof(st):
+    """Striped canvas on a steel frame: ridge at 3.45, eaves at 3.10, a shallow scalloped valance
+    so the name board below it stays readable from the third-person camera."""
+    X,Z=st.X,st.Z;p=st.paint
+    for x in (-1.97,1.97):
+        st.S('rafter',(x,3.1,-1.45),(x,3.45,0),.04,PAINT,st.trim);st.S('rafter',(x,3.45,0),(x,3.1,1.45),.04,PAINT,st.trim)
+    st.B('ridge pole',0,3.47,0,4.3,.045,.045,PAINT,st.trim)
+    sag=lambda x:-.05*abs(math.sin(math.pi*(x+2.1)/2.1))
+    for i in range(8):
+        x0,x1=-2.1+i*.525,-2.1+(i+1)*.525;c=p if i%2 else CREAM
+        prof=lambda y:[(X+x0,y+sag(x0)),(X+x1,y+sag(x1)),(X+x1,y+sag(x1)+.02),(X+x0,y+sag(x0)+.02)]
+        st.add(loft('awning stripe',[(Z+z,prof(y)) for z,y in ((-1.45,3.10),(-.78,3.36),(0,3.45),(.78,3.36),(1.45,3.10))],CANVAS,T),c)
+        hem=[(X+x0,3.02),(X+(x0+x1)/2,2.93),(X+x1,3.02),(X+x1,3.12),(X+x0,3.12)]
+        st.add(loft('awning valance',[(Z+1.45,hem),(Z+1.47,hem)],CANVAS,T),c)
+        back=[(X+x0,3.0),(X+x1,3.0),(X+x1,3.12),(X+x0,3.12)]
+        st.add(loft('awning back skirt',[(Z-1.47,back),(Z-1.45,back)],CANVAS,T),c)
+    for z in (-1.45,1.45):st.B('eave bar',0,3.1,z,4.25,.03,.03,STEEL,GALV)
+
+def balang_jars(st):
+    """Three balang with brass taps, ice in the drink, stainless lids and a ladle."""
+    top=1.38
+    for i,item in enumerate(st.s['items']):
+        x=-1.5+i*1.1;z=-.02
+        st.B('jar stand',x,top+.03,z,.74,.06,.74,STEEL,WHITE)
+        st.L('balang glass',x,z,[(1.44,.27),(1.5,.34),(1.62,.36),(1.72,.35),(1.79,.29),(1.8,.28),(1.78,.27),(1.71,.335),(1.61,.345),(1.5,.325),(1.455,.255)],
+             GLASS,WHITE,n=20,cap_bottom=True)
+        st.L('balang drink',x,z,[(1.46,.25),(1.51,.315),(1.62,.335),(1.66,.33)],LIQUID,item_col(item),n=20,cap_bottom=True,cap_top=True)
+        for k in range(5):
+            st.B('ice cube',x+RNG.uniform(-.18,.18),1.665,z+RNG.uniform(-.18,.18),.07,.05,.07,GLASS,WHITE,ry=RNG.uniform(0,1.5))
+        st.L('brass base ring',x,z,[(1.455,.3),(1.5,.305)],STEEL,'#c49a3c',n=20)
+        st.L('brass neck ring',x,z,[(1.76,.31),(1.795,.305)],STEEL,'#c49a3c',n=20)
+        st.L('balang lid',x,z,[(1.79,.3),(1.83,.28),(1.86,.14),(1.87,.04)],STEEL,WHITE,n=16,cap_top=True)
+        st.C('lid knob',x,1.89,z,.03,.04,PLASTIC,'#222222',8)
+        st.B('tap body',x,1.55,z+.37,.07,.08,.12,STEEL,'#c49a3c')
+        st.C('tap spout',x,1.49,z+.42,.018,.1,STEEL,'#c49a3c',8)
+        st.B('tap lever',x,1.62,z+.36,.02,.1,.02,STEEL,'#c49a3c')
+        st.B('drip tray',x,top+.075,z+.42,.2,.02,.12,STEEL,'#b0b0aa')
+    st.U('ladle',[(-.95,1.97,-.2),(-.9,1.85,-.12),(-.88,1.72,-.1)],.01,STEEL,GALV,5)
+
+def kettle(st):
+    """Teh tarik end: kettle on a single ring burner, pull mugs, cup stack and the sealer."""
+    bx,bz=1.62,-.1;top=1.38
+    st.L('ring burner',bx,bz,[(top,.22),(top+.07,.2)],IRON,CAST,n=14,cap_top=True)
+    st.L('kettle',bx,bz,[(1.46,.1),(1.5,.19),(1.7,.215),(1.8,.17),(1.84,.1)],STEEL,'#dcdcd6',n=16,cap_bottom=True,cap_top=True)
+    st.C('kettle knob',bx,1.87,bz,.025,.05,PLASTIC,'#222222',8)
+    st.U('kettle spout',[(bx-.18,1.58,bz),(bx-.3,1.68,bz),(bx-.36,1.78,bz)],[.03,.022,.016],STEEL,'#dcdcd6',8)
+    st.U('kettle handle',[(bx+.12,1.82,bz-.1),(bx+.18,1.98,bz),(bx+.12,1.82,bz+.1)],.012,IRON,BLACK,5)
+    for k,x in enumerate((1.12,1.3)):
+        st.L('pull mug',x,-.55,[(top,.07),(top+.2,.08),(top+.19,.075),(top+.01,.065)],STEEL,'#c8c8c2',n=12,cap_bottom=True,cap_top=True)
+    for i in range(7):st.L('cup stack',.98,.5,[(top+.01+i*.03,.04),(top+.12+i*.03,.055),(top+.115+i*.03,.05)],PLASTIC,'#f2f2ee',n=10)
+    # cup sealer: box body, film roll and lever
+    sx,sz=1.55,.5
+    st.B('sealer body',sx,top+.2,sz,.22,.4,.26,PAINT,'#e7e3da',bevel=.02)
+    st.B('sealer mouth',sx,top+.12,sz+.06,.16,.1,.16,IRON,DARK)
+    st.C('sealer film',sx,top+.43,sz-.05,.05,.18,PLASTIC,'#e6d7a8',10,axis='x')
+    st.S('sealer lever',(sx+.12,top+.36,sz),(sx+.12,top+.52,sz+.22),.02,IRON,RED)
+    st.C('straw jar',1.22,top+.12,.54,.06,.22,GLASS,WHITE,10)
+    for i in range(6):st.S('straw',(1.2+.01*i,top+.05,.54),(1.18+.02*i,top+.34,.52+.01*i),.008,PLASTIC,(RED,YELLOW,GREEN,BLUE)[i%4])
+
+def bungkus(st):
+    """Air bungkus: drinks tied in plastic bags on a string along the left end of the awning."""
+    st.S('bag string',(-1.99,2.15,-.6),(-1.99,2.15,.6),.008,IRON,'#e8e2d0')
+    for i,item in enumerate(st.s['items']*2):
+        z=-.45+i*.17
+        st.S('bag knot',(-1.99,2.15,z),(-1.99,2.0,z),.01,GLASS)
+        st.L('air bungkus',-1.99,z,[(1.84,.018),(1.87,.045),(1.915,.05),(1.93,.04)],LIQUID,item_col(item),n=8,cap_bottom=True,cap_top=True)
+        st.L('bungkus bag',-1.99,z,[(1.835,.024),(1.87,.056),(1.94,.058),(2.0,.012)],GLASS,WHITE,n=8,cap_bottom=True)
+        st.S('bag straw',(-1.99,1.93,z),(-1.97,2.04,z+.015),.006,PLASTIC,RED)
+
+def balang_stock(st):
+    gas(st,1.6,-.28,BLUE)
+    st.U('gas hose',[(1.6,1.24,-.28),(1.7,1.3,-.55),(1.72,1.42,-.3)],.014,IRON,'#222222',5)
+    st.B('ice box',.2,.66,-.28,.7,.44,.44,PLASTIC,'#e9edf0',bevel=.03)
+    st.B('ice box lid',.2,.9,-.28,.72,.06,.46,PLASTIC,BLUE,bevel=.02)
+    oil_tin(st,-.45,-.3)
+    for i in range(3):st.B('syrup bottle',-.95+i*.14,.62,-.3,.1,.36,.1,PLASTIC,(SYRUP,'#d9b23a','#6e8a2a')[i],bevel=.02)
+    crate(st,-1.5,.44,-.3,RED)
+    # a big cooler and a crate of bottles beside the stall
+    st.B('cooler',2.45,.3,-.3,.62,.56,.44,PLASTIC,'#d8dde2',bevel=.04)
+    st.B('cooler lid',2.45,.61,-.3,.66,.08,.48,PLASTIC,RED,bevel=.03)
+    st.B('cooler handle',2.45,.4,-.07,.3,.04,.03,PLASTIC,'#8a8a8a')
+
+def kuih_table(st):
+    """Folding table beside the counter: nasi lemak bungkus in a basket, kuih under a clear cover."""
+    tx,tz=-3.15,-.25;top=.74
+    st.B('table top',tx,top,tz,.9,.03,.66,PLASTIC,'#2a64b0',bevel=.01)
+    for dx in (-1,1):
+        st.S('table leg',(tx+dx*.38,top-.02,tz-.26),(tx+dx*.4,0,tz+.26),.025,STEEL,GALV)
+        st.S('table leg',(tx+dx*.38,top-.02,tz+.26),(tx+dx*.4,0,tz-.26),.025,STEEL,GALV)
+    st.L('rattan basket',tx-.2,tz,[(top+.02,.14),(top+.13,.2),(top+.14,.21),(top+.12,.19),(top+.03,.12)],WOOD,RATTAN,n=14,cap_bottom=True,cap_top=True)
+    for k in range(7):
+        a=k*.9;r=.1 if k else 0
+        px,pz=tx-.2+math.cos(a)*r,tz+math.sin(a)*r
+        st.L('nasi lemak bungkus',px,pz,[(top+.12,.075),(top+.2,.01)],PLASTIC,LEAF if k%3 else KRAFT,n=4,cap_bottom=True)
+    st.B('kuih tray',tx+.22,top+.03,tz,.38,.03,.5,STEEL,'#c2c2bc')
+    colours=('#d44d7c','#f0e9d8','#3f9a52','#e2b344','#7b4a2c','#5aa06a')
+    for j in range(12):
+        st.B('kuih',tx+.1+(j%3)*.12,top+.07,tz-.19+(j//3)*.13,.1,.05,.1,PLASTIC,colours[j%6])
+    st.B('kuih cover',tx+.22,top+.13,tz,.4,.18,.52,GLASS)
+
+# ------------------------------------------------------------------ night pools
+def pools(st,front):
+    """Additive warm pools on the slab and the counter; drawn only at night."""
+    st.Q('light pool',0,.02,1.4,5.6,4.2,WASH)
+    st.Q('light pool counter',0,1.43,.1,4.4,1.9,WASH)
 
 # ------------------------------------------------------------------ build / export
+ANCHORS={}
 def stall(s):
-    paint=mat(f"Stall paint {s['id']}",hexcol(s['color']),.5)
-    trim=mat(f"Stall trim {s['id']}",shade(hexcol(s['color']),.45),.55)
-    o=cart(s,paint,trim);shelf_stock(s,o)
-    if s['id']=='air-balang':
-        counter_kit(s,o,(SAUCE_C,SAUCE_A,SAUCE_B));balang(s,o)
+    st=Stall(s)
+    counter(st);board(st)
+    if s['id']=='pisang-goreng':
+        ground(st,[(1.7,1.45,1.1,.4),(2.9,-.3,.9,1.2),(-.9,-1.9,1.3,2.2)])
+        posts(st,3.35,3.12);zinc_roof(st);bulbs(st,3.43)
+        cabinet(st);fryer(st);goreng_prep(st);goreng_stock(st);satay(st)
+        stools(st,[(-1.3,1.78,RED),(0,1.85,BLUE),(1.3,1.78,RED)])
+        ANCHORS[s['id']]={'flame':[s['x']+WOK[0],1.46,s['z']+WOK[1]],'smoke':[s['x']+SATAY[0],GRILL_Y+.06,s['z']+SATAY[1]],'embers':True}
     else:
-        counter_kit(s,o,(SAUCE_A,SAUCE_B,SAUCE_C));fryer(s,o)
-    return o
+        ground(st,[(2.5,-1.0,1.2,.7),(-.4,1.6,.8,2.0),(-2.4,-1.5,1.0,.3)])
+        posts(st,3.28,3.28);canvas_roof(st);bulbs(st,3.2)
+        balang_jars(st);kettle(st);bungkus(st);balang_stock(st);kuih_table(st)
+        stools(st,[(-1.3,1.78,GREEN),(0,1.85,RED),(1.3,1.78,BLUE)])
+        ANCHORS[s['id']]={'steam':[s['x']+1.62-.37,1.8,s['z']-.1]}
+    pools(st,True)
+    for x,z in ((-2.38,.62),):   # blank chalk A-board on the kerb: marks are lines, never letters
+        for dx in (-.24,.24):st.S('a-board leg',(x+dx,1.9,z),(x+dx*1.05,0,z+.25),.05,WOOD,'#7a5a3a')
+        st.B('a-board slate',x,1.36,z+.07,.62,.95,.035,IRON,'#1f2b25',rx=-.13)
+        st.B('a-board frame',x,1.36,z+.05,.7,1.03,.03,WOOD,'#8a6a44',rx=-.13)
+        for i in range(4):st.B('chalk line',x,1.62-i*.2,z+.105+i*.026,.4-.06*(i%2),.03,.006,PAINT,'#e8e8df',rx=-.13)
+    return st.o
 
 def build():
     s=bpy.context.scene;s.unit_settings.system='METRIC'
     for ob in list(s.objects):bpy.data.objects.remove(ob,do_unlink=True)
-    e=bpy.data.objects.new('stalls',None);s.collection.objects.link(e)
+    e=bpy.data.objects.new(T,None);s.collection.objects.link(e)
     for item in STALLS:
         for ob in stall(item):ob.parent=e
     return e
 
-def export(e):
-    batches={}
-    for ob in [c for c in e.children if c.type=='MESH']:batches.setdefault(tuple(m.name for m in ob.data.materials),[]).append(ob)
-    for key,objs in batches.items():
-        j=join(objs,f'stalls | {" + ".join(key)}')
-        for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
-    bpy.ops.object.select_all(action='DESELECT');e.select_set(True)
-    for c in e.children:c.select_set(True)
-    path=PUBLIC/'LM_ENV_Stalls.glb'
-    bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_cameras=False,export_lights=False,export_extras=False)
-    tris=sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children if c.type=='MESH')
-    report={'asset':'LM_ENV_Stalls','stalls':[{'id':s['id'],'x':s['x'],'z':s['z']} for s in STALLS],
-            'triangles':tris,'bytes':path.stat().st_size,'draws':len(e.children)}
-    (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n');print('STALLS WEB EXPORT',json.dumps(report),flush=True)
-
-def render():
-    s=bpy.context.scene
-    engines=[i.identifier for i in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items]
-    s.render.engine=next(e for e in ('BLENDER_EEVEE_NEXT','BLENDER_EEVEE','BLENDER_WORKBENCH') if e in engines)
-    s.render.resolution_x=1500;s.render.resolution_y=1000;s.view_settings.view_transform='AgX'
-    w=bpy.data.worlds.new('sky');s.world=w;w.use_nodes=True;w.node_tree.nodes['Background'].inputs[0].default_value=(.55,.7,.9,1)
-    sun=bpy.data.objects.new('sun',bpy.data.lights.new('sun','SUN'));s.collection.objects.link(sun);sun.data.energy=4;sun.rotation_euler=(math.radians(52),math.radians(14),math.radians(150))
-    bpy.ops.mesh.primitive_plane_add(size=200,location=(0,0,-.01));bpy.context.object.data.materials.append(mat('Stall ground',(.30,.32,.29),.9))
-    cam=bpy.data.objects.new('cam',bpy.data.cameras.new('cam'));s.collection.objects.link(cam);s.camera=cam
-    from mathutils import Vector
-    goreng=next(x for x in STALLS if x['id']=='pisang-goreng');drinks=next(x for x in STALLS if x['id']=='air-balang')
-    views={
-        'goreng':(((goreng['x']+5.2,3.6,goreng['z']+6.4),(goreng['x'],1.9,goreng['z'])),32),
-        'goreng-counter':(((goreng['x']+1.5,1.95,goreng['z']+2.5),(goreng['x']+1.15,1.5,goreng['z'])),40),
-        'balang':(((drinks['x']-5.0,3.4,drinks['z']+6.6),(drinks['x'],1.9,drinks['z'])),32),
-        'balang-counter':(((drinks['x']-.7,1.85,drinks['z']+2.6),(drinks['x']-.4,1.6,drinks['z'])),42),
-        'street':(((goreng['x']+9,4.6,goreng['z']+9),((goreng['x']+drinks['x'])/2,2.0,(goreng['z']+drinks['z'])/2)),24),
-        'back':(((goreng['x']-3.5,2.8,goreng['z']-5.5),(goreng['x'],1.4,goreng['z'])),32),
-    }
-    for name,((eye,at),lens) in views.items():
-        cam.data.lens=lens;cam.location=pt(*eye);d=Vector(pt(*at))-cam.location;cam.rotation_euler=d.to_track_quat('-Z','Y').to_euler()
-        s.render.filepath=str(OUT/f'preview-{name}.png');bpy.ops.render.render(write_still=True)
-
 if __name__=='__main__':
-    e=build();export(e)
-    if '--no-render' not in ARGS:render()
-    bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'stalls.blend'))
+    e=build()
+    path=PUBLIC/'LM_ENV_Stalls.glb'
+    report={'asset':'LM_ENV_Stalls','stalls':[{'id':s['id'],'x':s['x'],'z':s['z']} for s in STALLS],'anchors':ANCHORS,**export(e,path,T)}
+    (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n');print('STALLS WEB EXPORT',json.dumps(report),flush=True)

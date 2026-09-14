@@ -16,7 +16,42 @@
     5,
     3.6
   ],
-  "triangles": 7076,
-  "bytes": 312252,
-  "draws": 19
+  "truss": {
+    "x": 2.3,
+    "z": -1.55,
+    "height": 3.0
+  },
+  "triangles": 11746,
+  "draws": 12,
+  "materials": [
+    "Busk acrylic",
+    "Busk fabric",
+    "Busk metal",
+    "Busk plastic",
+    "Busk tikar",
+    "Busk tolex",
+    "Busk wood",
+    "Night LED",
+    "Night beam",
+    "Night fairy",
+    "Night par",
+    "Night wash"
+  ],
+  "textures": [
+    "beam",
+    "fabric_color",
+    "fabric_normal",
+    "plastic_color",
+    "plastic_normal",
+    "steel_color",
+    "steel_normal",
+    "tikar_color",
+    "tikar_normal",
+    "tolex_color",
+    "tolex_normal",
+    "wash",
+    "wood_small_color",
+    "wood_small_normal"
+  ],
+  "bytes": 999164
 }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {createPerson,box,material,batchShopFallback, nearLoader} from './world';
 import type {Solid} from './physics';
+import {lightHawker} from './stalls';
 // PETRONAS faces south onto the open forecourt; the stage sits in that frontage,
 // with the audience between the performers and the station canopy.
 export const buskingSpot={x:-31,z:86};
@@ -42,8 +43,12 @@ export function createBuskers(scene:THREE.Scene,solids:Solid[],spot=buskingSpot)
  // The seated rigs were only ever a source of fallback boxes, and the batch above has
  // taken their geometry. Dropping the emptied rigs keeps avatar assets from loading in.
  for(const child of [...stage.children])if(child.name==='avatar')child.removeFromParent();
- void nearLoader(stage,150,230).loadAsync('/assets/models/environment/LM_ENV_Busking.glb?v=busking-v1').then(gltf=>{
-  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+ void nearLoader(stage,150,230).loadAsync('/assets/models/environment/LM_ENV_Busking.glb?v=busking-v2').then(gltf=>{
+  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}
+   // The tikar mats lie flat on the paving: receive only.
+   if(m.name==='Busk tikar')o.castShadow=false;});
+  // Fairy lights, the LED lip and the PAR cans come up after dark (src/stalls.ts owns the night hook).
+  lightHawker(gltf.scene);
   for(const child of [...stage.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   stage.add(gltf.scene);
  }).catch(error=>console.warn('[BUSKING] keeping procedural stage',error));

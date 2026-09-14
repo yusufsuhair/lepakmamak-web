@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import stalls from '../shared/stalls.json';
 import {batchShopFallback, createPerson, nearLoader} from './world';
 import type {Solid} from './physics';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {cdnUrl} from './cdn';
 
 export const stallVoiceSpots = stalls.map(({id,name,x,z}) => ({id,name,x,z}));
@@ -48,11 +49,123 @@ export function createStallWorld(scene:THREE.Scene,solids:Solid[]){
  group.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(group);
  void nearLoader(group,150,230).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Stalls.glb')).then(gltf=>{
-  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}
+   // The slab and its puddles only receive: they are flat, and casting would cost a shadow draw each.
+   if(/slab|puddle/i.test(m.name))o.castShadow=false;});
+  lightHawker(gltf.scene);
+  gltf.scene.add(createStallEffects());
   for(const child of [...group.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   group.add(gltf.scene);
  }).catch(error=>console.warn('[STALLS] keeping procedural stalls',error));
 }
+
+/** Night lighting shared by LM_ENV_Stalls.glb and LM_ENV_Busking.glb (scripts/blender/build_stalls.py,
+ * build_busking.py). The material names are the contract: lamps glow a little by day and fully after
+ * dark, 'Night wash' pools and 'Night beam' cones are additive light drawn only at night. Night is a
+ * flag, so a model that streams in after dark still lights up. */
+const GLOW:Record<string,[day:number,night:number]>={'Night tube':[.6,2.4],'Night bulb':[.5,3.2],'Night ember':[1.5,2.3],'Night fairy':[.15,2.8],'Night LED':[.35,2.2],'Night par':[0,3.2]};
+const glows:{material:THREE.MeshStandardMaterial;day:number;night:number}[]=[];
+const washes:THREE.Mesh[]=[];
+const smokeLight={value:1};
+let hawkerNight=false;
+
+export function lightHawker(model:THREE.Object3D):void{
+ model.traverse(object=>{
+  if(!(object instanceof THREE.Mesh))return;
+  const material=object.material as THREE.MeshStandardMaterial;
+  if(!material.name.startsWith('Night'))return;
+  object.castShadow=false;
+  if(material.name.startsWith('Night wash')||material.name.startsWith('Night beam')){
+   // Light, not paint: the texture becomes emission over black and is added on top.
+   material.emissiveMap=material.map;material.map=null;material.color.setRGB(0,0,0);material.emissive.set(material.name.startsWith('Night beam')?'#ffe2b0':'#ffc987');
+   material.emissiveIntensity=material.name.startsWith('Night beam')?.32:.85;
+   Object.assign(material,{blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,side:THREE.DoubleSide});
+   material.needsUpdate=true;object.receiveShadow=false;object.renderOrder=2;washes.push(object);
+  }else if(material.name in GLOW&&!glows.some(glow=>glow.material===material)){
+   const [day,night]=GLOW[material.name];glows.push({material,day,night});
+  }
+ });
+ setHawkerNight(hawkerNight);
+}
+
+export function setHawkerNight(night:boolean):void{
+ hawkerNight=night;
+ for(const glow of glows)glow.material.emissiveIntensity=night?glow.night:glow.day;
+ for(const wash of washes)wash.visible=night;
+ smokeLight.value=night?.28:1;
+}
+
+export const hawkerStatus=()=>({night:hawkerNight,glows:glows.length,washes:washes.length});
+
+/** Mirrors the anchors build_stalls.py writes to assets/stalls/manifest.json (offsets from the stall). */
+export const STALL_EFFECTS:Record<string,{flame?:number[];smoke?:number[];steam?:number[]}>={'pisang-goreng':{flame:[1.22,1.46,-.05],smoke:[2.42,.96,-.6]},'air-balang':{steam:[1.25,1.8,-.1]}};
+
+function flameTexture(){
+ const c=document.createElement('canvas');c.width=32;c.height=64;const ctx=c.getContext('2d')!;
+ const body=ctx.createLinearGradient(0,64,0,0);body.addColorStop(0,'rgba(60,110,255,.75)');body.addColorStop(.35,'rgba(90,120,240,.45)');body.addColorStop(.6,'rgba(255,150,50,.5)');body.addColorStop(1,'rgba(255,80,20,0)');
+ ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(16,2);ctx.bezierCurveTo(30,30,30,52,16,62);ctx.bezierCurveTo(2,52,2,30,16,2);ctx.fill();
+ const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+}
+
+/** Wok flame, satay smoke and kettle steam: one draw for the flames, one for every puff. Both animate in
+ * onBeforeRender, so they cost nothing while off screen, need no hook in the game loop and look the
+ * same at every graphics quality. Reduced motion holds them still. */
+export function createStallEffects():THREE.Group{
+ const fx=new THREE.Group();fx.name='stall-effects';
+ const still=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const now=()=>still?1.7:performance.now()/1000;
+ // Flame tongues ring the kuali's belly: two crossed cards each, blue at the burner, orange at the tips.
+ const cards:THREE.BufferGeometry[]=[],puffs:{origin:number[];rise:number;size:[number,number];life:number;spread:number;tone:number;alpha:number}[]=[];
+ for(const stall of stalls){
+  const spots=STALL_EFFECTS[stall.id]??{};
+  if(spots.flame){
+   const [fx0,fy,fz]=spots.flame;
+   for(let i=0;i<16;i++){const a=i/16*Math.PI*2,h=.09+(i%3)*.025;for(const turn of [0,Math.PI/2]){
+    const card=new THREE.PlaneGeometry(.06,h);card.translate(0,h/2,0);card.rotateY(a+turn);card.translate(stall.x+fx0+Math.cos(a)*.14,fy,stall.z+fz+Math.sin(a)*.14);cards.push(card);}}
+  }
+  if(spots.smoke){const [sx,sy,sz]=spots.smoke;for(let i=0;i<16;i++)puffs.push({origin:[stall.x+sx+((i*7)%5/4-.5)*.16,sy,stall.z+sz+(i/15-.5)*.9],rise:1.8,size:[.16,.62],life:4.2,spread:.45,tone:.84,alpha:.28});}
+  if(spots.steam){const [tx,ty,tz]=spots.steam;for(let i=0;i<6;i++)puffs.push({origin:[stall.x+tx,ty,stall.z+tz],rise:.55,size:[.05,.24],life:2.2,spread:.12,tone:.96,alpha:.2});}
+ }
+ if(cards.length){
+  const geometry=mergeGeometries(cards)!;geometry.computeBoundingBox();
+  for(const card of cards)card.dispose();
+  const flameMaterial=new THREE.MeshBasicMaterial({map:flameTexture(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const flame=new THREE.Mesh(geometry,flameMaterial);flame.name='stall-wok-flame';flame.renderOrder=3;
+  const base=geometry.boundingBox!.min.y,ember=glows.find(glow=>glow.material.name==='Night ember');
+  // Stretch the tongues from their base, and let the satay coals breathe with them.
+  flame.onBeforeRender=()=>{const t=now();flame.scale.y=.85+Math.sin(t*17)*.1+Math.sin(t*29)*.07;flame.position.y=base*(1-flame.scale.y);
+   if(ember)ember.material.emissiveIntensity=(hawkerNight?ember.night:ember.day)*(.88+Math.sin(t*3.1)*.08+Math.sin(t*7.3)*.04);};
+  fx.add(flame);
+ }
+ if(puffs.length){
+  // Billboard quads expanded in view space: rise, grow and fade over each puff's life.
+  const count=puffs.length,origin=new Float32Array(count*12),corner=new Float32Array(count*8),shape=new Float32Array(count*16),phase=new Float32Array(count*16),index:number[]=[];
+  const corners=[-1,-1,1,-1,1,1,-1,1];
+  puffs.forEach((p,i)=>{
+   const start=i/count*p.life*3%p.life;   // stagger, so the column is never one synchronised plume
+   for(let k=0;k<4;k++){origin.set(p.origin,i*12+k*3);shape.set([p.rise,p.size[0],p.size[1],p.life],i*16+k*4);phase.set([start,p.spread,p.tone,p.alpha],i*16+k*4);}
+   corner.set(corners,i*8);index.push(i*4,i*4+1,i*4+2,i*4,i*4+2,i*4+3);
+  });
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(origin,3));geometry.setAttribute('corner',new THREE.BufferAttribute(corner,2));
+  geometry.setAttribute('shape',new THREE.BufferAttribute(shape,4));geometry.setAttribute('phase',new THREE.BufferAttribute(phase,4));geometry.setIndex(index);
+  geometry.computeBoundingSphere();geometry.boundingSphere!.radius+=2.5;
+  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{time:{value:0},light:smokeLight},
+   vertexShader:`attribute vec2 corner;attribute vec4 shape;attribute vec4 phase;uniform float time;varying vec2 vUv;varying float vAlpha;varying float vTone;
+    void main(){float life=fract((time+phase.x)/shape.w);vec3 p=position;
+     p.y+=life*shape.x;p.x+=life*life*phase.y+sin(life*5.+phase.x*3.)*.06;p.z+=sin(life*3.+phase.x)*.04*phase.y;
+     vec4 view=modelViewMatrix*vec4(p,1.);float size=mix(shape.y,shape.z,sqrt(life));view.xy+=corner*size;
+     gl_Position=projectionMatrix*view;vUv=corner;vTone=phase.z;
+     vAlpha=phase.w*smoothstep(0.,.12,life)*(1.-smoothstep(.45,1.,life))*(1.-smoothstep(60.,110.,-view.z));}`,
+   fragmentShader:`uniform float light;varying vec2 vUv;varying float vAlpha;varying float vTone;
+    void main(){float d=length(vUv);float a=vAlpha*smoothstep(1.,.15,d);if(a<.003)discard;gl_FragColor=vec4(vec3(vTone)*light*vec3(1.,.97,.92),a);}`});
+  const smoke=new THREE.Mesh(geometry,material);smoke.name='stall-smoke';smoke.renderOrder=4;
+  smoke.onBeforeRender=()=>{material.uniforms.time.value=now();};
+  fx.add(smoke);
+ }
+ return fx;
+}
+
 // Stalls name themselves when you walk up and carry the nearby hawker call.
 export function setupStalls(hud:HTMLElement){
  const labels=stalls.map(stall=>{const label=document.createElement('div');label.className='table-label stall-name';label.hidden=true;label.textContent=stall.name;hud.append(label);return {stall,label};});
