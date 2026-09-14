@@ -1,0 +1,131 @@
+{
+  "asset": "LM_ENV_Shoplots",
+  "bay_width": 6.5,
+  "pieces": {
+    "frame": {
+      "triangles": 680,
+      "meshes": 15
+    },
+    "upper_casement": {
+      "triangles": 494,
+      "meshes": 4
+    },
+    "upper_louvre": {
+      "triangles": 502,
+      "meshes": 4
+    },
+    "upper_sliding": {
+      "triangles": 648,
+      "meshes": 5
+    },
+    "front_open": {
+      "triangles": 32,
+      "meshes": 2
+    },
+    "front_glazed": {
+      "triangles": 130,
+      "meshes": 3
+    },
+    "props_eatery_0": {
+      "triangles": 596,
+      "meshes": 1
+    },
+    "props_market_0": {
+      "triangles": 480,
+      "meshes": 1
+    },
+    "props_diy_0": {
+      "triangles": 514,
+      "meshes": 1
+    },
+    "props_laundry_0": {
+      "triangles": 380,
+      "meshes": 1
+    },
+    "props_electric_0": {
+      "triangles": 538,
+      "meshes": 1
+    },
+    "props_eatery_1": {
+      "triangles": 596,
+      "meshes": 1
+    },
+    "props_market_1": {
+      "triangles": 480,
+      "meshes": 1
+    },
+    "props_diy_1": {
+      "triangles": 514,
+      "meshes": 1
+    },
+    "props_laundry_1": {
+      "triangles": 380,
+      "meshes": 1
+    },
+    "props_electric_1": {
+      "triangles": 538,
+      "meshes": 1
+    },
+    "awning": {
+      "triangles": 44,
+      "meshes": 3
+    },
+    "end_l": {
+      "triangles": 224,
+      "meshes": 5
+    },
+    "end_r": {
+      "triangles": 224,
+      "meshes": 5
+    },
+    "sign": {
+      "triangles": 14,
+      "meshes": 2
+    },
+    "sign_cap_l": {
+      "triangles": 6,
+      "meshes": 1
+    },
+    "sign_cap_r": {
+      "triangles": 6,
+      "meshes": 1
+    }
+  },
+  "materials": [
+    "Night lamp",
+    "Night shop interior",
+    "Night wash",
+    "Night window glass",
+    "Shoplot five-foot-way tiles",
+    "Shoplot fixtures",
+    "Shoplot render",
+    "Shoplot roller shutter",
+    "Shoplot shopfront glass",
+    "Shoplot zinc"
+  ],
+  "heights": {
+    "plinth": 0.55,
+    "soffit": 3.3,
+    "sign": [
+      3.34,
+      4.7
+    ],
+    "sill": 5.55,
+    "head": 7.75,
+    "cornice": 8.55,
+    "coping": 10.85
+  },
+  "textures": [
+    "atlas",
+    "render_color",
+    "render_normal",
+    "shutter_color",
+    "shutter_normal",
+    "tiles_color",
+    "tiles_normal",
+    "wash",
+    "zinc_color",
+    "zinc_normal"
+  ],
+  "bytes": 1036664
+}

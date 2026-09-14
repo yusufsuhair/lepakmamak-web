@@ -22,6 +22,7 @@ import {loadKlcc} from './klcc';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
+import {DEFAULT_ACCENT, loadShoplots, shoplotKind, type Shoplot, type ShoplotSite} from './shoplots';
 
 const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -580,7 +581,7 @@ export function cullBeyond(group: THREE.Object3D, radius: number) { crowds.push(
 export function streamAllNow() { for (const a of streamed) if (!a.started) { a.started = true; a.start(); } }
 
 
-export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; foliage:typeof foliageStatus; rembayung:RembayungSite; petronas:PetronasSite }
+export interface World { chairs: { id: string; x: number; z: number; y?: number; yaw: number }[]; group: THREE.Group; solids: Solid[]; mapBuildings: { x: number; z: number; w: number; d: number; color: string }[]; traffic: TrafficCar[]; pedestrians: Pedestrian[]; klccLifts: KlccLift[]; mamakProcedural: THREE.Group; mamakStreetFallback: THREE.Group; shopFallbacks: Map<string, THREE.Group>; shoplots: ShoplotSite; foliage:typeof foliageStatus; rembayung:RembayungSite; petronas:PetronasSite }
 
 export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chinese', mosqueName = 'MASJID LEPAK') {
   const g = new THREE.Group(); g.name = kind;
@@ -662,6 +663,10 @@ export function createWorld(scene: THREE.Scene): World {
   // at the world origin so scripts/blender/build_zoo.py can replace the lot in one fetch.
   const furniture = new THREE.Group(); furniture.name = 'street-furniture'; group.add(furniture);
   const shopFallbacks = new Map<string, THREE.Group>();
+  // Generic shophouse rows (no branded GLB) share one fallback group, kept out of the city batch,
+  // that src/shoplots.ts swaps for the Blender kit (scripts/blender/build_shoplots.py).
+  const shoplotFallback = new THREE.Group(); shoplotFallback.name = 'shoplot-fallback'; group.add(shoplotFallback);
+  const shoplots: Shoplot[] = [];
   scene.add(group);
   const solid = (x: number, z: number, w: number, d: number) => solids.push({ x, z, hx: w / 2, hz: d / 2 });
   const block = (x: number, z: number, w: number, h: number, d: number, color: string) => {
@@ -845,9 +850,10 @@ export function createWorld(scene: THREE.Scene): World {
 
   const shopColors = ['#d8ac89', '#c0c9a4', '#c6aba0', '#edcf93', '#a4baba', '#d7b9a0'];
   function shop(x: number, z: number, width: number, color: string, label: string, facing = 0) {
-    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = facing; group.add(g);
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = facing;
     const replacement = mamakShops.find(shop => shop.x === x && shop.z === z);
-    if (replacement) { g.name = `${replacement.asset}_Fallback`; shopFallbacks.set(replacement.asset, g); }
+    if (replacement) { g.name = `${replacement.asset}_Fallback`; shopFallbacks.set(replacement.asset, g); group.add(g); }
+    else { shoplotFallback.add(g); shoplots.push({ x, z, width, facing, color, accent: DEFAULT_ACCENT, signBg: '#355d50', kind: shoplotKind(label) }); }
     box(g, 0, 5.5, 0, width, 11, 12, color);
     box(g, 0, 11.05, 0, width + .4, .4, 12.5, '#bfa98a');
     box(g, 0, 11.4, 5.8, width + .15, .5, .45, '#ead9b9');
@@ -935,6 +941,8 @@ export function createWorld(scene: THREE.Scene): World {
 
   function retail(x: number, z: number, label: string, brand: string, ink: string, kind: 'market' | 'diy' | 'laundry') {
     const g = shop(x, z, 19, '#e2d5b5', label);
+    const lot = shoplots.find(l => l.x === x && l.z === z);
+    if (lot) Object.assign(lot, { kind, accent: brand, signBg: brand });
     sign(g, label, 0, 4.02, 6.3, 18.7, 1.22, brand, ink);
     box(g, 0, 3.18, 7.12, 19, .15, 2.35, brand);
     box(g, 0, 1.5, 6.18, 2.1, 3, .12, '#a2c5c0');
@@ -1468,6 +1476,9 @@ export function createWorld(scene: THREE.Scene): World {
 
   // Batch the static city by material to avoid thousands of draw calls.
   for (const fallback of shopFallbacks.values()) batchShopFallback(fallback);
+  shoplotFallback.traverse(o => { o.userData.keepUnbatched = true; });
+  batchShopFallback(shoplotFallback);
+  const shoplotSite = loadShoplots(shoplotFallback, shoplots);
   group.updateMatrixWorld(true);
   const batches = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const sources: THREE.Mesh[] = [];
@@ -1511,7 +1522,7 @@ export function createWorld(scene: THREE.Scene): World {
     scene.add(person.group); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
   paintGroundMask(mapBuildings, chairs);
-  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, foliage:foliageStatus, rembayung, petronas };
+  return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, shoplots: shoplotSite, foliage:foliageStatus, rembayung, petronas };
 }
 
 // Street lamps derive from the same road constants the grid above uses, so they can
