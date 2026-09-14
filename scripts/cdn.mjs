@@ -35,7 +35,8 @@ export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3', 'lo
   'assets/models/environment/LM_ENV_KLTower.glb', 'assets/models/environment/LM_ENV_Merdeka118.glb', 'assets/models/environment/LM_ENV_TRX.glb', 'assets/models/environment/LM_ENV_TowerDAP.glb', 'assets/models/environment/LM_ENV_TowerHSBC.glb', 'assets/models/environment/LM_ENV_TowerMahkota.glb', 'assets/models/environment/LM_ENV_TowerUOB.glb',
   'assets/models/environment/LM_ENV_Shell.glb', 'assets/models/environment/LM_ENV_DriveThrough.glb', 'assets/models/foliage/LM_TREE_RainTree.glb', 'assets/models/foliage/LM_TREE_CoconutPalm.glb', 'assets/models/shops/LM_SHOP_BengkelAzlan.glb', 'assets/models/shops/LM_SHOP_SevenEleven.glb', 'assets/models/shops/LM_SHOP_WarungKakAna.glb', 'assets/models/shops/LM_SHOP_ZusCoffee.glb', 'assets/models/shops/LM_SHOP_FamilyMart.glb', 'assets/models/shops/LM_SHOP_KkSuperMart.glb', 'assets/models/shops/LM_SHOP_Watsons.glb',
   'assets/models/lrt/LM_LRT_Train.glb', 'assets/models/lrt/LM_LRT_Station.glb',
-  'assets/models/environment/LM_ENV_Church.glb', 'assets/models/environment/LM_ENV_HinduTemple.glb', 'assets/models/environment/LM_ENV_ChineseTemple.glb'];
+  'assets/models/environment/LM_ENV_Church.glb', 'assets/models/environment/LM_ENV_HinduTemple.glb', 'assets/models/environment/LM_ENV_ChineseTemple.glb',
+  'assets/models/environment/LM_ENV_Busking.glb'];
 
 const md5 = body => createHash('md5').update(body).digest('hex');
 const sha256 = body => createHash('sha256').update(body).digest('hex');

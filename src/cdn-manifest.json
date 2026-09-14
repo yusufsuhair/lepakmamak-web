@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "fbee8119df16",
+  "version": "c65ee5ab08c8",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -75,9 +75,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Stalls.glb": {
-      "key": "models/LM_ENV_Stalls.2715a826a2fc.glb",
-      "bytes": 71815,
-      "etag": "cef91db4e5bdbb1e1c58e54107567f29",
+      "key": "models/LM_ENV_Stalls.febd1a1d57a4.glb",
+      "bytes": 362992,
+      "etag": "f494d7c86d39bb3e05f55b462f60919e",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Saloma.glb": {
@@ -246,6 +246,12 @@
       "key": "models/LM_ENV_ChineseTemple.e8e2f68e56af.glb",
       "bytes": 633503,
       "etag": "24df5f50a4b954a55f773c8c2c86d66f",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Busking.glb": {
+      "key": "models/LM_ENV_Busking.ef2467c40491.glb",
+      "bytes": 270450,
+      "etag": "b7004556da0b5eba3883525795e4ca39",
       "encoding": "br"
     }
   }
