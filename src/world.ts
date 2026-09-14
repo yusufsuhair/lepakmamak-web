@@ -17,7 +17,7 @@ import {upgradeVehicle} from './vehicle-assets';
 import {createGt3Rs} from './gt3-rs';
 import {createRembayung, type RembayungSite} from './rembayung';
 import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
-import {cdnUrl} from './cdn';
+import {cdnUrl, type CdnFile} from './cdn';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {loadSkylineTower, type SkylineAsset} from './skyline';
@@ -648,7 +648,7 @@ export function createWorshipLandmark(kind: 'mosque' | 'church' | 'hindu' | 'chi
   // The mosque is its own photographic build (scripts/blender/build_masjid.py) with night lighting.
   // It is served from R2 (1.35 MB meshopt, 0.77 MB brotli); the other three stay on Pages and light up
   // through src/worship.ts (stained glass, floodlit gopuram, lanterns, joss smoke).
-  const url = kind === 'mosque' ? cdnUrl('assets/models/environment/LM_ENV_Masjid.glb') : `/assets/models/environment/LM_ENV_${asset}.glb?v=worship-v2`;
+  const url = cdnUrl(`assets/models/environment/LM_ENV_${asset}.glb` as CdnFile);   // all four from R2 (content-hashed keys)
   void nearLoader(g,200,340).loadAsync(url).then(gltf => {
     gltf.scene.traverse(o => { if (!(o instanceof THREE.Mesh)) return; o.castShadow = o.receiveShadow = true; const m = o.material as THREE.MeshStandardMaterial; if (m.transparent) { m.depthWrite = false; o.castShadow = false; } });
     if (kind === 'mosque') lightMasjid(gltf.scene); else lightWorship(gltf.scene);
