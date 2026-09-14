@@ -1,3 +1,4 @@
+import { createMusicPlayer } from './music-player';
 import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
 import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
@@ -849,12 +850,20 @@ async function init() {
   let musicContext: AudioContext | null = null;
   let musicGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
-  lofiMusic.addEventListener('ended', () => {
+  const updateMusicPlayer = createMusicPlayer(lofiMusic, () => {
+    const toggle = $<HTMLInputElement>('music-toggle');
+    toggle.checked = !musicEnabled;
+    toggle.dispatchEvent(new Event('change'));
+  }, nextSong);
+  updateMusicPlayer(LOFI_TRACKS[lofiTrack].file);
+  function nextSong() {
     lofiTrack = (lofiTrack + 1) % LOFI_TRACKS.length;
     if (lofiGain) lofiGain.gain.value = lofiLevel();
     lofiMusic.src = cdnUrl(LOFI_TRACKS[lofiTrack].file);
-    if (musicEnabled && started) void lofiMusic.play().catch(() => {});
-  });
+    updateMusicPlayer(LOFI_TRACKS[lofiTrack].file);
+    if (musicEnabled && started) startBackgroundMusic();
+  }
+  lofiMusic.addEventListener('ended', nextSong);
   function startBackgroundMusic(force = false) {
     // Entering the city starts the simulation before the socket has admitted the player.
     // Do not let a click on the sign-in form turn that short interval into a music preview.
