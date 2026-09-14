@@ -20,6 +20,7 @@ import {foliageStatus,foliageYaw,queueFoliage} from './foliage';
 import {cdnUrl, type CdnFile} from './cdn';
 import {loadGltf, STREET_LAMP_URL} from './web-assets';
 import {instanceStreetFurniture} from './street-furniture';
+import {dressDistrict} from './district-night';
 import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {loadSkylineTower, type SkylineAsset} from './skyline';
@@ -1349,13 +1350,13 @@ export function createWorld(scene: THREE.Scene): World {
     const zooPalms=new THREE.Group();zooPalms.position.set(zx,0,zz);group.add(zooPalms);
     for(const [x,z] of [[-23,-24],[-5,-24],[21,-24],[-23,24],[5,24],[23,22]] as const)palm(zooPalms,x,z,.6);
     sign(zoo,'GAJAH',-15,2.4,-2,5,.8,'#315f48','#fff0b9');sign(zoo,'SAVANA',13,2.4,-1,5,.8,'#315f48','#fff0b9');sign(zoo,'KOLAM FLAMINGO',-12,2.4,23,8,.8,'#315f48','#fff0b9');
-    // Boxes and balls above are the fallback until the Blender park (scripts/blender/build_zoo.py)
+    // Boxes and balls above are the fallback until the Blender park (scripts/blender/build_zoo_negara.py)
     // loads. The canvas habitat signs are the only children kept, so the wording stays the game's.
     zoo.name='zoo';
     zoo.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(zoo);
     void nearLoader(zoo,170,300).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Zoo.glb')).then(gltf=>{
-      gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      dressDistrict(gltf.scene);
       for(const child of [...zoo.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       zoo.add(gltf.scene);
     }).catch(error=>console.warn('[ZOO] keeping procedural zoo',error));
