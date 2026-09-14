@@ -57,6 +57,20 @@ test('the bars fill according to the grade, and empty when the city is gone',asy
  expect(await page.evaluate(()=>document.querySelectorAll('#net-status .bar.on').length)).toBe(0);
 });
 
+test('FPS appears below the round-trip time using a stable frame window',async({page})=>{
+ await mountStatus(page,'fps-harness');
+ await page.evaluate(()=>{
+  const net=(window as any).net;
+  net.sample(42);
+  for(let frame=0;frame<60;frame++)net.frame(1/60);
+ });
+ await expect(page.locator('#net-ping')).toHaveText('42 ms');
+ await expect(page.locator('#net-fps')).toHaveText('60 FPS');
+ const readings=page.locator('#net-status .net-readings');
+ await expect(readings.locator('b').nth(0)).toHaveAttribute('id','net-ping');
+ await expect(readings.locator('b').nth(1)).toHaveAttribute('id','net-fps');
+});
+
 const mountSpeaking=async(page:any,route:string)=>{
  await page.route(`**/${route}`,(r:any)=>r.fulfill({contentType:'text/html',body:'<div id="hud"></div>'}));
  await page.goto(`/${route}`);

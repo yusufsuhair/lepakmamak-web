@@ -13,11 +13,13 @@ const GRADES: {grade: string; upTo: number; bars: number}[] = [
 export function createNetStatus(hud: HTMLElement) {
   const root = document.createElement('div');
   root.id = 'net-status'; root.dataset.grade = 'none';
-  root.innerHTML = '<span class="bars">' + [1, 2, 3, 4].map(n => `<i class="bar bar-${n}"></i>`).join('') + '</span><b id="net-ping">—</b>';
+  root.innerHTML = '<span class="bars">' + [1, 2, 3, 4].map(n => `<i class="bar bar-${n}"></i>`).join('') + '</span><span class="net-readings"><b id="net-ping">—</b><b id="net-fps" aria-hidden="true">— FPS</b></span>';
   root.setAttribute('role', 'status');
   hud.append(root);
   const ping = root.querySelector<HTMLElement>('#net-ping')!;
+  const fps = root.querySelector<HTMLElement>('#net-fps')!;
   const bars = [...root.querySelectorAll<HTMLElement>('.bar')];
+  let frameCount = 0, frameSeconds = 0;
 
   function paint(grade: string, lit: number, label: string) {
     root.dataset.grade = grade;
@@ -31,6 +33,15 @@ export function createNetStatus(hud: HTMLElement) {
     sample(rtt: number) {
       const {grade, bars: lit} = GRADES.find(entry => rtt <= entry.upTo)!;
       paint(grade, lit, `${Math.round(rtt)} ms`);
+    },
+    frame(seconds: number) {
+      // Ignore a background-tab jump, then average a short window so the readout is
+      // responsive without changing the DOM on every animation frame.
+      if (!Number.isFinite(seconds) || seconds <= 0 || seconds >= .5) return;
+      frameCount++; frameSeconds += seconds;
+      if (frameSeconds < .5) return;
+      fps.textContent = `${Math.round(frameCount / frameSeconds)} FPS`;
+      frameCount = 0; frameSeconds = 0;
     },
     offline() { paint('none', 0, '—'); },
   };

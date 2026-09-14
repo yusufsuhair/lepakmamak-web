@@ -2257,6 +2257,7 @@ async function init() {
   let hudTimer = 0, lastTime = performance.now();
   function frame(time: number) {
     const frameSeconds = (time - lastTime) / 1000;
+    if (!document.hidden) netStatus.frame(frameSeconds);
     if(started&&!document.hidden){recentFrameTimes.push(frameSeconds*1000);if(recentFrameTimes.length>300)recentFrameTimes.shift();}
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
