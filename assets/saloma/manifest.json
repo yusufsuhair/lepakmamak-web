@@ -7,11 +7,34 @@
   ],
   "span": [
     48,
-    5.2
+    5.52
   ],
   "deckTop": 4.44,
   "steps": 6,
-  "triangles": 10812,
-  "bytes": 575844,
+  "piers": [
+    33,
+    44,
+    55,
+    66
+  ],
+  "canopy": {
+    "bays": 18,
+    "divisions": 8,
+    "members": 288
+  },
+  "textures": [
+    "brushed_color",
+    "brushed_normal",
+    "concrete_color",
+    "concrete_normal",
+    "frit_color",
+    "frit_normal",
+    "paving_color",
+    "paving_normal",
+    "wood_color",
+    "wood_normal"
+  ],
+  "triangles": 16088,
+  "bytes": 754512,
   "draws": 9
 }

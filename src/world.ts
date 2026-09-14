@@ -25,6 +25,7 @@ import {loadPetronas, type PetronasSite} from './petronas';
 import {loadKlcc} from './klcc';
 import {loadSkylineTower, type SkylineAsset} from './skyline';
 import {lightBrands} from './brands';
+import {dressSaloma} from './saloma';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {groundMaterial, paintGroundMask, ROAD_HALF, ROAD_X, ROAD_Z} from './ground';
@@ -1285,6 +1286,7 @@ export function createWorld(scene: THREE.Scene): World {
     batchShopFallback(bridge);
     void nearLoader(bridge,170,320).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Saloma.glb')).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+      dressSaloma(gltf.scene);
       for(const child of [...bridge.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       bridge.add(gltf.scene);
     }).catch(error=>console.warn('[SALOMA] keeping procedural bridge',error));

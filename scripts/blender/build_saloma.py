@@ -1,91 +1,171 @@
-"""Saloma Link (Pintasan Saloma) at (55,-125): the real bridge's sirih-junjung canopy as a
-true diamond diagrid that tapers to a leaf tip at each end, over a walkway with a glazed
-balustrade, tapered piers and both stair approaches. Every gameplay number comes from
-src/bridge.ts (deck top 4.44, walk half width 2.2, six steps of .58 from 24.8), so this is
-skin only: walking height, collision and the game's own SALOMA LINK sign are untouched.
+"""Saloma Link (Pintasan Saloma) at (55,-125), photographic pass: the sirih-junjung (betel-leaf)
+canopy as a white steel diagrid tube of curved diamond members over a steel box-girder deck,
+granite pavers down the middle with walk-on fritted glass panels either side, a frameless glass
+balustrade under a continuous timber handrail with an LED strip beneath it, tapered concrete piers
+and both stair approaches.
 
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python scripts/blender/build_saloma.py -- --no-render
+Night (src/saloma.ts): the diagrid material is the light show. Its members carry no emission in the
+file; the runtime animates an emissive colour wave along the bridge in the shader (reduced motion:
+a still gradient). 'Saloma deck glow' (handrail LEDs, fascia line, springing uplights) is lit at
+night only.
+
+Every gameplay number comes from src/bridge.ts (deck top 4.44, walk half width 2.2, six steps of
+.58 from 24.8), so this is skin only: walking height, collision and the game's own SALOMA LINK
+sign are untouched. The fifth pier the flat build drew at x=77 stood in the traffic lanes of the
+x=76 road with no collider; the girder now spans the road clear. The four piers left stand where
+world.ts puts their colliders.
+
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python scripts/blender/build_saloma.py
+node scripts/blender/compress-glb.mjs public/assets/models/environment/LM_ENV_Saloma.glb
 
 Output: public/assets/models/environment/LM_ENV_Saloma.glb, node 'saloma' at the deck origin.
 """
 import bpy, math, json, sys
 from pathlib import Path
-from mathutils import Vector
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from build_lrt import pt,mat,box,cyl,loft,join,finish
-from build_klcc import vloft
+from build_lrt import pt,mat,box,join
+import pbr_kit as kit
+from pbr_kit import pbr,uv_metres,mesh,tube,strut
+import landmark_textures as LX
 
 ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'assets/saloma'; OUT.mkdir(parents=True,exist_ok=True)
 PUBLIC=ROOT/'public/assets/models/environment'; PUBLIC.mkdir(parents=True,exist_ok=True)
-ARGS=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 T='saloma'
+kit.setup(T,OUT/'textures',20260914)
 
 # --- numbers that must agree with src/bridge.ts; changing them desyncs walking from the mesh
 DECK_TOP=4.44;DECK_HALF=24;WALK_HALF=2.2
 STEPS=6;STEP_RISE=.58;STEP_RUN=1.15;STEP_TOP_Y=3.875;RAMP_START=24.8
-PIERS=[-22,-11,0,11,22]
+PIERS=[-22,-11,0,11]          # world x 33, 44, 55, 66: the piers world.ts gives colliders
+SIGN=(0,6.05,-2.72,10)        # the game's canvas SALOMA LINK sign: x, y, z, width
 
-CONCRETE=mat('Bridge concrete',(.85,.84,.77),.88);WALK=mat('Walkway surface',(.27,.43,.41),.8)
-KERB=mat('Deck kerb',(.78,.77,.70),.85);RAIL=mat('Handrail steel',(.45,.55,.52),.4)
-GLASS=mat('Balustrade glass',(.62,.80,.80),.1,alpha=.3,two_sided=True)
-LATTICE=mat('Canopy lattice',(.55,.89,.82),.35,emit=.35)
-CHORD=mat('Canopy chord',(.31,.83,.76),.3,emit=.8)
-PIER=mat('Pier concrete',(.80,.79,.73),.9);SOFFIT=mat('Deck soffit',(.66,.65,.60),.9)
+def metal(m,v):
+    m.node_tree.nodes['Principled BSDF'].inputs['Metallic'].default_value=v;return m
+# painted steel reads as a clean white at any distance a player sees it from: flat, so the members
+# share vertices and carry no UVs
+DIAGRID=metal(kit.hmat('Saloma diagrid','#f4f5f3',.32),.15)
+STEEL=metal(kit.hmat('Saloma steel','#dcdfe0',.38),.2)
+PAVE=pbr('Saloma walkway','paving','#ffffff',.8,1.2,source=LX)
+FRIT=pbr('Saloma glass deck','frit','#ffffff',.14,.3,source=LX)
+INOX=metal(pbr('Saloma stainless','brushed','#ffffff',.3,1.0,source=LX),.75)
+TIMBER=pbr('Saloma timber handrail','wood','#b9814c',.5,.9)
+CONC=pbr('Saloma concrete','concrete','#f2efe8',.9,3.0,source=LX)
+GLASS=mat('Saloma balustrade glass',kit.srgb('#c7dcdc'),.04,alpha=.2,two_sided=True)
+GLOW=mat('Saloma deck glow',kit.srgb('#ffdcaa'),.4,emit=2.0)
 
-def rect(cx,cz,w,d):return [(cx-w/2,cz-d/2),(cx+w/2,cz-d/2),(cx+w/2,cz+d/2),(cx-w/2,cz+d/2)]
+# ------------------------------------------------------------------ helpers
+def prism_x(name,profile,x0,x1,m):
+    """Extrude a closed (z,y) profile along game x."""
+    n=len(profile);verts=[pt(x,y,z) for x in (x0,x1) for z,y in profile]
+    faces=[(i,(i+1)%n,n+(i+1)%n,n+i) for i in range(n)]+[tuple(range(n)),tuple(range(2*n-1,n-1,-1))]
+    return mesh(name,verts,faces,m,smooth=False,closed=True)
 
-def strut(name,p0,p1,w,m,h=None):
-    """Square member between two game-space points."""
-    a=Vector(pt(*p0));b=Vector(pt(*p1));d=b-a;L=d.length
-    if L<1e-5:return None
-    bpy.ops.mesh.primitive_cube_add(size=1,location=(a+b)/2)
-    o=bpy.context.object;o.scale=(w,h or w,L)
-    o.rotation_euler=d.to_track_quat('Z','Y').to_euler()
-    return finish(o,name,m,T)
+def prism_z(name,profile,z0,z1,m):
+    """Extrude a closed (x,y) profile along game z."""
+    n=len(profile);verts=[pt(x,y,z) for z in (z0,z1) for x,y in profile]
+    faces=[(i,(i+1)%n,n+(i+1)%n,n+i) for i in range(n)]+[tuple(range(n)),tuple(range(2*n-1,n-1,-1))]
+    return mesh(name,verts,faces,m,smooth=False,closed=True)
 
-# --- canopy geometry: a pointed arch whose height and width taper toward each leaf tip
-BAYS=14;BAY=3.0;K=6                      # 14 bays of 3 m, six divisions per arch
-X0=-BAYS*BAY/2                            # canopy runs -21 .. +21
-def taper(x):return min(1.0,max(.30,(21.0-abs(x))/6.0))
-def node(i,k):
-    x=X0+i*BAY;s=-1+2*k/K;t=taper(x)
-    y=DECK_TOP+.35+4.26*t*(1-abs(s)**.85)
-    z=2.52*(.62+.38*t)*s
-    return (x,y,z)
+def column(name,x,z,y0,y1,r0,r1,m,sides=8):
+    """Tapered faceted column from radius r0 at y0 to r1 at y1."""
+    verts=[pt(x+r*math.cos(2*math.pi*(k+.5)/sides),y,z+r*math.sin(2*math.pi*(k+.5)/sides)) for y,r in ((y0,r0),(y1,r1)) for k in range(sides)]
+    faces=[(k,(k+1)%sides,sides+(k+1)%sides,sides+k) for k in range(sides)]+[tuple(range(sides)),tuple(range(2*sides-1,sides-1,-1))]
+    return mesh(name,verts,faces,m,smooth=True,closed=True)
+
+def rod(name,points,r,m,sides=6):
+    """Open tube through game points: the diagrid's ends meet at nodes, so no caps."""
+    from mathutils import Vector
+    P=[Vector(pt(*p)) for p in points];verts=[];faces=[]
+    for i,p in enumerate(P):
+        d=(P[min(i+1,len(P)-1)]-P[max(i-1,0)]).normalized();a=d.orthogonal().normalized();b=d.cross(a)
+        verts+=[p+(a*math.cos(2*math.pi*k/sides)+b*math.sin(2*math.pi*k/sides))*r for k in range(sides)]
+    faces=[(i*sides+k,i*sides+(k+1)%sides,(i+1)*sides+(k+1)%sides,(i+1)*sides+k) for i in range(len(P)-1) for k in range(sides)]
+    return mesh(name,verts,faces,m,smooth=True,closed=False)
+
+def quad(name,corners,m):
+    return mesh(name,[pt(*c) for c in corners],[(0,1,2,3)],m,smooth=False)
+
+# ------------------------------------------------------------------ canopy: the sirih-junjung diagrid
+BAYS=18;X0=-21.0;BAY=42.0/BAYS;K=8
+SPRING=DECK_TOP-.06;HALF_SPAN=2.64
+
+def section(x):
+    """Ridge height and half span of the pointed arch at x: tallest mid-span, easing lower toward
+    the leaf tips over the last 7.5 m."""
+    t=min(1.0,max(0.0,(21.0-abs(x))/7.5));t=t*t*(3-2*t)
+    return 3.4+1.05*t,HALF_SPAN
+
+def surf(u,s):
+    """Canopy point at bay coordinate u (0..BAYS) and s across (-1 south spring, 0 ridge, 1 north).
+    Each half is a circular arc centred beyond the axis, so the two meet in a pointed ridge."""
+    x=X0+u*BAY;H,W=section(x)
+    R=(H*H+W*W)/(2*W);c=W-R;phi=(1-abs(s))*math.acos(-c/R)
+    return (x,SPRING+R*math.sin(phi),math.copysign(c+R*math.cos(phi),s if s else 1))
 
 def canopy():
     o=[]
     for i in range(BAYS):
         for k in range(K):
-            # the two diagonal families are what make the diamonds
-            o.append(strut('lattice',node(i,k),node(i+1,k+1),.11,LATTICE))
-            o.append(strut('lattice',node(i,k+1),node(i+1,k),.11,LATTICE))
-        o.append(strut('ridge chord',node(i,K//2),node(i+1,K//2),.17,CHORD))
-        for k in (0,K):o.append(strut('edge chord',node(i,k),node(i+1,k),.16,CHORD))
-    for i in (0,3,7,11,14):
-        for k in range(K):o.append(strut('rib',node(i,k),node(i,k+1),.14,CHORD))
-    # leaf tips: the lattice closes to a point just past the last bay
+            s0=-1+2*k/K;s1=s0+2/K;mid=surf(i+.5,(s0+s1)/2)
+            # two families of curved members cross at every bay centre: the diamonds
+            o.append(rod('diagrid',[surf(i,s0),mid,surf(i+1,s1)],.05,DIAGRID))
+            o.append(rod('diagrid',[surf(i,s1),mid,surf(i+1,s0)],.05,DIAGRID))
+    for s in (-1,1):
+        o.append(tube('spring beam',[surf(u/2,s) for u in range(2*BAYS+1)],.085,STEEL,sides=8))
+        for i in range(BAYS+1):
+            x,y,z=surf(i,s)
+            o.append(box('base shoe',x,y+.02,z,.26,.08,.2,INOX,T,0))
+            o.append(box('springing uplight',x,y+.07,z-s*.12,.1,.03,.06,GLOW,T,0))
+    o.append(tube('ridge chord',[surf(u/2,0) for u in range(2*BAYS+1)],.065,STEEL,sides=8))
+    for i in range(0,BAYS+1,3):
+        o.append(tube('arch rib',[surf(i,-1+j/8) for j in range(17)],.06,STEEL,sides=8))
+    # leaf tips: the lattice gathers to a point past the last bay and flicks up into a spike
     for end,sign in ((0,-1),(BAYS,1)):
-        tip=(X0+end*BAY+sign*2.4,DECK_TOP+2.80,0)
-        for k in range(K+1):o.append(strut('leaf tip',node(end,k),tip,.10,CHORD))
-        o.append(strut('tip spike',tip,(tip[0]+sign*1.5,DECK_TOP+3.55,0),.09,CHORD))
+        tip=(sign*23.7,SPRING+2.55,0)
+        for j in range(K+1):
+            p=surf(end,-1+2*j/K);bend=((p[0]+tip[0])/2,(p[1]+tip[1])/2+.25*(1-abs(-1+2*j/K)),(p[2]+tip[2])/2*.9)
+            o.append(rod('leaf tip',[p,bend,tip],.045,DIAGRID))
+        o.append(tube('tip spike',[tip,(sign*25.3,SPRING+3.35,0)],[.075,.02],STEEL,sides=6))
+    # the game's sign hangs on two stainless brackets off the north side of the lattice
+    sx,sy,sz,sw=SIGN
+    for x in (sx-sw*.38,sx+sw*.38):
+        o.append(strut('sign bracket',(x,sy,sz+.03),(x,sy,surf((x-X0)/BAY,-.84)[2]),.05,INOX))
     return [p for p in o if p]
 
+# ------------------------------------------------------------------ deck
 def deck():
     o=[]
-    o.append(box('deck slab',0,4.0,0,2*DECK_HALF,.65,5.2,CONCRETE,T,.04))
-    o.append(box('deck soffit rib',0,3.6,0,2*DECK_HALF,.2,3.4,SOFFIT,T,.03))
-    o.append(box('walkway surface',0,4.38,0,2*DECK_HALF-2,.12,2*WALK_HALF+.05,WALK,T,0))
+    # steel box girder: flat top under the walkway, a rounded fascia and a sloping soffit
+    half=[(0,4.36),(2.62,4.36),(2.72,4.30),(2.76,4.16),(2.70,3.98),(1.85,3.55),(0,3.55)]
+    ring=half+[(-z,y) for z,y in reversed(half[1:-1])]
+    o.append(prism_x('box girder',ring,-DECK_HALF,DECK_HALF,STEEL))
+    o.append(box('fascia light',0,4.0,2.73,2*DECK_HALF-.4,.03,.03,GLOW,T,0))
+    o.append(box('fascia light',0,4.0,-2.73,2*DECK_HALF-.4,.03,.03,GLOW,T,0))
+    L=2*DECK_HALF-.8
+    o.append(box('walkway pavers',0,4.40,0,L,.08,2.5,PAVE,T,0))
     for s in (-1,1):
-        o.append(box('kerb',0,4.42,s*(WALK_HALF+.12),2*DECK_HALF-2,.2,.24,KERB,T,.02))
-        # glazed balustrade: posts, glass infill and a capping handrail
-        o.append(box('balustrade glass',0,5.0,s*2.3,2*DECK_HALF-1,1.05,.05,GLASS,T,0))
-        o.append(cyl('handrail',0,5.62,s*2.3,.055,2*DECK_HALF-1,RAIL,T,axis='x',verts=8))
-        o.append(box('rail foot',0,4.44,s*2.3,2*DECK_HALF-1,.12,.14,RAIL,T,0))
-        for i in range(17):
-            x=-24+i*3
-            o.append(box('rail post',x,5.05,s*2.3,.09,1.3,.11,RAIL,T,0))
+        o.append(box('glass deck',0,4.40,s*1.735,L,.08,.97,FRIT,T,0))
+        for i in range(32):
+            o.append(box('glass deck frame',-L/2+i*L/31,4.443,s*1.735,.05,.012,.97,INOX,T,0))
+        o.append(box('glass deck edge',0,4.443,s*1.25,L,.012,.04,INOX,T,0))
+        o.append(box('balustrade shoe',0,4.50,s*2.30,L,.2,.14,INOX,T,0))
+        n=31
+        for i in range(n):
+            x=-L/2+(i+.5)*L/n
+            o.append(box('balustrade glass',x,5.06,s*2.30,L/n-.03,1.0,.025,GLASS,T,0))
+    return o
+
+def handrails():
+    """One continuous timber rail per side: down the east stair, across the deck, down the west."""
+    o=[]
+    def rail_y(ax):return 4.875-(ax-RAMP_START)*STEP_RISE/STEP_RUN
+    top=5.60;xs=[31.3,RAMP_START]
+    path=[(x,rail_y(x)) for x in xs]+[(23.9,top),(-23.9,top)]+[(-x,rail_y(x)) for x in reversed(xs)]
+    for s in (-1,1):
+        z=s*2.30
+        o.append(tube('handrail',[(x,y,z) for x,y in path],.048,TIMBER,sides=8))
+        o.append(tube('handrail light',[(x,y-.065,z-s*.035) for x,y in path],.012,GLOW,sides=4))
     return o
 
 def piers():
@@ -93,32 +173,46 @@ def piers():
     for bx in PIERS:
         for s in (-1,1):
             z=s*2.15
-            # tapered pier: wider at the cap than the ground, so it reads as a column
-            o.append(vloft('pier',[(0.0,rect(bx,-z,.34,.34)),(3.62,rect(bx,-z,.46,.46))],[PIER],T))
-            o.append(box('pier cap',bx,3.72,z,.62,.22,.62,PIER,T,.03))
-        o.append(box('cross brace',bx,3.3,0,.34,.26,4.3,PIER,T,.03))
+            o.append(column('pier',bx,z,0,3.22,.2,.29,CONC))
+            o.append(box('pier plinth',bx,.05,z,.8,.1,.8,CONC,T,.02))
+        o.append(prism_x('pier head',[(-2.5,3.55),(2.5,3.55),(2.5,3.42),(2.1,3.2),(-2.1,3.2),(-2.5,3.42)],bx-.34,bx+.34,CONC))
+        o.append(box('bearing',bx,3.58,0,.5,.06,3.2,INOX,T,0))
     return o
 
 def approaches():
     o=[]
     for s in (-1,1):
-        for step in range(STEPS):
-            x=s*(RAMP_START+step*STEP_RUN);y=STEP_TOP_Y-.225-step*STEP_RISE
-            o.append(box('step',x,y,0,2.4,.45,5.2,CONCRETE,T,.03))
+        # stepped concrete stair body, its treads 5 cm below the pavers laid on top
+        prof=[(s*24.0,3.825),(s*24.225,3.825)]
+        for i in range(STEPS):
+            x0=RAMP_START+i*STEP_RUN-STEP_RUN/2;x1=x0+STEP_RUN;y=STEP_TOP_Y-i*STEP_RISE-.05
+            prof+=[(s*x0,y),(s*x1,y)]
+        prof+=[(s*31.225,.45),(s*24.0,3.35)]
+        if s<0:prof=prof[::-1]
+        # drop repeated points where one tread's end meets the next tread's start at the same x
+        clean=[p for i,p in enumerate(prof) if i==0 or (abs(p[0]-prof[i-1][0])>1e-6 or abs(p[1]-prof[i-1][1])>1e-6)]
+        o.append(prism_z('stair body',clean,-2.45,2.45,CONC))
+        for i in range(STEPS):
+            ax=RAMP_START+i*STEP_RUN;y=STEP_TOP_Y-i*STEP_RISE
+            o.append(box('stair tread',s*ax,y-.025,0,STEP_RUN,.05,4.9,PAVE,T,0))
+            o.append(box('stair nosing',s*(ax+STEP_RUN/2-.03),y-.02,0,.06,.045,4.9,INOX,T,0))
             for side in (-1,1):
-                o.append(box('step cheek',x,y+.42,side*2.45,2.4,.4,.3,KERB,T,.02))
-                o.append(cyl('step rail',x,y+1.28,side*2.35,.05,2.45,RAIL,T,axis='x',verts=8))
-                o.append(box('step post',x,y+.85,side*2.35,.09,1.0,.11,RAIL,T,0))
-        # a landing pad where the stair meets the pavement
-        x=s*(RAMP_START+(STEPS-1)*STEP_RUN+1.7)
-        o.append(box('landing',x,.18,0,2.6,.36,5.2,CONCRETE,T,.03))
+                z=side*2.30;x0=s*(ax-STEP_RUN/2);x1=s*(ax+STEP_RUN/2)
+                def ry(x):return 4.875-(abs(x)-RAMP_START)*STEP_RISE/STEP_RUN-.08
+                o.append(quad('stair glass',[(x0,y,z),(x1,y,z),(x1,ry(x1),z),(x0,ry(x0),z)],GLASS))
+                o.append(box('stair shoe',s*ax,y+.06,z,STEP_RUN,.12,.12,INOX,T,0))
+        lx=s*(RAMP_START+(STEPS-1)*STEP_RUN+1.7)
+        o.append(box('landing',lx,.15,0,2.6,.3,5.2,CONC,T,.02))
+        o.append(box('landing pavers',lx,.325,0,2.5,.05,5.0,PAVE,T,0))
     return o
 
+# ------------------------------------------------------------------ build / export
 def build():
-    s=bpy.context.scene
+    s=bpy.context.scene;s.unit_settings.system='METRIC'
     for ob in list(s.objects):bpy.data.objects.remove(ob,do_unlink=True)
     e=bpy.data.objects.new(T,None);s.collection.objects.link(e)
-    for ob in deck()+piers()+approaches()+canopy():ob.parent=e
+    for ob in deck()+handrails()+piers()+approaches()+canopy():
+        ob.parent=e;uv_metres(ob)
     return e
 
 def export(e):
@@ -126,30 +220,23 @@ def export(e):
     for ob in [c for c in e.children if c.type=='MESH']:batches.setdefault(tuple(m.name for m in ob.data.materials),[]).append(ob)
     for key,objs in batches.items():
         j=join(objs,f'saloma | {" + ".join(key)}')
-        for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
+        # vertices in the bridge's own frame: the runtime light show reads positions along the span
+        bpy.ops.object.select_all(action='DESELECT');j.select_set(True);bpy.context.view_layer.objects.active=j
+        bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+        if not any('tile' in m for m in j.data.materials if m):
+            for uv in list(j.data.uv_layers):j.data.uv_layers.remove(uv)
     bpy.ops.object.select_all(action='DESELECT');e.select_set(True)
     for c in e.children:c.select_set(True)
     path=PUBLIC/'LM_ENV_Saloma.glb'
-    bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,export_yup=True,export_cameras=False,export_lights=False,export_extras=False)
+    bpy.ops.export_scene.gltf(filepath=str(path),export_format='GLB',use_selection=True,export_apply=True,
+        export_yup=True,export_cameras=False,export_lights=False,export_extras=False,
+        export_image_format='WEBP',export_image_quality=82)
     tris=sum(sum(len(p.vertices)-2 for p in c.data.polygons) for c in e.children if c.type=='MESH')
-    report={'asset':'LM_ENV_Saloma','origin':[55,0,-125],'span':[2*DECK_HALF,5.2],'deckTop':DECK_TOP,
-            'steps':STEPS,'triangles':tris,'bytes':path.stat().st_size,'draws':len(e.children)}
+    report={'asset':'LM_ENV_Saloma','origin':[55,0,-125],'span':[2*DECK_HALF,5.52],'deckTop':DECK_TOP,'steps':STEPS,
+            'piers':[55+p for p in PIERS],'canopy':{'bays':BAYS,'divisions':K,'members':2*BAYS*K},
+            'textures':sorted(kit.IMAGES),'triangles':tris,'bytes':path.stat().st_size,'draws':len(e.children)}
     (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n');print('SALOMA WEB EXPORT',json.dumps(report),flush=True)
-
-def render():
-    s=bpy.context.scene
-    engines=[i.identifier for i in bpy.types.RenderSettings.bl_rna.properties['engine'].enum_items]
-    s.render.engine=next(e for e in ('BLENDER_EEVEE_NEXT','BLENDER_EEVEE','BLENDER_WORKBENCH') if e in engines)
-    s.render.resolution_x=1600;s.render.resolution_y=1000;s.view_settings.view_transform='AgX'
-    w=bpy.data.worlds.new('sky');s.world=w;w.use_nodes=True;w.node_tree.nodes['Background'].inputs[0].default_value=(.55,.7,.9,1)
-    sun=bpy.data.objects.new('sun',bpy.data.lights.new('sun','SUN'));s.collection.objects.link(sun);sun.data.energy=4;sun.rotation_euler=(math.radians(50),math.radians(20),math.radians(-35))
-    bpy.ops.mesh.primitive_plane_add(size=300,location=(0,0,-.01));bpy.context.object.data.materials.append(mat('Ground',(.35,.4,.3),.9))
-    cam=bpy.data.objects.new('cam',bpy.data.cameras.new('cam'));s.collection.objects.link(cam);s.camera=cam;cam.data.lens=30
-    for name,(eye,at) in {'side':((-8,12,42),(0,6,0)),'along':((0,5.6,26),(0,6.2,-2)),'end':((34,8,22),(6,6,0)),'deck':((-14,5.6,3.2),(16,5.4,0))}.items():
-        cam.location=pt(*eye);d=Vector(pt(*at))-cam.location;cam.rotation_euler=d.to_track_quat('-Z','Y').to_euler()
-        s.render.filepath=str(OUT/f'preview-{name}.png');bpy.ops.render.render(write_still=True)
 
 if __name__=='__main__':
     e=build();export(e)
-    if '--no-render' not in ARGS:render()
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'saloma.blend'))
