@@ -4,6 +4,7 @@ import type {Solid} from './physics';
 import {SKY,inSkyPool} from '../shared/sky-dining.mjs';
 import tables from '../shared/tables.json';
 import chairs from '../shared/chairs.json';
+import {cdnUrl} from './cdn';
 
 export function swimPose(person:ReturnType<typeof createPerson>,time:number){
  person.leftArm.rotation.x=-1.2+Math.sin(time*2.5)*.45;
@@ -81,7 +82,7 @@ export function createSkyDining(scene:THREE.Scene){
  const streetLabel=label('WET DECK ↑',SKY.entry.x-SKY.x,3.7-SKY.y,SKY.entry.z-SKY.z+.8,5);streetLabel.name='Street lift sign';
  root.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(venue);
- void nearLoader(venue,170,320).loadAsync('/assets/models/environment/LM_ENV_SkyDining.glb?v=skydining-v1').then(gltf=>{
+ void nearLoader(venue,170,320).loadAsync(cdnUrl('assets/models/environment/LM_ENV_SkyDining.glb')).then(gltf=>{
   gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
   for(const child of [...venue.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   venue.add(gltf.scene);

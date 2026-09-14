@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import stalls from '../shared/stalls.json';
 import {batchShopFallback, createPerson, nearLoader} from './world';
 import type {Solid} from './physics';
+import {cdnUrl} from './cdn';
 
 export const stallVoiceSpots = stalls.map(({id,name,x,z}) => ({id,name,x,z}));
 export const STALL_VOICE_REACH = 5;
@@ -46,7 +47,7 @@ export function createStallWorld(scene:THREE.Scene,solids:Solid[]){
  }
  group.traverse(o=>{o.userData.keepUnbatched=true;});
  batchShopFallback(group);
- void nearLoader(group,150,230).loadAsync('/assets/models/environment/LM_ENV_Stalls.glb?v=stalls-v1').then(gltf=>{
+ void nearLoader(group,150,230).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Stalls.glb')).then(gltf=>{
   gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
   for(const child of [...group.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   group.add(gltf.scene);

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {loadInstancedWebAsset, type WebAssetPlacement} from './web-assets';
 import {batchShopFallback} from './world';
+import {cdnUrl} from './cdn';
 
 export type FoliageFamily='rain-tree'|'coconut-palm';
 export type FoliageState='loading'|'ready'|'partial'|'fallback';
@@ -11,8 +12,8 @@ interface PendingBatch {
 }
 
 const definitions:Record<FoliageFamily,{asset:string;url:string}>={
-  'rain-tree':{asset:'LM_TREE_RainTree',url:'/assets/models/foliage/LM_TREE_RainTree.glb?v=trees-v2'},
-  'coconut-palm':{asset:'LM_TREE_CoconutPalm',url:'/assets/models/foliage/LM_TREE_CoconutPalm.glb?v=trees-v2'},
+  'rain-tree':{asset:'LM_TREE_RainTree',url:cdnUrl('assets/models/foliage/LM_TREE_RainTree.glb')},
+  'coconut-palm':{asset:'LM_TREE_CoconutPalm',url:cdnUrl('assets/models/foliage/LM_TREE_CoconutPalm.glb')},
 };
 
 /** Leaf cards carry normals bent toward the outside of the crown (scripts/blender/build_trees.py).

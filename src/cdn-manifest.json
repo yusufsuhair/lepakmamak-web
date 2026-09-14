@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "b0dbd6134c5b",
+  "version": "763a76262e58",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -26,6 +26,11 @@
       "key": "audio/lofi2.f7263c8fed61.mp3",
       "bytes": 2885807,
       "etag": "778b91734c489e9cc253eccfd8799676"
+    },
+    "watson.mp3": {
+      "key": "audio/watson.c43ad7ead6d3.mp3",
+      "bytes": 1011853,
+      "etag": "2ce86e44081918184324ed102b330469"
     },
     "assets/models/environment/LM_ENV_MamakMaju_Realism.glb": {
       "key": "models/LM_ENV_MamakMaju_Realism.1c60f2ad8c15.glb",
@@ -55,6 +60,36 @@
       "key": "models/LM_ENV_KLCC.a88545e2c406.glb",
       "bytes": 338601,
       "etag": "784110cafea8ec473b8247ee3c1c71a7",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_SkyDining.glb": {
+      "key": "models/LM_ENV_SkyDining.f70143533db3.glb",
+      "bytes": 72268,
+      "etag": "60248c1b0207e11991cca589d361a717",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Kampung.glb": {
+      "key": "models/LM_ENV_Kampung.fd7ef5b4f1de.glb",
+      "bytes": 52107,
+      "etag": "656af870f0298e7abca7a5c7395825e2",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Stalls.glb": {
+      "key": "models/LM_ENV_Stalls.2715a826a2fc.glb",
+      "bytes": 71815,
+      "etag": "cef91db4e5bdbb1e1c58e54107567f29",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Saloma.glb": {
+      "key": "models/LM_ENV_Saloma.90f968bec385.glb",
+      "bytes": 71023,
+      "etag": "89a30bbbbb2245510eeec0edf7be8ea3",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Zoo.glb": {
+      "key": "models/LM_ENV_Zoo.7d30656c5508.glb",
+      "bytes": 138236,
+      "etag": "97fbfbc0d73b6520053fe8ac82434a31",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Masjid.glb": {
@@ -127,6 +162,18 @@
       "key": "models/LM_ENV_DriveThrough.38c3f8c560fc.glb",
       "bytes": 253847,
       "etag": "c9416126b28bc34cc55489763f6db4da",
+      "encoding": "br"
+    },
+    "assets/models/foliage/LM_TREE_RainTree.glb": {
+      "key": "models/LM_TREE_RainTree.1844116788b1.glb",
+      "bytes": 601826,
+      "etag": "24b8ca5fac3154bf1c99db304afba069",
+      "encoding": "br"
+    },
+    "assets/models/foliage/LM_TREE_CoconutPalm.glb": {
+      "key": "models/LM_TREE_CoconutPalm.709934093404.glb",
+      "bytes": 277528,
+      "etag": "1c961c28c81f9a01c7f13a24925b3ff4",
       "encoding": "br"
     },
     "assets/models/shops/LM_SHOP_BengkelAzlan.glb": {

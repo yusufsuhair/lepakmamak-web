@@ -799,7 +799,7 @@ async function init() {
   const areaLoop = (src: string) => { const song = new Audio(); song.crossOrigin = 'anonymous'; song.loop = true; song.preload = 'none'; song.dataset.src = src; return song; };
   const iceCreamSong = areaLoop('/matkool.mp3');
   const buskingSong=areaLoop(cdnUrl('busking.mp3'));
-  const watsonsSong=areaLoop('/watson.mp3');
+  const watsonsSong=areaLoop(cdnUrl('watson.mp3'));
   const familyMartSong=areaLoop('/familymart.mp3');
   const masjidSong=areaLoop(cdnUrl('arrahman.mp3'));
   const stallVoiceSong=areaLoop('/duasinggit.mp3');

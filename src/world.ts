@@ -1276,7 +1276,7 @@ export function createWorld(scene: THREE.Scene): World {
     bridge.name='saloma';
     bridge.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(bridge);
-    void nearLoader(bridge,170,320).loadAsync('/assets/models/environment/LM_ENV_Saloma.glb?v=saloma-v1').then(gltf=>{
+    void nearLoader(bridge,170,320).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Saloma.glb')).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...bridge.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       bridge.add(gltf.scene);
@@ -1348,7 +1348,7 @@ export function createWorld(scene: THREE.Scene): World {
     zoo.name='zoo';
     zoo.traverse(o=>{o.userData.keepUnbatched=true;});
     batchShopFallback(zoo);
-    void nearLoader(zoo,170,300).loadAsync('/assets/models/environment/LM_ENV_Zoo.glb?v=zoo-v1').then(gltf=>{
+    void nearLoader(zoo,170,300).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Zoo.glb')).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       for(const child of [...zoo.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
       zoo.add(gltf.scene);
