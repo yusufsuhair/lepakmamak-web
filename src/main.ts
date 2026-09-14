@@ -1,7 +1,8 @@
 import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
 import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
-import {createSkyDining,swimPose} from './sky-dining';
+import {createSkyDining,setSkyDiningNight,swimPose} from './sky-dining';
+import {setSalomaNight} from './saloma';
 import {createSkyMusic} from './sky-music';
 import {beachRestPose,createBeach,type BeachRestKind,type BeachRestSpot} from './beach';
 import {createLegoland} from './legoland';
@@ -1700,7 +1701,7 @@ async function init() {
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
   interactionButton.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
   window.addEventListener('pointerup',()=>{setTimeout(()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;},0);});
-  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;setKlccNight(night);streetLights.setNight(night);mamakLighting?.setNight(night);mamakFacade.setNight(night);setMasjidNight(night);setShoplotNight(night);setSkylineNight(night);setBrandsNight(night);setLrtNight(night);setWorshipNight(night);setHawkerNight(night);setDistrictNight(night);},value=>clouds.setWeather(value));
+  const weatherUI=setupWeather(scene,sun,ambient,apiBase,value=>{rainEnabled=value;rain.visible=value;},message=>{if(!networkConnected||networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},night=>{mamakNight=night;setKlccNight(night);streetLights.setNight(night);mamakLighting?.setNight(night);mamakFacade.setNight(night);setMasjidNight(night);setShoplotNight(night);setSkylineNight(night);setBrandsNight(night);setLrtNight(night);setWorshipNight(night);setHawkerNight(night);setDistrictNight(night);for(const setNight of [setSalomaNight,setSkyDiningNight])setNight(night);},value=>clouds.setWeather(value));
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }

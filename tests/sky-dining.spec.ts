@@ -62,3 +62,44 @@ test('street lift button takes the player to the lounge and back',async({page})=
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.cameraActualDistance)).toBeGreaterThan(16);
  await page.locator('#interaction').click();await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.skyDining)).toBe(false);await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.bridge.deckY)).toBe(0);
 });
+
+// The photographic venue (scripts/blender/build_skydining.py) swaps in without moving anything a
+// player stands on or swims in: deck tops stay at y 0, the basin void stays open down to its floor,
+// the pool steps keep their treads, colliders stay put, and the lounge ceiling hides while visiting.
+test('the Blender Wet Deck swaps in over the same deck, pool and steps, and lights for the night',async({page})=>{
+ await page.route('**/sky-assets',r=>r.fulfill({contentType:'text/html',body:'<body style="margin:0"></body>'}));await page.goto('/sky-assets');
+ const out=await page.evaluate(async(SKY:any)=>{
+  const THREE:any=await import('/node_modules/.vite/deps/three.js');
+  const {createWorld,streamAllNow}:any=await import('/src/world.ts');const D:any=await import('/src/sky-dining.ts');
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#9fc3dd');createWorld(scene);const sky=D.createSkyDining(scene);const solidsBefore=JSON.stringify(sky.solids);streamAllNow();
+  const venue=scene.getObjectByName('sky-dining');
+  for(let i=0;i<600&&!venue.getObjectByName('skydining');i++)await new Promise(r=>setTimeout(r,200));
+  sky.update(2,false,false);scene.updateMatrixWorld(true);
+  const model=venue.getObjectByName('skydining');const meshes:any[]=[];model.traverse((o:any)=>{if(o.isMesh)meshes.push(o);});
+  const ray=new THREE.Raycaster();
+  const down=(x:number,z:number,from=2.5)=>{ray.set(new THREE.Vector3(SKY.x+x,SKY.y+from,SKY.z+z),new THREE.Vector3(0,-1,0));ray.far=10;const h=ray.intersectObjects(meshes,false)[0];return h?+(h.point.y-SKY.y).toFixed(3):null;};
+  const deck=[[0,-2],[11.5,-13],[-11.5,-13],[0,-15.2],[5,0],[-10,6],[10,5],[-3,-15.4]].map(([x,z])=>down(x,z));
+  const basin=[-8,-5,-2.5,2.5,5,8].flatMap(x=>[-13.2,-11,-9].map(z=>down(x,z)));
+  const treads=[0,1,2,3].map(i=>down(0,-6.05-i*.65));
+  const ceiling=model.getObjectByName('ceiling');
+  const leftovers=venue.children.filter((c:any)=>c!==model.parent&&c!==model&&!(c.isMesh&&c.material.isMeshBasicMaterial)).length;
+  const root=scene.getObjectByName('Wet Deck · Sky Dining');const water=root.getObjectByName('Swimming pool');
+  const floorShown=root.children.some((c:any)=>c.isMesh&&c.visible&&Math.abs(c.position.y+1.8)<.01);
+  sky.update(2,false,true);const hiddenWhileVisiting=!ceiling.visible;sky.update(2,false,false);const shownFromStreet=ceiling.visible;
+  const intensity=(name:string)=>meshes.find(m=>m.material.name===name).material.emissiveIntensity;
+  D.setSkyDiningNight(true);const night={warm:intensity('Warm glow'),pool:intensity('Pool light glow'),mosaic:intensity('Pool mosaic'),strand:intensity('Strand blue')};
+  D.setSkyDiningNight(false);const day={warm:intensity('Warm glow'),pool:intensity('Pool light glow'),mosaic:intensity('Pool mosaic'),strand:intensity('Strand blue')};
+  return {deck,basin,treads,leftovers,floorShown,hiddenWhileVisiting,shownFromStreet,night,day,solidsKept:JSON.stringify(sky.solids)===solidsBefore,
+   water:{transparent:water.material.transparent,opacity:water.material.opacity,sky:water.material.onBeforeCompile!==undefined}};
+ },SKY);
+ console.log('SKY ASSET',JSON.stringify(out));
+ for(const y of out.deck){expect(y).not.toBeNull();expect(y!).toBeGreaterThanOrEqual(-.001);expect(y!).toBeLessThan(.016);}
+ // nothing solid between the deck and the basin floor anywhere a swimmer goes
+ for(const y of out.basin)expect(y).toBeCloseTo(-1.675,2);
+ out.treads.forEach((y:number,i:number)=>expect(y).toBeCloseTo(-i*.34,1));
+ expect(out.leftovers).toBe(0);expect(out.floorShown).toBe(false);expect(out.solidsKept).toBe(true);
+ expect(out.hiddenWhileVisiting).toBe(true);expect(out.shownFromStreet).toBe(true);
+ expect(out.water.transparent).toBe(true);expect(out.water.opacity).toBeLessThan(.5);
+ expect(out.day.warm).toBe(0);expect(out.day.pool).toBe(0);expect(out.night.warm).toBeGreaterThan(1);expect(out.night.pool).toBeGreaterThan(1);
+ expect(out.night.mosaic).toBeGreaterThan(out.day.mosaic);expect(out.night.strand).toBeGreaterThan(out.day.strand);expect(out.day.strand).toBeGreaterThan(0);
+});

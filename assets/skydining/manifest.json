@@ -19,7 +19,36 @@
       -6
     ]
   },
-  "triangles": 17040,
-  "bytes": 854640,
-  "draws": 27
+  "pool": {
+    "x": [
+      -9,
+      9
+    ],
+    "z": [
+      -14,
+      -6
+    ],
+    "water": -0.12,
+    "floor": -1.675,
+    "infinityEdge": "north, z=-14"
+  },
+  "textures": [
+    "brushed_color",
+    "brushed_normal",
+    "concrete_color",
+    "concrete_normal",
+    "fabric_color",
+    "fabric_normal",
+    "mosaic_color",
+    "mosaic_normal",
+    "teak_color",
+    "teak_normal",
+    "travertine_color",
+    "travertine_normal",
+    "wood_color",
+    "wood_normal"
+  ],
+  "triangles": 20060,
+  "bytes": 1349604,
+  "draws": 28
 }
