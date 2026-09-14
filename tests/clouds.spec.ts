@@ -27,7 +27,7 @@ test('procedural sky has no dependency on cloud image downloads',async({page})=>
   let requests=0;
   await page.route('**/LM_SKY_Cumulus.png*',r=>{requests++;return r.abort();});
   await page.goto('/');
-  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakClouds?.mode)).toBe('procedural-sky-v2');
+  await expect.poll(()=>page.evaluate(()=>(window as any).__lepakClouds?.mode)).toBe('photographic-sky-v3');
   await expect.poll(()=>page.evaluate(()=>(window as any).__lepakClouds?.state)).toBe('ready');
   await expect.poll(()=>page.evaluate(()=>(window as any).__lepak?.mamakMaju.state)).toBe('ready');
   expect(errors).toEqual([]);

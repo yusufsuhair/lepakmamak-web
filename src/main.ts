@@ -2486,7 +2486,7 @@ async function init() {
       target.set(pos.x, (lrtId!=null?railHeight+2:riding ? 2 : 1.6) + deckY, pos.z);
       desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * (lrtId!=null?Math.max(.55,cameraPitch):cameraPitch)), pos.z - Math.cos(heading) * cameraDistance);
       camera.position.lerp(desiredCamera, 1 - Math.exp(-9 * dt)); camera.lookAt(target);
-      sun.position.set(pos.x - 70, 110, pos.z + 60); sun.target.position.set(pos.x, 0, pos.z);
+      sun.position.set(pos.x + weatherUI.sunOffset.x, weatherUI.sunOffset.y, pos.z + weatherUI.sunOffset.z); sun.target.position.set(pos.x, 0, pos.z);
       if (rainEnabled) {
         rain.position.set(pos.x, 0, pos.z);
         for (let i = 0; i < rainCount; i++) {
@@ -2501,6 +2501,7 @@ async function init() {
     if (!started) {
       const drift = reducedMotion ? 0 : Math.sin(elapsed * .055) * 3;
       camera.position.set(43 + drift, 29, 108); camera.lookAt(-10, 22, -45);
+      sun.position.copy(weatherUI.sunOffset);
     }
     if (engineGain && engine && audioContext) {
       engineGain.gain.setTargetAtTime(audioEnabled && active && riding && lrtId==null ? .013 + Math.abs(speed) * .0007 : 0, audioContext.currentTime, .1);
