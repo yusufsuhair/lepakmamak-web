@@ -699,9 +699,9 @@ html, body, #app { touch-action: manipulation; }
   #city-chat.chat-expanded #chat-logs { flex: 1; min-height: 0; }
   #city-chat.chat-expanded .chat-log { height: 100%; max-height: none; font-size: 13px; }
   #city-chat.chat-expanded #chat-messages { max-height: none; }
-  #city-chat.chat-expanded #chat-controls { top: calc(6px + var(--safe-top)); right: 10px; }
+  #city-chat.chat-expanded #chat-controls { top: calc(12px + var(--safe-top)); right: 18px; }
   #city-chat.chat-expanded #chat-controls button { font-size: 16px; padding: 6px 11px; }
-  #city-chat.chat-expanded #chat-heading { padding-left: 104px; }
+  #city-chat.chat-expanded #chat-heading { padding-left: 12px; padding-right: 56px; flex-shrink: 0; }
 }
 
 /* #chat-form button styles every button in the composer by id, which outranks a bare

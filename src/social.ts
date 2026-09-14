@@ -227,14 +227,9 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     expand.textContent = expanded ? '⤡' : '⤢';
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     heading.disabled = expanded;
-    minimise.disabled = false;
-    if (expanded) {
-      minimise.textContent = '×';
-      minimise.setAttribute('aria-label', 'Close fullscreen chat');
-    } else {
-      minimise.textContent = collapsed ? '▢' : '–';
-      minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
-    }
+    minimise.hidden = expanded;
+    minimise.textContent = collapsed ? '▢' : '–';
+    minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', expanded ? 'City chat' : `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
@@ -270,7 +265,6 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   expand.onclick = () => { expanded = !expanded; if (expanded) setCollapsed(false); else render(); };
   expand.onkeydown = event => event.stopPropagation();
   minimise.onclick = () => {
-    if (expanded) { expanded = false; setCollapsed(false); return; }
     setCollapsed(!collapsed);
   };
   minimise.onkeydown = event => event.stopPropagation();

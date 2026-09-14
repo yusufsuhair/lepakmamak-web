@@ -100,7 +100,7 @@ test('the window controls sit in the far-right corner and both still work', asyn
 
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
-  await expect(page.getByRole('button', { name: 'Close fullscreen chat' })).toBeEnabled();
+  await expect(page.locator('#chat-min')).toBeHidden();
   await expect(page.locator('#chat-heading')).toBeDisabled();
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
@@ -112,6 +112,6 @@ test('the window controls sit in the far-right corner and both still work', asyn
   await page.getByRole('button', { name: 'Restore city chat' }).click();
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#chat-body')).toBeVisible();
-  await page.getByRole('button', { name: 'Close fullscreen chat' }).click();
+  await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 });
