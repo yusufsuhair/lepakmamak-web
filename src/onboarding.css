@@ -7,6 +7,8 @@
 #cara-main li b { display: block; font-size: 13px; }
 #cara-main li b::before { counter-increment: step; content: counter(step) '. '; color: #ddf69a; }
 #cara-main li p { margin: 3px 0 0; font-size: 12px; line-height: 1.45; color: #dbdfcc; }
-#cara-main-done { width: 100%; min-height: 46px; margin-top: 16px; border: 0; border-radius: 10px; background: #ddf69a; color: #193d33; font: 700 14px 'Oxanium', sans-serif; letter-spacing: .04em; cursor: pointer; }
+#cara-main-skip { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: #dbdfcc; cursor: pointer; }
+#cara-main-skip input { width: 18px; height: 18px; accent-color: #ddf69a; cursor: pointer; }
+#cara-main-done { width: 100%; min-height: 46px; margin-top: 12px; border: 0; border-radius: 10px; background: #ddf69a; color: #193d33; font: 700 14px 'Oxanium', sans-serif; letter-spacing: .04em; cursor: pointer; }
 #cara-main button:focus-visible { outline: 3px solid #ffe09a; outline-offset: 3px; }
 @media (max-width: 480px) { #cara-main { padding: 16px; } #cara-main h2 { font-size: 24px; } }

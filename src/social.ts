@@ -59,9 +59,12 @@ export function nameTag(name: string, interactiveVoice = false) {
       ctx.fillStyle = leader ? '#fff3c4' : '#f0cf8e';
       ctx.fillText(geng, 256, 93, 400);
     }
+    // With no Geng tag, the geng row (76-108) sits empty above the name — drop the mic/speaker
+    // icons into the middle of that gap instead of leaving them floating high on their own.
+    const voiceY = geng ? 35 : 56;
     for (const [x, on, kind] of [[218, mic, 'mic'], [294, speaker, 'speaker']] as const) {
       if (interactiveVoice) continue;
-      ctx.save(); ctx.translate(x, 35);
+      ctx.save(); ctx.translate(x, voiceY);
       ctx.fillStyle = '#173c32ed'; ctx.beginPath(); ctx.roundRect(-32, -30, 64, 62, 16); ctx.fill();
       ctx.strokeStyle = on ? '#ddf69a' : '#f4a08f'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       if (kind === 'mic') {

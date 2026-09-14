@@ -45,6 +45,24 @@ test('profile editor saves optional account fields, reloads them and renders saf
  await expect(page.locator('#profile-details img')).toHaveCount(0);await expect(page.locator('#profile-details')).toContainText('@tehtarikfan');
 });
 
+test('viewing another player shows a full-width loading state, not text jammed at the top',async({page})=>{
+ await page.route('**/social-profile-loading-harness',r=>r.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><link rel="stylesheet" href="/src/profile-social.css"><div id="profile-details"></div>'}));
+ await page.goto('/social-profile-loading-harness');
+ await page.evaluate(async()=>{const {renderProfileLoading}=await import('/src/profile.ts');renderProfileLoading(document.getElementById('profile-details')!);});
+ const details=page.locator('#profile-details');
+ await expect(details.locator('.profile-hero-skeleton')).toBeVisible();
+ await expect(details.locator('.profile-message')).toHaveText('Loading profile…');
+ // The old bare textContent had no top padding, so it sat flush under the (visually hidden)
+ // dialog title. The skeleton hero now occupies that space, same as a loaded profile would.
+ const heroTop=await details.locator('.profile-hero-skeleton').evaluate(el=>el.getBoundingClientRect().top);
+ const containerTop=await details.evaluate(el=>el.getBoundingClientRect().top);
+ expect(heroTop-containerTop).toBeLessThan(4);
+ await page.evaluate(async()=>{const {renderProfileMessage}=await import('/src/profile.ts');renderProfileMessage(document.getElementById('profile-details')!,'This player has left the city.');});
+ const message=details.locator('.profile-message');
+ await expect(message).toHaveText('This player has left the city.');
+ const paddingTop=await message.evaluate(el=>parseFloat(getComputedStyle(el).paddingTop));
+ expect(paddingTop).toBeGreaterThan(20);   // centred with real padding, not jammed at the edge
+});
 test('signed-out players have no profile editor in settings',async({page})=>{
  await page.goto('/');await expect(page.locator('#open-edit-profile')).toBeHidden();
 });

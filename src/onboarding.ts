@@ -19,11 +19,16 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
   dialog.id = 'cara-main'; dialog.setAttribute('aria-labelledby', 'cara-main-title');
   dialog.innerHTML = `<header><small>CARA MAIN · HOW TO PLAY</small><h2 id="cara-main-title">Jom lepak & main</h2></header>
     <ol>${steps.map(([icon, title, body]) => `<li><span aria-hidden="true">${icon}</span><div><b>${title}</b><p>${body}</p></div></li>`).join('')}</ol>
+    <label id="cara-main-skip"><input type="checkbox" id="cara-main-skip-check">Do not show again</label>
     <button type="button" id="cara-main-done" class="primary">Faham, jom!</button>`;
   document.body.append(dialog);
   const done = dialog.querySelector<HTMLButtonElement>('#cara-main-done')!;
+  const skip = dialog.querySelector<HTMLInputElement>('#cara-main-skip-check')!;
+  // The card used to remember itself the moment it closed, however that happened — Escape, a
+  // backdrop tap, or the button — so a player who dismissed it without reading never saw it
+  // again. It now only stays gone once they tick the box themselves.
   done.onclick = () => dialog.close();
-  dialog.addEventListener('close', remember);
+  dialog.addEventListener('close', () => { if (skip.checked) remember(); });
 
   const button = document.createElement('button');
   button.type = 'button'; button.id = 'open-cara-main'; button.className = 'secondary';

@@ -5,6 +5,25 @@ import './profile-social-overrides.css';
 export type PlayerProfile = {id:string;name:string;registered:boolean;gameMaster?:boolean;details:Record<string,string>|null;stats?:{sessions:number;recalls:number;dances:number;basketballPoints:number};achievements?:{id:string;name:string;detail:string;unlockedAt:string}[];guestbook?:{id:string;authorId:string;author:string;text:string;createdAt:string}[];activity?:{type:string;label:string;createdAt:string}[];posts?:{id:string;text:string;mediaType:string|null;createdAt:string}[]};
 const base=(import.meta.env.VITE_MULTIPLAYER_URL||'').replace(/^ws/i,'http').replace(/\/ws\/?$/,'').replace(/\/$/,'');
 const when=(value:string)=>new Intl.DateTimeFormat('en-MY',{dateStyle:'medium',timeZone:'Asia/Kuala_Lumpur'}).format(new Date(value));
+// Shown while a profile is being fetched, in the same width the finished profile will take so the
+// dialog does not jump. The old bare "Loading profile…" text had no top padding of its own — it sat
+// jammed under the (visually hidden) dialog title, which read as broken rather than loading.
+export function renderProfileLoading(container:HTMLElement) {
+ container.replaceChildren();
+ const hero=document.createElement('div');hero.className='profile-hero profile-hero-skeleton';hero.setAttribute('aria-hidden','true');container.append(hero);
+ const rows=document.createElement('div');rows.className='profile-loading-rows';rows.setAttribute('aria-hidden','true');
+ for(const large of [false,true,false])rows.append(Object.assign(document.createElement('span'),{className:`profile-skeleton-control${large?' profile-skeleton-control-large':''}`}));
+ container.append(rows);
+ const status=document.createElement('p');status.className='profile-message';status.setAttribute('role','status');status.textContent='Loading profile…';
+ container.append(status);
+}
+// A plain result with nothing to show: offline, left the city, or an error. Centred with real
+// padding instead of the loading state's bare textContent, which the same complaint applies to.
+export function renderProfileMessage(container:HTMLElement, text:string) {
+ container.replaceChildren();
+ const message=document.createElement('p');message.className='profile-message';message.setAttribute('role','status');message.textContent=text;
+ container.append(message);
+}
 export function renderProfile(container:HTMLElement, profile:PlayerProfile) {
  container.replaceChildren();
  if(!profile.registered){const empty=document.createElement('p');empty.className='profile-empty';empty.textContent='Guest profile · Sign in to build a social profile.';container.append(empty);return;}

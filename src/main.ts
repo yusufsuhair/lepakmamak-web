@@ -54,7 +54,7 @@ import {createStallWorld,nearestStallDistance,setHawkerNight,setupStalls,stallVo
 import {setDistrictNight} from './district-night';
 import {locationKey, readLocation, writeLocation} from './location-save';
 import { setupSecurity } from './security';
-import { setupProfileEditor, renderProfile, type PlayerProfile } from './profile';
+import { setupProfileEditor, renderProfile, renderProfileLoading, renderProfileMessage, type PlayerProfile } from './profile';
 import { setupTableSocial, type TableState, type TableInvite } from './table-social';
 import tableLocations from '../shared/tables.json';
 import chairLocations from '../shared/chairs.json';
@@ -1325,7 +1325,7 @@ async function init() {
           const pushed = message as unknown as {message?: StoredMessage; from?: Peer};
           if (pushed.message) { inbox.receive(pushed.message, pushed.from); chatPop(); }
         }
-        if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else $('profile-details').textContent = 'This player has left the city.'; }
+        if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else renderProfileMessage($('profile-details'), 'This player has left the city.'); }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
@@ -1846,17 +1846,17 @@ async function init() {
   }
   async function openAccountProfile(id: string, name: string) {
     beginProfile(name, id);
-    if (!apiBase) { $('profile-details').textContent = 'Reconnect to view this profile.'; return; }
-    $('profile-details').textContent = 'Loading profile…';
+    if (!apiBase) { renderProfileMessage($('profile-details'), 'Reconnect to view this profile.'); return; }
+    renderProfileLoading($('profile-details'));
     try {
       const response = await fetch(`${apiBase}/profiles/${encodeURIComponent(id)}`);
       const data = await response.json().catch(() => ({})) as {profile?: PlayerProfile | null; playerId?: string | null; error?: string};
       if (!response.ok) throw Error(data.error || 'Could not load this profile.');
       if (!profile.open || profileAccountId !== id) return;
       if (data.profile) showLoadedProfile(data.profile, id, data.playerId || '');
-      else $('profile-details').textContent = 'This player has left the city.';
+      else renderProfileMessage($('profile-details'), 'This player has left the city.');
     } catch (error) {
-      if (profile.open && profileAccountId === id) $('profile-details').textContent = error instanceof Error ? error.message : 'Could not load this profile.';
+      if (profile.open && profileAccountId === id) renderProfileMessage($('profile-details'), error instanceof Error ? error.message : 'Could not load this profile.');
     }
   }
   function toggleSuperman() {
@@ -1905,7 +1905,7 @@ async function init() {
   }
   $('dance-action').onclick=()=>{closeOptions();if(isDancing()){if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance-cancel'}));return;}if(riding||seated||beachResting||jumpHeight>0)return;ensureAudio();keys.clear();resetStick();walkSpeed=0;if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'dance'}));};
   $('superman-action').onclick=()=>{closeOptions();toggleSuperman();};
-  function openSelectedProfile() { beginProfile(selectedName, '', selectedProfileId); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { $('profile-details').textContent = 'Loading profile…'; networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else $('profile-details').textContent='Reconnect to view this profile.'; }
+  function openSelectedProfile() { beginProfile(selectedName, '', selectedProfileId); if (networkConnected && networkSocket?.readyState === WebSocket.OPEN && selectedProfileId) { renderProfileLoading($('profile-details')); networkSocket.send(JSON.stringify({type:'profile-view',id:selectedProfileId})); } else renderProfileMessage($('profile-details'),'Reconnect to view this profile.'); }
   $('view-profile').onclick = openSelectedProfile;
   $<HTMLButtonElement>('add-friend').dataset.uiSound = 'none';
   $('add-friend').onclick = () => {
