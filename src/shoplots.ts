@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {gltfLoader} from './web-assets';
+import {cdnUrl} from './cdn';
 
 /** The generic two-storey shophouse rows (every shop()/retail() in world.ts that has no branded GLB),
  * built from the Blender kit in scripts/blender/build_shoplots.py. Each row is split into bays of
@@ -14,7 +15,8 @@ import {gltfLoader} from './web-assets';
  * At night the shop interiors, ceiling tubes, pendant lamps and about half the upper windows light up,
  * and additive pools of lamp light appear on the five-foot-way. Colliders, map footprints and the canvas
  * signs stay world.ts's. */
-export const SHOPLOTS_URL = '/assets/models/environment/LM_ENV_Shoplots.glb?v=shoplots-v1';
+// Served from R2 with brotli (0.70 MB meshopt -> 0.41 MB): every player loads it at world creation.
+export const SHOPLOTS_URL = cdnUrl('assets/models/environment/LM_ENV_Shoplots.glb');
 
 export type ShoplotKind = 'eatery' | 'market' | 'diy' | 'laundry' | 'electric';
 export interface Shoplot { x: number; z: number; width: number; facing: number; color: string; accent: string; signBg: string; kind: ShoplotKind }
