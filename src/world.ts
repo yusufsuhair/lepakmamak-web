@@ -52,7 +52,7 @@ const textMaterials = new Map<string, THREE.MeshBasicMaterial>();
 // Both drive-throughs live in one asset, so the two sites share a single fetch.
 let driveThroughModel: Promise<THREE.Group | null> | undefined;
 const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-  .loadAsync('/assets/models/environment/LM_ENV_DriveThrough.glb?v=drivethru-v2')
+  .loadAsync(cdnUrl('assets/models/environment/LM_ENV_DriveThrough.glb'))   // R2 + brotli: loads at world creation
   .then(gltf => {
     gltf.scene.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -1015,7 +1015,7 @@ export function createWorld(scene: THREE.Scene): World {
     // The boxes above stay out of the world batch so the Blender forecourt
     // (scripts/blender/build_shell.py) can replace them; the text signs stay on top.
     g.traverse(o=>{o.userData.keepUnbatched=true;});
-    void nearLoader(g,170,300).loadAsync('/assets/models/environment/LM_ENV_Shell.glb?v=shell-v2').then(gltf=>{
+    void nearLoader(g,170,300).loadAsync(cdnUrl('assets/models/environment/LM_ENV_Shell.glb')).then(gltf=>{
       gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
       lightBrands(gltf.scene);
       for(const child of [...g.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();

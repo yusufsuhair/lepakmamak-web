@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "c052c7cdf8b8",
+  "version": "53141c9abf27",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -115,6 +115,60 @@
       "key": "models/LM_ENV_TowerUOB.da4720d3ec0b.glb",
       "bytes": 31310,
       "etag": "cbd7b112afe28455f87ae165795ec90b",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_Shell.glb": {
+      "key": "models/LM_ENV_Shell.22a58021216b.glb",
+      "bytes": 357105,
+      "etag": "2e2e16db5f3c6ab4e84278d185c9c8df",
+      "encoding": "br"
+    },
+    "assets/models/environment/LM_ENV_DriveThrough.glb": {
+      "key": "models/LM_ENV_DriveThrough.38c3f8c560fc.glb",
+      "bytes": 253847,
+      "etag": "c9416126b28bc34cc55489763f6db4da",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_BengkelAzlan.glb": {
+      "key": "models/LM_SHOP_BengkelAzlan.d2139df43d7f.glb",
+      "bytes": 66291,
+      "etag": "d830f3e611adc6de9c208e06b28f59fb",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_SevenEleven.glb": {
+      "key": "models/LM_SHOP_SevenEleven.e238ee1181fe.glb",
+      "bytes": 71748,
+      "etag": "97b0090a8301868cd4e94d3238101869",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_WarungKakAna.glb": {
+      "key": "models/LM_SHOP_WarungKakAna.53feed1982df.glb",
+      "bytes": 77009,
+      "etag": "631269b1064dd3cd2f46c4c3d0d817a8",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_ZusCoffee.glb": {
+      "key": "models/LM_SHOP_ZusCoffee.b45d9776ec63.glb",
+      "bytes": 67667,
+      "etag": "0f80b9b768ad4f8836c73eb45aa0e1d5",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_FamilyMart.glb": {
+      "key": "models/LM_SHOP_FamilyMart.da4973d183d7.glb",
+      "bytes": 72155,
+      "etag": "3ebf615b92d5bb503af6e9c4f24ec3a2",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_KkSuperMart.glb": {
+      "key": "models/LM_SHOP_KkSuperMart.e861f4bc963d.glb",
+      "bytes": 71203,
+      "etag": "486b71cf30395eb787829fa95a1ff0bb",
+      "encoding": "br"
+    },
+    "assets/models/shops/LM_SHOP_Watsons.glb": {
+      "key": "models/LM_SHOP_Watsons.e13922e3ab28.glb",
+      "bytes": 81332,
+      "etag": "6ec79d64d145ea03b1abc6d71e2b4b21",
       "encoding": "br"
     }
   }
