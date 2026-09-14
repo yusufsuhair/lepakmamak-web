@@ -2661,6 +2661,10 @@ async function init() {
       button.setAttribute('aria-label',`Open games at ${name}`);
     }
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
+    // Your mic/speaker controls float over your own head, and a taller nameplate (Game Master, geng)
+    // lifts them into your speech bubble. Treat them as a placed bubble so speech stacks above them.
+    const voiceRect = voicePanel && !voicePanel.hidden && !voiceInTable ? voicePanel.getBoundingClientRect() : null;
+    if (voiceRect) placedBubbles.push({ left: voiceRect.left, right: voiceRect.right, top: voiceRect.top, bottom: voiceRect.bottom });
     for (const [id, bubble] of speechBubbles) {
       const afk = id.startsWith('afk:');
       const villageNpc = id.startsWith('village:');
@@ -2689,6 +2693,8 @@ async function init() {
         // A close camera puts the speaker's head near the top edge. Clamp the bubble into the
         // viewport instead of hiding it, or Tegur disappears exactly when you walk up to talk.
         y = Math.max(y, height + 8);
+        // No room above the controls at the top edge: read it just below them instead.
+        if (voiceRect && x + width / 2 > voiceRect.left && x - width / 2 < voiceRect.right && y > voiceRect.top - 10 && y - height < voiceRect.bottom + 10) y = voiceRect.bottom + 10 + height;
         placedBubbles.push({ left: x - width / 2, right: x + width / 2, top: y - height, bottom: y });
         bubble.element.style.left = `${x}px`;
         bubble.element.style.top = `${y}px`;
