@@ -322,7 +322,7 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
   .hud-top { left: 18px; right: 18px; }
   #minimap-wrap { left: 18px; }
   #city-chat { left: 18px; bottom: 80px; }
-  #controls-bar { bottom: 20px; }
+  #controls-bar { display: none; }
   #speedometer { right: 18px; bottom: 18px; }
 }
 

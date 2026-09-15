@@ -52,4 +52,10 @@ test('keyboard hints show on desktop and never on a touch device',async({browser
   await expect(touchPage.locator('#controls-bar')).toBeHidden();
   await context.close();
  }
+
+ const tabletBrowser=await browser.newContext({viewport:{width:833,height:667}});
+ const tabletPage=await tabletBrowser.newPage();
+ await enter(tabletPage,'Tablet browser');
+ await expect(tabletPage.locator('#controls-bar')).toBeHidden();
+ await tabletBrowser.close();
 });
