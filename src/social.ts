@@ -226,7 +226,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     visibilityToggle.hidden = expanded;
     visibilityToggle.setAttribute('aria-expanded', String(!hidden));
     visibilityToggle.setAttribute('aria-label', hidden ? 'Show city chat' : 'Hide city chat');
-    visibilityToggle.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${hidden ? 'M5 5h14v14H5zM5 9h14' : 'M5 12h14'}"/></svg>`;
+    visibilityToggle.textContent = hidden ? '>' : '<';
     // A collapsed chat only needs one clear way back. Hiding fullscreen here avoids two
     // tiny controls on mobile that both appear to open the same closed panel.
     expand.hidden = collapsed;

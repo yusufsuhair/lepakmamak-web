@@ -163,3 +163,23 @@ test('the window controls sit in the far-right corner and both still work', asyn
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 });
+
+test('outer chat toggle uses arrows and slides the panel left while staying reachable', async ({ page }) => {
+  await page.route('**/chat-arrow-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
+  await page.goto('/chat-arrow-harness');
+  await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); setupChat(() => true, () => {}); });
+
+  const panel = page.locator('#city-chat'), toggle = page.locator('#chat-visibility-toggle');
+  const openPanel = (await panel.boundingBox())!;
+  await expect(toggle).toHaveText('<');
+  await toggle.click();
+  await expect(panel).toHaveClass(/chat-hidden/);
+  await expect(toggle).toHaveText('>');
+  await expect.poll(async () => (await panel.boundingBox())?.x ?? 0).toBeLessThan(openPanel.x - 100);
+  const hiddenToggle = (await toggle.boundingBox())!;
+  expect(hiddenToggle.x).toBeGreaterThanOrEqual(0);
+  expect(hiddenToggle.x).toBeLessThan(60);
+  await toggle.click();
+  await expect(panel).not.toHaveClass(/chat-hidden/);
+  await expect(toggle).toHaveText('<');
+});
