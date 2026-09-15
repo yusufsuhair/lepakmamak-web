@@ -69,7 +69,7 @@ import * as THREE from 'three';
 import {createLrt,setLrtNight} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, type CarStyle, type KlccLift, updateStreaming} from './world';
+import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setObjectShadows, type CarStyle, type KlccLift, updateStreaming} from './world';
 import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
@@ -2319,6 +2319,7 @@ async function init() {
 
       for (const item of world.traffic) {
         if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;
+        setObjectShadows(item.group,Math.hypot(item.x-pos.x,item.z-pos.z)<35);
         item.group.visible=!item.owner&&Math.hypot(item.x-pos.x,item.z-pos.z)<100;
         item.model.driver.visible=item.npc;
         const distance=item.group.position.distanceTo(new THREE.Vector3(item.x,.12,item.z));
@@ -2356,6 +2357,7 @@ async function init() {
       let detailed = 0;
       for (const remote of ranked) {
         const distance = remoteDistance(remote);
+        setObjectShadows(remote.group,distance<25);
         const shown = remoteIsVisible(remote.target, viewer, VISIBLE_RANGE);
         remote.group.visible = shown;
         // Standing next to someone must never show a capsule, so close range ignores the budget.

@@ -585,6 +585,18 @@ export function updateStreaming(x: number, z: number) {
 const crowds: { group: THREE.Object3D; radius: number; hidden?: boolean }[] = [];
 export function cullBeyond(group: THREE.Object3D, radius: number) { crowds.push({ group, radius }); }
 
+/** Preserve authored shadow choices while switching a moving object's casters by distance. */
+export function setObjectShadows(group: THREE.Object3D, enabled: boolean) {
+  if (group.userData.shadowsEnabled === enabled) return;
+  group.traverse(object => {
+    object.userData.shadowsEnabled = enabled;
+    if (!(object instanceof THREE.Mesh)) return;
+    const authored = object.userData.authoredCastShadow ?? object.castShadow;
+    object.userData.authoredCastShadow = authored;
+    object.castShadow = enabled && authored;
+  });
+}
+
 /** Load everything regardless of distance. */
 export function streamAllNow() { for (const a of streamed) if (!a.started) { a.started = true; a.start(); } }
 
@@ -1515,13 +1527,13 @@ export function createWorld(scene: THREE.Scene): World {
     const person=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);
     const startX=-105+(i%3)*3,startZ=116+Math.floor(i/3)*3;
     person.group.position.set(startX,.1,startZ);scene.add(person.group);
-    cullBeyond(person.group,100); pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
+    setObjectShadows(person.group,false); cullBeyond(person.group,100); pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
   }
   for (let i = 0; i < 10; i++) {
     const person = createPerson(['#efcf8d', '#628f91', '#bd7156', '#eee2c6'][i % 4]);
     const startX = i < 6 ? (i % 2 ? -11 : 11) : -45 + (i - 6) * 27;
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
-    scene.add(person.group); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
+    scene.add(person.group); setObjectShadows(person.group,false); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
   paintGroundMask(mapBuildings, chairs);
   return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, shoplots: shoplotSite, foliage:foliageStatus, rembayung, petronas };

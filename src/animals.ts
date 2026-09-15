@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {box, material} from './world';
+import {box, material, setObjectShadows} from './world';
 import type {Solid} from './physics';
 const roundGeometry=new THREE.SphereGeometry(1,10,8);
 function round(parent:THREE.Object3D,x:number,y:number,z:number,scale:number[],color:string){const mesh=new THREE.Mesh(roundGeometry,material(color));mesh.position.set(x,y,z);mesh.scale.set(...scale as [number,number,number]);mesh.castShadow=true;parent.add(mesh);return mesh;}
@@ -22,6 +22,7 @@ export function createAnimal(cat:boolean,color:string){
  const tip=round(tail,0,cat?.25:.13,-.12,cat?[.055,.32,.055]:[.07,.22,.075],color);tip.rotation.x=-.55;
  if(cat)for(const x of [-.12,.12])box(head,x,-.075,.285,.16,.012,.012,'#fff0d5');
  else box(body,0,.65,.23,.52,.055,.085,'#62b8ac');
+ setObjectShadows(group,false);group.traverse(o=>{if(o instanceof THREE.Mesh)o.receiveShadow=false;});
  return {group,body,head,legs,tail,cat};
 }
 export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){

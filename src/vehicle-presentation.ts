@@ -51,6 +51,8 @@ export function addVehicleLevel(group: THREE.Group, root: THREE.Group, distance:
   }
   root.traverse(object => {
     if (!(object instanceof THREE.Mesh)) return;
+    object.userData.authoredCastShadow = object.castShadow;
+    if (group.userData.shadowsEnabled === false) object.castShadow = false;
     const source = Array.isArray(object.material) ? object.material : [object.material];
     const mapped = source.map(material => {
       if (!(material instanceof THREE.MeshStandardMaterial) || !/Red LED|White LED|Indicator |Reverse optics|Police blue LED/.test(material.name)) return material;

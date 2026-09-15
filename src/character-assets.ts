@@ -92,7 +92,8 @@ function visual(source: THREE.Object3D, state: State) {
   const object = source.clone(true);
   object.traverse(child => {
     if (!(child instanceof THREE.Mesh)) return;
-    child.castShadow = true; child.receiveShadow = true; child.userData.keepUnbatched = true;
+    child.castShadow = state.rig.group.userData.shadowsEnabled !== false; child.receiveShadow = true; child.userData.keepUnbatched = true;
+    child.userData.authoredCastShadow = true;
     const replace = (material: THREE.Material) => state.palette[material.name.replace('LM_', '') as Channel] || material;
     child.material = Array.isArray(child.material) ? child.material.map(replace) : replace(child.material);
   });
