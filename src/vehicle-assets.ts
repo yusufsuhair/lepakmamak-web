@@ -163,11 +163,15 @@ export async function upgradeVehicle(model: VehicleModel, style: RevampedCarStyl
     model.group.userData.driverScale=driverScale;
     model.group.userData.assetState = 'ready';
     model.group.userData.assetVersion = VERSION;
-    // Optional detail levels never invalidate a working near asset on network failure.
-    void Promise.all([template(style,'-mid'),template(style,'-far')]).then(([mid,far]) => {
+    // Optional detail levels never invalidate a working near asset on network failure. Defer
+    // their fetch/parse until the browser is idle so a phone can reach the first playable frame
+    // without 39 GLBs competing with the world and UI.
+    const loadDetails = () => void Promise.all([template(style,'-mid'),template(style,'-far')]).then(([mid,far]) => {
       addVehicleLevel(model.group,mid.clone(true),18);
       addVehicleLevel(model.group,far.clone(true),42);
     }).catch(() => { model.group.userData.lodFallback = true; });
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(loadDetails, {timeout: 2500});
+    else setTimeout(loadDetails, 800);
     return true;
   } catch (error) {
     model.group.userData.assetState = 'fallback';

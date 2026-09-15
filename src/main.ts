@@ -187,12 +187,15 @@ async function init() {
   showLoading('Building Kampung Maju', 'Placing roads, shops and mamak tables…', 34);
   await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   const canvas = $<HTMLCanvasElement>('world');
+  // Decide touch capability before creating WebGL. Phones should not pay for MSAA or a
+  // shadow pass during the expensive first frame; the quality menu can opt back in later.
+  const touch = matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   let renderer: THREE.WebGLRenderer;
-  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: !touch, powerPreference: 'high-performance' }); }
   catch { fail('This game needs WebGL. Try a recent browser with hardware acceleration enabled.'); return; }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, matchMedia('(any-pointer: coarse)').matches ? 1.25 : 1.6));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, touch ? 1 : 1.6));
   renderer.setSize(innerWidth, innerHeight);
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.enabled = !touch; renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
@@ -201,7 +204,7 @@ async function init() {
   // 30 m ahead of the camera covers what is on screen (fog starts at 145) and sharpens the shadows.
   const SHADOW_REACH = 55, SHADOW_AHEAD = 30;
   const sun = new THREE.DirectionalLight('#ffdfa3', 2.7); sun.position.set(-70, 110, 60); sun.castShadow = true;
-  const shadowSize = matchMedia('(any-pointer: coarse)').matches ? 1024 : 2048;
+  const shadowSize = touch ? 1024 : 2048;
   sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -SHADOW_REACH; sun.shadow.camera.right = SHADOW_REACH; sun.shadow.camera.top = SHADOW_REACH; sun.shadow.camera.bottom = -SHADOW_REACH;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
   const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 450);
@@ -734,7 +737,6 @@ async function init() {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) stick.addEventListener(type, event => { if ((event as PointerEvent).pointerId === stickId) resetStick(); });
   // maxTouchPoints as well as the media query: a tablet with a trackpad attached reports a
   // fine primary pointer, which is how the keyboard hints kept showing up on iPads.
-  const touch = matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   document.body.classList.toggle('touch-device', touch);
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   createRipples(document.body, {reducedMotion});
@@ -1780,7 +1782,7 @@ async function init() {
   } catch { /* Storage is optional. */ }
   function applyQuality() {
     const reduced=graphicsQuality!=='high',shadowSize=graphicsQuality==='high'?2048:1024;
-    renderer.setPixelRatio(Math.min(devicePixelRatio,graphicsQuality==='lowest'?.75:reduced?(touch?1.25:1):1.6));
+    renderer.setPixelRatio(Math.min(devicePixelRatio,graphicsQuality==='lowest'?.75:reduced?(touch?1:1):1.6));
     setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
     if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose();sun.shadow.map=null;}
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
@@ -2359,9 +2361,9 @@ async function init() {
         setObjectShadows(item.group,trafficDistance<35);
         item.group.visible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:graphicsQuality==='low'?90:60);
         item.model.driver.visible=item.npc;
-        const distance=item.group.position.distanceTo(new THREE.Vector3(item.x,.12,item.z));
+        const dx=item.x-item.group.position.x,dz=item.z-item.group.position.z,distance=Math.hypot(dx,dz),blend=1-Math.exp(-14*dt);
         if(distance>20)item.group.position.set(item.x,.12,item.z);
-        else item.group.position.lerp(new THREE.Vector3(item.x,.12,item.z),1-Math.exp(-14*dt));
+        else { item.group.position.x+=dx*blend; item.group.position.y=.12; item.group.position.z+=dz*blend; }
         item.group.rotation.y=item.yaw;
         for(const wheel of item.model.wheels)wheel.rotation.x+=Math.min(distance,1)*dt*14/.36;
       }
@@ -2442,7 +2444,9 @@ async function init() {
       if (!paused) updateKlccLift(dt);
       const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
       const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
-      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)).map(c => vehicleSolid(c.group,c.x,c.z,c.yaw));
+      // Far traffic cannot collide with the player. Keep the broad phase cheap on phones.
+      // ponytail: 48 m broad phase; use a spatial hash if the fleet grows materially.
+      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)&&((c.x-pos.x)**2+(c.z-pos.z)**2<48**2)).map(c => vehicleSolid(c.group,c.x,c.z,c.yaw));
       const solids = [...world.solids, ...dynamicSolids];
       if(skyDining){solids.length=0;solids.push(...sky.solids);}
       if (!skyDining && (!riding || vehicle !== 'bike')) solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
