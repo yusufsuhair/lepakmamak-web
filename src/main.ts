@@ -69,7 +69,7 @@ import * as THREE from 'three';
 import {createLrt,setLrtNight} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setObjectShadows, type CarStyle, type KlccLift, updateStreaming} from './world';
+import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setCrowdRadius, setObjectShadows, type CarStyle, type KlccLift, updateStreaming} from './world';
 import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
@@ -146,7 +146,7 @@ $('app').innerHTML = `
     <div id="touch-controls" hidden><div id="move-stick" role="group" aria-label="Movement joystick"><div class="stick-ring"></div><div id="stick-thumb"></div><span>MOVE</span></div><div class="touch-actions"><button data-key="Space" aria-label="Brake">BRAKE</button><button id="touch-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="touch-horn" aria-label="Honk horn" hidden>HONK</button><button id="touch-recall" class="recall-button" type="button" aria-label="Spam recall emote">RECALL</button></div></div>
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
-  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
+  <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="lowest">Lowest</option><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="dm">Private messages</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
@@ -1735,23 +1735,27 @@ async function init() {
       mats.forEach(m => m.needsUpdate = true);
     } });
   }
-  let graphicsQuality = touch ? 'low' : 'high';
+  type GraphicsQuality='lowest'|'low'|'high';
+  let graphicsQuality:GraphicsQuality = touch ? 'low' : 'high';
   let autoReduced = false, slowSeconds = 0;
   try {
     const saved = localStorage.getItem('lepak-graphics');
+    const highThisSession=sessionStorage.getItem('lepak-high-session')==='1';
+    if(saved==='lowest')graphicsQuality='lowest';
     if (saved === 'low' || saved === 'smooth') graphicsQuality = 'low';
-    if (saved === 'high' || saved === 'detailed') graphicsQuality = 'high';
+    if ((saved === 'high' || saved === 'detailed')&&(!touch||highThisSession)) graphicsQuality = 'high';
     localStorage.setItem('lepak-graphics', graphicsQuality);
   } catch { /* Storage is optional. */ }
   function applyQuality() {
-    const smooth = graphicsQuality === 'low';
-    renderer.setPixelRatio(Math.min(devicePixelRatio, smooth ? 1 : 1.6));
-    setShadows(!smooth);
+    const reduced=graphicsQuality!=='high',shadowSize=graphicsQuality==='high'?2048:1024;
+    renderer.setPixelRatio(Math.min(devicePixelRatio,graphicsQuality==='lowest'?.75:reduced?(touch?1.25:1):1.6));
+    setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
+    if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose();sun.shadow.map=null;}
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
   }
   $('graphics-quality').onchange = () => {
-    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value; slowSeconds = 0; autoReduced = false;
-    try { localStorage.setItem('lepak-graphics', graphicsQuality); } catch { /* Storage is optional. */ }
+    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value as GraphicsQuality; slowSeconds = 0; autoReduced = false;
+    try { localStorage.setItem('lepak-graphics', graphicsQuality);if(graphicsQuality==='high')sessionStorage.setItem('lepak-high-session','1'); } catch { /* Storage is optional. */ }
     applyQuality();
   };
   applyQuality();
@@ -2284,9 +2288,9 @@ async function init() {
     if(started&&!document.hidden){recentFrameTimes.push(frameSeconds*1000);if(recentFrameTimes.length>300)recentFrameTimes.shift();}
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
-    if (started && !document.hidden && graphicsQuality === 'high' && frameSeconds < .5) {
-      slowSeconds = frameSeconds > .035 ? slowSeconds + frameSeconds : Math.max(0, slowSeconds - frameSeconds);
-      if (slowSeconds > 5) { graphicsQuality = 'low'; autoReduced = true; slowSeconds = 0; applyQuality(); }
+    if (started && !document.hidden && graphicsQuality !== 'lowest' && frameSeconds < .5) {
+      slowSeconds = frameSeconds > .033 ? slowSeconds + frameSeconds : Math.max(0, slowSeconds - frameSeconds);
+      if (slowSeconds > 2) { graphicsQuality = graphicsQuality==='high'?'low':'lowest'; autoReduced = true; slowSeconds = 0; applyQuality(); }
     }
     park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
     lrt.update(lrtNow(),pos,lrtId);
@@ -2305,7 +2309,7 @@ async function init() {
     {
       simTime += dt;
       updateSpeakingProximity();
-      streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
+      if(graphicsQuality!=='lowest')streetAnimals.update(Date.now()/1000, pos, (cat, volume, pan) => {
         if (started && audioEnabled && audioContext?.state === 'running') animalSound(audioContext, cat, volume, pan, citySoundsGain!);
       }, soundRange);
       // A shared clock-based route keeps the vendor in the same area for all players.
@@ -2321,7 +2325,7 @@ async function init() {
         if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;
         const trafficDistance=Math.hypot(item.x-pos.x,item.z-pos.z);
         setObjectShadows(item.group,trafficDistance<35);
-        item.group.visible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:90);
+        item.group.visible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:graphicsQuality==='low'?90:60);
         item.model.driver.visible=item.npc;
         const distance=item.group.position.distanceTo(new THREE.Vector3(item.x,.12,item.z));
         if(distance>20)item.group.position.set(item.x,.12,item.z);
@@ -2339,7 +2343,7 @@ async function init() {
         npc.group.position.y=.12+Math.abs(Math.sin(simTime*8))*.08;
         npc.group.scale.setScalar(Math.min(1,left));
       }
-      for (const ped of world.pedestrians) {
+      if(graphicsQuality!=='lowest')for (const ped of world.pedestrians) {
         const t = simTime * .12 + ped.phase;
         const offset = Math.sin(t) * ped.range;
         ped.person.group.position.set(ped.startX + (ped.axis === 'x' ? offset : 0), .1, ped.startZ + (ped.axis === 'z' ? offset : 0));
@@ -2538,7 +2542,7 @@ async function init() {
       sun.position.set(shadowX + weatherUI.sunOffset.x, weatherUI.sunOffset.y, shadowZ + weatherUI.sunOffset.z); sun.target.position.set(shadowX, 0, shadowZ);
       if (rainEnabled) {
         rain.position.set(pos.x, 0, pos.z);
-        const drops = graphicsQuality === 'low' ? rainCount / 2 : rainCount;
+        const drops = graphicsQuality === 'high' ? rainCount : rainCount / 2;
         for (let i = 0; i < drops; i++) {
           const j = i * 6; rainPositions[j + 1] -= dt * 30;
           if (rainPositions[j + 1] < 0) rainPositions[j + 1] += RAIN_HEIGHT;
@@ -2567,7 +2571,7 @@ async function init() {
     for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled,soundRange);
     sky.update(elapsed,reducedMotion,skyDining);
-    clouds.update(elapsed,camera,reducedMotion,graphicsQuality==='low');
+    clouds.update(elapsed,camera,reducedMotion,graphicsQuality!=='high');
     mamakSteam.update(elapsed,started&&!paused&&!document.hidden&&!reducedMotion&&mamakAssetState==='ready'&&Math.hypot(pos.x+29,pos.z-46)<35&&graphicsQuality==='high');
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;

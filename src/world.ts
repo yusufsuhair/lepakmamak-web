@@ -583,8 +583,10 @@ export function updateStreaming(x: number, z: number) {
 /** NPC crowds that stop being readable long before the fog takes them. Avatars are the most
  * expensive thing in the scene — about 12,800 triangles and a dozen meshes each — so a villager
  * a hundred metres away is pure cost. Player-controlled rigs are never registered here. */
-const crowds: { group: THREE.Object3D; radius: number; point?: {x:number;z:number}; hidden?: boolean }[] = [];
+const crowds: { group: THREE.Object3D; radius: number; baseRadius?: number; point?: {x:number;z:number}; hidden?: boolean }[] = [];
 export function cullBeyond(group: THREE.Object3D, radius: number, point?: {x:number;z:number}) { crowds.push({ group, radius, point }); }
+export function cullCrowd(group: THREE.Object3D, radius: number) { crowds.push({group,radius,baseRadius:radius}); }
+export function setCrowdRadius(scale: number) { for(const crowd of crowds)if(crowd.baseRadius)crowd.radius=crowd.baseRadius*scale; }
 
 /** Preserve authored shadow choices while switching a moving object's casters by distance. */
 export function setObjectShadows(group: THREE.Object3D, enabled: boolean) {
@@ -1529,13 +1531,13 @@ export function createWorld(scene: THREE.Scene): World {
     const person=createPerson(['#bb735c','#6d9494','#d1b563','#a68ab0'][i%4]);
     const startX=-105+(i%3)*3,startZ=116+Math.floor(i/3)*3;
     person.group.position.set(startX,.1,startZ);scene.add(person.group);
-    setObjectShadows(person.group,false); cullBeyond(person.group,100); pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
+    setObjectShadows(person.group,false); cullCrowd(person.group,100); pedestrians.push({person,startX,startZ,phase:i*1.7,axis:'z',range:1.1});
   }
   for (let i = 0; i < 10; i++) {
     const person = createPerson(['#efcf8d', '#628f91', '#bd7156', '#eee2c6'][i % 4]);
     const startX = i < 6 ? (i % 2 ? -11 : 11) : -45 + (i - 6) * 27;
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
-    scene.add(person.group); setObjectShadows(person.group,false); cullBeyond(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
+    scene.add(person.group); setObjectShadows(person.group,false); cullCrowd(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
   paintGroundMask(mapBuildings, chairs);
   return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, shoplots: shoplotSite, foliage:foliageStatus, rembayung, petronas };

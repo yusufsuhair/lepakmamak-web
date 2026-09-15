@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {batchShopFallback,box,createIceCreamBike,createPerson,material,palm,type Person,type World, nearLoader, cullBeyond} from './world';
+import {batchShopFallback,box,createIceCreamBike,createPerson,material,palm,type Person,type World, nearLoader, cullBeyond, cullCrowd} from './world';
 import tables from '../shared/tables.json';
 import chairs from '../shared/chairs.json';
 import {cdnUrl} from './cdn';
@@ -96,8 +96,8 @@ export function createBeach(scene:THREE.Scene,world:World){
  for(const x of [96.3,99.7])pole(x,1.5,136.5,.09,3,'#987049');
  box(props,98,3,136.8,4.8,.2,2.7,'#b39b62');sign('KELAPA SEGAR · RM5',98,2.45,137.75,4.2);
  for(let i=0;i<6;i++)sphere(96.7+i*.5,1.4,137,.25,'#97ac49');
- const vendor=createPerson('#ead09b',true);vendor.group.position.set(98,0,135.3);g.add(vendor.group);cullBeyond(vendor.group,110);
- const walkers=[createPerson('#df9168'),createPerson('#74a6b2'),createPerson('#d6b56a')];for(const p of walkers){g.add(p.group);cullBeyond(p.group,110);}
+ const vendor=createPerson('#ead09b',true);vendor.group.position.set(98,0,135.3);g.add(vendor.group);cullCrowd(vendor.group,110);
+ const walkers=[createPerson('#df9168'),createPerson('#74a6b2'),createPerson('#d6b56a')];for(const p of walkers){g.add(p.group);cullCrowd(p.group,110);}
  for(const x of [119,130,142]){box(props,x,.35,148,1,.15,2.4,'#c7aa7a');const back=box(props,x,.8,148.9,1,1.1,.1,'#e9ddc0');back.rotation.x=-.35;}
  pole(125,.2,148,.8,.4,'#776650');const fire=createFlame();fire.position.set(125,.14,148);g.add(fire);world.solids.push({x:125,z:148,hx:.8,hz:.8});
  const glow=new THREE.PointLight('#ffb566',10,13,2);glow.position.set(125,1.5,148);g.add(glow);

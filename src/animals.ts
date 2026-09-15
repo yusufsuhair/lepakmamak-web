@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {box, material, setObjectShadows} from './world';
+import {box, cullCrowd, material, setObjectShadows} from './world';
 import type {Solid} from './physics';
 const roundGeometry=new THREE.SphereGeometry(1,10,8);
 function round(parent:THREE.Object3D,x:number,y:number,z:number,scale:number[],color:string){const mesh=new THREE.Mesh(roundGeometry,material(color));mesh.position.set(x,y,z);mesh.scale.set(...scale as [number,number,number]);mesh.castShadow=true;parent.add(mesh);return mesh;}
@@ -42,7 +42,7 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
    if(solids.every(s=>Math.abs(cx-s.x)>s.hx+2.5||Math.abs(cz-s.z)>s.hz+2.5)){x=cx;z=cz;found=true;}
   }
   const pet=createAnimal(i%2===0,colors[i%colors.length]);pet.group.scale.setScalar((pet.cat?.82:.94)+(i%4)*.045);
-  pet.group.name=i%2===0?'Street cat':'Street dog';scene.add(pet.group);
+  pet.group.name=i%2===0?'Street cat':'Street dog';scene.add(pet.group);cullCrowd(pet.group,100);
   return {...pet,x,z,phase:i*5.3,nextSound:0,routeRadius:1.25+(i%4)*.32};
  });
  let lastSound=-10;

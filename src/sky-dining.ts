@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {batchShopFallback,box,createPerson,material, nearLoader, cullBeyond} from './world';
+import {batchShopFallback,box,createPerson,material, nearLoader, cullBeyond, cullCrowd} from './world';
 import type {Solid} from './physics';
 import {SKY,inSkyPool} from '../shared/sky-dining.mjs';
 import tables from '../shared/tables.json';
@@ -105,11 +105,11 @@ export function createSkyDining(scene:THREE.Scene){
   box(venue,x,1.06,z,.18,.24,.18,pink);
   for(const chair of chairs.filter(c=>c.tableId===table.id)){const seat=new THREE.Group();seat.position.set(chair.x-SKY.x,0,chair.z-SKY.z);seat.rotation.y=chair.yaw;venue.add(seat);box(seat,0,.5,0,.85,.18,.85,'#493657');box(seat,0,.96,-.38,.9,.85,.15,'#574268');for(const dx of [-.32,.32])for(const dz of [-.32,.32])box(seat,dx,.25,dz,.06,.5,.06,'#b8a180');}
  }
- const dj=createPerson('#24304c');dj.group.position.set(-14,0,6.5);root.add(dj.group);cullBeyond(dj.group,120);box(venue,-14,1,5.5,3.3,.28,1.2,'#171827');obstacle(-14,5.5,3.3,1.2);
+ const dj=createPerson('#24304c');dj.group.position.set(-14,0,6.5);root.add(dj.group);cullCrowd(dj.group,120);box(venue,-14,1,5.5,3.3,.28,1.2,'#171827');obstacle(-14,5.5,3.3,1.2);
  for(const x of [-14.8,-13.2]){const disc=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.04,24),material('#58a9c8'));disc.position.set(x,1.17,5.5);venue.add(disc);}
  for(const x of [-16.3,-11.7])box(venue,x,.8,5.5,.7,1.6,.65,'#171b28');
- const swimmers=Array.from({length:4},(_,i)=>{const p=createPerson(['#496d91','#784c97','#397b80','#864f73'][i]);root.add(p.group);cullBeyond(p.group,120);return p;});
- for(const [x,z,color] of [[-6,5,'#86633c'],[5,6,'#527c85'],[-6,12,'#714971'],[5,12,'#386879']] as const){const p=createPerson(color);p.group.position.set(x,0,z);root.add(p.group);cullBeyond(p.group,120);}
+ const swimmers=Array.from({length:4},(_,i)=>{const p=createPerson(['#496d91','#784c97','#397b80','#864f73'][i]);root.add(p.group);cullCrowd(p.group,120);return p;});
+ for(const [x,z,color] of [[-6,5,'#86633c'],[5,6,'#527c85'],[-6,12,'#714971'],[5,12,'#386879']] as const){const p=createPerson(color);p.group.position.set(x,0,z);root.add(p.group);cullCrowd(p.group,120);}
  // A lift vestibule sits on the existing hotel, with a visible street-level entrance.
  box(venue,14,1.6,12,3.8,3.2,3,'#242d47');obstacle(14,13,3.8,1);
  label('LIFT ↓',14,2.6,10.45,3).rotation.y=Math.PI;for(const side of [1,-1])label('POOL · STEPS ↓',0,.65,-5.3+side*.01,4).rotation.y=side>0?0:Math.PI;
