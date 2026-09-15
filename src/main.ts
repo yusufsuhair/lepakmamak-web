@@ -428,7 +428,7 @@ async function init() {
   // A larger value makes the same source audible farther away; 100% preserves the authored falloffs.
   const soundDistance = (distance: number) => distance / soundRange;
   type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite|null; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   let localSupermanUntil=0;
@@ -1087,7 +1087,7 @@ async function init() {
   const DETAIL_LIMIT = 24;   // articulated players beyond that, nearest first
   const DETAIL_RANGE = 22;   // metres past which nobody is articulated
   const DETAIL_CEILING = 40; // hard bound, so a hundred people in one spot cannot melt a phone
-  const VISIBLE_RANGE = 110; // metres past which nobody is drawn
+  const VISIBLE_RANGE = 80; // metres past which nobody is built or drawn
   function makeRemotePlayer(player: NetworkPlayer) {
     const group = new THREE.Group();
     group.userData.profileName = player.name; group.userData.profileId = player.id;
@@ -1097,11 +1097,10 @@ async function init() {
     ring.rotation.x = -Math.PI / 2; ring.position.y = .04; group.add(ring);
     const bike = createBike(); applyAppearance(bike.rider, player.appearance); bike.rider.visible = true; bike.group.visible = false; group.add(bike.group);
     const car = createDriveableCar(); applyAppearance(car.driver, player.appearance); car.driver.visible = true; car.group.visible = false; group.add(car.group);
-    const label = nameTag(player.name); updateNameTagVoice(label, !!player.mic, !!player.speaker); group.add(label);
     const stand = new THREE.Mesh(STAND_GEOMETRY, new THREE.MeshLambertMaterial({ color: player.color || '#72c8ba' }));
     stand.position.y = .74; stand.visible = false; stand.castShadow = false; group.add(stand);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
+    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     peerDots = players.filter(p => p.id !== networkPlayerId).map(p => ({x: p.x ?? 0, z: p.z ?? 0, party: partyMembers.has(p.id!), name: p.name}));
@@ -1147,6 +1146,7 @@ async function init() {
     const visibleIds = new Set<string>();
     for (const remote of players) {
       if (!remote.id || remote.id === networkPlayerId) continue;
+      if(!remoteIsVisible(remote,pos,VISIBLE_RANGE)){setAfkBubble(remote.id,'');speaking.away(remote.id);continue;}
       visibleIds.add(remote.id);
       setAfkBubble(remote.id, remote.afkNote || '');
       let entity = remotePlayers.get(remote.id);
@@ -1163,7 +1163,7 @@ async function init() {
         entity.group.userData.lookKey = lookKey;
       }
       for(const model of [entity.person.group,entity.bike.rider,entity.car.driver]) applyAccessories(model,remote.accessories || []);
-      updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
+      if(entity.label)updateNameTagVoice(entity.label, !!remote.mic, !!remote.speaker);
       if (remote.mic && Math.hypot(remote.x - pos.x, remote.z - pos.z) < voiceConfig.hearingRadius) speaking.nearby(remote.id, remote.name, remote.appearance);
       else speaking.away(remote.id);
       entity.resting = remote.resting || null;
@@ -2362,6 +2362,7 @@ async function init() {
       let detailed = 0;
       for (const remote of ranked) {
         const distance = remoteDistance(remote);
+        if(distance<40&&!remote.label){const state=roomPlayers.find(p=>p.id===remote.id);remote.label=nameTag(state?.name||'Player');updateNameTagVoice(remote.label,!!state?.mic,!!state?.speaker);remote.group.add(remote.label);}
         setObjectShadows(remote.group,distance<25);
         const shown = remoteIsVisible(remote.target, viewer, VISIBLE_RANGE);
         remote.group.visible = shown;
@@ -2372,7 +2373,7 @@ async function init() {
         // capsule where a car should be reads as a bug rather than as distance.
         const riding = remote.riding && !remote.passengerOf;
         remote.stand.visible = shown && !remote.detail && !riding;
-        remote.label.visible = remote.detail;
+        if(remote.label)remote.label.visible = remote.detail&&distance<40;
       }
       for (const remote of remotePlayers.values()) {
         if (remoteNeedsSnap(remote.group.position, remote.target)) remote.group.position.copy(remote.target);
@@ -2611,7 +2612,7 @@ async function init() {
     if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);
     for (const remote of roomPlayers) {
       const entity = remotePlayers.get(remote.id);
-      if (entity) {
+      if (entity?.label) {
         updateGameMasterTag(entity.label, !!remote.gameMaster, elapsed, reducedMotion);
         // updateNameTagGeng redraws only when the value actually changes.
         updateNameTagGeng(entity.label, String(remote.geng || ''), !!remote.gengLeader);
