@@ -15,7 +15,6 @@ import {audioVolume, setAudioVolume} from './audio-preferences';
 import {setupVehicleRadio} from './vehicle-radio';
 import {updateVehiclePresentation} from './vehicle-presentation';
 import {setupLocationArrival} from './location-arrival';
-import {createMapOverview} from './map-overview';
 import {setupInventory} from './inventory';
 import {SALOMA,salomaGround} from './bridge';
 import {rembayungGroundHeight,rembayungPoint} from './rembayung-layout';
@@ -39,7 +38,7 @@ import {dancePose,createDanceAudio} from './dance';
 import { supermanPose } from './stunts';
 import mapPlaces from '../shared/places.json';
 import {setupCityDirectory,drawPlaceLabels} from './city-directory';
-import {drawLegolandMap,isInLegoland,LEGOLAND_MAP_BOUNDS,LEGOLAND_MAX_ZOOM} from './legoland-map';
+import {drawLegolandMap,isInLegoland,LEGOLAND_MAP_BOUNDS,LEGOLAND_MAX_ZOOM,LEGOLAND_WORLD_MIN_X} from './legoland-map';
 import {createPickleball,insidePickleball} from './pickleball';
 import {createBasketball,insideBasketball} from './basketball';
 import {createBuskers,buskingSpot,rembayungBuskingSpot,buskingVolume} from './busking';
@@ -146,7 +145,7 @@ $('app').innerHTML = `
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="lowest">Lowest</option><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
-  <dialog id="city-map" aria-labelledby="city-map-title"><header><h2 id="city-map-title" hidden>City map</h2><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · On mobile, swipe the map to explore.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span>▲ You &nbsp; ● Friends &nbsp; <span class="map-bike-key">● Bike</span> &nbsp; ● Car</span><span>Move normally · M / Esc to close</span></footer></dialog>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><span class="map-kicker">LEPAK DIRECTORY</span><h2 id="city-map-title">City map</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info" role="status" aria-live="polite">All locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full 2D city map with your location, friends, motorbike"></canvas></div><p class="city-map-hint">N ↑ · Drag to explore · pinch or wheel to zoom.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span class="map-legend">▲ You &nbsp; <i class="map-key-friend"></i> Friends &nbsp; <i class="map-key-bike"></i> Bike &nbsp; <i class="map-key-car"></i> Car</span><span>Drag to pan · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="dm">Private messages</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><div id="profile-actions" hidden><button id="profile-add-friend" type="button">Add friend</button><button id="profile-message" type="button">Message</button></div><button id="close-profile" type="button">Close</button></dialog>
@@ -2093,25 +2092,18 @@ async function init() {
 
     else toast('City offline','Reconnect before teleporting.');
   };
-  // Opening the 3D overview creates a second WebGL context and renders the whole city
-  // into an off-screen canvas. That is too much GPU memory for phones (and became more
-  // noticeable once avatars gained real GLB geometry). Start with the lightweight 2D
-  // directory map; 3D remains an explicit opt-in from the map controls.
-  let mapMode:'2d'|'3d'='2d';
   const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
   let mapZoom=defaultMapZoom;
   let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
   const expandedCanvas=$<HTMLCanvasElement>('expanded-map');
+  const cityMapBuildings=world.mapBuildings.filter(building=>building.x>=LEGOLAND_WORLD_MIN_X);
   const mapMaxZoom=()=>expandedCanvas.dataset.scope==='legoland'?LEGOLAND_MAX_ZOOM:maxMapZoom;
-  expandedCanvas.dataset.mode=mapMode;
+  expandedCanvas.dataset.mode='2d';
   const selectMapPlace=(id:string)=>{carFinder.deselect();selectedMapPlace=id;teleportButton.disabled=teleportPending;teleportButton.textContent=`Teleport to ${mapPlaces.find(p=>p.id===id)?.name||'destination'}`;mapDirectory.selected(id);drawMap(true);};
   const mapDirectory=setupCityDirectory($('city-directory'),expandedCanvas,selectMapPlace);
-  const overview=createMapOverview(scene,expandedCanvas,selectMapPlace);
-  const viewControls=document.createElement('div');viewControls.className='map-view-controls';viewControls.setAttribute('role','group');viewControls.setAttribute('aria-label','Map view');
-  for(const mode of ['2d','3d'] as const){const button=document.createElement('button');button.type='button';button.textContent=mode.toUpperCase();button.setAttribute('aria-pressed',String(mode===mapMode));button.onclick=()=>{mapMode=mode;expandedCanvas.dataset.mode=mode;document.querySelector('.city-map-hint')!.textContent=mode==='3d'?'Angled city overview · Numbered pins match the directory.':'N ↑ · On mobile, swipe the map to explore.';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b===button));drawMap(true);};viewControls.append(button);}
   const mapViewport=document.querySelector<HTMLElement>('.city-map-viewport')!;
   const mapFrame=document.createElement('div');mapFrame.className='map-frame';mapViewport.before(mapFrame);mapFrame.append(mapViewport);
-  const mapToolbar=document.createElement('div');mapToolbar.className='map-toolbar';mapToolbar.append(viewControls,teleportBar);mapFrame.append(mapToolbar);
+  const mapToolbar=document.createElement('div');mapToolbar.className='map-toolbar';mapToolbar.append(teleportBar);mapFrame.append(mapToolbar);
   const mapZoomControls=document.createElement('div');mapZoomControls.className='map-zoom-controls';mapZoomControls.setAttribute('role','group');mapZoomControls.setAttribute('aria-label','Map zoom');
   const zoomIn=document.createElement('button'),zoomLevel=document.createElement('button'),zoomOut=document.createElement('button');
   zoomIn.type=zoomLevel.type=zoomOut.type='button';zoomIn.textContent='+';zoomOut.textContent='−';zoomIn.setAttribute('aria-label','Zoom in');zoomOut.setAttribute('aria-label','Zoom out');zoomLevel.setAttribute('aria-label','Reset map zoom');zoomLevel.title='Reset to default zoom';mapZoomControls.append(zoomIn,zoomLevel,zoomOut);mapFrame.append(mapZoomControls);
@@ -2120,7 +2112,7 @@ async function init() {
   const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
   function cityMapMetrics(){
     let minX=-170,maxX=170,minZ=-170,maxZ=170;
-    for(const building of world.mapBuildings){minX=Math.min(minX,building.x-building.w/2);maxX=Math.max(maxX,building.x+building.w/2);minZ=Math.min(minZ,building.z-building.d/2);maxZ=Math.max(maxZ,building.z+building.d/2);}
+    for(const building of cityMapBuildings){minX=Math.min(minX,building.x-building.w/2);maxX=Math.max(maxX,building.x+building.w/2);minZ=Math.min(minZ,building.z-building.d/2);maxZ=Math.max(maxZ,building.z+building.d/2);}
     const width=maxX-minX,height=maxZ-minZ;
     return{centerX:(minX+maxX)/2,centerZ:(minZ+maxZ)/2,width,height,baseScale:Math.min(expandedCanvas.width/(width+44),expandedCanvas.height/(height+44))};
   }
@@ -2161,12 +2153,11 @@ async function init() {
     const clamped=clamp(Math.round(next*100)/100,minMapZoom,mapMaxZoom());
     if(point&&clamped!==mapZoom){
       if(expandedCanvas.dataset.scope==='legoland')focusPark(point,clamped);
-      else if(mapMode==='3d')overview.zoomAt(point.x,point.y,clamped);
       else focusCity2d(point,clamped);
     }
     mapZoom=clamped;publishMapZoom();drawMap(true);
   }
-  function resetMapView(){mapZoom=defaultMapZoom;cityMapPanX=cityMapPanZ=parkMapPanX=parkMapPanZ=0;overview.reset();publishMapZoom();drawMap(true);}
+  function resetMapView(){mapZoom=defaultMapZoom;cityMapPanX=cityMapPanZ=parkMapPanX=parkMapPanZ=0;publishMapZoom();drawMap(true);}
   zoomIn.onclick=()=>setMapZoom(mapZoom+mapZoomStep);zoomOut.onclick=()=>setMapZoom(mapZoom-mapZoomStep);zoomLevel.onclick=resetMapView;
   expandedCanvas.addEventListener('wheel',event=>{event.preventDefault();setMapZoom(mapZoom+(event.deltaY<0?mapZoomStep:-mapZoomStep),mapPoint(event));},{passive:false});
   const mapTouches=new Map<number,{x:number;y:number}>();let mapPinchSpan=0,mapPinchCenter:MapPoint|undefined,mapMoved=false;
@@ -2176,8 +2167,7 @@ async function init() {
     const rect=expandedCanvas.getBoundingClientRect(),pixelX=dx*expandedCanvas.width/Math.max(1,rect.width),pixelY=dy*expandedCanvas.height/Math.max(1,rect.height);
     if(expandedCanvas.dataset.scope==='legoland'){
       const scale=parkMapMetrics().baseScale*mapZoom;parkMapPanX+=pixelX/scale;parkMapPanZ+=pixelY/scale;clampParkPan();
-    }else if(mapMode==='3d')overview.pan(pixelX,pixelY);
-    else{const scale=cityMapMetrics().baseScale*mapZoom;cityMapPanX+=pixelX/scale;cityMapPanZ+=pixelY/scale;clampCityPan();}
+    }else{const scale=cityMapMetrics().baseScale*mapZoom;cityMapPanX+=pixelX/scale;cityMapPanZ+=pixelY/scale;clampCityPan();}
     drawMap(true);
   };
   const markMapMoved=()=>{mapMoved=true;expandedCanvas.dataset.gesture='true';};
@@ -2203,8 +2193,6 @@ async function init() {
     if(mapTouches.size===0){const dragged=mapMoved;mapMoved=false;if(dragged)setTimeout(()=>{if(!mapTouches.size)delete expandedCanvas.dataset.gesture;},120);else delete expandedCanvas.dataset.gesture;}
   };
   for(const type of ['pointerup','pointercancel','lostpointercapture'])expandedCanvas.addEventListener(type,event=>endMapTouch(event as PointerEvent));
-  expandedCanvas.addEventListener('click',event=>{if(expandedCanvas.dataset.scope!=='legoland'&&mapMode==='3d')overview.click(event);});
-
   const carFinderRoot=document.createElement('div');mapFrame.after(carFinderRoot);
   const carFinder=createCarFinder(carFinderRoot,()=>{selectedMapPlace='';mapDirectory.selected('');teleportButton.disabled=true;teleportButton.textContent='Select a place to teleport';drawMap(true);});
   setMapZoom(defaultMapZoom);
@@ -2219,7 +2207,7 @@ async function init() {
     $('open-map').setAttribute('aria-label',inPark?'Open Legoland map':'Open city map');
     $('city-map-title').textContent=inPark?'LEGOLAND map':'City map';
     const hint=document.querySelector<HTMLElement>('.city-map-hint');
-    if(hint)hint.textContent=inPark?'LEGOLAND · Your position and Geng are shown here.':mapMode==='3d'?'Angled city overview · Numbered pins match the directory.':'N ↑ · On mobile, swipe the map to explore.';
+    if(hint)hint.textContent=inPark?'LEGOLAND · Your position and Geng are shown here.':'N ↑ · Drag to explore · pinch or wheel to zoom.';
   }
 
   function drawMap(expanded = false) {
@@ -2232,7 +2220,6 @@ async function init() {
       return;
     }
     const carPin=expanded?carFinder.update(networkConnected,pos,roomPlayers):undefined;
-    if(expanded&&mapMode==='3d'){try{overview.draw(pos.x,pos.z,selectedMapPlace,mapZoom,carPin);const selectedPlace=mapPlaces.find(p=>p.id===selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'3D city overview · Tap a numbered pin or choose a location below to teleport.';return;}catch{mapMode='2d';expandedCanvas.dataset.mode='2d';for(const b of viewControls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.textContent==='2D'));}}
     const map = $<HTMLCanvasElement>(expanded ? 'expanded-map' : 'minimap'); const ctx = map.getContext('2d')!;
     const w=map.width,h=map.height;let scale=1.13,centerX=0,centerZ=0;
     if(expanded){
@@ -2240,11 +2227,22 @@ async function init() {
       map.dataset.worldScale=String(scale);map.dataset.centerX=String(centerX);map.dataset.centerZ=String(centerZ);map.dataset.panX=cityMapPanX.toFixed(2);map.dataset.panZ=cityMapPanZ.toFixed(2);
     }
     ctx.fillStyle = '#294b3f'; ctx.fillRect(0, 0, w, h); ctx.save(); ctx.translate(w / 2 + (expanded?cityMapPanX*scale:0), h / 2 + (expanded?cityMapPanZ*scale:0)); ctx.scale(scale, scale);ctx.translate(-centerX,-centerZ);
+    if(expanded){
+      ctx.save();ctx.strokeStyle='#b9d5bd20';ctx.lineWidth=.55;
+      for(let x=-220;x<=220;x+=16){ctx.beginPath();ctx.moveTo(x,-220);ctx.lineTo(x,220);ctx.stroke();}
+      for(let z=-220;z<=220;z+=16){ctx.beginPath();ctx.moveTo(-220,z);ctx.lineTo(220,z);ctx.stroke();}
+      ctx.restore();
+    }
     ctx.fillStyle = '#395b44'; ctx.fillRect(-62, -147, 124, 67);
+    ctx.strokeStyle='#86a28155';ctx.lineWidth=1;ctx.strokeRect(-62,-147,124,67);
     ctx.fillStyle = '#82907a';
     for (const x of [0, 76, -82]) ctx.fillRect(x - 8.5, -157, 17, 314);
     for (const z of [-64, 8, 78]) ctx.fillRect(-157, z - 8.5, 314, 17);
-    for (const b of world.mapBuildings) { ctx.fillStyle = '#4d6c56'; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
+    ctx.strokeStyle='#b6c4a34d';ctx.lineWidth=.75;ctx.setLineDash([3,4]);
+    for (const x of [0, 76, -82]) {ctx.beginPath();ctx.moveTo(x,-157);ctx.lineTo(x,157);ctx.stroke();}
+    for (const z of [-64, 8, 78]) {ctx.beginPath();ctx.moveTo(-157,z);ctx.lineTo(157,z);ctx.stroke();}
+    ctx.setLineDash([]);
+    for (const b of cityMapBuildings) { ctx.fillStyle = b.color || '#4d6c56'; ctx.globalAlpha=.78; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); ctx.globalAlpha=1;ctx.strokeStyle='#183e344d';ctx.lineWidth=.65;ctx.strokeRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
     lrt.drawMap(ctx);
     for(const place of mapPlaces){
       const chosen=place.id===selectedMapPlace;

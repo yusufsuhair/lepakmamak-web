@@ -26,19 +26,9 @@ test('expanded city map opens in the safe 2D view by default',async({page})=>{
  await page.goto('/');
  await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
  await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','2d');
- await expect(page.getByRole('button',{name:'2D',exact:true})).toHaveAttribute('aria-pressed','true');
-});
-test('3D map renders actual city and preserves directory selection across view modes',async({page})=>{
- await page.goto('/');await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
- await page.getByRole('button',{name:'3D',exact:true}).click();
- await expect(page.getByRole('button',{name:'3D',exact:true})).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','3d');
+ await expect(page.locator('.map-view-controls')).toHaveCount(0);
+ await expect(page.locator('#city-map-title')).toBeVisible();
+ await expect(page.locator('.city-map-hint')).toContainText('Drag to explore');
  await page.getByRole('button',{name:'1 Mamak Maju',exact:true}).click();
- await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
- await page.setViewportSize({width:390,height:844});
- const size=await page.locator('#expanded-map').boundingBox();expect(size!.width).toBeLessThan(390);
- await page.screenshot({path:'/tmp/lepak-3d-map.png'});
- await page.getByRole('button',{name:'2D',exact:true}).click();
- await expect(page.getByRole('button',{name:'2D',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('button',{name:'Teleport to Mamak Maju',exact:true})).toBeEnabled();
 });
