@@ -9,6 +9,7 @@ test('only a Game Master turns /gm into an announcement',()=>{
  const gm={gameMaster:true}, player={gameMaster:false};
  expect(gmAnnouncement(gm,'/gm Jom kumpul pukul 9')).toEqual({allowed:true,text:'Jom kumpul pukul 9'});
  expect(gmAnnouncement(player,'/gm Jom kumpul pukul 9')).toEqual({allowed:false,text:'Jom kumpul pukul 9'});
+ expect(gmAnnouncement(gm,'  /GM\tJom kumpul pukul 9  ')).toEqual({allowed:true,text:'Jom kumpul pukul 9'});
 });
 
 test('the Game Master can take the banner down again',()=>{

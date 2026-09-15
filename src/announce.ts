@@ -2,9 +2,8 @@ import './announce.css';
 
 export const CRAWL_MS = 13000;
 
-// A crawl across the top edge, where players expect server announcements. It is
-// deliberately temporary: the same line is also written into city chat, so anyone who
-// looked away can scroll back to it rather than having missed it forever.
+// A crawl across the top edge, where players expect server announcements. The server keeps
+// the standing line until the GM replaces it or explicitly sends /gmoff.
 export function createAnnouncer(hud: HTMLElement, crawlMs = CRAWL_MS) {
   const strip = document.createElement('aside');
   strip.id = 'gm-announce'; strip.hidden = true;
