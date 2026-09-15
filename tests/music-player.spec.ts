@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('music player follows playback, skips tracks and stays below speed on mobile', async ({ page }) => {
+test('music player follows playback and is desktop-only', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#loading')).toBeHidden();
   // Exercise the real HUD and controls without requiring a live multiplayer server.
@@ -22,13 +22,14 @@ test('music player follows playback, skips tracks and stays below speed on mobil
   await page.getByRole('button', { name: 'Next song', exact: true }).click();
   await expect(title).toHaveText(first!);
   await expect(page.locator('#music-toggle')).not.toBeChecked();
-  for (const width of [1280, 390]) {
-    await page.setViewportSize({ width, height: 844 });
-    const player = (await page.locator('#music-player').boundingBox())!;
-    const speed = (await page.locator('#speed').boundingBox())!;
-    expect(player.x).toBeGreaterThanOrEqual(0);
-    expect(player.x + player.width).toBeLessThanOrEqual(width);
-    expect(player.y).toBeGreaterThan(speed.y + speed.height);
-    expect(player.y + player.height).toBeLessThanOrEqual(844);
-  }
+  await page.setViewportSize({ width: 1280, height: 844 });
+  const player = (await page.locator('#music-player').boundingBox())!;
+  const speed = (await page.locator('#speed').boundingBox())!;
+  expect(player.x).toBeGreaterThanOrEqual(0);
+  expect(player.x + player.width).toBeLessThanOrEqual(1280);
+  expect(player.y).toBeGreaterThan(speed.y + speed.height);
+  expect(player.y + player.height).toBeLessThanOrEqual(844);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('#music-player')).toBeHidden();
 });

@@ -9,7 +9,7 @@
 .music-progress { position:absolute; bottom:7px; left:13px; right:13px; height:2px; overflow:hidden; background:#eff5cf1a; }.music-progress span { display:block; height:100%; background:var(--lime,#d9ef85); transform:scaleX(0); transform-origin:left; transition:transform 250ms linear; }
 @keyframes music-bars { to { transform:scaleY(1); } }
 @media (hover:hover) and (pointer:fine) { #music-player button:hover { transform:scale(1.06); } }
-@media (max-width:600px) { #music-player { width:196px; gap:7px; padding:10px 10px 14px; grid-template-columns:28px minmax(0,1fr) auto; }.music-art { height:30px; }.music-title { font-size:11px; }#music-player button { width:34px; height:36px; } }
+@media (max-width:600px), (any-pointer: coarse) { #music-player { display:none; } }
 @media (prefers-reduced-motion:reduce) { .music-art i { animation:none; }#music-player button,.music-progress span { transition:none; } }
 /* Keep voice indicators above the music card in the shared HUD column. */
 #speaking { margin-bottom:80px; }
