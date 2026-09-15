@@ -2319,8 +2319,9 @@ async function init() {
 
       for (const item of world.traffic) {
         if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;
-        setObjectShadows(item.group,Math.hypot(item.x-pos.x,item.z-pos.z)<35);
-        item.group.visible=!item.owner&&Math.hypot(item.x-pos.x,item.z-pos.z)<100;
+        const trafficDistance=Math.hypot(item.x-pos.x,item.z-pos.z);
+        setObjectShadows(item.group,trafficDistance<35);
+        item.group.visible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:90);
         item.model.driver.visible=item.npc;
         const distance=item.group.position.distanceTo(new THREE.Vector3(item.x,.12,item.z));
         if(distance>20)item.group.position.set(item.x,.12,item.z);
