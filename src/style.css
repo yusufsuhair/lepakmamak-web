@@ -141,6 +141,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .map-frame { position: relative; border: 3px solid #fff8e7cc; background: #243e36; border-radius: 9px; overflow: hidden; box-shadow: 0 4px 24px #172e3433; }
 #minimap { display: block; width: 182px; height: 166px; }
 .map-north { position: absolute; top: 6px; left: 8px; font-size: 9px; color: #f7f1d9; font-weight: 700; }
+.map-online { position: absolute; right: 7px; bottom: 6px; padding: 3px 6px; border: 1px solid #dfff8766; border-radius: 99px; background: #173c32e8; color: #dfff87; font-size: 8px; font-weight: 700; letter-spacing: .04em; line-height: 1; pointer-events: none; }
 .map-caption { display: flex; justify-content: space-between; margin-top: 10px; font-size: 8px; font-weight: 600; letter-spacing: .09em; }
 .map-caption span:last-child { color: #e9efdc; }
 

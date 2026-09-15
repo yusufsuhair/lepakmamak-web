@@ -58,5 +58,6 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
    for(let i=0;i<data.length;i+=4) if(data[i]>200&&data[i+1]<120&&data[i+2]<110) red++;
    return red;
   }),{timeout:15000}).toBeGreaterThan(0);
+  await expect(page.locator('#map-online')).toHaveText('2 online');
  } finally { friend?.close(); vite.kill(); server.kill(); }
 });
