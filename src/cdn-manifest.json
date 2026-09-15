@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "d72afc22f592",
+  "version": "61716481ca47",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -99,9 +99,9 @@
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Furniture.glb": {
-      "key": "models/LM_ENV_Furniture.389a775b5a9d.glb",
-      "bytes": 1326186,
-      "etag": "4ea81cb83d4bbaf48d5dc222fb921e77",
+      "key": "models/LM_ENV_Furniture.381b3834774a.glb",
+      "bytes": 1361258,
+      "etag": "51f0bf68473aed0667a33aaa59ff9f3c",
       "encoding": "br"
     },
     "assets/models/environment/LM_ENV_Shoplots.glb": {
