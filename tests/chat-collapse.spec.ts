@@ -1,5 +1,40 @@
 import { test, expect } from '@playwright/test';
 
+test('chat window icons stay centred and touch-sized inside the game dialog', async ({page}, testInfo) => {
+  await page.route('**/chat-icons-harness', route => route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/src/style.css"><link rel="stylesheet" href="/src/ui-polish.css"><div id="hud"></div>'}));
+  await page.goto('/chat-icons-harness');
+  await page.evaluate(async () => {
+    const {setupChat} = await import('/src/social.ts');
+    const {setupTableSocial} = await import('/src/table-social.ts');
+    setupChat(() => true, () => {});
+    const ui = setupTableSocial(() => true, 'city', () => {}, () => {});
+    ui.state([{id:'meja-4',name:'Meja 4',capacity:4,occupants:[{id:'self',name:'Ali',chairId:'chair-9'}]}], 'self', true);
+    ui.open('meja-4');
+  });
+  await page.locator('[data-select="four"]').click();
+  for (const width of [390, 920, 1280]) {
+    await page.setViewportSize({width,height:767});
+    const heading = (await page.locator('#chat-heading').boundingBox())!;
+    const title = (await page.locator('#chat-heading b').boundingBox())!;
+    for (const id of ['chat-min','chat-expand']) {
+      const button = page.locator(`#${id}`), box = (await button.boundingBox())!, icon = (await button.locator('svg').boundingBox())!;
+      expect(box.width).toBe(44); expect(box.height).toBe(44);
+      expect(icon.width).toBe(18); expect(icon.height).toBe(18);
+      expect(Math.abs(icon.x+9-box.x-22)).toBeLessThan(1);
+      expect(Math.abs(icon.y+9-box.y-22)).toBeLessThan(1);
+      expect(box.x).toBeGreaterThan(title.x+title.width);
+      expect(box.x+box.width).toBeLessThanOrEqual(heading.x+heading.width);
+      expect(box.y).toBeGreaterThanOrEqual(heading.y);
+      expect(box.y+box.height).toBeLessThanOrEqual(heading.y+heading.height);
+    }
+    await page.screenshot({path:testInfo.outputPath(`chat-icons-${width}.png`)});
+    await page.getByRole('button',{name:'Minimise city chat'}).click();
+    await expect(page.locator('#chat-expand')).toBeHidden();
+    await page.getByRole('button',{name:'Restore city chat'}).click();
+    await expect(page.locator('#chat-body')).toBeVisible();
+  }
+});
+
 // The log is on screen by default now — the composer is what hides. The heading
 // still collapses the whole panel for players who want a clear screen, and that
 // choice is what has to survive a reload.

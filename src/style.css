@@ -682,10 +682,16 @@ html, body, #app { touch-action: manipulation; }
 /* Window controls sit in the far-left corner of the title bar, ahead of the title, rather
    than floating over the middle of it. The heading is a button and cannot hold buttons, so
    they overlay it and it makes room for them with padding. */
-#chat-controls { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; z-index: 2; }
-#chat-controls button { background: #ffffff14; color: #cdd8c0; border: 0; border-radius: 4px; padding: 2px 7px; font-size: 12px; line-height: 1.4; font-family: inherit; cursor: pointer; }
-#chat-controls button:hover { background: #ffffff2b; color: #ddf69a; }
-#chat-heading { padding-right: 64px; }
+/* Keep window controls independent of table-dialog button padding and font metrics. */
+#city-chat #chat-controls { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; z-index: 2; }
+#city-chat #chat-controls button { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; background: #ffffff14; color: #fff8e7; border: 1px solid #ffffff1f; border-radius: 9px; cursor: pointer; touch-action: manipulation; }
+#city-chat #chat-controls button[hidden] { display: none; }
+#city-chat #chat-controls svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+#city-chat #chat-controls button:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
+#city-chat #chat-controls button:active { background: #ffffff35; transform: scale(.97); }
+@media (hover: hover) and (pointer: fine) { #city-chat #chat-controls button:hover { background: #ffffff2b; color: #ddf69a; } }
+#city-chat #chat-heading { min-height: 52px; padding-right: 108px; }
+#city-chat.chat-collapsed #chat-heading { padding-right: 58px; }
 /* Centred on both axes rather than hung off the bottom edge. */
 #city-chat.chat-expanded { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(720px, 82vw); z-index: 30; }
 #city-chat.chat-expanded #chat-body { padding: 16px; }
@@ -700,7 +706,6 @@ html, body, #app { touch-action: manipulation; }
   #city-chat.chat-expanded .chat-log { height: 100%; max-height: none; font-size: 13px; }
   #city-chat.chat-expanded #chat-messages { max-height: none; }
   #city-chat.chat-expanded #chat-controls { top: calc(12px + var(--safe-top)); right: 18px; }
-  #city-chat.chat-expanded #chat-controls button { font-size: 16px; padding: 6px 11px; }
   #city-chat.chat-expanded #chat-heading { padding-left: 12px; padding-right: 56px; flex-shrink: 0; }
 }
 

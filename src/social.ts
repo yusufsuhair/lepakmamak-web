@@ -224,11 +224,11 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     // A collapsed chat only needs one clear way back. Hiding fullscreen here avoids two
     // tiny controls on mobile that both appear to open the same closed panel.
     expand.hidden = collapsed;
-    expand.textContent = expanded ? '⤡' : '⤢';
+    expand.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${expanded ? 'M4 9h5V4M9 9 3 3M20 15h-5v5M15 15l6 6' : 'M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7'}"/></svg>`;
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     heading.disabled = expanded;
     minimise.hidden = expanded;
-    minimise.textContent = collapsed ? '▢' : '–';
+    minimise.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${collapsed ? 'M5 5h14v14H5zM5 9h14' : 'M5 12h14'}"/></svg>`;
     minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
     heading.setAttribute('aria-expanded', String(!collapsed));
