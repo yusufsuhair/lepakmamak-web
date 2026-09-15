@@ -48,6 +48,7 @@ function dressVenue(model:THREE.Object3D){
 }
 export function createSkyDining(scene:THREE.Scene){
  const root=new THREE.Group();root.name='Wet Deck · Sky Dining';root.position.set(SKY.x,SKY.y,SKY.z);scene.add(root);
+ cullBeyond(root,160);
  // The venue skin is swapped for LM_ENV_SkyDining.glb; the pool, the animated parts and the
  // canvas labels stay on root so the basin, the water and the wording survive the swap.
  const venue=new THREE.Group();venue.name='sky-dining';root.add(venue);

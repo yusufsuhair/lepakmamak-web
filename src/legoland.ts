@@ -54,6 +54,7 @@ export function createLegoland(worldScene:THREE.Scene,world:World,options:{send:
  for(const [material,geometries] of buckets){const merged=mergeGeometries(geometries);if(merged)scene.add(new THREE.Mesh(merged,material));for(const g of geometries)g.dispose();}for(const o of originals)o.removeFromParent();
 
  scene.rotation.y=Math.PI/2;scene.position.x=-350;worldScene.add(scene);
+ const proxy=box(worldScene,-196,6,0,32,12,6,'#f1c72a');proxy.name='LEGOLAND distant proxy';
  for(const o of obstacles){const p=toParkWorld(o.x,o.z);world.solids.push({...p,hx:o.d/2,hz:o.w/2});}
  for(const land of lands){const p=toParkWorld(land.x,land.z);world.mapBuildings.push({...p,w:74,d:land.name==='Water Park'?112:77,color:land.color});}
  box(worldScene,-173,-.15,0,55,.3,19,'#d8cca8');
@@ -98,7 +99,7 @@ export function createLegoland(worldScene:THREE.Scene,world:World,options:{send:
   disconnect(){if(ride)pendingExit=parkExit(attractions[ride.id]);sync(null);},
   pose(now:number){if(pendingExit){const p=pendingExit;pendingExit=null;return{...p,yaw:Math.PI/2};}if(!ride)return null;const a=attractions[ride.id];return automated(a)?parkPose(a,Math.min(1,(now-ride.startedAt)/1000/rideDuration(a))):null;},
   update(pos:{x:number;z:number},view:THREE.Camera,now:number,visible:boolean){
-   position=pos;camera=view;clock=now;scene.visible=true;const local=toParkLocal(pos.x,pos.z);
+   position=pos;camera=view;clock=now;const parkDistance=Math.hypot(pos.x+350,pos.z);scene.visible=parkDistance<300;proxy.visible=!scene.visible;const local=toParkLocal(pos.x,pos.z);
    const distance=(a:Attraction)=>{const entry=parkExit(a);return Math.hypot(pos.x-entry.x,pos.z-entry.z);};nearby=attractions.reduce<Attraction|undefined>((best,a)=>distance(a)<(best?distance(best):17)?a:best,undefined);
    const a=ride?attractions[ride.id]:nearby;panel.hidden=!visible||(!a&&!isInLegoland(pos.x))||(!ride&&!options.canEnter());panel.classList.toggle('park-compact',!a);if(a){title.textContent=a.name;description.textContent=instructions[a.kind];}playedBadge.hidden=!a||!completed.has(a.id);
    stop=ride?.id===0?attractions.reduce((best,x)=>distance(x)<distance(best)?x:best):undefined;const leaveText=stop&&stop.id!==0?`Turun di ${stop.name}`:'Keluar tarikan';if(leaveButton.textContent!==leaveText)leaveButton.textContent=leaveText;

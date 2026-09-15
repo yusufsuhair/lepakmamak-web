@@ -564,7 +564,8 @@ export function nearLoader(group: THREE.Object3D, loadRadius: number, hideRadius
  * once it is far enough that its detail cannot be read. Collision never depends on visibility. */
 export function updateStreaming(x: number, z: number) {
   for (const crowd of crowds) {
-    crowd.group.getWorldPosition(streamPoint);
+    if (crowd.point) streamPoint.set(crowd.point.x,0,crowd.point.z);
+    else crowd.group.getWorldPosition(streamPoint);
     const far = Math.hypot(x - streamPoint.x, z - streamPoint.z) >= crowd.radius;
     // Only ever undo our own hiding. Drivers, riders and idle crowd members are hidden by the
     // systems that own them, and forcing those back on would cost more than the cull saves.
@@ -582,8 +583,8 @@ export function updateStreaming(x: number, z: number) {
 /** NPC crowds that stop being readable long before the fog takes them. Avatars are the most
  * expensive thing in the scene — about 12,800 triangles and a dozen meshes each — so a villager
  * a hundred metres away is pure cost. Player-controlled rigs are never registered here. */
-const crowds: { group: THREE.Object3D; radius: number; hidden?: boolean }[] = [];
-export function cullBeyond(group: THREE.Object3D, radius: number) { crowds.push({ group, radius }); }
+const crowds: { group: THREE.Object3D; radius: number; point?: {x:number;z:number}; hidden?: boolean }[] = [];
+export function cullBeyond(group: THREE.Object3D, radius: number, point?: {x:number;z:number}) { crowds.push({ group, radius, point }); }
 
 /** Preserve authored shadow choices while switching a moving object's casters by distance. */
 export function setObjectShadows(group: THREE.Object3D, enabled: boolean) {
@@ -1195,6 +1196,7 @@ export function createWorld(scene: THREE.Scene): World {
     box(station, 23, 2.65, -24.62, 3.5, .7, .12, green);
     stationSolid(23, -24, 3.8, 1.1);
     petronas=loadPetronas(scene,station);
+    cullBeyond(petronas.group,320);cullBeyond(petronas.fallback,320);
   }
 
   for(const [x,z,label] of [[112,-14,'DATARAN SANTAI'],[-110,60,'LAMAN LEPAK']] as const){

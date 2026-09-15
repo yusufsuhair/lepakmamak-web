@@ -51,6 +51,7 @@ export function beachRestPose(person:Person,kind:BeachRestKind|null,yaw=0){
 
 export function createBeach(scene:THREE.Scene,world:World){
  const g=new THREE.Group();g.name='Pantai Senja';scene.add(g);
+ cullBeyond(g,160,{x:120,z:142});
  // Static props live in one group so the Blender set (scripts/blender/build_beach.py) can
  // replace them atomically. The animated sea, its breaking crests, the fire flame and the
  // walkers stay outside it, so the swap can never remove them.
