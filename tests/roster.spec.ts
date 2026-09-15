@@ -49,13 +49,13 @@ test('a game lobby says who is in it and whether each of them is ready',async({p
  await expect(page.locator('.table-seat.empty')).toHaveCount(2);
 });
 
-test('the city roster shows names at a glance and hides itself when alone',async({page})=>{
+test('the city HUD keeps the online count in the multiplayer control',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:"Jom, let's go"}).click();
  await page.locator('#auth-guest').click();
  await page.locator('#guest-name').fill('Solo');
  await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
  await expect(page.locator('#hud')).toBeVisible();
- // Alone in solo mode there is nobody to list, so it says nothing rather than "0 others".
- await expect(page.locator('#roster-brief')).toBeHidden();
+ await expect(page.locator('#player-count')).toHaveText(/\d+ players? online/);
+ await expect(page.locator('#roster-brief')).toHaveCount(0);
 });

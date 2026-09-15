@@ -76,7 +76,7 @@ try {
     await page.getByRole('button', { name: 'Log in & enter' }).click();
     await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE', { timeout: 15000 });
   }
-  for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 / 24');
+  for (const page of pages) await expect(page.locator('#player-count')).toHaveText('2 players online');
   for (const [index,page] of pages.entries()) {
     await page.getByRole('button', {name:'Open settings'}).click();
     await page.getByRole('button', {name:'Kedai · Skins & Accessories'}).click();
@@ -92,7 +92,7 @@ try {
   await pages[0].getByRole('button', { name: 'Show online players' }).click();
   await expect(pages[0].locator('#online-players-list')).toContainText('Smoke Player 0');
   await expect(pages[0].locator('#online-players-list')).toContainText('Smoke Player 1');
-  await expect(pages[0].locator('#online-players-count')).toHaveText('2 online');
+  await expect(pages[0].locator('#online-players-count')).toHaveText('2 players online');
   await pages[0].getByRole('button', { name: 'Close online players' }).click();
   await pages[0].bringToFront();
   await pages[0].locator('#world').focus();
@@ -134,7 +134,7 @@ try {
     await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('button', { name: 'Return to Mamak Maju' }).click();
   }
-  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 / 24'); if (await page.locator('#chat-body').isHidden()) await page.locator('#chat-heading').click(); await expect(page.locator('#chat-body')).toBeVisible(); }
+  for (const page of pages) { await expect(page.locator('#player-count')).toHaveText('2 players online'); if (await page.locator('#chat-body').isHidden()) await page.locator('#chat-heading').click(); await expect(page.locator('#chat-body')).toBeVisible(); }
   await pages[0].getByLabel('Message to the city').fill('<img src=x onerror=alert(1)> Hello friend');
   await pages[0].getByRole('button', { name: 'Send', exact: true }).click();
   await expect(pages[1].locator('#chat-messages')).toContainText('Smoke Player 0: <img src=x onerror=alert(1)> Hello friend');
@@ -188,7 +188,7 @@ try {
   await expect(pages[0].locator('#session-replaced-message')).toBeVisible();
   await expect(pages[0].locator('#hud')).toBeHidden();
   await replacement.waitForTimeout(3500);
-  await expect(replacement.locator('#player-count')).toHaveText('2 / 24');
+  await expect(replacement.locator('#player-count')).toHaveText('2 players online');
   await expect(pages[0].locator('#session-replaced-message')).toBeVisible();
   const ws = new WebSocket(`${env.VITE_MULTIPLAYER_URL}/ws`); sockets.push(ws);
   await new Promise((resolve, reject) => {

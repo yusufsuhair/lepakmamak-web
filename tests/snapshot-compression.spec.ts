@@ -2,7 +2,6 @@ import {test,expect} from '@playwright/test';
 import {spawn} from 'node:child_process';
 import WebSocket from 'ws';
 import zlib from 'node:zlib';
-import city from '../shared/city.json' with {type:'json'};
 
 const PORT='8131';
 
@@ -74,7 +73,7 @@ test('the browser inflates a compressed snapshot and shows the city it describes
   });
  });
  await page.goto('/');
- await expect(page.locator('#player-count')).toHaveText(`2 / ${city.maxPlayers}`);
+ await expect(page.locator('#player-count')).toHaveText('2 players online');
  expect(askedForDeflate).toBe(true);
  expect(errors).toEqual([]);
 });

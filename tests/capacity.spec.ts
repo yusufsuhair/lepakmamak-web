@@ -10,13 +10,10 @@ test('the city holds a hundred people',()=>{
  expect(city.maxPlayers).toBe(100);
 });
 
-test('the HUD counts against the shared limit rather than a literal of its own',()=>{
- // Checked against the file, not the served bundle: Vite folds the JSON import into a
- // literal, so the transformed source cannot tell a shared constant from a hardcoded one.
+test('the HUD presents a readable online-player count',()=>{
  const source=readFileSync('src/main.ts','utf8');
- expect(source).toContain('${count} / ${city.maxPlayers}');
- // A hardcoded denominator is how the HUD came to read "/ 24" while the server allowed more.
- expect(source).not.toMatch(/player-count'\)\.textContent\s*=\s*`\$\{count\} \/ \d+`/);
+ expect(source).toContain("${count} player${count === 1 ? '' : 's'} online");
+ expect(source).not.toContain('${count} / ${city.maxPlayers}');
 });
 
 test('the server turns away the player past the limit and lets one in again after somebody leaves',async()=>{

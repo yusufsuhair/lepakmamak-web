@@ -282,7 +282,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 #chat-body { margin-top: 0; border-radius: 0 0 6px 6px; }
 #chat-messages { max-height: 150px; }
 #minimap-wrap { top: calc(27px + var(--safe-top)); left: 30px; bottom: auto; right: auto; }
-/* Map owns the top-left corner; the online count sits under it. */
+/* Map owns the top-left corner; the multiplayer status sits under it. */
 .hud-left { margin-top: 202px; }
 @media (min-width: 601px) and (max-width: 900px) {
   #minimap-wrap { left: 22px; }
@@ -853,11 +853,6 @@ body:has(#loading:not([hidden]),#pause:not([hidden]),#auth-panel:not([hidden]),#
 .tap-ripple { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border: 2px solid #ddf69ab3; border-radius: 50%; animation: tap-ripple .62s cubic-bezier(.22,.61,.36,1) forwards; }
 @keyframes tap-ripple { from { transform: scale(1); opacity: .85; } to { transform: scale(7); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tap-ripple { display: none; } }
-
-/* Who is in the city, at a glance. The full list is behind the button above it. */
-#roster-brief { margin: 3px 0 0; max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; letter-spacing: .04em; color: #cfe0cd; }
-#roster-brief[hidden] { display: none; }
-@media (max-width: 600px) { #roster-brief { max-width: 140px; font-size: 9px; } }
 
 /* The table says who is sitting at it, so it wraps rather than running off the screen. */
 .table-label { max-width: min(320px, 72vw); white-space: normal; line-height: 1.35; }
