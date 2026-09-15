@@ -38,3 +38,24 @@ test('an expired session refreshes its token and reconnects without restarting t
  expect(tokens).toEqual(['test','fresh']);
  expect(await page.evaluate(()=>(window as any).sessionRefreshes)).toBe(1);
 });
+
+test('a transport drop shows recovery while the next socket retries',async({page})=>{
+ await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:AUTH_STUB}));
+ let joins=0;
+ await page.routeWebSocket('**/ws',ws=>{
+  const attempt=++joins;
+  ws.onMessage((raw:any)=>{
+   if(JSON.parse(String(raw)).type!=='join')return;
+   if(attempt>1)return;
+   ws.send(JSON.stringify({type:'welcome',id:`drop-${attempt}`,players:[{id:`drop-${attempt}`,name:'Driver',x:0,z:0,yaw:0,riding:false}]}));
+   if(attempt===1)setTimeout(()=>void ws.close({code:1012,reason:'Network dropped'}),100);
+  });
+ });
+ await page.goto('/');
+ await expect(status(page)).toHaveText('CITY ONLINE',{timeout:10000});
+ await page.evaluate(()=>window.dispatchEvent(new Event('offline')));
+ await expect(page.locator('#force-refresh')).toBeVisible({timeout:10000});
+ await expect(page.locator('#refresh-line')).toHaveText('Connection lost');
+ await expect(page.locator('#refresh-now')).toHaveText('Restart');
+ await expect(page.locator('#net-status')).toHaveAttribute('data-grade','none');
+});

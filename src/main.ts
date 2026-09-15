@@ -1058,6 +1058,7 @@ async function init() {
     // A first join has never had a connection to "lose". Showing recovery here made a
     // normal sign-in look broken while a realtime instance was still responding.
     const restartable = connectedOnceThisEntry && shouldOfferConnectionRestart(state, label);
+    if (state === 'offline') netStatus.offline();
     if (restartable) refresher.showConnectionRestart();
     else if (state === 'online' || state === 'solo' || label === 'LOGIN REQUIRED' || label === 'SUSPENDED' || label === 'CITY FULL') refresher.hideConnectionRestart();
     const statusKey = `${label}:${state}:${count}`;
@@ -1069,6 +1070,22 @@ async function init() {
     $('multiplayer-status-text').textContent = label;
     $('player-count').textContent = `${count} player${count === 1 ? '' : 's'} online`;
   }
+  function reportTransportLoss() {
+    if (!started || !multiplayerEndpoint || !connectedOnceThisEntry || rejection) return false;
+    networkConnected = false;
+    finishEntryLoading();
+    setNetworkStatus('OFFLINE', 'offline', 1);
+    retryMultiplayer();
+    return true;
+  }
+  window.addEventListener('offline', () => {
+    if (!started || !multiplayerEndpoint) return;
+    if (!reportTransportLoss()) retryMultiplayer();
+    networkSocket?.close(4000, 'Network offline');
+  });
+  window.addEventListener('online', () => {
+    if (started && multiplayerEndpoint && !networkConnected) retryMultiplayer();
+  });
   // A crowded mamak used to draw every one of a hundred players in full articulation, about
   // 33 draw calls each. Only the nearest few earn that; the rest become one capsule, and the
   // far ones stop drawing at all. The geometry is shared, so a stand-in costs one call.
@@ -1210,6 +1227,7 @@ async function init() {
     const oldSocket = networkSocket; networkSocket = null;
     oldSocket?.close(1000, 'Leaving the city');
     networkConnected = false; networkPlayerId = '';
+    netStatus.offline();
     refresher.hideConnectionRestart();
     localSupermanUntil = 0;
     for (const entity of remotePlayers.values()) disposeRemote(entity);
@@ -1277,7 +1295,13 @@ async function init() {
       let telemetryAt = performance.now();
       const heartbeatTimer = window.setInterval(() => {
         if (socket !== networkSocket) { clearInterval(heartbeatTimer); return; }
-        if (heartbeat.tick(document.hidden)) { socket.close(4000, 'Heartbeat timeout'); return; }
+        if (heartbeat.tick(document.hidden)) {
+          // A dead radio can leave WebSocket.close waiting indefinitely. Paint the loss and
+          // expose recovery before asking the browser to finish closing the socket.
+          if (!reportTransportLoss()) retryMultiplayer();
+          socket.close(4000, 'Heartbeat timeout');
+          return;
+        }
         if (networkConnected && socket.readyState === WebSocket.OPEN && !document.hidden) {
           socket.send(JSON.stringify({type:'ping',t:heartbeat.probe()}));
           if(performance.now()-telemetryAt>15000){telemetryAt=performance.now();void voice.stats().then(stats=>{if(socket===networkSocket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'network-telemetry',...heartbeat.stats(),...frames.stats(),frameP95Ms:Math.round([...recentFrameTimes].sort((a,b)=>a-b)[Math.floor(recentFrameTimes.length*.95)]||0),...stats}));}).catch(()=>{});}
@@ -1426,7 +1450,7 @@ async function init() {
         }
         frames.push(event.data);
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; netStatus.offline(); park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
         // A normal JWT expiry is recoverable: Supabase already owns the refresh token, so
         // reconnect with a fresh access token instead of making the player restart the page.
         if (event.code === 4001) {
@@ -1448,9 +1472,18 @@ async function init() {
         else if (!connectedOnceThisEntry) { finishEntryLoading(); setNetworkStatus('CONNECTION FAILED', 'offline', 1); }
         else { finishEntryLoading(); setNetworkStatus('OFFLINE', 'offline', 1); }
         retryMultiplayer(); });
-      // Browsers fire `error` before `close`, often without a useful reason. Let close own
-      // the visible state so the loader does not flash a failure during sign-in.
-      socket.addEventListener('error', () => { if (socket !== networkSocket) return; voice.connected(false); networkConnected = false; });
+      // Browsers fire `error` before `close`, often without a useful reason, and a stalled
+      // transport may never deliver `close`. Report the loss now; close still owns cleanup.
+      socket.addEventListener('error', () => {
+        if (socket !== networkSocket) return;
+        // `error` is the only signal some browsers deliver for a stalled transport. Do not
+        // wait for the paired `close` event before showing recovery or scheduling a retry.
+        voice.connected(false);
+        if (!reportTransportLoss()) {
+          networkConnected = false; netStatus.offline();
+          retryMultiplayer();
+        }
+      });
     } catch {
       finishEntryLoading();
       const canRetry = connectedOnceThisEntry || connectionAttempts < INITIAL_RETRY_LIMIT;
@@ -2735,7 +2768,7 @@ async function init() {
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.
   if (import.meta.env.DEV) {
-    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(),soundRange, angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, simTime, rain: rainEnabled }) });
+    Object.defineProperty(window, '__lepak', { get: () => ({ skyDining,swimming:skyDining&&inSkyPool(pos),lrtId,lrtSeat,superman:isSuperman(),soundRange, angry:angryDrivers.map(a=>a.line), busking:{playing:!buskingSong.paused,gain:buskingGain?.gain.value??0}, watsons:{playing:!watsonsSong.paused,gain:watsonsGain?.gain.value??0}, familyMart:{playing:!familyMartSong.paused,gain:familyMartGain?.gain.value??0}, masjid:{playing:!masjidSong.paused,gain:masjidGain?.gain.value??0,distance:nearestMasjidDistance(pos)}, stallVoice:{playing:!stallVoiceSong.paused,gain:stallVoiceGain?.gain.value??0,distance:nearestStallDistance(pos)}, trafficModels: world.traffic.map(item => item.group.userData.model), mamakMaju: { state: mamakAssetState, fallbackVisible: world.mamakProcedural.visible }, graphicsQuality, autoReduced, shadows: renderer.shadowMap.enabled, pixelRatio: renderer.getPixelRatio(), cameraZoom: zoom, cameraActualDistance:Math.hypot(camera.position.x-pos.x,camera.position.z-pos.z), cameraOrbit: orbit, iceCream: { x: iceCreamBike.position.x, z: iceCreamBike.position.z, playing: !iceCreamSong.paused, gain: iceCreamGain?.gain.value ?? 0 }, lambo: { cars: world.traffic.filter(item=>item.group.userData.model==='lamborghini').map(item=>({id:item.id,x:item.x,z:item.z,speed:item.speed,npc:item.npc})), playing: !lamboSong.paused, gain: lamboGain?.gain.value ?? 0, peak: LAMBO_PEAK, reach: LAMBO_REACH }, started, paused, riding, passengerOf, vehicle, seated, jumpHeight, punchCount, stick: { x: stickX, y: stickY }, profileScreen: (() => { const p = player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera); return { x: (p.x + 1) * innerWidth / 2, y: (1 - p.y) * innerHeight / 2 }; })(), position: { x: pos.x, z: pos.z }, bridge: { onBridge, deckY }, klccLift: klccLiftRide ? { id: klccLiftRide.lift.id, phase: klccLiftRide.phase, direction: klccLiftRide.direction, y: deckY } : null, geng, lamps: streetLights.lamps.map((lamp,index)=>({x:lamp.x,z:lamp.z,lit:streetLights.lit(index)})), yaw, speed, money, bike: { x: bike.group.position.x, z: bike.group.position.z }, drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, memory: renderer.info.memory, scene, camera, simTime, rain: rainEnabled }) });
   }
   requestAnimationFrame(frame);
   // Returning members skip the title screen once Supabase restores a valid session.
