@@ -1437,10 +1437,18 @@ async function init() {
         frames.push(event.data);
       });
       socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
-        // The close lands milliseconds after the server's explanation and used to overwrite
-        // it with RECONNECTING…, so a full city and an expired login both looked like a
-        // reconnect that never finished. Keep the reason the server gave.
-        if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4001) { finishEntryLoading(); setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
+        // A normal JWT expiry is recoverable: Supabase already owns the refresh token, so
+        // reconnect with a fresh access token instead of making the player restart the page.
+        if (event.code === 4001) {
+          setNetworkStatus('RECONNECTING…', 'connecting', 1);
+          if (!auth) { retryMultiplayer(); return; }
+          void auth.auth.refreshSession().then(({data}) => {
+            if (!data.session) throw new Error('Session refresh failed');
+            retryMultiplayer();
+          }).catch(() => void requestEntry.invalidate('Your login expired. Please log in again.'));
+          return;
+        }
+        if (rejection?.code === 'AUTH_REQUIRED' || event.code === 4004) { finishEntryLoading(); setNetworkStatus('LOGIN REQUIRED', 'offline', 1); return; }
         // No retry loop: reconnecting cannot lift a suspension, it just hammers the server.
         if (rejection?.code === 'BANNED' || event.code === 4003) { finishEntryLoading(); setNetworkStatus('SUSPENDED', 'offline', 1); return; }
         // Keep a real transport failure red and actionable while the background retry runs.

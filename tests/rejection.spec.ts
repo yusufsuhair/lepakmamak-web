@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 // Enter the city without the real auth panel, the same way the Cilok browser test does.
-const AUTH_STUB=`export const session={access_token:'test',user:{id:'a',user_metadata:{display_name:'Driver'}}};export const auth={auth:{getSession:async()=>({data:{session}})}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Driver';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`;
+const AUTH_STUB=`export let session={access_token:'test',user:{id:'a',user_metadata:{display_name:'Driver'}}};export const auth={auth:{getSession:async()=>({data:{session}}),refreshSession:async()=>{window.sessionRefreshes=(window.sessionRefreshes||0)+1;session={...session,access_token:'fresh'};return{data:{session}}}}};export let guestName='';export function clearGuest(){}export const displayName=()=> 'Driver';export async function setupAuth(onEnter){const panel=document.createElement('div');panel.id='auth-panel';panel.hidden=true;document.body.append(panel);return onEnter;}`;
 
 const status=(page:any)=>page.locator('#multiplayer-status-text');
 
@@ -22,14 +22,19 @@ test('a full city says so instead of reconnecting forever',async({page})=>{
  await expect(status(page)).not.toHaveText('RECONNECTING…');
 });
 
-test('an expired session asks for a login instead of reconnecting forever',async({page})=>{
+test('an expired session refreshes its token and reconnects without restarting the page',async({page})=>{
  await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:AUTH_STUB}));
+ let joins=0;const tokens:string[]=[];
  await page.routeWebSocket('**/ws',ws=>{
   ws.onMessage((raw:any)=>{
-   if(JSON.parse(String(raw)).type!=='join')return;
-   ws.close({code:4001,reason:'Session expired'});
+   const message=JSON.parse(String(raw));if(message.type!=='join')return;tokens.push(message.accessToken);
+   if(++joins===1)ws.close({code:4001,reason:'Session expired'});
+   else ws.send(JSON.stringify({type:'welcome',id:'renewed',players:[{id:'renewed',name:'Driver',x:0,z:0,yaw:0,riding:false}]}));
   });
  });
  await page.goto('/');
- await expect(status(page)).toHaveText('LOGIN REQUIRED');
+ await expect(status(page)).toHaveText('CITY ONLINE',{timeout:10000});
+ expect(joins).toBe(2);
+ expect(tokens).toEqual(['test','fresh']);
+ expect(await page.evaluate(()=>(window as any).sessionRefreshes)).toBe(1);
 });

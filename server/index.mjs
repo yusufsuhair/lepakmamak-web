@@ -227,7 +227,7 @@ const messages = createMessages({
     return true;
   },
 });
-const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4001,'Account deleted')});
+const accounts=createAccounts({onDeleted:userId=>accountConnections.get(userId)?.ws.close(4004,'Account deleted')});
 const wall=createWall({onPost:post=>{for(const players of rooms.values())broadcast(players,{type:'wall-new',post});}});
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
