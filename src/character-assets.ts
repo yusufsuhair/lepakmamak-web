@@ -11,9 +11,20 @@ const templates = new Map<string, Promise<THREE.Group>>();
 type Channel = 'skin' | 'shirt' | 'trousers' | 'hair' | 'tudung';
 type State = {rig: Character; slots: Record<string, THREE.Group>; palette: Record<Channel, THREE.MeshStandardMaterial>; look: Appearance; revision: number; key: string; disposed: boolean; pending: Promise<void>};
 const states = new WeakMap<THREE.Group, State>();
+const paletteMaterials = new Map<string, THREE.MeshStandardMaterial>();
 const fallbackBox = new THREE.BoxGeometry(1, 1, 1);
 const fallbackSphere = new THREE.SphereGeometry(1, 16, 12);
 const fixedFallback = new THREE.MeshStandardMaterial({color: '#f6efd7', roughness: .7});
+
+function paletteMaterial(channel: Channel, color: THREE.ColorRepresentation) {
+  const parsed = new THREE.Color(color), key = `${channel}:${parsed.getHexString()}`;
+  let material = paletteMaterials.get(key);
+  if (!material) {
+    material = new THREE.MeshStandardMaterial({name: `LM_${channel}`, color: parsed, roughness: channel === 'skin' ? .57 : channel === 'hair' ? .43 : .68});
+    paletteMaterials.set(key, material);
+  }
+  return material;
+}
 
 function template(key: string) {
   let pending = templates.get(key);
@@ -52,10 +63,11 @@ export function createCharacter(shirt = defaultAppearance.shirt, seated = false,
     slots[`${side}Forearm`] = slot(arm, `${side}-forearm`);
     arm.userData.elbowY = -.21;
   }
-  const palette = Object.fromEntries(['skin', 'shirt', 'trousers', 'hair', 'tudung'].map(channel => [channel,
-    new THREE.MeshStandardMaterial({name: `LM_${channel}`, roughness: channel === 'skin' ? .57 : channel === 'hair' ? .43 : .68})])) as State['palette'];
+  const look = customization ? appearance(customization) : {...defaultAppearance, shirt};
+  const palette = Object.fromEntries((['skin', 'shirt', 'trousers', 'hair', 'tudung'] as const).map(channel => [channel,
+    paletteMaterial(channel, channel === 'tudung' ? (look.tudung === 'none' ? '#ffffff' : tudungColour(look.tudung)) : look[channel])])) as State['palette'];
   const rig = {group, leftLeg, rightLeg, leftArm, rightArm};
-  const state: State = {rig, slots, palette, look: customization ? appearance(customization) : {...defaultAppearance, shirt}, revision: 0, key: '', disposed: false, pending: Promise.resolve()};
+  const state: State = {rig, slots, palette, look, revision: 0, key: '', disposed: false, pending: Promise.resolve()};
   states.set(group, state);
   fallback(body, [0, 1.05, 0], [.52, .54, .32], palette.shirt);
   fallback(head, [0, 1.77, 0], [.37, .40, .30], palette.skin, true);
@@ -76,11 +88,19 @@ export function createCharacter(shirt = defaultAppearance.shirt, seated = false,
 }
 
 function tint(state: State) {
-  for (const channel of ['skin', 'shirt', 'trousers', 'hair', 'tudung'] as const)
-    state.palette[channel].color.set(channel === 'tudung' ? (state.look.tudung === 'none' ? '#ffffff' : tudungColour(state.look.tudung)) : state.look[channel]);
   const equipment = String(state.rig.group.userData.accessoryKey || '').split(',');
-  if (equipment.includes('batik')) state.palette.shirt.color.set('#244f75');
-  else if (equipment.includes('harimau')) state.palette.shirt.color.set('#efc62f');
+  for (const channel of ['skin', 'shirt', 'trousers', 'hair', 'tudung'] as const) {
+    const color = channel === 'tudung' ? (state.look.tudung === 'none' ? '#ffffff' : tudungColour(state.look.tudung))
+      : channel === 'shirt' && equipment.includes('batik') ? '#244f75'
+      : channel === 'shirt' && equipment.includes('harimau') ? '#efc62f'
+      : state.look[channel];
+    state.palette[channel] = paletteMaterial(channel, color);
+  }
+  state.rig.group.traverse(child => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const replace = (material: THREE.Material) => state.palette[material.name.replace('LM_', '') as Channel] || material;
+    child.material = Array.isArray(child.material) ? child.material.map(replace) : replace(child.material);
+  });
   // Head coverings fully suppress hair and a worn cap, including during asset loading.
   state.slots.hair.visible = state.look.tudung === 'none' && !state.rig.group.userData.hideHair && !equipment.includes('cap');
   state.slots.tudung.visible = state.look.tudung !== 'none';
@@ -139,9 +159,9 @@ export function applyCharacterAppearance(group: THREE.Group, value: unknown) {
 }
 export function refreshCharacterAccessories(group: THREE.Group) { const state = states.get(group); if (state) tint(state); }
 export function whenCharacterReady(group: THREE.Group) { return states.get(group)?.pending || Promise.resolve(); }
-/** GPU geometry belongs to the shared template cache; only per-avatar tint materials are owned here. */
+/** GPU geometry and palette materials belong to module-level caches. */
 export function disposeCharacter(group: THREE.Group) {
   const state = states.get(group); if (!state) return;
-  state.disposed = true; state.revision++; Object.values(state.palette).forEach(material => material.dispose());
+  state.disposed = true; state.revision++;
   group.clear(); states.delete(group);
 }

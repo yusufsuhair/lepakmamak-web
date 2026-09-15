@@ -57,12 +57,15 @@ test('failed style download can retry, and disposing a preview does not dispose 
   const {createPerson,applyAppearance}=await import('/src/world.ts');const {defaultAppearance}=await import('/src/appearance.ts');
   const {whenCharacterReady,disposeCharacter}=await import('/src/character-assets.ts');
   const p=createPerson(),other=createPerson();await Promise.all([whenCharacterReady(p.group),whenCharacterReady(other.group)]);
+  const shirt=(group:any)=>{let material:any;group.traverse((o:any)=>{if(o.isMesh&&o.material.name==='LM_shirt')material=o.material;});return material;};
+  const sharedPalette=shirt(p.group)===shirt(other.group);applyAppearance(p.group,{...defaultAppearance,shirt:'#628fbb'});
+  const isolatedPalette=shirt(p.group)!==shirt(other.group)&&shirt(other.group).color.getHexString()===defaultAppearance.shirt.slice(1);
   let disposed=0;other.group.traverse((o:any)=>{if(o.isMesh)o.geometry.addEventListener('dispose',()=>disposed++);});
   const look={...defaultAppearance,hairstyle:'pixie'};applyAppearance(p.group,look);await whenCharacterReady(p.group);const failed=p.group.userData.assetState;
   applyAppearance(p.group,look);await whenCharacterReady(p.group);const retried=p.group.userData.assetState;
-  disposeCharacter(p.group);return {failed,retried,disposed,otherReady:other.group.userData.assetState};
+  disposeCharacter(p.group);return {failed,retried,disposed,otherReady:other.group.userData.assetState,sharedPalette,isolatedPalette};
  });
- expect(result).toEqual({failed:'fallback',retried:'ready',disposed:0,otherReady:'ready'});
+ expect(result).toEqual({failed:'fallback',retried:'ready',disposed:0,otherReady:'ready',sharedPalette:true,isolatedPalette:true});
 });
 
 for(const width of [390,1280])test(`wardrobe exposes 36 styles and persists the latest complete appearance at ${width}px`,async({page})=>{
