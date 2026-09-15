@@ -340,9 +340,9 @@ async function init() {
   const buskers=createBuskers(scene,world.solids);
   const rembayungBuskers=createBuskers(scene,world.solids,rembayungBuskingSpot);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
-  const iceCreamSolid = { x: -11, z: 44, hx: 1.35, hz: 1.8 }; world.solids.push(iceCreamSolid);
+  const iceCreamSolid = {...vehicleSolid(iceCreamBike), id: 'matkool-bike'}; world.solids.push(iceCreamSolid);
   const rembayungIceCream=createIceCreamBike();rembayungIceCream.position.set(-108,.09,138);rembayungIceCream.rotation.y=Math.PI/2;scene.add(rembayungIceCream);
-  world.solids.push({x:-108,z:138,hx:1.8,hz:1.35});
+  world.solids.push({...vehicleSolid(rembayungIceCream), id: 'matkool-bike'});
   const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
   const bike = createBike(); scene.add(bike.group);
@@ -2353,7 +2353,7 @@ async function init() {
       iceCreamBike.rotation.y = Math.atan2(5 * Math.sin(vendorPhase), 18 * Math.cos(vendorPhase));
       const vendorSpeed = Math.hypot(5 * Math.sin(vendorPhase), 18 * Math.cos(vendorPhase)) * Math.PI * 2 / 90;
       for (const wheel of iceCreamBike.userData.wheels as THREE.Mesh[]) wheel.rotation.x += vendorSpeed * dt / .45;
-      iceCreamSolid.x = vendorX; iceCreamSolid.z = vendorZ;
+      iceCreamSolid.x = vendorX; iceCreamSolid.z = vendorZ; iceCreamSolid.yaw = iceCreamBike.rotation.y;
 
       for (const item of world.traffic) {
         if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;

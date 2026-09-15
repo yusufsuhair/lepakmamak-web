@@ -36,6 +36,13 @@ test('a rotated object blocks at its body, not at its axis-aligned bounding squa
   expect(overlaps(worldPoint(0, 2.64), .46, car)).toBe(true);
 });
 
+test('a moving Matkool bike cannot leave a player trapped inside its footprint', () => {
+  const bike = { x: 0, z: 0, hx: .95, hz: 1.75, yaw: Math.PI / 2, id: 'matkool-bike' };
+  const position = { x: .15, z: .2 };
+  expect(moveWithCollisions(position, 0, 0, .46, [bike])).toBe(true);
+  expect(overlaps(position, .46, bike)).toBe(false);
+});
+
 test('delivery only pays after pickup, within range, and on foot', () => {
   const mission = new DeliveryMission();
   expect(mission.interact(7, false)).toBeNull();

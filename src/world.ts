@@ -243,6 +243,8 @@ export function createIceCreamBike() {
   }
   ball(group, .2, 3.82, -.65, .085, yellow);
   sign(group, 'RAHIM · AIS KRIM', 0, 2.23, -1.5, 1.45, .22, blue, '#ffffff', Math.PI);
+  // The canopy is decorative and above the player's head; this is the walkable body envelope.
+  setVehicleFootprint(group, 1.9, 3.5);
   return group;
 }
 

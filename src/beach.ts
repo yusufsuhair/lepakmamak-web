@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {batchShopFallback,box,createIceCreamBike,createPerson,material,palm,type Person,type World, nearLoader, cullBeyond, cullCrowd} from './world';
+import {batchShopFallback,box,createIceCreamBike,createPerson,material,palm,type Person,type World, nearLoader, cullBeyond, cullCrowd, vehicleSolid} from './world';
 import tables from '../shared/tables.json';
 import chairs from '../shared/chairs.json';
 import {cdnUrl} from './cdn';
@@ -68,7 +68,7 @@ export function createBeach(scene:THREE.Scene,world:World){
  sign('PANTAI SENJA',98,3.6,132,9);pole(94,1.65,132,.1,3.3,'#796245');pole(102,1.65,132,.1,3.3,'#796245');
  world.mapBuildings.push({x:124,z:142,w:58,d:22,color:'#edd3a0'});
  const beachMatkool=createIceCreamBike();beachMatkool.position.set(89,.09,142);beachMatkool.rotation.y=Math.PI/2;g.add(beachMatkool);
- world.solids.push({x:89,z:142,hx:1.35,hz:1.8});
+ world.solids.push({...vehicleSolid(beachMatkool), id:'matkool-bike'});
  const {seaGeometry,seaUniforms,foam,swash}=createSea(g);
  // Two rope hammocks hang between sturdy coconut posts, with a visible dip in the cloth.
  for(const spot of BEACH_REST_SPOTS.filter(spot=>spot.kind==='hammock')){
