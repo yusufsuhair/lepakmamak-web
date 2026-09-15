@@ -1453,16 +1453,17 @@ export function createWorld(scene: THREE.Scene): World {
   }
   mamakStreetFallback.traverse(object => { object.userData.keepUnbatched = true; });
   // Malaysian flags and street signs.
-  let crescent: THREE.Material | undefined;
   function flag(x: number, z: number) {
     tube(furniture, x, 4, z, .055, 8, '#b9c1aa');
     for (let i = 0; i < 14; i++) box(furniture, x + 1.22, 7.7 - i * .1, z, 2.4, .1, .025, i % 2 ? '#f5e7cc' : '#c34d3c');
     box(furniture, x + .55, 7.37, z + .02, 1.05, .75, .02, '#344f7a');
-    crescent = sign(furniture, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57').material as THREE.Material;
+    sign(furniture, '☾ ✦', x + .55, 7.4, z + .04, .8, .55, '#344f7a', '#f1cc57');
   }
   flag(-13, 54); flag(13, -77);
-  sign(furniture, 'JALAN LEPAK', -11, 3.7, 14, 5, .8, '#245c4b'); tube(furniture, -11, 1.8, 14, .07, 3.6, '#728571');
-  sign(furniture, 'KLCC ↑', 11.5, 3.6, -48, 3.8, .9, '#245c4b'); tube(furniture, 11.5, 1.8, -48, .07, 3.6, '#728571');
+  sign(furniture, 'JALAN LEPAK', -11, 3.7, 14, 5, .8, '#245c4b');
+  tube(furniture, -11, 1.8, 14, .07, 3.6, '#728571');
+  sign(furniture, 'KLCC ↑', 11.5, 3.6, -48, 3.8, .9, '#245c4b');
+  tube(furniture, 11.5, 1.8, -48, .07, 3.6, '#728571');
   // Bunting over the courtyard.
   for (let i = 0; i < 18; i++) {
     const geo = new THREE.BufferGeometry(); const y = 6.6 - Math.sin(i / 17 * Math.PI) * 1.1;
@@ -1477,9 +1478,9 @@ export function createWorld(scene: THREE.Scene): World {
   box(furniture,0,1.1,-156,315,2.2,3,'#718361');
   box(furniture,-30.25,.57,155.7,254.5,1.14,.9,'#c9c6bc');
   box(furniture,155.7,.57,137.75,.9,1.14,24.5,'#c9c6bc');
-  // The boxes above stay as the fallback until the Blender set arrives. Only the canvas text
-  // signs survive the swap, so JALAN LEPAK and KLCC ↑ stay the game's; the Jalur Gemilang cloth
-  // prints its own crescent and star. The set also carries the junction signals, bus shelters and
+  // The boxes above stay as the fallback until the Blender set arrives. The canvas street signs
+  // are tagged so the textured Blender boards replace them atomically; the Jalur Gemilang cloth
+  // keeps its own crescent and star. The set also carries the junction signals, bus shelters and
   // bollards (scripts/blender/furniture_models.py), skin only: no colliders. lightBrands gives the
   // galvanised steel its street reflection and the signal lenses and advert light their night.
   furniture.traverse(o => { o.userData.keepUnbatched = true; });
@@ -1490,7 +1491,9 @@ export function createWorld(scene: THREE.Scene): World {
       // more triangles than the stones' own shade is worth.
       if (m.name === 'Armour granite' || m.name.startsWith('Night glow')) o.castShadow = false; });
     lightBrands(gltf.scene); instanceStreetFurniture(gltf.scene);
-    for (const child of [...furniture.children]) if (!(child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) || child.material === crescent) child.removeFromParent();
+    // The Blender set now carries every furniture surface, including both street-sign boards.
+    // Remove the complete procedural group after the atomic load so no canvas/flat duplicate remains.
+    for (const child of [...furniture.children]) child.removeFromParent();
     furniture.add(gltf.scene);
   }).catch(error => console.warn('[FURNITURE] keeping procedural street furniture', error));
 

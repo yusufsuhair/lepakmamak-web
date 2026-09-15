@@ -71,9 +71,9 @@
   "Furniture": {
     "asset": "LM_ENV_Furniture",
     "node": "furniture",
-    "triangles": 26698,
-    "bytes": 2762168,
-    "draws": 22,
+    "triangles": 26722,
+    "bytes": 2777668,
+    "draws": 23,
     "origin": [
       0,
       0,

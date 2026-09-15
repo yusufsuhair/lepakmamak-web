@@ -257,6 +257,59 @@ def signs(n=1024):
 
 SIGN_UV={'bus':(.375,.625,1.0,1.0),'route':(0,0,.375,.625),'advert':(.375,0,1.0,.625)}
 
+def street_signs(n=1024):
+    """Painted DBKL-style street-sign boards with a reflective green face, raised lettering,
+    edge wear and a matching normal map.  The atlas keeps one full board per label plus a
+    generic strip for the board's back and narrow aluminium edges (UVs are bottom-left based)."""
+    img=np.ones((n,n,3))*np.array((.055,.075,.065))
+    Y,X=np.mgrid[0:n,0:n]+.5
+    q=n/1024
+    boards=(
+        ('JALAN LEPAK',32*q,992*q,48*q,248*q,(.075,.29,.20)),
+        ('KLCC ↑',32*q,992*q,270*q,470*q,(.065,.255,.18)),
+    )
+    height=np.zeros((n,n),np.float32)
+    for label,x0,x1,y0,y1,green in boards:
+        outer=_sdf_rrect(X,Y,x0,x1,y0,y1,18*q)
+        inner=_sdf_rrect(X,Y,x0+9*q,x1-9*q,y0+9*q,y1-9*q,11*q)
+        _fill(img,outer,(.025,.07,.045),1.5)
+        _fill(img,inner,green,1.5)
+        # Retro-reflective border and fine directionality keep the board readable at night.
+        border=np.clip((inner-outer)*-.5,0,1)
+        img[:]=img*(1-border[...,None])+np.array((.46,.68,.46))*border[...,None]
+        field=fractal(n,2.0,575+int(y0))
+        mask=(outer<0)[...,None]
+        img[:]=np.where(mask,img*(.93+field[...,None]*.14),img)
+        # Slightly raised white lettering and a restrained highlight/shadow pass.
+        cap=max(22*q,min(58*q,(y1-y0)*.42))
+        tm=text_mask(label,cap)
+        stamp(img,tm,(x0+x1)/2,(y0+y1)/2+4*q,(.86,.94,.82))
+        stamp(img,tm,(x0+x1)/2,(y0+y1)/2+5*q,(.32,.48,.34))
+        stamp(img,tm,(x0+x1)/2,(y0+y1)/2+4*q,(.91,.97,.87))
+        # Small, soft scuffs on the painted face; they stay below the text contrast.
+        scuff=np.sin(X*0.17+Y*0.013+int(y0))*np.sin(Y*0.09+X*0.021)
+        wear=np.clip((scuff-.87)*2.2,0,.08)*(outer<0)
+        img[:]=np.clip(img+wear[...,None]*np.array((.20,.24,.16)),0,1)
+        height+=(outer<0)*.035+(inner<0)*.012
+    # Generic green powder-coat swatch for all six board sides and the rear face.
+    ex0,ex1,ey0,ey1=32*q,992*q,530*q,720*q
+    edge_sdf=_sdf_rrect(X,Y,ex0,ex1,ey0,ey1,15*q)
+    edge_field=fractal(n,2.4,579)
+    _fill(img,edge_sdf,(.035,.13,.085),1.5)
+    edge_mask=edge_sdf<0
+    img[edge_mask]=np.clip(np.array((.06,.22,.14))*(.92+edge_field[edge_mask,None]*.12),0,1)
+    height+=edge_mask*.028
+    # Leave a quiet aluminium backing around the atlas so mip levels do not bleed bright pixels.
+    grain=fractal(n,1.4,581)
+    img*= (.985+(grain-.5)*.03)[...,None]
+    return np.clip(img,0,1),normal_from_height(blur(height,1),n/380)
+
+STREET_SIGN_UV={
+    'jalan':(32/1024,1-248/1024,992/1024,1-48/1024),
+    'klcc':(32/1024,1-470/1024,992/1024,1-270/1024),
+    'edge':(32/1024,1-720/1024,992/1024,1-530/1024),
+}
+
 # ------------------------------------------------------------------------------ signals and lamp
 def signal(n=512):
     """Traffic signal lens atlas (baseColor and emission), 4x4 cells of 128 px, row 0 at the top:

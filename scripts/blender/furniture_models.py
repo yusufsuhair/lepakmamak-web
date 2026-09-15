@@ -81,6 +81,8 @@ class Lib:
         self.CLOTH['surface']='polyester flag fabric'
         signs=FT.signs()
         self.SIGNS=picture('Road signs','road_signs',signs,rough=.35)
+        street,street_n=FT.street_signs()
+        self.STREET_SIGNS=picture('Street sign face','street_signs',street,rough=.4,two_sided=True,normal=street_n,metal=.12)
         self.ADVERT=picture('Night glow menu advert','road_signs',signs,rough=.2,emit=True)
         self.LENS=picture('Night glow LED','signal_lenses',FT.signal(),rough=.12,emit=True)
         self.TERRAZZO=tiled('Fountain terrazzo','terrazzo',.45,1.2,strength=.4)
@@ -494,10 +496,18 @@ def flag(g,L,x,z):
         ex,ey,ez=surf(.01,v)
         g.add(L.GALV,rings([(-.018,.04),(.018,.04)],8),col=(.82,.83,.80),at=(x+ex,ey,z+ez))
 
-def sign_frame(g,L,x,y,z,w,h,posts=None):
-    """Frame behind a canvas street sign centred at (x,y,z) facing +z: an aluminium tray, a white
-    retro-reflective rim round the canvas, rails and U-bolts to two galvanised posts (offsets from x)."""
-    g.add(L.GALV,box(x,y,z-.022,w+.1,h+.1,.03),col=(.82,.83,.84))
+def sign_frame(g,L,x,y,z,w,h,posts=None,label='JALAN LEPAK'):
+    """Full DBKL street-sign board centred at (x,y,z) facing +z: a textured front, rear and
+    edge in one shallow aluminium tray, a white retro-reflective rim, rails and U-bolts to two
+    galvanised posts (offsets from x)."""
+    g.add(L.GALV,box(x,y,z-.04,w+.1,h+.1,.03),col=(.82,.83,.84))
+    board_uv=FT.STREET_SIGN_UV['klcc' if label == 'KLCC ↑' else 'jalan']
+    edge_uv=FT.STREET_SIGN_UV['edge']
+    board=box(x,y,z-.01,w,h,.028)
+    # box() orders +z, -z, +x, -x, +y, -y; use the label atlas on both broad faces and
+    # the green swatch on every narrow edge so no untextured board surface remains.
+    board.UV=[cell_uv(board_uv,.006),cell_uv(board_uv,.006),cell_uv(edge_uv,.02),cell_uv(edge_uv,.02),cell_uv(edge_uv,.02),cell_uv(edge_uv,.02)]
+    g.add(L.STREET_SIGNS,board,col=(1,1,1),uv_raw=True)
     for bx,by,bw,bh in ((0,h/2+.03,w+.1,.06),(0,-h/2-.03,w+.1,.06),(-w/2-.03,0,.06,h),(w/2+.03,0,.06,h)):
         g.add(L.POWDER,box(x+bx,y+by,z-.006,bw,bh,.022),col=WHITE)
     for off in posts or (-(w/2-.55),w/2-.55):
@@ -584,7 +594,7 @@ def furniture(tag='furniture'):
     lenses in each phase) and 'bus_stop' (facing +z)."""
     L=Lib();g=Geo(tag)
     flag(g,L,-13,54);flag(g,L,13,-77)
-    sign_frame(g,L,-11,3.7,14,5,.8);sign_frame(g,L,11.5,3.6,-48,3.8,.9,posts=(-1.62,1.35))   # clear of the lamp post at (10.4, -48)
+    sign_frame(g,L,-11,3.7,14,5,.8,label='JALAN LEPAK');sign_frame(g,L,11.5,3.6,-48,3.8,.9,posts=(-1.62,1.35),label='KLCC ↑')   # clear of the lamp post at (10.4, -48)
     bunting(g,L);fountain(g,L)
     obs=g.flush('street')
     lens=L.LENS.name

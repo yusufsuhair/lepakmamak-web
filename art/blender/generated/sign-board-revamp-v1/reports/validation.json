@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "asset": "LM_ENV_Furniture.glb",
+  "sha256": "2ed7f5c35758c17379637080bed74cc725228a64d733d26f8c650e56699a6a03",
+  "compressed_bytes": 1835612,
+  "raw_bytes": 2777668,
+  "furniture_triangles": 26722,
+  "furniture_draws": 23,
+  "street_sign_mesh": "street Street sign face",
+  "street_sign_primitives": 1,
+  "street_sign_material": "Street sign face",
+  "street_sign_double_sided": true,
+  "street_sign_material_extensions": [],
+  "khronos_errors": 0,
+  "khronos_warnings": 18,
+  "khronos_infos": 3,
+  "texture_sha256": {
+    "street_signs": "89e6ce6f929a3284baadbf6066f80ffe622b12bf39213678c670182b7f1641df",
+    "street_signs_normal": "5591a6107c5bf3ed387ebf8824a79acc2bcc3cda1c6e34f3d211a24330b57d4b"
+  },
+  "browser_check": "tests/street-furniture.spec.ts passed (desktop loader)"
+}

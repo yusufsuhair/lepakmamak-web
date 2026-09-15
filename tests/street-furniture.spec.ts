@@ -29,6 +29,8 @@ test('photographic lamps and street furniture swap in without moving anything th
     furniture.traverse((o: any) => { if (o.isInstancedMesh) instanced[o.name] = o.count; });
     const flags: any[] = [];
     furniture.traverse((o: any) => { if (o.isMesh && o.material?.name === 'Flag cloth') flags.push({vertices: o.geometry.attributes.position.count, triangles: (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3, roughness: o.material.roughness, doubleSided: o.material.side === THREE.DoubleSide, textured: !!o.material.map && !!o.material.normalMap}); });
+    const streetSigns: any[] = [];
+    furniture.traverse((o: any) => { if (o.isMesh && o.material?.name === 'Street sign face') streetSigns.push({vertices: o.geometry.attributes.position.count, triangles: (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3, textured: !!o.material.map && !!o.material.normalMap, doubleSided: o.material.side === THREE.DoubleSide}); });
     const canvasSigns = furniture.children.filter((o: any) => o.isMesh && o.material.isMeshBasicMaterial).length;
     const glowAt = (index: number) => { const m = new THREE.Matrix4(); meshes[4].getMatrixAt(index, m); return m.determinant() !== 0; };
     const avenue = meshes[4].count - 1;
@@ -49,6 +51,7 @@ test('photographic lamps and street furniture swap in without moving anything th
       lampMeshes: meshes.length, body: meshes[0].material.name, lens: meshes[1].material.name, litTextured: !!meshes[2].material.emissiveMap,
       instanced, canvasSigns, day, night, lensDay, lensNight, realLights,
       flags,
+      streetSigns,
       stopsClear: BUS_STOPS.every(s => !onRoad(s.x, s.z, 1.2) && !blocked(s.x, s.z, 1.2)),
       polesClear: poles.every(p => !onRoad(p.x, p.z, .5) && !world.solids.some((s: any) => Math.abs(p.x - s.x) < s.hx && Math.abs(p.z - s.z) < s.hz)),
       junctions: JUNCTIONS.length, stops: BUS_STOPS.length,
@@ -64,13 +67,16 @@ test('photographic lamps and street furniture swap in without moving anything th
   expect(state.flags[0].roughness).toBeCloseTo(.54, 2);
   expect(state.flags[0].vertices).toBeGreaterThanOrEqual(600);
   expect(state.flags[0].triangles).toBeGreaterThanOrEqual(900);
+  expect(state.streetSigns).toHaveLength(1);
+  expect(state.streetSigns[0]).toMatchObject({textured: true, doubleSided: true});
+  expect(state.streetSigns[0].vertices).toBeGreaterThanOrEqual(48);
   // One instanced draw per prototype material, however many junctions and shelters there are.
   expect(state.instanced).toMatchObject({
     junction_Satin_metal: state.junctions, junction_Street_powder_coat: state.junctions, junction_Street_concrete: state.junctions,
     junction_lens_ns_go_Night_glow_LED: 5, junction_lens_ns_stop_Night_glow_LED: 4,
     bus_stop_Street_powder_coat: state.stops, bus_stop_Road_signs: state.stops, bus_stop_Night_glow_menu_advert: state.stops,
   });
-  // JALAN LEPAK and KLCC ↑ stay the game's canvas; the flag prints its own crescent.
-  expect(state.canvasSigns).toBe(2);
+  // JALAN LEPAK and KLCC ↑ are now the Blender textured boards; the flag prints its own crescent.
+  expect(state.canvasSigns).toBe(0);
   expect(errors).toEqual([]);
 });
