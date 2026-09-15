@@ -205,7 +205,7 @@ async function init() {
   const shadowSize = matchMedia('(any-pointer: coarse)').matches ? 1024 : 2048;
   sun.shadow.mapSize.set(shadowSize, shadowSize); sun.shadow.camera.left = -SHADOW_REACH; sun.shadow.camera.right = SHADOW_REACH; sun.shadow.camera.top = SHADOW_REACH; sun.shadow.camera.bottom = -SHADOW_REACH;
   sun.shadow.camera.near = .5; sun.shadow.camera.far = 320; sun.shadow.normalBias = .12; sun.shadow.bias = -.00015; scene.add(sun); scene.add(sun.target);
-  const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 600);
+  const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .1, 450);
   let viewportResizeFrame = 0;
   let viewportResizeTimer = 0;
   function resizeGameViewport() {
