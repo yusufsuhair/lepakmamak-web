@@ -72,7 +72,13 @@ class Lib:
         self.POWDER=tiled('Street powder coat','powder',.55,.5,strength=.5)
         self.CONC=tiled('Street concrete','concrete',.9,2.0,source=GT)
         cloth,cloth_n=FT.cloth()
-        self.CLOTH=picture('Flag cloth','flag_cloth',cloth,rough=.75,two_sided=True,normal=FT._half(cloth_n))
+        self.CLOTH=picture('Flag cloth','flag_cloth',cloth,rough=.54,two_sided=True,normal=FT._half(cloth_n))
+        # A flag is satin polyester: soft sheen over a fairly rough weave, with no metallic coat.
+        fabric_bsdf=self.CLOTH.node_tree.nodes.get('Principled BSDF')
+        if fabric_bsdf:
+            for socket,value in (('Sheen Weight',.24),('Sheen Roughness',.28),('Specular IOR Level',.32)):
+                if fabric_bsdf.inputs.get(socket): fabric_bsdf.inputs[socket].default_value=value
+        self.CLOTH['surface']='polyester flag fabric'
         signs=FT.signs()
         self.SIGNS=picture('Road signs','road_signs',signs,rough=.35)
         self.ADVERT=picture('Night glow menu advert','road_signs',signs,rough=.2,emit=True)
@@ -460,7 +466,9 @@ def bus_stop(g,L,x,z,yaw):
 # ================================================================== flags, signs, bunting, fountain
 def flag(g,L,x,z):
     """Satin aluminium flagpole on a concrete plinth with a gilt finial, halyard and cleat, and the
-    Jalur Gemilang (1:2) as one rippling double-sided sheet off its truck."""
+    Jalur Gemilang (1:2) as one rippling double-sided sheet off its truck.  The cloth keeps a
+    shallow wind-driven fold field and three small hoist eyelets so its silhouette holds up at
+    close range without adding a second draw."""
     kw=dict(at=(x,0,z))
     g.add(L.CONC,box(0,.04,0,.62,.18,.62),col=CONCRETE,grime=.3,**kw)
     g.add(L.GALV,rings([(.12,.075),(.3,.07),(4.0,.058),(7.92,.045)],10,cap0=False),col=(.93,.93,.92),**kw)
@@ -468,11 +476,13 @@ def flag(g,L,x,z):
     g.add(L.POWDER,rings([(8.0,0.0),(8.04,.06),(8.1,.07),(8.16,.06),(8.21,0.0)],10),col=lin('#d9a441'),**kw)
     g.add(L.GALV,box(.08,1.3,0,.14,.03,.03),col=GALV,**kw)
     g.add(L.POWDER,tube([(.07,1.32,.0),(.07,7.7,0)],.006,n=4),col=WHITE,**kw)
-    W,H,TOP,NU,NV=2.4,1.2,7.8,12,5
+    W,H,TOP,NU,NV=2.4,1.2,7.8,24,9
     cloth=Part(smooth=True)
     def surf(u,v):
-        wave=.16*u*math.sin(u*math.pi*2.3+.4)+.05*u*math.sin(v*math.pi*1.5+u*4)
-        return (.07+u*W,TOP-v*H-.08*u*u*v,wave)
+        phase=u*TAU*1.25+.18*math.sin(v*TAU)
+        wave=(.095+.08*u)*math.sin(phase)+.032*math.sin(u*TAU*4.0+v*TAU*1.6)
+        sag=.06*u*u*(.35+.65*v)
+        return (.07+u*W,TOP-v*H-sag+.025*math.sin(u*TAU*2.2+v*TAU*.6),wave)
     for jv in range(NV+1):
         for iu in range(NU+1):cloth.V.append(surf(iu/NU,jv/NV))
     for jv in range(NV):
@@ -480,6 +490,9 @@ def flag(g,L,x,z):
             a=jv*(NU+1)+iu;b=a+1;c=a+NU+2;d=a+NU+1
             cloth.face((d,c,b,a),[(iu/NU,1-(jv+1)/NV*.5),((iu+1)/NU,1-(jv+1)/NV*.5),((iu+1)/NU,1-jv/NV*.5),(iu/NU,1-jv/NV*.5)])
     g.add(L.CLOTH,cloth,closed=False,hint=(0,0,1),uv_raw=True,**kw)
+    for v in (.04,.5,.96):
+        ex,ey,ez=surf(.01,v)
+        g.add(L.GALV,rings([(-.018,.04),(.018,.04)],8),col=(.82,.83,.80),at=(x+ex,ey,z+ez))
 
 def sign_frame(g,L,x,y,z,w,h,posts=None):
     """Frame behind a canvas street sign centred at (x,y,z) facing +z: an aluminium tray, a white

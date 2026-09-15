@@ -27,6 +27,8 @@ test('photographic lamps and street furniture swap in without moving anything th
     for (let i = 0; i < 400 && !(furniture.getObjectByName('furniture') && meshes[0].material.name === 'Satin metal'); i++) await new Promise(r => setTimeout(r, 50));
     const instanced: Record<string, number> = {};
     furniture.traverse((o: any) => { if (o.isInstancedMesh) instanced[o.name] = o.count; });
+    const flags: any[] = [];
+    furniture.traverse((o: any) => { if (o.isMesh && o.material?.name === 'Flag cloth') flags.push({vertices: o.geometry.attributes.position.count, triangles: (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3, roughness: o.material.roughness, doubleSided: o.material.side === THREE.DoubleSide, textured: !!o.material.map && !!o.material.normalMap}); });
     const canvasSigns = furniture.children.filter((o: any) => o.isMesh && o.material.isMeshBasicMaterial).length;
     const glowAt = (index: number) => { const m = new THREE.Matrix4(); meshes[4].getMatrixAt(index, m); return m.determinant() !== 0; };
     const avenue = meshes[4].count - 1;
@@ -46,6 +48,7 @@ test('photographic lamps and street furniture swap in without moving anything th
       lampSolids: world.solids.length - count === lights.lamps.length, lampsSame: lampsBefore === JSON.stringify(lights.lamps),
       lampMeshes: meshes.length, body: meshes[0].material.name, lens: meshes[1].material.name, litTextured: !!meshes[2].material.emissiveMap,
       instanced, canvasSigns, day, night, lensDay, lensNight, realLights,
+      flags,
       stopsClear: BUS_STOPS.every(s => !onRoad(s.x, s.z, 1.2) && !blocked(s.x, s.z, 1.2)),
       polesClear: poles.every(p => !onRoad(p.x, p.z, .5) && !world.solids.some((s: any) => Math.abs(p.x - s.x) < s.hx && Math.abs(p.z - s.z) < s.hz)),
       junctions: JUNCTIONS.length, stops: BUS_STOPS.length,
@@ -56,6 +59,11 @@ test('photographic lamps and street furniture swap in without moving anything th
   expect(state.day).toEqual({lamp: false, avenue: false});
   expect(state.night).toEqual({lamp: true, avenue: true});
   expect(state.lensNight).toBeGreaterThan(state.lensDay);
+  expect(state.flags).toHaveLength(1);
+  expect(state.flags[0]).toMatchObject({vertices: expect.any(Number), triangles: expect.any(Number), doubleSided: true, textured: true});
+  expect(state.flags[0].roughness).toBeCloseTo(.54, 2);
+  expect(state.flags[0].vertices).toBeGreaterThanOrEqual(600);
+  expect(state.flags[0].triangles).toBeGreaterThanOrEqual(900);
   // One instanced draw per prototype material, however many junctions and shelters there are.
   expect(state.instanced).toMatchObject({
     junction_Satin_metal: state.junctions, junction_Street_powder_coat: state.junctions, junction_Street_concrete: state.junctions,

@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "asset": "LM_ENV_Furniture.glb",
+  "sha256": "da81f17ed381b77c32b6ebac1bf32c16406c728503a5bb5793dade9e27783936",
+  "compressed_bytes": 1820604,
+  "raw_bytes": 2762168,
+  "furniture_triangles": 26698,
+  "furniture_draws": 22,
+  "flag_mesh_triangles": 999,
+  "flag_mesh_vertices": 653,
+  "flag_material": "Flag cloth",
+  "flag_material_extensions": ["KHR_materials_specular", "KHR_materials_sheen"],
+  "khronos_errors": 0,
+  "khronos_warnings": 17,
+  "source_sha256": "0529836d6afe83413896201613314e07220779b34e62246cb9d0b5d170e8cbfa",
+  "texture_sha256": {
+    "flag_cloth.png": "7f82f0ae99d565abf9de69ea10b9615bcaebdab41c20e932d759556f7626ade9",
+    "flag_cloth_normal.png": "525864b801944f7b82f9a10d7a306913c385febbce1b96598df46ba57acb52dd"
+  },
+  "browser_check": "tests/street-furniture.spec.ts passed (desktop + mobile asset loader)"
+}

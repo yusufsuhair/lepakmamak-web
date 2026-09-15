@@ -148,10 +148,12 @@ def _weave(h,w,seed,k=150):
     return np.sin(xx*2*np.pi*k)*np.sin(yy*2*np.pi*k)*.5+(fractal(max(h,w),1.5,seed)[:h,:w]-.5)
 
 def cloth(w=1024,h=1024):
-    """Flag cloth atlas. Top half (v .5..1): the Jalur Gemilang, 1:2, fourteen red and white
-    stripes, navy canton over eight of them with the yellow crescent and fourteen-point star.
-    Bottom half: four pennant swatches (red, yellow, navy, white), u 0..1 in quarters, hem at
-    the top of each. Printed polyester: weave, a soft crease field."""
+    """Flag cloth atlas with a printed-polyester pass.
+
+    Top half (v .5..1) is the Jalur Gemilang, 1:2, fourteen red and white stripes, navy canton
+    over eight of them with the yellow crescent and fourteen-point star.  Bottom half keeps the
+    four pennant swatches used by the bunting.  Both halves carry directional warp/weft texture;
+    the flag also gets broad wind folds, a darkened stitched hem and a matching normal map."""
     img=np.zeros((h,w,3));fh=h//2
     flag=img[:fh]
     stripe=(np.arange(fh)*14//fh)%2
@@ -166,15 +168,30 @@ def cloth(w=1024,h=1024):
     P=[(sx+(ro if i%2==0 else ri)*math.sin(i*math.pi/14),sy-(ro if i%2==0 else ri)*math.cos(i*math.pi/14)) for i in range(28)]
     star=_aa_poly(ch,cw,P)
     a=np.maximum(moon,star)[...,None];flag[:ch,:cw]=flag[:ch,:cw]*(1-a)+np.array(YELLOW)*a
-    crease=blur(fractal(1024,2.6,541,stretch=(1,2.5))[:fh,:w],2)
-    img[:fh]*=(.9+(crease-.5)*.16+_weave(fh,w,542)*.05)[...,None]
+    # Wide, directional folds keep the dye blocks intact while making the material read as cloth
+    # at game distance.  The low-amplitude thread field survives mipmapping without moire.
+    fabric_noise=fractal(max(fh,w),2.2,544)[:fh,:w]
+    Yf,Xf=np.mgrid[0:fh,0:w].astype(np.float32);Xf/=max(w-1,1);Yf/=max(fh-1,1)
+    folds=np.clip(.5+.26*np.sin(Xf*math.tau*1.6+.35*np.sin(Xf*math.tau*3.2))*(.35+.65*Xf)
+                  +.10*(fabric_noise-.5),0,1)
+    warp=np.sin(Xf*math.tau*220+.6*np.sin(Yf*math.tau*4))
+    weft=np.sin(Yf*math.tau*180+.5*np.sin(Xf*math.tau*3))
+    weave=warp*weft*.024+(warp+weft)*.007
+    edge=np.minimum.reduce((Xf,1-Xf,Yf,1-Yf))
+    stitch=np.exp(-edge*fh/2.2)*(.65+.35*np.sin(Xf*math.tau*80)**2)
+    crease=blur(fractal(max(fh,w),2.6,541,stretch=(1,2.5))[:fh,:w],2)
+    img[:fh]*=(.86+folds*.20+weave)[...,None]
+    img[:fh]*=(1-stitch[...,None]*.045)
     sw=w//4;cols=[(.82,.08,.08),(1.0,.78,.05),(.04,.10,.45),(.97,.97,.95)]
     for i,c in enumerate(cols):
         img[fh:,i*sw:(i+1)*sw]=c
     hem=np.zeros(h-fh);hem[:int((h-fh)*.07)]=1
     img[fh:]*=(1-hem[:,None,None]*.12)
-    img[fh:]*=(.92+_weave(h-fh,w,543)*.06)[...,None]
+    bottom_weave=_weave(h-fh,w,543)
+    img[fh:]*=(.92+bottom_weave*.06)[...,None]
     height=np.zeros((h,w));height[:fh]=crease*.8
+    height[:fh]+=(folds-.5)*.22+weave*.7
+    height[fh:]=bottom_weave*.08
     return np.clip(img,0,1),normal_from_height(blur(height,1),6)
 
 # ------------------------------------------------------------------------------ road signs
