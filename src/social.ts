@@ -129,6 +129,8 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
   const minimise = el<HTMLButtonElement>('chat-min'), visibilityToggle = el<HTMLButtonElement>('chat-visibility-toggle');
+  const hiddenUnreadBadge = document.createElement('span'); hiddenUnreadBadge.id = 'chat-hidden-unread-badge'; hiddenUnreadBadge.className = 'chat-unread-badge'; hiddenUnreadBadge.setAttribute('aria-hidden', 'true'); hiddenUnreadBadge.hidden = true;
+  visibilityToggle.append(hiddenUnreadBadge);
   const accountOf = (key: string) => threads.get(key)?.to || '';
   const dmBar = createDmBar({
     select: key => select(key), close: key => closeThread(key),
@@ -225,8 +227,8 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
     visibilityToggle.hidden = expanded;
     visibilityToggle.setAttribute('aria-expanded', String(!hidden));
-    visibilityToggle.setAttribute('aria-label', hidden ? 'Show city chat' : 'Hide city chat');
     visibilityToggle.textContent = hidden ? '>' : '<';
+    visibilityToggle.append(hiddenUnreadBadge);
     // A collapsed chat only needs one clear way back. Hiding fullscreen here avoids two
     // tiny controls on mobile that both appear to open the same closed panel.
     expand.hidden = collapsed;
@@ -237,9 +239,11 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     minimise.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${collapsed ? 'M5 5h14v14H5zM5 9h14' : 'M5 12h14'}"/></svg>`;
     minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
+    visibilityToggle.setAttribute('aria-label', hidden ? `Show city chat${unread ? `, ${unread} unread messages` : ''}` : 'Hide city chat');
     heading.setAttribute('aria-expanded', String(!collapsed));
     heading.setAttribute('aria-label', expanded ? 'City chat' : `${collapsed ? 'Expand' : 'Collapse'} city chat${unread ? `, ${unread} unread messages` : ''}`);
     unreadBadge.hidden = !collapsed || !unread; unreadBadge.textContent = unread > 99 ? '99+' : String(unread);
+    hiddenUnreadBadge.hidden = !hidden || !unread; hiddenUnreadBadge.textContent = hidden && unread ? unread > 99 ? '99+' : String(unread) : '';
     for (const thread of threads.values()) thread.log.hidden = thread.key !== active;
     const current = threads.get(active)!;
     const private_ = current.channel === 'dm' || current.channel === 'pm';
@@ -383,7 +387,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
           .filter(entry => !log.querySelector(`p[data-key="${CSS.escape(entry.key)}"]`))
           .map(entry => { const row = line(entry.name, entry.text, entry.sentAt); row.dataset.key = entry.key; return row; });
         if (mode === 'prepend') log.prepend(...rows); else log.append(...rows);
-        if (options.notify && rows.length && (collapsed || thread.key !== active)) thread.unread += rows.length;
+        if (options.notify && rows.length && (hidden || collapsed || thread.key !== active)) thread.unread += rows.length;
         render();
         if (mode === 'prepend') log.scrollTop += log.scrollHeight - height;
         else if (follow || mode === 'replace') toBottom(log);
@@ -448,7 +452,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
       const follow = !collapsed && target.key === active && atBottom(target.log);
       target.log.append(line(name, text, sentAt, gameMaster, area));
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();
-      if (notify && (collapsed || target.key !== active)) target.unread++;
+      if (notify && (hidden || collapsed || target.key !== active)) target.unread++;
       render();
       if (follow) toBottom(target.log);
       renderJump();

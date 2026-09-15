@@ -183,3 +183,17 @@ test('outer chat toggle uses arrows and slides the panel left while staying reac
   await expect(panel).not.toHaveClass(/chat-hidden/);
   await expect(toggle).toHaveText('<');
 });
+
+test('hidden chat keeps a new-message count on the outer toggle', async ({ page }) => {
+  await page.route('**/chat-hidden-unread-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
+  await page.goto('/chat-hidden-unread-harness');
+  await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); (window as any).chat = setupChat(() => true, () => {}); });
+
+  const toggle = page.locator('#chat-visibility-toggle');
+  await toggle.click();
+  await page.evaluate(() => (window as any).chat.append('Aina', 'Jom mamak'));
+  await expect(page.locator('#chat-hidden-unread-badge')).toHaveText('1');
+  await expect(toggle).toHaveAttribute('aria-label', 'Show city chat, 1 unread messages');
+  await toggle.click();
+  await expect(page.locator('#chat-hidden-unread-badge')).toBeHidden();
+});
