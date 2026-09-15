@@ -40,8 +40,9 @@ test('failed station download retains the existing complete forecourt',async({pa
   expect(await page.evaluate(()=>(window as any).__lepakPetronas.fallbackVisible)).toBe(true);
 });
 
-test('actual city loads detailed station on mobile without texture errors',async({page},info)=>{
+test('actual city loads detailed station on mobile high without texture errors',async({page},info)=>{
   await page.setViewportSize({width:390,height:844});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{localStorage.setItem('lepak-graphics','high');sessionStorage.setItem('lepak-high-session','1');});
   await page.goto('/');await expect.poll(()=>page.evaluate(()=>(window as any).__lepakPetronas?.state),{timeout:45000}).toBe('ready');
   expect(await page.evaluate(()=>(window as any).__lepakPetronas.logoLoaded)).toBe(true);expect(errors).toEqual([]);
   await page.screenshot({path:info.outputPath('petronas-city-mobile.png')});

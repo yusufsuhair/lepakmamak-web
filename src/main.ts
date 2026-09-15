@@ -231,9 +231,10 @@ async function init() {
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakFoliage',{get:()=>({...world.foliage})});
   // Detailed venue models stream in on approach; their fallbacks and every collision are live
   // from the start, and fog begins at 145 m, so the swap lands before the detail is legible.
-  // Petronas is 61 m from spawn and loads at once; Rembayung (~131 m) waits for a visit.
-  const VENUE_LOAD_RADIUS = 120;
-  const venues = [{...PETRONAS, load: () => preparePetronasEnvironment(renderer, world.petronas)}, {...rembayungPoint(0, 17), load: () => world.rembayung.load()}];
+  // Low tiers keep the complete procedural station at spawn and stream its 244k-triangle skin
+  // only on approach. High keeps the wider swap distance; Rembayung stays unchanged.
+  const venues = [{...PETRONAS, radius:{lowest:50,low:50,high:120}, load: () => preparePetronasEnvironment(renderer, world.petronas)},
+    {...rembayungPoint(0, 17), radius:{lowest:120,low:120,high:120}, load: () => world.rembayung.load()}];
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakPetronas',{get:()=>({...world.petronas.status,fallbackVisible:world.petronas.fallback.visible})});
   const mamakSteam=createMamakSteam(scene);
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakMamakSteam',{get:()=>({visible:mamakSteam.visible,count:mamakSteam.count})});
@@ -2576,7 +2577,7 @@ async function init() {
     mamakSteam.update(elapsed,started&&!paused&&!document.hidden&&!reducedMotion&&mamakAssetState==='ready'&&Math.hypot(pos.x+29,pos.z-46)<35&&graphicsQuality==='high');
     buskers.update(elapsed,reducedMotion);
     village.group.visible=Math.hypot(pos.x-villageOrigin.x,pos.z-villageOrigin.z)<85;
-    for(let i=venues.length;i--;)if(Math.hypot(pos.x-venues[i].x,pos.z-venues[i].z)<VENUE_LOAD_RADIUS)void venues.splice(i,1)[0].load();
+    for(let i=venues.length;i--;)if(Math.hypot(pos.x-venues[i].x,pos.z-venues[i].z)<venues[i].radius[graphicsQuality])void venues.splice(i,1)[0].load();
     updateStreaming(pos.x,pos.z);
     if(village.group.visible)village.update(reducedMotion?0:elapsed);
     villageNearby=started&&!paused&&!riding&&!cityMap.open?village.nearby(pos.x,pos.z):undefined;
