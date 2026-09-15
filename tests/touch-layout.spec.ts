@@ -42,7 +42,8 @@ test('a phone can blow the chat up to fill the screen, and close it again',async
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const page=await context.newPage();
  try{
-  await enter(page,'Fuller');
+ await enter(page,'Fuller');
+  await page.getByRole('button',{name:'Show city chat'}).tap();
   const expand=page.getByRole('button',{name:'Expand chat to a larger window'});
   await expect(expand).toBeVisible();
   await expand.tap();
@@ -54,7 +55,7 @@ test('a phone can blow the chat up to fill the screen, and close it again',async
   await page.screenshot({path:'test-results/chat-fullscreen-phone.png'});
   // The same control closes it, and says so.
   const close=page.getByRole('button',{name:'Shrink chat back'});
-  await expect(close).toHaveText('⤡');
+  await expect(close.locator('svg')).toHaveAttribute('viewBox','0 0 24 24');
   await close.tap();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
  } finally { await context.close(); }
@@ -64,7 +65,8 @@ test('closing mobile chat restores the city canvas after the keyboard viewport c
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const page=await context.newPage();
  try{
-  await enter(page,'Canvas');
+ await enter(page,'Canvas');
+  await page.getByRole('button',{name:'Show city chat'}).tap();
   await page.locator('#chat-compose').tap();
   await expect(page.getByLabel('Message to the city')).toBeFocused();
   // Reproduce Safari leaving WebGL at the keyboard-height buffer even though the layout

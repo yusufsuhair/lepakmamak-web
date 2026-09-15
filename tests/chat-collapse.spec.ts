@@ -35,10 +35,10 @@ test('chat window icons stay centred and touch-sized inside the game dialog', as
   }
 });
 
-// The log is on screen by default now — the composer is what hides. The heading
-// still collapses the whole panel for players who want a clear screen, and that
-// choice is what has to survive a reload.
-test('mobile chat shows the log by default and remembers a collapse choice', async ({ browser }) => {
+// Phones start with chat out of the way; the outer tab is the explicit way back in. The
+// heading still collapses the body for players who want a clear screen, and that choice
+// is what has to survive a reload.
+test('mobile chat is hidden by default and remembers a collapse choice', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await page.goto('/');
@@ -46,6 +46,9 @@ test('mobile chat shows the log by default and remembers a collapse choice', asy
   await page.locator('#auth-guest').click();
   await page.locator('#guest-name').fill('Collapse');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
+  await expect(page.locator('#chat-body')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Show city chat' })).toBeVisible();
+  await page.getByRole('button', { name: 'Show city chat' }).tap();
   await expect(page.locator('#chat-body')).toBeVisible();
   await expect(page.locator('#chat-form')).toBeHidden();
 
@@ -76,6 +79,7 @@ test('collapsed chat shows an unread badge for new messages and clears it on ope
   await page.route('**/unread-chat-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
   await page.goto('/unread-chat-harness');
   await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); (window as any).chat = setupChat(() => true, () => {}); });
+  await page.getByRole('button', { name: 'Show city chat' }).click();
   await page.getByRole('button', { name: 'Collapse city chat' }).click();
   await page.evaluate(() => { const chat = (window as any).chat; chat.append('Me', 'Own message', undefined, false, false); chat.append('Aina', 'Jom mamak'); });
   await expect(page.locator('#chat-unread-badge')).toBeVisible();
@@ -126,6 +130,15 @@ test('the window controls sit in the far-right corner and both still work', asyn
   expect(placed.fromRight).toBeLessThan(placed.fromLeft);
   // The title makes room for them rather than sitting underneath.
   expect(placed.afterTitle).toBe(true);
+  const panel = (await page.locator('#city-chat').boundingBox())!, tab = await page.locator('#chat-visibility-toggle').boundingBox();
+  expect(tab).not.toBeNull();
+  expect(tab!.x).toBeGreaterThanOrEqual(panel.x + panel.width);
+
+  await page.getByRole('button', { name: 'Hide city chat' }).click();
+  await expect(page.locator('#city-chat')).toHaveClass(/chat-hidden/);
+  await expect(page.getByRole('button', { name: 'Show city chat' })).toBeVisible();
+  await page.getByRole('button', { name: 'Show city chat' }).click();
+  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-hidden/);
 
   const minimise = page.getByRole('button', { name: 'Minimise city chat' });
   await minimise.click();

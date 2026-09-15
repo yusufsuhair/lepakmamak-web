@@ -24,6 +24,7 @@ test(`chat is reachable while a table game is open on ${label}`,async({browser})
   await page.evaluate(()=>{const d=document.getElementById('table-social')!;d.append(document.getElementById('city-chat')!);});
   expect(await where(page)).toBe('table-social');
   // Inside the top layer it is reachable rather than switched off by the platform.
+  if (width < 600) await page.getByRole('button',{name:'Show city chat'}).click();
   await expect(page.locator('#city-chat')).toBeVisible();
   await expect(page.locator('#chat-body')).toBeVisible();
   // And it flows as part of the dialog rather than floating over the game: a panel that

@@ -94,7 +94,9 @@ test('mobile taps the composer open and collapses it after sending, log still re
   await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
   await expect(page.locator('#multiplayer-status-text')).toHaveText('CITY ONLINE');
 
-  // The log is readable on a phone without opening anything.
+  // Phones keep the chat out of the way until the edge tab is tapped.
+  await expect(page.locator('#chat-body')).toBeHidden();
+  await page.getByRole('button',{name:'Show city chat'}).tap();
   await expect(page.locator('#chat-body')).toBeVisible();
   await expect(page.locator('#chat-form')).toBeHidden();
   await page.locator('#chat-compose').tap();

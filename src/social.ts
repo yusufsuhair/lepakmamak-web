@@ -120,7 +120,7 @@ export type PmEntry = {key: string; name: string; text: string; sentAt?: string}
 
 export function setupChat(send: (text: string, channel: Thread['channel'], to?: string) => boolean, focus: () => void, hooks: PmHooks = {}) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<span id="chat-controls"><button type="button" id="chat-min"></button><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-visibility-toggle" aria-controls="chat-body" aria-expanded="true" aria-label="Hide city chat"></button><span id="chat-controls"><button type="button" id="chat-min"></button><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
@@ -128,7 +128,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   const unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
-  const minimise = el<HTMLButtonElement>('chat-min');
+  const minimise = el<HTMLButtonElement>('chat-min'), visibilityToggle = el<HTMLButtonElement>('chat-visibility-toggle');
   const accountOf = (key: string) => threads.get(key)?.to || '';
   const dmBar = createDmBar({
     select: key => select(key), close: key => closeThread(key),
@@ -138,9 +138,10 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   body.prepend(dmBar.root);
   const selector = el<HTMLButtonElement>('chat-channel'), menu = el('chat-channel-menu');
   const coarse = matchMedia('(any-pointer: coarse), (max-width: 600px)').matches;
+  const mobile = matchMedia('(max-width: 600px), (any-pointer: coarse) and (max-height: 600px)').matches;
   compose.textContent = coarse ? '' : 'Click or press enter to type';
 
-  let collapsed = false, composing = false, expanded = false, menuOpen = false, active = 'all';
+  let collapsed = false, hidden = mobile, composing = false, expanded = false, menuOpen = false, active = 'all';
   const threads = new Map<string, Thread>();
 
   // Reading back through the log should not be yanked away by the next message. The log
@@ -219,8 +220,13 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
 
   function render() {
     body.hidden = collapsed; panel.classList.toggle('chat-collapsed', collapsed);
+    panel.classList.toggle('chat-hidden', hidden);
     panel.classList.toggle('chat-expanded', expanded);
     form.hidden = !composing; compose.hidden = composing; panel.classList.toggle('chat-composing', composing);
+    visibilityToggle.hidden = expanded;
+    visibilityToggle.setAttribute('aria-expanded', String(!hidden));
+    visibilityToggle.setAttribute('aria-label', hidden ? 'Show city chat' : 'Hide city chat');
+    visibilityToggle.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${hidden ? 'M5 5h14v14H5zM5 9h14' : 'M5 12h14'}"/></svg>`;
     // A collapsed chat only needs one clear way back. Hiding fullscreen here avoids two
     // tiny controls on mobile that both appear to open the same closed panel.
     expand.hidden = collapsed;
@@ -264,6 +270,8 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   // body still hidden, so it un-minimises on the way up.
   expand.onclick = () => { expanded = !expanded; if (expanded) setCollapsed(false); else render(); };
   expand.onkeydown = event => event.stopPropagation();
+  visibilityToggle.onclick = () => { setHidden(!hidden); };
+  visibilityToggle.onkeydown = event => event.stopPropagation();
   minimise.onclick = () => {
     setCollapsed(!collapsed);
   };
@@ -271,7 +279,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
 
   function expandPanel() { collapsed = false; render(); }
   // Enter (or a tap on the pill) is the only way in; sending or Escape is the way out.
-  function openComposer() { if (collapsed) expandPanel(); composing = true; render(); input.focus(); }
+  function openComposer() { if (hidden) setHidden(false); if (collapsed) expandPanel(); composing = true; render(); input.focus(); }
   function closeComposer() { composing = false; closeMenu(); render(); input.blur(); }
   compose.onclick = openComposer;
   compose.onkeydown = event => event.stopPropagation();
@@ -285,9 +293,20 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     render();
     try { localStorage.setItem('lepak-chat-collapsed', String(collapsed)); } catch { /* Keep working without storage. */ }
   }
+  function setHidden(next: boolean) {
+    if (expanded && next) return;
+    hidden = next;
+    if (hidden) { composing = false; closeMenu(); input.blur(); }
+    else threads.get(active)!.unread = 0;
+    render();
+    try { localStorage.setItem('lepak-chat-hidden', String(hidden)); } catch { /* Keep working without storage. */ }
+  }
   heading.onclick = () => setCollapsed(!collapsed);
   heading.onkeydown = event => event.stopPropagation();
-  try { const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true'; } catch { /* Preference storage is optional. */ }
+  try {
+    const savedHidden = localStorage.getItem('lepak-chat-hidden'); if (savedHidden !== null) hidden = savedHidden === 'true';
+    const saved = localStorage.getItem('lepak-chat-collapsed'); if (saved !== null) collapsed = saved === 'true';
+  } catch { /* Preference storage is optional. */ }
   render();
 
   // Keep the keyboard and panel anchored until the tapped button receives its click.
@@ -349,10 +368,10 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
 
   return {
     open() { openComposer(); },
-    openDm(id: string, name: string) { openDm(id, name); select(`dm:${id}`); },
+    openDm(id: string, name: string) { if (hidden) setHidden(false); openDm(id, name); select(`dm:${id}`); },
     closeDm,
     pm: {
-      open(userId: string, label: string) { openPm(userId, label); select(`pm:${userId}`); },
+      open(userId: string, label: string) { if (hidden) setHidden(false); openPm(userId, label); select(`pm:${userId}`); },
       // ponytail: no 50-row cap here, since older pages are prepended on purpose; a very long
       // scroll-back simply keeps its rows until the conversation is closed.
       add(userId: string, label: string, entries: PmEntry[], options: {mode?: 'append' | 'prepend' | 'replace'; notify?: boolean} = {}) {
