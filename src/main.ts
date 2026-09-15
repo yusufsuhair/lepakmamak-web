@@ -706,6 +706,8 @@ async function init() {
     if (sound) uiSounds.play(sound);
   }, (userId, handle, name) => {
     friendsUI.close(); inbox.open({userId, handle, name}); chat.open();
+  }, (userId, name) => {
+    void openAccountProfile(userId, name);
   });
   const handleClaim = setupHandleClaim(apiBase, handle => toast('Handle claimed', `Friends can find you as @${handle}.`, 5));
   const inbox = setupInbox(apiBase, chat.pm, {

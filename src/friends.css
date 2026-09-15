@@ -16,7 +16,8 @@
 #game-friends li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px;padding:8px 10px;border:1px solid #b5c4ac88;border-radius:8px;background:#fffdf566;font-size:12px}
 #game-friends li strong{min-width:0;overflow-wrap:anywhere}
 #game-friends .friend-copy{display:flex;align-items:center;gap:9px;min-width:0}
-#game-friends .friend-copy strong{display:block}
+#game-friends .friend-profile-link{display:block;min-width:0;max-width:100%;padding:0;border:0;background:none;color:#234839;font:700 12px 'Oxanium',sans-serif;text-align:left;overflow-wrap:anywhere;cursor:pointer}
+#game-friends .friend-profile-link:hover{text-decoration:underline;color:#173c32}
 #game-friends .friend-copy small{position:relative;padding-left:12px;font-size:10px;color:#718372;white-space:nowrap}
 #game-friends .friend-copy small::before{content:'';position:absolute;left:0;top:50%;width:7px;height:7px;border-radius:50%;background:#9ba69a;transform:translateY(-50%)}
 #game-friends .friend-copy small.is-online{color:#3a7950}

@@ -161,6 +161,17 @@ test('Friend List uses game skeletons while its state is loading', async ({page}
   await expect(page.locator('#game-friends')).toHaveAttribute('aria-busy', 'false');
 });
 
+test('Friend List opens a friend profile from the friend name', async ({page}) => {
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me'}};export let guestName='';` }));
+  await page.route('**/friends/state', route => route.fulfill({json: {state: {friends: [{id: 'friend-account', name: 'Aina', online: false, playerId: null}], incoming: [], outgoing: []}}}));
+  await page.route('**/friends-profile-harness', route => route.fulfill({contentType: 'text/html', body: `<main><script type="module">import {setupFriends} from '/src/friends.ts';window.profile=[];window.friendApi=setupFriends('http://friends.test',()=>{},()=>{},()=>{},()=>{},()=>{},(id,name)=>window.profile.push({id,name}));window.friendApi.open();</script></main>`}));
+  await page.goto('/friends-profile-harness');
+
+  await page.getByRole('button', {name: 'View profile of Aina'}).click();
+  await expect(page.locator('#game-friends')).not.toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.stringify((window as any).profile))).toBe(JSON.stringify([{id: 'friend-account', name: 'Aina'}]));
+});
+
 test('Friend List announces new requests and confirms friend removal', async ({page}) => {
   await page.setViewportSize({width: 390, height: 844});
   await page.route('**/src/auth.ts*', route => route.fulfill({contentType: 'application/javascript', body: `export const session={access_token:'test',user:{id:'me',user_metadata:{display_name:'Tester'}}};export let guestName='';` }));

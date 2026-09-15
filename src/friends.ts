@@ -16,6 +16,7 @@ export function setupFriends(
   messageFriend: (playerId: string, name: string) => void = () => {},
   onEvent: (event: FriendEvent, unread: number) => void = () => {},
   messageAccount: (userId: string, handle: string, name: string) => void = () => {},
+  onProfile: (userId: string, name: string) => void = () => {},
 ) {
   const dialog = document.createElement('dialog');
   dialog.id = 'game-friends'; dialog.setAttribute('aria-labelledby', 'game-friends-title');
@@ -132,7 +133,9 @@ export function setupFriends(
     for (const friend of state.friends) {
       const row = document.createElement('li'); row.className = 'friend-row';
       const copy = document.createElement('span'); copy.className = 'friend-copy';
-      const name = document.createElement('strong'); name.textContent = friend.name;
+      const name = document.createElement('button'); name.type = 'button'; name.className = 'friend-profile-link'; name.textContent = friend.name;
+      name.setAttribute('aria-label', `View profile of ${friend.name}`); name.disabled = busy;
+      name.onclick = () => { if (!busy) { if (dialog.open) dialog.close(); onProfile(friend.id, friend.name); } };
       const status = document.createElement('small'); status.className = friend.online ? 'is-online' : 'is-offline'; status.textContent = friend.online ? 'Online' : 'Offline';
       copy.append(name, status);
       const actions = document.createElement('span'); actions.className = 'friend-actions';
