@@ -131,8 +131,14 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
     linear-gradient(0deg, rgb(4 18 15 / 34%), transparent 190px);
 }
 .hud-top { top: calc(24px + var(--safe-top)); left: 24px; right: 24px; }
-.hud-left { margin-top: 194px; gap: 13px; }
-.hud-divider { height: 33px; background: var(--ui-line); }
+.hud-left {
+  margin-top: 194px; gap: 8px; flex-direction: column; align-items: flex-start;
+  max-width: min(250px, calc(100vw - 48px));
+}
+.hud-left .district { order: -2; }
+.hud-left .hud-divider { order: -1; width: 100%; height: 1px; background: var(--ui-line); }
+.hud-left .brand-status { width: 100%; gap: 8px; }
+.hud-left .multiplayer-status { width: 100%; box-sizing: border-box; }
 .district strong { font-size: 13px; letter-spacing: -.01em; }
 .district small { margin-top: 0; color: var(--ui-muted); }
 .multiplayer-status {
@@ -334,7 +340,8 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
   #minimap-wrap { top: calc(12px + var(--safe-top)); left: 12px; width: 122px; }
   #minimap { width: 120px; height: 106px; }
   .map-caption { font-size: 7px; }
-  .hud-left { margin-top: 127px; }
+  .district { display: block; }
+  .hud-left { margin-top: 127px; max-width: min(250px, calc(100vw - 24px)); }
   .hud-right { gap: 4px; padding: 4px; border-radius: 14px; }
   .hud-right.hud-open { gap: 4px; }
   #voice-panel { top: calc(67px + var(--safe-top)); right: 12px; }
