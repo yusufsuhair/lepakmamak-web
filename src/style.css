@@ -690,7 +690,7 @@ html, body, #app { touch-action: manipulation; }
 #city-chat #chat-controls button:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
 #city-chat #chat-controls button:active { background: #ffffff35; transform: scale(.97); }
 @media (hover: hover) and (pointer: fine) { #city-chat #chat-controls button:hover { background: #ffffff2b; color: #ddf69a; } }
-#city-chat #chat-heading { min-height: 52px; padding-right: 108px; }
+#city-chat #chat-heading { min-height: 52px; padding-right: 108px; border-bottom: 1px solid #9ab49c66; border-radius: 12px 12px 0 0; box-shadow: inset 0 -1px 0 #173c3233; }
 #city-chat.chat-collapsed #chat-heading { padding-right: 58px; }
 /* Centred on both axes rather than hung off the bottom edge. */
 #city-chat.chat-expanded { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(720px, 82vw); z-index: 30; }

@@ -71,22 +71,22 @@ test('one list combines the unjoined lobby, game art and joined users',async({pa
  await expect(page.locator('#hud > #speaking')).toHaveCount(1);
 });
 
-test('a running game can minimize while table chat and voice stay in the dialog',async({page})=>{
- await page.route('**/table-minimize',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><aside id="voice-panel"><div id="voice-audience"></div></aside><div id="city-chat"></div></div>'}));
- await page.goto('/table-minimize');
+test('a running game stays visible and the table chat has a clean bottom edge',async({page})=>{
+ await page.route('**/table-chat-edge',route=>route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"><aside id="voice-panel"><div id="voice-audience"></div></aside></div>'}));
+ await page.goto('/table-chat-edge');
  await page.evaluate(async()=>{
+  const {setupChat}=await import('/src/social.ts');setupChat(()=>true,()=>{});
   const {setupTableSocial}=await import('/src/table-social.ts');
   const ui=setupTableSocial(()=>true,'geng',()=>{},()=>{},()=>true,()=>document.getElementById('voice-panel'));
   (window as any).ui=ui;ui.state([{id:'meja-1',name:'Meja 1',capacity:4,occupants:[{id:'self',name:'Yusuf',chairId:'chair-0'}]}],'self',true);ui.open('meja-1');
  });
  const dialog=page.locator('#table-social[open]');await dialog.locator('[data-select="lukis"]').click();
- await expect(dialog.locator('#table-minimize')).toBeVisible();
- await dialog.locator('#table-minimize').click();
- await expect(dialog).toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeHidden();
+ await expect(dialog.locator('#table-minimize')).toHaveCount(0);
+ await expect(dialog).not.toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeVisible();
  await expect(dialog.locator('#city-chat')).toHaveCount(1);await expect(dialog.locator('#voice-panel')).toBeVisible();
  expect(await dialog.locator('#city-chat').evaluate(element=>element.parentElement?.id)).toBe('table-social');
- await expect(dialog.locator('#table-minimize')).toHaveAttribute('aria-label','Restore table game');
- await dialog.locator('#table-minimize').click();await expect(dialog).not.toHaveClass(/game-minimized/);await expect(dialog.locator('#table-detail')).toBeVisible();
+ const border=await dialog.locator('#chat-heading').evaluate(element=>{const style=getComputedStyle(element);return {width:style.borderBottomWidth,color:style.borderBottomColor,radius:style.borderTopLeftRadius};});
+ expect(border.width).toBe('1px');expect(border.color).not.toBe('rgba(0, 0, 0, 0)');expect(border.radius).toBe('12px');
 });
 
 // A bare #table-social{display:flex} would outrank the UA sheet's dialog:not([open]){display:

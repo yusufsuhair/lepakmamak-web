@@ -18,8 +18,8 @@ for(const [id,game] of Object.entries(casualCatalog))GAME_TITLES[id]=game.title;
 const GAME_PHASES:Record<string,string>={lobby:'lobby',countdown:'starting soon',playing:'in progress'};
 export function setupTableSocial(send:(message:object)=>boolean,_room:string,releaseInput:()=>void,toast:(title:string,body:string)=>void,goToTable:(tableId:string)=>boolean=()=>false,getVoicePanel:()=>HTMLElement|null=()=>null){
  const dialog=document.createElement('dialog');dialog.id='table-social';dialog.setAttribute('aria-labelledby','table-name');
- dialog.innerHTML='<header><div><small>TABLE GAMES</small><h2 id="table-name">Table</h2></div><div class="table-modal-actions"><button id="table-minimize" type="button" aria-label="Minimize table game" hidden>−</button><button id="close-table-social" type="button" aria-label="Close table games">×</button></div></header><p id="table-seats" role="status"></p><section id="table-invite-destination" class="table-invite-destination" hidden><small>TABLE INVITATION</small><p id="table-invite-copy"></p><button type="button" id="table-invite-go">Go to table</button></section><div id="table-rosters"></div><section id="table-detail" hidden><div class="table-game-menu"><h3>Let’s play.</h3><p>Choose a game for your table.</p><div class="table-game-grid"><button type="button" data-select="lukis"><span class="game-art draw-art" aria-hidden="true">✎<i>?</i></span><strong>Lukis Lah!</strong><small>Draw, guess and laugh together</small><b>2+ players · Select →</b></button><button type="button" data-select="poker"><span class="game-art card-art" aria-hidden="true">♠<i>♥</i></span><strong>Poker Kampung</strong><small>Read the table and play your hand</small><b>2+ players · Select →</b></button><button type="button" data-select="werewolf"><span class="game-art wolf-art" aria-hidden="true">☾<i>✦</i></span><strong>Werewolf</strong><small>Hide your role and find the wolves</small><b>5–9 players · Select →</b></button><button type="button" data-select="uno"><span class="game-art uno-art" aria-hidden="true">7<i>+4</i></span><strong>UNO Lepak</strong><small>Match colours and empty your hand</small><b>2+ players · Select →</b></button></div></div><button type="button" class="table-back" hidden>← All games</button><div class="table-game-stage"></div></section>';
- document.body.append(dialog);let tables:TableState[]=[],selfId='',online=false,selected=locations[0].id,current='',playingGame='',minimized=false;let destination:TableInvite|null=null;
+ dialog.innerHTML='<header><div><small>TABLE GAMES</small><h2 id="table-name">Table</h2></div><div class="table-modal-actions"><button id="close-table-social" type="button" aria-label="Close table games">×</button></div></header><p id="table-seats" role="status"></p><section id="table-invite-destination" class="table-invite-destination" hidden><small>TABLE INVITATION</small><p id="table-invite-copy"></p><button type="button" id="table-invite-go">Go to table</button></section><div id="table-rosters"></div><section id="table-detail" hidden><div class="table-game-menu"><h3>Let’s play.</h3><p>Choose a game for your table.</p><div class="table-game-grid"><button type="button" data-select="lukis"><span class="game-art draw-art" aria-hidden="true">✎<i>?</i></span><strong>Lukis Lah!</strong><small>Draw, guess and laugh together</small><b>2+ players · Select →</b></button><button type="button" data-select="poker"><span class="game-art card-art" aria-hidden="true">♠<i>♥</i></span><strong>Poker Kampung</strong><small>Read the table and play your hand</small><b>2+ players · Select →</b></button><button type="button" data-select="werewolf"><span class="game-art wolf-art" aria-hidden="true">☾<i>✦</i></span><strong>Werewolf</strong><small>Hide your role and find the wolves</small><b>5–9 players · Select →</b></button><button type="button" data-select="uno"><span class="game-art uno-art" aria-hidden="true">7<i>+4</i></span><strong>UNO Lepak</strong><small>Match colours and empty your hand</small><b>2+ players · Select →</b></button></div></div><button type="button" class="table-back" hidden>← All games</button><div class="table-game-stage"></div></section>';
+ document.body.append(dialog);let tables:TableState[]=[],selfId='',online=false,selected=locations[0].id,current='',playingGame='';let destination:TableInvite|null=null;
  const own=()=>online?tables.find(t=>t.occupants.some(p=>p.id===selfId)):undefined;
  const gameSend=(message:object)=>!!own()&&send(message);
  for(const [id,game] of Object.entries(casualCatalog)){
@@ -50,15 +50,9 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
   if(value!==playingGame){casualState=null;casual?.state(null);}
   playingGame=value;
   if(Object.hasOwn(casualCatalog,value))void loadCasual();
-  if(!value)minimized=false;
   (dialog.querySelector('.table-game-menu') as HTMLElement).hidden=!!value;
   (dialog.querySelector('.table-back') as HTMLElement).hidden=!value;
   dialog.classList.toggle('playing-drawing',value==='lukis');dialog.classList.toggle('playing-uno',value==='uno');
-  const minimizeButton=dialog.querySelector<HTMLButtonElement>('#table-minimize')!;
-  minimizeButton.hidden=!value;
-  minimizeButton.textContent=minimized?'＋':'−';
-  minimizeButton.setAttribute('aria-label',minimized?'Restore table game':'Minimize table game');
-  dialog.classList.toggle('game-minimized',minimized);
   if(value){alerts.ask();send({type:'lobby-join',game:value});}else{shell.state(null,selfId);send({type:'lobby-leave'});}
   showBoards();
  }
@@ -98,12 +92,6 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
    dialog.querySelector<HTMLButtonElement>('#table-invite-go')!.textContent=`Go to ${destination.tableName}`;
   }
   (dialog.querySelector('#table-detail') as HTMLElement).hidden=!seated;
-  const minimizeButton=dialog.querySelector<HTMLButtonElement>('#table-minimize')!;
-  minimizeButton.hidden=!playingGame;
-  minimizeButton.textContent=minimized?'＋':'−';
-  minimizeButton.setAttribute('aria-label',minimized?'Restore table game':'Minimize table game');
-  minimizeButton.setAttribute('aria-pressed',String(minimized));
-  dialog.classList.toggle('game-minimized',minimized);
   const next=seated?.id||'';if(current!==next){current=next;alerts.clear();selectGame('');lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);}
   poker.context(id,!!seated,selfId);lukis.context(!!seated,seated?.occupants.length||0);
  }
@@ -121,13 +109,12 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  dialog.addEventListener('close',releaseChat);
  function close(){dialog.close();releaseChat();}
  dialog.querySelector<HTMLButtonElement>('#close-table-social')!.onclick=close;
- dialog.querySelector<HTMLButtonElement>('#table-minimize')!.onclick=()=>{minimized=!minimized;render();};
- dialog.addEventListener('keydown',event=>event.stopPropagation());
+  dialog.addEventListener('keydown',event=>event.stopPropagation());
  const goButton=dialog.querySelector<HTMLButtonElement>('#table-invite-go')!;
  goButton.onclick=()=>{if(!destination)return;if(goToTable(destination.tableId)){destination=null;close();}else toast('Table unavailable','Move to the table from the city and try again.');};
- return {open(tableId?:string){destination=null;minimized=false;selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},openInvite(value:TableInvite){destination=value;minimized=false;selected=value.tableId;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();goButton.focus();},close,
+ return {open(tableId?:string){destination=null;selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},openInvite(value:TableInvite){destination=value;selected=value.tableId;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();goButton.focus();},close,
   get opened(){return dialog.open;},get playing(){return dialog.open&&!!playingGame;},state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
-  get boardOpen(){return dialog.open&&!minimized&&Object.hasOwn(casualCatalog,playingGame);},
+  get boardOpen(){return dialog.open&&Object.hasOwn(casualCatalog,playingGame);},
   casual(value:CasualState){if(value.kind!==playingGame||value.tableId!==own()?.id)return;casualState=value;casual?.state(value);const mine=value.kind==='quiz'?value.phase==='playing'&&value.answer==null:value.turn===value.self&&value.phase==='playing';alerts.fire(value.kind,mine&&!value.paused?{key:`${value.id}:${value.kind==='quiz'?value.round:value.ends}`,title:GAME_TITLES[value.kind],body:value.kind==='quiz'?'Soalan baru — jom jawab.':'Giliran anda.'}:{key:'',title:'',body:''},onScreen());},
   uno(value:any){if(!value||value.tableId===own()?.id){uno.state(value);alerts.fire('uno',unoAlert(value),onScreen());}},werewolf(value:any){werewolf.state(value);alerts.fire('werewolf',werewolfAlert(value),onScreen());},game(value:any){if(!value||value.tableId===own()?.id){lukis.state(value,selfId);alerts.fire('lukis',lukisAlert(value),onScreen());}},lobby(value:any){shell.state(value,selfId);showBoards();},geng(size:number,leader:boolean){shell.geng(size,leader);},party(size:number){shell.party(size);},react(value:any){shell.react(value);},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id){poker.state(value,selfId);alerts.fire('poker',pokerAlert(value,selfId),onScreen());}},
   offline(){releaseChat();online=false;tables=[];alerts.clear();shell.state(null,selfId);lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};

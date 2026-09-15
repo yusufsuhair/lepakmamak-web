@@ -6,16 +6,6 @@
 
 #table-social .table-modal-actions{display:flex;align-items:center;gap:6px}
 #table-social .table-modal-actions button{min-width:44px;padding:8px 10px}
-#table-social #table-minimize{background:#fff9e7;color:#214939}
-#table-social.game-minimized,
-#table-social.game-minimized.playing-drawing,
-#table-social.game-minimized.playing-uno{width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:14px}
-#table-social.game-minimized>#table-seats,
-#table-social.game-minimized>#table-invite-destination,
-#table-social.game-minimized>#table-rosters,
-#table-social.game-minimized>#table-detail{display:none!important}
-#table-social.game-minimized #city-chat{margin-top:8px}
 #table-social #voice-panel{position:static;inset:auto;transform:none;width:auto;max-width:none;align-self:stretch;z-index:50;margin-top:8px;align-items:flex-end}
 #table-social #voice-panel[hidden]{display:none!important}
 #table-social #voice-audience{position:static;transform:none;width:auto;max-width:100%;margin:0}
-@media(max-width:480px){#table-social.game-minimized{padding:12px}}
