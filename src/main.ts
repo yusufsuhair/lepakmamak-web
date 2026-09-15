@@ -1346,6 +1346,7 @@ async function init() {
         if(message.type==='lukis-feedback')tableSocial.gameFeedback((message as any).kind,(message as any).message);
         if(message.type==='lukis-state')tableSocial.game((message as any).game);
         if(message.type==='uno-state')tableSocial.uno((message as any).game);
+        if(message.type==='casual-state')tableSocial.casual((message as any).game);
         if(message.type==='werewolf-state')tableSocial.werewolf((message as any).game);
         if(message.type==='poker-state')tableSocial.poker((message as any).game);
         if(message.type==='pickleball-state')pickleball.state((message as any).game);
@@ -2290,7 +2291,7 @@ async function init() {
   }
 
   const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3();
-  let hudTimer = 0, lastTime = performance.now();
+  let hudTimer = 0, lastTime = performance.now(), lastSceneRender = 0;
   function frame(time: number) {
     const frameSeconds = (time - lastTime) / 1000;
     if (!document.hidden) netStatus.frame(frameSeconds);
@@ -2740,7 +2741,7 @@ async function init() {
       riding && vehicle==='car' ? {group:car.group,controls:{speed,
         steering:THREE.MathUtils.clamp(Number(keys.has('KeyA')||keys.has('ArrowLeft'))-Number(keys.has('KeyD')||keys.has('ArrowRight'))-stickX,-1,1),
         braking:keys.has('Space')}} : undefined,simTime,.12);
-    renderer.render(scene, camera);
+    if(!tableSocial.boardOpen||time-lastSceneRender>=1000/15){renderer.render(scene, camera);lastSceneRender=time;}
     requestAnimationFrame(frame);
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.

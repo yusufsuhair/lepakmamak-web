@@ -1,5 +1,6 @@
 import chairs from '../shared/chairs.json' with {type:'json'};
 import {randomUUID} from 'node:crypto';
+import casualGames from '../shared/casual-games.json' with {type:'json'};
 
 const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
@@ -10,6 +11,7 @@ const tableForChair = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 export const ROSTER_GAMES = {werewolf: true, uno: true};
 
 export const LOBBY_RULES = {
+  ...casualGames,
   lukis: {min: 2, max: 9, scope: 'table'},
   poker: {min: 2, max: 4, scope: 'table'},
   uno: {min: 2, max: 4, scope: 'table'},
@@ -181,21 +183,24 @@ export function createTableLobby(send, games, now = Date.now) {
 
       if (message.type === 'lobby-join') {
         const game = message.game;
-        if (!LOBBY_RULES[game]) return true;
+        if (typeof game !== 'string' || !Object.hasOwn(LOBBY_RULES, game)) return true;
         const key = keyFor(player, game);
         if (!key) { send(player.ws, {type: 'notice', message: 'Duduk di kerusi meja dahulu.'}); return true; }
-        if(game==='lukis' && games.lukis?.canJoin && !games.lukis.canJoin(players,player)){
+        if(games[game]?.canJoin && !games[game].canJoin(players,player)){
           send(player.ws,{type:'notice',message:'Game ini sedang berlangsung. Tunggu game seterusnya untuk sertai.'});
           return true;
         }
         const previous = lobbyOf(players, player);
-        if (previous) drop(players, player, previous);
+        if (previous?.game===game&&previous.key===key) {publish(players,previous,true);games[game]?.open?.(players,player);return true;}
+        if (previous) {games[previous.game]?.leave?.(players,player);drop(players, player, previous);}
         const id = `${game}:${key}`;
         const lobby = map.get(id) || {id: randomUUID(), key, game, phase: 'lobby', ends: 0, members: []};
         map.set(id, lobby);
         if (lobby.members.length >= capacity(game, key)) { send(player.ws, {type: 'notice', message: 'Meja ini dah penuh.'}); return true; }
         if (!lobby.members.some(member => member.id === player.id)) lobby.members.push({id: player.id, name: player.name, ready: false});
+        if(games[game]?.isPlaying?.(players,player))lobby.phase='playing';
         settle(players, lobby);
+        games[game]?.open?.(players,player);
         return true;
       }
 
@@ -208,7 +213,7 @@ export function createTableLobby(send, games, now = Date.now) {
         settle(players, lobby);
         return true;
       }
-      if (message.type === 'lobby-leave') { drop(players, player, lobby); return true; }
+      if (message.type === 'lobby-leave') { games[lobby.game]?.leave?.(players,player);drop(players, player, lobby); return true; }
       if (message.type === 'lobby-rematch') {
         const game=games[lobby.game];
         // The shell remains in `playing` for the lifetime of the match. Main Lagi is only

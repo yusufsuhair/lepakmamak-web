@@ -1,6 +1,7 @@
 import './motion.css';
 import './table-shell.css';
 import {createPlayerFace} from './player-face';
+import casualGames from '../shared/casual-games.json';
 
 export type LobbyMember = {id: string; name: string; ready: boolean; appearance?: Record<string,string>};
 export type LobbyState = {
@@ -13,6 +14,7 @@ export type TableInviteRequest = {game: string; key: string; scope: 'table' | 'c
 
 const REACTIONS = ['😂', '👏', '🔥', '😱'];
 const TITLES: Record<string, string> = {lukis: 'Lukis Lah!', poker: 'Poker Kampung', uno: 'UNO Lepak', werewolf: 'Werewolf'};
+for(const [id,game] of Object.entries(casualGames))TITLES[id]=game.title;
 
 // One frame every table game sits inside: who is here, who is ready, the count-in,
 // and the way back round again. The games render their own play inside `stage`.

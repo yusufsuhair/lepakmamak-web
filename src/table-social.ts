@@ -7,11 +7,14 @@ import './table-lobby.css';
 import {createTableShell} from './table-shell';
 import locations from '../shared/tables.json';
 import {createPlayerFace} from './player-face';
+import casualCatalog from '../shared/casual-games.json';
+import type {CasualState} from './casual-games';
 type TablePerson={id:string;name:string;chairId?:string;appearance?:Record<string,string>};
 export type TableGameState={game:string;phase:string;members:TablePerson[]};
 export type TableState={id:string;name:string;capacity:number;occupants:TablePerson[];activeGames?:TableGameState[];activeGame?:TableGameState|null};
 export type TableInvite={id:string;game:string;tableId:string;tableName:string;scope:'table'|'city';phase:string;lobbyId:string;min:number;max:number;occupied:number;capacity:number;available:number;expiresAt:number;inviter:{id:string;name:string}};
 const GAME_TITLES:Record<string,string>={lukis:'Lukis Lah!',poker:'Poker Kampung',uno:'UNO Lepak',werewolf:'Werewolf'};
+for(const [id,game] of Object.entries(casualCatalog))GAME_TITLES[id]=game.title;
 const GAME_PHASES:Record<string,string>={lobby:'lobby',countdown:'starting soon',playing:'in progress'};
 export function setupTableSocial(send:(message:object)=>boolean,_room:string,releaseInput:()=>void,toast:(title:string,body:string)=>void,goToTable:(tableId:string)=>boolean=()=>false,getVoicePanel:()=>HTMLElement|null=()=>null){
  const dialog=document.createElement('dialog');dialog.id='table-social';dialog.setAttribute('aria-labelledby','table-name');
@@ -19,16 +22,34 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  document.body.append(dialog);let tables:TableState[]=[],selfId='',online=false,selected=locations[0].id,current='',playingGame='',minimized=false;let destination:TableInvite|null=null;
  const own=()=>online?tables.find(t=>t.occupants.some(p=>p.id===selfId)):undefined;
  const gameSend=(message:object)=>!!own()&&send(message);
+ for(const [id,game] of Object.entries(casualCatalog)){
+  const button=document.createElement('button');button.type='button';button.dataset.select=id;
+  const art=document.createElement('span');art.className='game-art card-art';art.textContent=game.icon;art.setAttribute('aria-hidden','true');
+  const title=document.createElement('strong');title.textContent=game.title;
+  const description=document.createElement('small');description.textContent=game.description;
+  const count=document.createElement('b');count.textContent=`${game.min===game.max?game.min:`${game.min}–${game.max}`} players · Select →`;
+  button.append(art,title,description,count);dialog.querySelector('.table-game-grid')!.append(button);
+ }
  const lukis=setupLukis(gameSend),poker=setupPoker(gameSend),werewolf=setupWerewolf(gameSend),uno=setupUno(message => gameSend((message as {type:string}).type === 'uno-rematch' ? {type:'lobby-rematch'} : message));
  const alerts=createTableAlert(toast),onScreen=()=>dialog.open;
  const shell=createTableShell(gameSend,request=>{const tableId=own()?.id||selected;return send({type:'table-invite',game:request.game,tableId});});
  dialog.querySelector('.table-game-stage')!.append(shell.root);
  shell.stage.append(lukis.root,poker.root,werewolf.root,uno.root);
+ let casual:ReturnType<typeof import('./casual-games').setupCasualGames>|undefined,loadingCasual=false,casualState:CasualState|null=null;
+ const loadStatus=document.createElement('div');loadStatus.className='casual-load-status';loadStatus.hidden=true;loadStatus.setAttribute('role','status');shell.stage.append(loadStatus);
+ async function loadCasual(){
+  if(casual||loadingCasual)return;loadingCasual=true;loadStatus.textContent='Memuatkan game…';
+  try{const {setupCasualGames}=await import('./casual-games');casual=setupCasualGames(gameSend);shell.stage.append(casual.root);casual.state(casualState);}
+  catch{loadStatus.textContent='Game belum dapat dimuatkan. ';const retry=document.createElement('button');retry.type='button';retry.textContent='Cuba lagi';retry.onclick=()=>void loadCasual();loadStatus.append(retry);}
+  finally{loadingCasual=false;showBoards();}
+ }
  // A game's own board only appears once the lobby has actually started it.
- function showBoards(){const on=shell.playing?playingGame:'';lukis.root.hidden=on!=='lukis';poker.root.hidden=on!=='poker';werewolf.root.hidden=on!=='werewolf';uno.root.hidden=on!=='uno';}
+ function showBoards(){const on=shell.playing?playingGame:'';lukis.root.hidden=on!=='lukis';poker.root.hidden=on!=='poker';werewolf.root.hidden=on!=='werewolf';uno.root.hidden=on!=='uno';casual?.show(on);loadStatus.hidden=!Object.hasOwn(casualCatalog,on)||!!casual;}
  window.setInterval(()=>{if(dialog.open)shell.tick();},250);
  function selectGame(value:string){
+  if(value!==playingGame){casualState=null;casual?.state(null);}
   playingGame=value;
+  if(Object.hasOwn(casualCatalog,value))void loadCasual();
   if(!value)minimized=false;
   (dialog.querySelector('.table-game-menu') as HTMLElement).hidden=!!value;
   (dialog.querySelector('.table-back') as HTMLElement).hidden=!value;
@@ -106,6 +127,8 @@ export function setupTableSocial(send:(message:object)=>boolean,_room:string,rel
  goButton.onclick=()=>{if(!destination)return;if(goToTable(destination.tableId)){destination=null;close();}else toast('Table unavailable','Move to the table from the city and try again.');};
  return {open(tableId?:string){destination=null;minimized=false;selected=tableId||own()?.id||selected;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();dialog.querySelector<HTMLButtonElement>('#close-table-social')!.focus();},openInvite(value:TableInvite){destination=value;minimized=false;selected=value.tableId;releaseInput();render();if(!dialog.open)dialog.showModal();holdChat();goButton.focus();},close,
   get opened(){return dialog.open;},get playing(){return dialog.open&&!!playingGame;},state(value:TableState[],id:string,connected:boolean){tables=value;selfId=id;online=connected;render();},
+  get boardOpen(){return dialog.open&&!minimized&&Object.hasOwn(casualCatalog,playingGame);},
+  casual(value:CasualState){if(value.kind!==playingGame||value.tableId!==own()?.id)return;casualState=value;casual?.state(value);const mine=value.kind==='quiz'?value.phase==='playing'&&value.answer==null:value.turn===value.self&&value.phase==='playing';alerts.fire(value.kind,mine&&!value.paused?{key:`${value.id}:${value.kind==='quiz'?value.round:value.ends}`,title:GAME_TITLES[value.kind],body:value.kind==='quiz'?'Soalan baru — jom jawab.':'Giliran anda.'}:{key:'',title:'',body:''},onScreen());},
   uno(value:any){if(!value||value.tableId===own()?.id){uno.state(value);alerts.fire('uno',unoAlert(value),onScreen());}},werewolf(value:any){werewolf.state(value);alerts.fire('werewolf',werewolfAlert(value),onScreen());},game(value:any){if(!value||value.tableId===own()?.id){lukis.state(value,selfId);alerts.fire('lukis',lukisAlert(value),onScreen());}},lobby(value:any){shell.state(value,selfId);showBoards();},geng(size:number,leader:boolean){shell.geng(size,leader);},party(size:number){shell.party(size);},react(value:any){shell.react(value);},gameFeedback(kind:string,message:string){lukis.feedback(kind,message);},gameCorrect(name:string,points:number,event?:any){lukis.correct(name,points,event);},gameInk(message:any){if(own())lukis.ink(message);},gameLine(value:any){if(own())lukis.line(value);},poker(value:any){if(!value||value.tableId===own()?.id){poker.state(value,selfId);alerts.fire('poker',pokerAlert(value,selfId),onScreen());}},
   offline(){releaseChat();online=false;tables=[];alerts.clear();shell.state(null,selfId);lukis.state(null,selfId);poker.state(null,selfId);werewolf.state(null);uno.state(null);render();}};
 }

@@ -13,6 +13,7 @@ import {createLamps} from './lamps.mjs';
 import {districtFor} from '../shared/districts.mjs';
 import {tableOf, seatedWith} from './seating.mjs';
 import { createUno } from './uno.mjs';
+import {createCasualGames} from './casual-games.mjs';
 import { createWerewolf } from './werewolf.mjs';
 import { createLukis } from './lukis.mjs';
 import { createPoker } from './poker.mjs';
@@ -89,10 +90,11 @@ const uno = createUno(send);
 const werewolf = createWerewolf(send);
 const lukis = createLukis(send);
 const poker = createPoker(send);
+const casualGames = createCasualGames(send);
 const sfu=createSfu({send,allowed:(ps,p,q)=>voiceAudience(ps,p,q,{party,werewolf,lukis,radius:voiceConfig.hearingRadius})});
 setInterval(()=>{for(const ps of rooms.values())sfu.tick(ps);},500).unref();
 // The lobby starts the games; the games keep their own rules once running.
-tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf});
+tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf, ...casualGames.games});
 const tableInvites = createTableInvites(send, {party, tableLobby});
 // Geng reconnect records and table invitation links expire on the server. Keep empty room
 // maps alive only while a logged-in Geng member still has a reconnect grace window.
@@ -109,6 +111,7 @@ setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref(
 setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
 setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);}},500).unref();
+setInterval(()=>{for(const ps of rooms.values())casualGames.tick(ps);},500).unref();
 const chatHistory = createChatHistory();
 const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
@@ -689,6 +692,7 @@ webSocketServer.on('connection', ws => {
       return;
     }
     if (uno.handle(currentRoom.players, player, message)) return;
+    if (casualGames.handle(currentRoom.players, player, message)) return;
     if (werewolf.handle(currentRoom.players, player, message)) return;
     if (lukis.handle(currentRoom.players, player, message)) return;
     if (poker.handle(currentRoom.players, player, message)) return;
