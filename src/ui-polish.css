@@ -134,7 +134,7 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
 .hud-left { margin-top: 194px; gap: 13px; }
 .hud-divider { height: 33px; background: var(--ui-line); }
 .district strong { font-size: 13px; letter-spacing: -.01em; }
-.district small { margin-top: 3px; color: var(--ui-muted); }
+.district small { margin-top: 0; color: var(--ui-muted); }
 .multiplayer-status {
   min-height: 40px; padding: 9px 12px; border-color: var(--ui-line); border-radius: 999px;
   background: var(--ui-glass); box-shadow: 0 8px 26px rgb(1 13 10 / 24%), inset 0 1px rgb(255 255 255 / 7%);

@@ -118,7 +118,7 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .hud-left { display: flex; align-items: center; gap: 16px; }
 .hud-divider { width: 1px; height: 27px; background: #fff5da55; }
 .district strong { display: block; font-size: 12px; font-weight: 600; }
-.district small { display: block; margin-top: 4px; font-size: 9px; color: #f1ecd8; letter-spacing: .1em; text-transform: uppercase; }
+.district small { display: block; margin-top: 0; font-size: 9px; color: #f1ecd8; letter-spacing: .1em; text-transform: uppercase; }
 .hud-right { display: flex; align-items: center; gap: 20px; }
 /* The ⋮ only exists on a phone; a wider screen shows the row itself. */
 #hud-more { display: none; }

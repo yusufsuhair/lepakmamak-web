@@ -59,3 +59,9 @@ test('the city HUD keeps the online count in the multiplayer control',async({pag
  await expect(page.locator('#player-count')).toHaveText(/\d+ players? online/);
  await expect(page.locator('#roster-brief')).toHaveCount(0);
 });
+
+test('the city district name appears only under the map',async({page})=>{
+ await page.goto('/');
+ await expect(page.locator('#district')).toHaveCount(0);
+ await expect(page.locator('#map-area')).toHaveText('KAMPUNG MAJU');
+});
