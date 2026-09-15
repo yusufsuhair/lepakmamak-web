@@ -1040,7 +1040,9 @@ async function init() {
     for (const person of people) {
       const row = document.createElement('li');
       const dot = document.createElement('span'); dot.className = 'online-player-dot'; dot.setAttribute('aria-hidden', 'true');
-      const name = document.createElement('span'); name.textContent = person.name;
+      const name = document.createElement('button'); name.type = 'button'; name.className = 'online-player-profile'; name.textContent = person.name;
+      name.setAttribute('aria-label', `View profile of ${person.name}`);
+      name.onclick = () => { onlinePlayersDialog.close(); selectedName = person.name; selectedProfileId = person.id; openSelectedProfile(); };
       row.append(dot, name);
       if (person.id === networkPlayerId) { const you = document.createElement('small'); you.textContent = 'You'; row.append(you); }
       list.append(row);

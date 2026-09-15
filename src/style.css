@@ -396,6 +396,9 @@ button.multiplayer-status:focus-visible { outline: 2px solid #dfff87; outline-of
 #online-players-list { list-style: none; padding: 0; margin: 12px 0; }
 #online-players-list li { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #254b3b20; overflow-wrap: anywhere; }
 #online-players-list small { margin-left: auto; padding: 3px 7px; background: #dfff87; border-radius: 4px; }
+.online-player-profile { min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.online-player-profile:hover { color: #173c32; text-decoration: underline; }
+.online-player-profile:focus-visible { outline: 2px solid #6d8b54; outline-offset: 3px; border-radius: 3px; }
 .online-player-dot { width: 8px; height: 8px; border-radius: 50%; background: #438c56; flex-shrink: 0; }
 button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 
