@@ -15,7 +15,7 @@ test('mobile fullscreen chat keeps its log scrollable and its composer at the bo
   chat.open();
  });
  await page.locator('#chat-expand').click();
- await expect(page.locator('#chat-min')).toBeHidden();
+ await expect(page.locator('#chat-min')).toHaveCount(0);
  for (const width of [390, 598]) {
   await page.setViewportSize({width,height:844});
   const header=(await page.locator('#chat-heading').boundingBox())!;

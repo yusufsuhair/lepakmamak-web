@@ -60,6 +60,7 @@ test('a message carries where it was said, and the bar has no minimize button of
 
  // The header is the control; a separate minimize glyph beside it was redundant.
  await expect(page.locator('#chat-toggle-label')).toHaveCount(0);
+ await expect(page.locator('#chat-min')).toHaveCount(0);
  await expect(page.locator('#chat-body')).toBeVisible();
  await page.getByRole('button',{name:/Collapse city chat/}).click();
  await expect(page.locator('#chat-body')).toBeHidden();

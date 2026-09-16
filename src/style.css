@@ -683,10 +683,7 @@ html, body, #app { touch-action: manipulation; }
 .chat-thread-close:hover { color: #ffd0c4; }
 
 /* Desktop only: a proper reading window rather than a corner strip. */
-/* Window controls sit in the far-left corner of the title bar, ahead of the title, rather
-   than floating over the middle of it. The heading is a button and cannot hold buttons, so
-   they overlay it and it makes room for them with padding. */
-/* Keep window controls independent of table-dialog button padding and font metrics. */
+/* Keep the fullscreen control independent of table-dialog button padding and font metrics. */
 #city-chat #chat-controls { position: absolute; top: 4px; right: 6px; display: flex; gap: 4px; z-index: 2; }
 #city-chat #chat-controls button { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; min-height: 44px; padding: 0; background: #ffffff14; color: #fff8e7; border: 1px solid #ffffff1f; border-radius: 9px; cursor: pointer; touch-action: manipulation; }
 #city-chat #chat-controls button[hidden] { display: none; }
@@ -696,7 +693,7 @@ html, body, #app { touch-action: manipulation; }
 @media (hover: hover) and (pointer: fine) { #city-chat #chat-controls button:hover { background: #ffffff2b; color: #ddf69a; } }
 /* The outer tab is the one control that remains reachable when the chat itself is hidden. */
 #city-chat #chat-visibility-toggle {
-  position: absolute; top: 4px; left: calc(100% + 8px); z-index: 3;
+  position: absolute; top: auto; bottom: 4px; left: calc(100% + 8px); z-index: 3;
   display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0;
   border: 1px solid #ffffff1f; border-radius: 9px; background: #173c32e8; color: #fff8e7;
   box-shadow: 0 8px 20px #071b1599; cursor: pointer; pointer-events: auto; touch-action: manipulation;
@@ -708,7 +705,7 @@ html, body, #app { touch-action: manipulation; }
 @media (hover: hover) and (pointer: fine) { #city-chat #chat-visibility-toggle:hover { background: #ffffff2b; color: #ddf69a; } }
 #city-chat.chat-hidden { visibility: hidden; pointer-events: none; transform: translateX(calc(-100% - 8px)); }
 #city-chat.chat-hidden #chat-visibility-toggle { visibility: visible; pointer-events: auto; }
-#city-chat #chat-heading { min-height: 52px; padding-right: 108px; border-bottom: 1px solid #9ab49c66; border-radius: 12px 12px 0 0; box-shadow: inset 0 -1px 0 #173c3233; }
+#city-chat #chat-heading { min-height: 52px; padding-right: 58px; border-bottom: 1px solid #9ab49c66; border-radius: 12px 12px 0 0; box-shadow: inset 0 -1px 0 #173c3233; }
 #city-chat.chat-collapsed #chat-heading { padding-right: 58px; }
 /* Centred on both axes rather than hung off the bottom edge. */
 #city-chat.chat-expanded { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(720px, 82vw); z-index: 30; }

@@ -120,7 +120,7 @@ export type PmEntry = {key: string; name: string; text: string; sentAt?: string}
 
 export function setupChat(send: (text: string, channel: Thread['channel'], to?: string) => boolean, focus: () => void, hooks: PmHooks = {}) {
   const panel = document.createElement('aside'); panel.id = 'city-chat';
-  panel.innerHTML = `<button type="button" id="chat-visibility-toggle" aria-controls="chat-body" aria-expanded="true" aria-label="Hide city chat"></button><span id="chat-controls"><button type="button" id="chat-min"></button><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
+  panel.innerHTML = `<button type="button" id="chat-visibility-toggle" aria-controls="chat-body" aria-expanded="true" aria-label="Hide city chat"></button><span id="chat-controls"><button type="button" id="chat-expand"></button></span><button type="button" id="chat-heading" aria-controls="chat-body"><b>City chat</b></button><span id="chat-unread-badge" aria-hidden="true" hidden></span><div id="chat-body"><div id="chat-logs"><button type="button" id="chat-jump" hidden aria-label="Jump to the latest messages">↓ Terkini</button></div><button type="button" id="chat-compose" aria-label="Write a message"></button><form id="chat-form" hidden><span class="chat-channel-wrap"><button type="button" id="chat-channel" aria-haspopup="listbox" aria-expanded="false"></button><div id="chat-channel-menu" role="listbox" aria-label="Choose who sees your message" hidden></div></span><input id="chat-input" aria-label="Message to the city" placeholder="Say hello, lah…" maxlength="200" autocomplete="off"><button type="submit">Send</button></form><small id="chat-status" role="status">Connecting to the city…</small></div>`;
   document.getElementById('hud')!.append(panel);
   const el = <T extends HTMLElement>(id: string) => panel.querySelector<T>(`#${id}`)!;
   const input = el<HTMLInputElement>('chat-input'), status = el('chat-status');
@@ -128,7 +128,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   const unreadBadge = el('chat-unread-badge');
   const form = el<HTMLFormElement>('chat-form'), compose = el<HTMLButtonElement>('chat-compose');
   const logs = el('chat-logs'), expand = el<HTMLButtonElement>('chat-expand'), jump = el<HTMLButtonElement>('chat-jump');
-  const minimise = el<HTMLButtonElement>('chat-min'), visibilityToggle = el<HTMLButtonElement>('chat-visibility-toggle');
+  const visibilityToggle = el<HTMLButtonElement>('chat-visibility-toggle');
   const hiddenUnreadBadge = document.createElement('span'); hiddenUnreadBadge.id = 'chat-hidden-unread-badge'; hiddenUnreadBadge.className = 'chat-unread-badge'; hiddenUnreadBadge.setAttribute('aria-hidden', 'true'); hiddenUnreadBadge.hidden = true;
   visibilityToggle.append(hiddenUnreadBadge);
   const accountOf = (key: string) => threads.get(key)?.to || '';
@@ -235,9 +235,6 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     expand.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${expanded ? 'M4 9h5V4M9 9 3 3M20 15h-5v5M15 15l6 6' : 'M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7'}"/></svg>`;
     expand.setAttribute('aria-label', expanded ? 'Shrink chat back' : 'Expand chat to a larger window');
     heading.disabled = expanded;
-    minimise.hidden = expanded;
-    minimise.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${collapsed ? 'M5 5h14v14H5zM5 9h14' : 'M5 12h14'}"/></svg>`;
-    minimise.setAttribute('aria-label', collapsed ? 'Restore city chat' : 'Minimise city chat');
     const unread = totalUnread();
     visibilityToggle.setAttribute('aria-label', hidden ? `Show city chat${unread ? `, ${unread} unread messages` : ''}` : 'Hide city chat');
     heading.setAttribute('aria-expanded', String(!collapsed));
@@ -270,16 +267,11 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   };
   selector.onkeydown = event => event.stopPropagation();
   menu.addEventListener('keydown', event => event.stopPropagation());
-  // Maximising a minimised panel would otherwise give you a full-screen window with its
-  // body still hidden, so it un-minimises on the way up.
+  // Expanding a collapsed panel must restore its body before entering fullscreen.
   expand.onclick = () => { expanded = !expanded; if (expanded) setCollapsed(false); else render(); };
   expand.onkeydown = event => event.stopPropagation();
   visibilityToggle.onclick = () => { setHidden(!hidden); };
   visibilityToggle.onkeydown = event => event.stopPropagation();
-  minimise.onclick = () => {
-    setCollapsed(!collapsed);
-  };
-  minimise.onkeydown = event => event.stopPropagation();
 
   function expandPanel() { collapsed = false; render(); }
   // Enter (or a tap on the pill) is the only way in; sending or Escape is the way out.
@@ -288,7 +280,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   compose.onclick = openComposer;
   compose.onkeydown = event => event.stopPropagation();
 
-  // The header and the minimise button are the same switch, so they persist the same way.
+  // The header is the collapse switch, so its choice persists between visits.
   function setCollapsed(next: boolean) {
     if (expanded && next) return;
     collapsed = next;

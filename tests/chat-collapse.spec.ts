@@ -16,7 +16,8 @@ test('chat window icons stay centred and touch-sized inside the game dialog', as
     await page.setViewportSize({width,height:767});
     const heading = (await page.locator('#chat-heading').boundingBox())!;
     const title = (await page.locator('#chat-heading b').boundingBox())!;
-    for (const id of ['chat-min','chat-expand']) {
+    await expect(page.locator('#chat-min')).toHaveCount(0);
+    for (const id of ['chat-expand']) {
       const button = page.locator(`#${id}`), box = (await button.boundingBox())!, icon = (await button.locator('svg').boundingBox())!;
       expect(box.width).toBe(44); expect(box.height).toBe(44);
       expect(icon.width).toBe(18); expect(icon.height).toBe(18);
@@ -28,10 +29,6 @@ test('chat window icons stay centred and touch-sized inside the game dialog', as
       expect(box.y+box.height).toBeLessThanOrEqual(heading.y+heading.height);
     }
     await page.screenshot({path:testInfo.outputPath(`chat-icons-${width}.png`)});
-    await page.getByRole('button',{name:'Minimise city chat'}).click();
-    await expect(page.locator('#chat-expand')).toBeHidden();
-    await page.getByRole('button',{name:'Restore city chat'}).click();
-    await expect(page.locator('#chat-body')).toBeVisible();
   }
 });
 
@@ -113,9 +110,8 @@ test('offline DM removes its private thread and composer target', async ({ page 
   await expect(page.locator('#chat-form')).toBeHidden();
 });
 
-// The two window controls belong together in the far-right corner, the way any other
-// window says it. Fullscreen uses the second control as a close button.
-test('the window controls sit in the far-right corner and both still work', async ({ page }) => {
+// Fullscreen stays in the far-right corner; visibility is controlled by the outer tab.
+test('the fullscreen control sits in the far-right corner and still works', async ({ page }) => {
   await page.route('**/chat-controls-harness', route => route.fulfill({ contentType: 'text/html', body: '<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>' }));
   await page.goto('/chat-controls-harness');
   await page.evaluate(async () => { const { setupChat } = await import('/src/social.ts'); (window as any).chat = setupChat(() => true, () => {}); });
@@ -130,9 +126,12 @@ test('the window controls sit in the far-right corner and both still work', asyn
   expect(placed.fromRight).toBeLessThan(placed.fromLeft);
   // The title makes room for them rather than sitting underneath.
   expect(placed.afterTitle).toBe(true);
+  await expect(page.locator('#chat-controls button')).toHaveCount(1);
+  await expect(page.locator('#chat-min')).toHaveCount(0);
   const panel = (await page.locator('#city-chat').boundingBox())!, tab = await page.locator('#chat-visibility-toggle').boundingBox();
   expect(tab).not.toBeNull();
   expect(tab!.x).toBeGreaterThanOrEqual(panel.x + panel.width);
+  expect(tab!.y).toBeGreaterThan(panel.y + panel.height - tab!.height - 8);
 
   await page.getByRole('button', { name: 'Hide city chat' }).click();
   await expect(page.locator('#city-chat')).toHaveClass(/chat-hidden/);
@@ -140,28 +139,13 @@ test('the window controls sit in the far-right corner and both still work', asyn
   await page.getByRole('button', { name: 'Show city chat' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-hidden/);
 
-  const minimise = page.getByRole('button', { name: 'Minimise city chat' });
-  await minimise.click();
-  await expect(page.locator('#chat-body')).toBeHidden();
-  await page.getByRole('button', { name: 'Restore city chat' }).click();
-  await expect(page.locator('#chat-body')).toBeVisible();
-
   await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
   await expect(page.locator('#city-chat')).toHaveClass(/chat-expanded/);
-  await expect(page.locator('#chat-min')).toBeHidden();
+  await expect(page.locator('#chat-min')).toHaveCount(0);
   await expect(page.locator('#chat-heading')).toBeDisabled();
   await page.getByRole('button', { name: 'Shrink chat back' }).click();
   await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 
-  // A minimised panel exposes only its restore control. Fullscreen becomes available again
-  // after the player opens the chat, so mobile never shows two competing open actions.
-  await minimise.click();
-  await expect(page.getByRole('button', { name: 'Expand chat to a larger window' })).toBeHidden();
-  await page.getByRole('button', { name: 'Restore city chat' }).click();
-  await page.getByRole('button', { name: 'Expand chat to a larger window' }).click();
-  await expect(page.locator('#chat-body')).toBeVisible();
-  await page.getByRole('button', { name: 'Shrink chat back' }).click();
-  await expect(page.locator('#city-chat')).not.toHaveClass(/chat-expanded/);
 });
 
 test('outer chat toggle uses arrows and slides the panel left while staying reachable', async ({ page }) => {
