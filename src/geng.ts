@@ -22,7 +22,7 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
   dialog.innerHTML = `<header><div><small>LEPAKMAMAK · SOCIAL</small><h2 id="game-geng-title">Geng</h2><p>Build your squad, one request at a time.</p></div><button type="button" aria-label="Close Geng">×</button></header>
     <div class="geng-balance"><span>YOUR SYILING</span><strong id="geng-balance">—</strong></div>
     <p id="geng-message" class="geng-message" role="status" aria-live="polite"></p>
-    <section id="geng-live" class="geng-live" hidden aria-labelledby="geng-live-title"><div class="geng-section-head"><div><small>LIVE SOCIAL GROUP</small><h3 id="geng-live-title">Your Geng</h3></div><span id="geng-live-leader-badge" hidden>LEADER</span></div><p id="geng-live-meta"></p><ul id="geng-live-members"></ul><p class="geng-live-help">Only the Geng leader can invite members. Geng is optional for table games.</p><button type="button" id="geng-live-leave">Leave Geng</button></section>
+    <section id="geng-live" class="geng-live" hidden aria-labelledby="geng-live-title"><div class="geng-section-head"><div><small>LIVE PARTY</small><h3 id="geng-live-title">Your Party</h3></div><span id="geng-live-leader-badge" hidden>LEADER</span></div><p id="geng-live-meta"></p><ul id="geng-live-members"></ul><p class="geng-live-help">Only the Party leader can invite members. Party is optional for table games.</p><button type="button" id="geng-live-leave">Leave Party</button></section>
     <section id="geng-current" hidden aria-labelledby="geng-current-title"><div class="geng-section-head"><div><small>YOUR GENG</small><h3 id="geng-current-title"></h3></div><span id="geng-leader-badge" hidden>LEADER</span></div><p id="geng-current-meta"></p><ul id="geng-members"></ul><div id="geng-pending-wrap" hidden><h4>Join requests</h4><ul id="geng-pending"></ul></div><div class="geng-actions"><button type="button" id="geng-leave">Leave Geng</button><button type="button" id="geng-disband" class="danger" hidden>Disband Geng</button></div></section>
     <section id="geng-create" hidden aria-labelledby="geng-create-title"><small>START A NEW SQUAD</small><h3 id="geng-create-title">Create a Geng</h3><p>It costs 1,000 Syiling. You become the leader and approve every member.</p><div id="geng-topup-prompt" class="geng-topup-prompt" hidden><div><small>SYILING TAK CUKUP</small><strong>Tambah Syiling untuk teruskan</strong><p id="geng-topup-copy"></p></div><button type="button" id="geng-topup" class="primary">Tambah Syiling</button></div><form id="geng-create-form"><label for="geng-create-name">Geng name<input id="geng-create-name" minlength="2" maxlength="24" autocomplete="off" required placeholder="e.g. Budak Mamak"></label><button type="submit" class="primary" id="geng-create-submit">Create Geng · 1,000 Syiling</button></form></section>
     <section aria-labelledby="geng-discover-title"><div class="geng-section-head"><div><small>FIND A SQUAD</small><h3 id="geng-discover-title">Open Gengs</h3></div><button type="button" id="geng-refresh" aria-label="Refresh Geng list">↻</button></div><ul id="geng-list"></ul></section>`;
@@ -145,9 +145,9 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
     const section = el('geng-live'); section.hidden = !liveState;
     if (!liveState) return;
     const onlineCount = liveState.members.filter(member => member.connected !== false && !member.reconnecting).length;
-    const leader = liveState.members.find(member => member.leader)?.name || 'Geng leader';
-    el('geng-live-title').textContent = `${leader}'s Geng`;
-    el('geng-live-meta').textContent = `${onlineCount}/${liveState.members.length} online · ${leader} leads this Geng`;
+    const leader = liveState.members.find(member => member.leader)?.name || 'Party leader';
+    el('geng-live-title').textContent = `${leader}'s Party`;
+    el('geng-live-meta').textContent = `${onlineCount}/${liveState.members.length} online · ${leader} leads this Party`;
     el('geng-live-leader-badge').hidden = !liveState.members.some(member => member.leader && member.connected !== false);
     const members = el('geng-live-members'); members.replaceChildren();
     for (const member of liveState.members) {

@@ -819,7 +819,7 @@ webSocketServer.on('connection', ws => {
       if (player.micScope === 'party' && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
         if (!player.voiceGameNoticeAt || Date.now() - player.voiceGameNoticeAt > 15000) {
           player.voiceGameNoticeAt = Date.now();
-          send(ws, {type: 'notice', message: 'Geng voice ditutup masa main. Tukar mic kepada All untuk bercakap terbuka.'});
+          send(ws, {type: 'notice', message: 'Party voice ditutup masa main. Tukar mic kepada All untuk bercakap terbuka.'});
         }
         return;
       }
@@ -885,7 +885,7 @@ webSocketServer.on('connection', ws => {
       // three in the games, and server-side only — the client may grey the tabs out as a
       // courtesy, but the client is not the one being trusted.
       if ((channel === 'party' || channel === 'dm') && (werewolf.live(currentRoom.players, player) || lukis.live(currentRoom.players, player))) {
-        send(ws, {type: 'notice', message: 'Geng dan DM ditutup masa main. Guna chat meja.'});
+        send(ws, {type: 'notice', message: 'Party dan DM ditutup masa main. Guna chat meja.'});
         return;
       }
       // Where they were standing when they said it, stamped once per message rather than
@@ -894,7 +894,7 @@ webSocketServer.on('connection', ws => {
 
       if (channel === 'party') {
         const members = party.members(currentRoom.players, player);
-        if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a Geng yet.' }); return; }
+        if (!members.length) { send(ws, { type: 'notice', message: 'You are not in a Party yet.' }); return; }
         for (const member of members) send(member.ws, payload);
         return;
       }

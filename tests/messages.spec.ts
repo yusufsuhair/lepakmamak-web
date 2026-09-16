@@ -104,7 +104,7 @@ test('each gate refuses in order: banned, muted, live game, blocked, rate limite
     box.penalties.set(alya.userId, {banned: false, muted: true});
     expect(await box.send(alya, badrul, 'hai')).toEqual({status: 403, body: {error: 'You are muted, so this did not send.'}});
     box.penalties.delete(alya.userId);
-    expect(await box.send(alya, badrul, 'hai')).toEqual({status: 403, body: {error: 'Geng dan DM ditutup masa main. Guna chat meja.'}});
+    expect(await box.send(alya, badrul, 'hai')).toEqual({status: 403, body: {error: 'Party dan DM ditutup masa main. Guna chat meja.'}});
     box.live.delete(alya.userId);
     expect(await box.send(alya, badrul, 'hai')).toEqual({status: 403, body: {error: "You can't message this player."}});
     await box.store.unblock(badrul.userId, alya.userId);

@@ -63,9 +63,9 @@ export function createTableInvites(send, {party, tableLobby}, now = Date.now) {
     if (tableOf(player) !== tableId) return failure(send, player, 'TABLE_CHANGED', 'Sit at that table before sending its invitation.');
     if (current.available <= 0) return failure(send, player, 'TABLE_FULL', 'That table or game is already full.');
 
-    if (!party.leader(players, player)) return failure(send, player, 'GENG_LEADER_ONLY', 'Only the Geng leader can send table invitations.');
+    if (!party.leader(players, player)) return failure(send, player, 'GENG_LEADER_ONLY', 'Only the Party leader can send table invitations.');
     const recipients = party.members(players, player).filter(member => member.id !== player.id && member.ws?.readyState === 1);
-    if (!recipients.length) return failure(send, player, 'NO_GENG', 'Join a Geng with another player before sending a table invitation. You can still join the game yourself.');
+    if (!recipients.length) return failure(send, player, 'NO_GENG', 'Join a Party with another player before sending a table invitation. You can still join the game yourself.');
 
     const invites = registry(players);
     let sent = 0;
@@ -87,7 +87,7 @@ export function createTableInvites(send, {party, tableLobby}, now = Date.now) {
       send(recipient.ws, {type: 'table-invited', invite: inviteView(record, current)});
       sent++;
     }
-    send(player.ws, {type: 'table-invite-result', ok: true, sent, message: `Table invitation sent to ${sent} Geng member${sent === 1 ? '' : 's'}.`});
+    send(player.ws, {type: 'table-invite-result', ok: true, sent, message: `Table invitation sent to ${sent} Party member${sent === 1 ? '' : 's'}.`});
     return true;
   }
 
@@ -97,11 +97,11 @@ export function createTableInvites(send, {party, tableLobby}, now = Date.now) {
     const record = invites.get(id);
     if (!record || record.recipientId !== player.id) return failure(send, player, 'INVITE_EXPIRED', 'This table invitation has expired or is no longer yours.');
     invites.delete(id);
-    if (now() >= record.expiresAt) return failure(send, player, 'INVITE_EXPIRED', 'This table invitation has expired. Ask the Geng member to send it again.');
+    if (now() >= record.expiresAt) return failure(send, player, 'INVITE_EXPIRED', 'This table invitation has expired. Ask the Party member to send it again.');
 
     const sender = players.get(record.senderId);
     if (!sender || sender.partyId !== record.partyId || !party.shares(sender, player)) {
-      return failure(send, player, 'INVITE_CHANGED', 'The sender is no longer in the same Geng. This invitation is closed.');
+      return failure(send, player, 'INVITE_CHANGED', 'The sender is no longer in the same Party. This invitation is closed.');
     }
     const current = context(players, tableLobby, sender, record.game, record.tableId);
     if (!current) return failure(send, player, 'GAME_CHANGED', 'The table changed game or its lobby ended. Open the table again for the current session.');

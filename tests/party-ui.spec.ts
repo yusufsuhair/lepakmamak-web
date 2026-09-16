@@ -32,23 +32,31 @@ test('an invite can be answered in the city without a numeric map count',async({
   // No party yet, so no party channel to pick and no voice audience to choose.
   await page.locator('#chat-compose').click();
   await page.locator('#chat-channel').click();
-  await expect(page.getByRole('option',{name:/GENG/})).toHaveCount(0);
+  await expect(page.getByRole('option',{name:/PARTY/})).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#mic-scope')).toBeHidden();
 
   friend.send(JSON.stringify({type:'party-invite',id:playerId}));
   await expect(page.locator('#party-invite')).toBeVisible();
-  await expect(page.locator('#party-invite-text')).toContainText('Geng');
+  await expect(page.locator('#party-invite-text')).toContainText('join their Party');
 
   await page.getByRole('button',{name:'Jom',exact:true}).click();
   await expect(page.locator('#party-invite')).toBeHidden();
   await page.locator('#chat-compose').click();
   await page.locator('#chat-channel').click();
-  await expect(page.getByRole('option',{name:/GENG/})).toBeVisible();
+  await expect(page.getByRole('option',{name:/PARTY/})).toBeVisible();
   await page.keyboard.press('Escape');
   // A party gives voice a second audience, so the scope buttons appear.
   await expect(page.locator('#mic-scope')).toBeVisible();
   await expect(page.locator('#speaker-scope')).toBeVisible();
+  await page.locator('#mic-scope').click();
+  await page.locator('#speaker-scope').click();
+  await expect(page.locator('#mic-scope')).toHaveText('Cakap: PARTY');
+  await expect(page.locator('#speaker-scope')).toHaveText('Dengar: PARTY');
+  await expect(page.locator('#party-roster')).toBeVisible();
+  await expect(page.locator('.party-roster-member')).toHaveCount(2);
+  await expect(page.locator('#party-roster').getByText('Player', {exact: true})).toBeVisible();
+  await expect(page.locator('#party-roster').getByText('Geng', {exact: true})).toBeVisible();
 
   await expect.poll(async()=>page.evaluate(()=>{
    const canvas=document.getElementById('minimap') as HTMLCanvasElement;

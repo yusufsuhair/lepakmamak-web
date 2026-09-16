@@ -181,13 +181,13 @@ export function createParty(send, now = Date.now) {
     if (message.type === 'party-invite') {
       const invitee = typeof message.id === 'string' ? players.get(message.id) : undefined;
       if (!invitee) { denied(player, 'GENG_MEMBER_NOT_FOUND', 'That player is no longer in the city.'); return true; }
-      if (invitee.id === player.id) { denied(player, 'GENG_SELF_INVITE', 'You cannot invite yourself to a Geng.'); return true; }
-      if (invitee.partyId) { denied(player, 'GENG_ALREADY_MEMBER', 'That player is already in a Geng.'); return true; }
+      if (invitee.id === player.id) { denied(player, 'GENG_SELF_INVITE', 'You cannot invite yourself to a Party.'); return true; }
+      if (invitee.partyId) { denied(player, 'GENG_ALREADY_MEMBER', 'That player is already in a Party.'); return true; }
       const party = partyOf(players, player);
       // A solo player may start a Geng by inviting the first member. Once it exists, only
       // its leader can grow it further.
-      if (party && party.leaderKey !== memberKey(player)) { denied(player, 'GENG_LEADER_ONLY', 'Only the Geng leader can invite members.'); return true; }
-      if (party && party.members.size + party.offline.size >= PARTY_LIMIT) { denied(player, 'GENG_FULL', 'Your Geng is full.'); return true; }
+      if (party && party.leaderKey !== memberKey(player)) { denied(player, 'GENG_LEADER_ONLY', 'Only the Party leader can invite members.'); return true; }
+      if (party && party.members.size + party.offline.size >= PARTY_LIMIT) { denied(player, 'GENG_FULL', 'Your Party is full.'); return true; }
       invites.set(invitee.id, {from: player.id, fromKey: memberKey(player), at: now(), partyId: party?.id || null});
       send(invitee.ws, {type: 'party-invited', gengInvited: true, inviter: {id: player.id, name: player.name}});
       return true;
@@ -195,23 +195,23 @@ export function createParty(send, now = Date.now) {
 
     if (message.type === 'party-accept' || message.type === 'party-decline') {
       const invite = invites.get(player.id);
-      if (!invite) { denied(player, 'GENG_INVITE_MISSING', 'That Geng invitation has expired or was withdrawn.'); return true; }
+      if (!invite) { denied(player, 'GENG_INVITE_MISSING', 'That Party invitation has expired or was withdrawn.'); return true; }
       invites.delete(player.id);
       if (message.type === 'party-decline') return true;
-      if (now() - invite.at > INVITE_TTL) { denied(player, 'GENG_INVITE_EXPIRED', 'That Geng invitation has expired.'); return true; }
-      if (player.partyId) { denied(player, 'GENG_ALREADY_MEMBER', 'Leave your current Geng before joining another one.'); return true; }
+      if (now() - invite.at > INVITE_TTL) { denied(player, 'GENG_INVITE_EXPIRED', 'That Party invitation has expired.'); return true; }
+      if (player.partyId) { denied(player, 'GENG_ALREADY_MEMBER', 'Leave your current Party before joining another one.'); return true; }
 
       const host = players.get(invite.from);
-      if (!host || memberKey(host) !== invite.fromKey) { denied(player, 'GENG_INVITE_STALE', 'The Geng invitation is no longer valid.'); return true; }
+      if (!host || memberKey(host) !== invite.fromKey) { denied(player, 'GENG_INVITE_STALE', 'The Party invitation is no longer valid.'); return true; }
       const existing = invite.partyId ? parties.get(invite.partyId) : undefined;
       if (existing) {
         if (existing.leaderKey !== invite.fromKey || host.partyId !== existing.id || !existing.members.has(host.id)) {
-          denied(player, 'GENG_INVITE_STALE', 'The Geng invitation changed because the Geng leader changed.'); return true;
+          denied(player, 'GENG_INVITE_STALE', 'The Party invitation changed because the Party leader changed.'); return true;
         }
-        if (!join(players, existing, player)) denied(player, 'GENG_FULL', 'That Geng is full.');
+        if (!join(players, existing, player)) denied(player, 'GENG_FULL', 'That Party is full.');
         return true;
       }
-      if (invite.partyId || host.partyId) { denied(player, 'GENG_INVITE_STALE', 'The Geng invitation is no longer valid.'); return true; }
+      if (invite.partyId || host.partyId) { denied(player, 'GENG_INVITE_STALE', 'The Party invitation is no longer valid.'); return true; }
 
       const party = {id: randomUUID(), leaderKey: memberKey(host), members: new Set([host.id]), offline: new Map()};
       parties.set(party.id, party);

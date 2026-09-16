@@ -49,7 +49,7 @@ test('incoming game invites appear in the settings notifications',async({page})=
   }
  }));
  await enter(page,'Invites');
- await expect(page.locator('#notification-list .notification-item')).toContainText('Alya invited you to join their Geng.');
+ await expect(page.locator('#notification-list .notification-item')).toContainText('Alya invited you to join their Party.');
  await page.getByRole('button',{name:'Open settings'}).click();
  await expect(page.getByRole('heading',{name:'Notifications'})).toBeVisible();
 });

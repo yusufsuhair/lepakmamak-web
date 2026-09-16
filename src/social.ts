@@ -323,7 +323,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
   let online = false;
   const statusText = () => !online ? 'Connecting to the city…'
     : active === 'all' ? 'Visible to everyone in this city'
-    : active === 'party' ? 'Only your Geng sees this'
+    : active === 'party' ? 'Only your Party sees this'
     // The table thread has no `name` (it is not a person), which fell through to the DM case
     // below and read as "Private to undefined".
     : active === 'table' ? 'Visible to everyone at this table'
@@ -428,7 +428,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     },
     party(members: Member[] | null) {
       // The server deletes a party the moment it drops below two, so any list means a party.
-      if (members?.length) party ??= build('party', 'GENG', 'party');
+      if (members?.length) party ??= build('party', 'PARTY', 'party');
       else if (party) { const key = party.key; party.log.remove(); threads.delete(key); party = null; if (active === key) active = 'all'; }
       render();
     },
@@ -440,7 +440,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
       render(); toBottom(all.log); renderJump();
     },
     append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '') {
-      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'GENG', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
+      const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
       const follow = !collapsed && target.key === active && atBottom(target.log);
       target.log.append(line(name, text, sentAt, gameMaster, area));
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();

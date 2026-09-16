@@ -80,6 +80,7 @@ import * as authLifecycle from './auth';
 import {preparePetronasEnvironment,PETRONAS} from './petronas';
 import {cdnUrl} from './cdn';
 import { appearance, type Appearance } from './appearance';
+import { createPlayerFace } from './player-face';
 import { shoutTag, nameTag, updateNameTagName, updateNameTagGeng, updateNameTagVoice, updateGameMasterTag, setupChat } from './social';
 import { setupVoice } from './voice';
 import { setupWall, type WallPost } from './wall';
@@ -146,7 +147,7 @@ $('app').innerHTML = `
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="lowest">Lowest</option><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
   <dialog id="city-map" aria-labelledby="city-map-title"><header><div><span class="map-kicker">LEPAK DIRECTORY</span><h2 id="city-map-title">City map</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info" role="status" aria-live="polite">All city locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full 2D city map with your location, online people and motorbike"></canvas></div><p class="city-map-hint">N ↑ · Drag to explore · pinch or wheel to zoom.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span class="map-legend">▲ You &nbsp; <i class="map-key-friend"></i> People &nbsp; <i class="map-key-bike"></i> Bike &nbsp; <i class="map-key-car"></i> Car</span><span>Drag to pan · M / Esc to close</span></footer></dialog>
-  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
+  <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Party</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="dm">Private messages</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><div id="profile-actions" hidden><button id="profile-add-friend" type="button">Add friend</button><button id="profile-message" type="button">Message</button></div><button id="close-profile" type="button">Close</button></dialog>
   <dialog id="online-players" aria-labelledby="online-players-title"><header><div><h2 id="online-players-title">Who's in the city?</h2><p id="online-players-count"></p></div><button type="button" id="close-online-players" aria-label="Close online players">Close ×</button></header><p id="online-players-empty"></p><ul id="online-players-list"></ul><small>Players in your current room.</small></dialog>
@@ -527,6 +528,9 @@ async function init() {
   let knownPlayerIds = new Set<string>();
   let hasPlayerSnapshot = false;
   let partyMembers = new Set<string>();
+  type PartyHudMember = {id: string; name: string; connected?: boolean; reconnecting?: boolean; leader?: boolean; appearance?: Partial<Appearance> | null};
+  let partyRosterMembers: PartyHudMember[] = [];
+  let partyRosterExpanded = false;
   let peerDots: {x:number;z:number;party:boolean;name?:string}[] = [];
   // The only raised floor in the city. onBridge is what keeps the road underneath open.
   let onBridge = false, deckY = 0;
@@ -578,8 +582,8 @@ async function init() {
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type}));
   }
   function showPartyInvite(name: string) {
-    recordActivityNotification('Geng invite', `${name} invited you to join their Geng.`);
-    partyInvite.querySelector('#party-invite-text')!.textContent = `${name} ajak anda masuk geng.`;
+    recordActivityNotification('Party invite', `${name} invited you to join their Party.`);
+    partyInvite.querySelector('#party-invite-text')!.textContent = `${name} invited you to join their Party.`;
     partyInvite.hidden = false;
     // The server drops the invite after a minute; the banner should not outlive it.
     window.clearTimeout(inviteTimer); inviteTimer = window.setTimeout(() => { partyInvite.hidden = true; }, 60000);
@@ -684,6 +688,46 @@ async function init() {
   if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value),{get:()=>soundRange,set:setSoundRange});
   let networkPlayerId = '';
   let networkConnected = false;
+  const partyRoster = document.createElement('section');
+  partyRoster.id = 'party-roster'; partyRoster.hidden = true;
+  partyRoster.setAttribute('aria-label', 'Party members');
+  partyRoster.innerHTML = '<div id="party-roster-head"><strong>PARTY</strong><small id="party-roster-count"></small></div><ul id="party-roster-list"></ul><button id="party-roster-toggle" type="button" hidden></button>';
+  const partyRosterCount = partyRoster.querySelector<HTMLElement>('#party-roster-count')!;
+  const partyRosterList = partyRoster.querySelector<HTMLElement>('#party-roster-list')!;
+  const partyRosterToggle = partyRoster.querySelector<HTMLButtonElement>('#party-roster-toggle')!;
+  document.querySelector('.brand-status')!.append(partyRoster);
+  const PARTY_ROSTER_PREVIEW = 4;
+  function renderPartyRoster() {
+    const members = partyRosterMembers.filter(member => member.name.trim());
+    partyRoster.hidden = !networkConnected || members.length < 2;
+    if (partyRoster.hidden) return;
+    partyRosterCount.textContent = `${members.length} member${members.length === 1 ? '' : 's'}`;
+    const visible = partyRosterExpanded ? members : members.slice(0, PARTY_ROSTER_PREVIEW);
+    partyRosterList.replaceChildren();
+    for (const member of visible) {
+      const row = document.createElement('li'); row.className = 'party-roster-member';
+      const face = createPlayerFace(member, 'party-face');
+      const copy = document.createElement('span'); copy.className = 'party-roster-copy';
+      const name = document.createElement('strong'); name.className = 'party-roster-name'; name.textContent = member.name;
+      const meta = document.createElement('small'); meta.className = 'party-roster-meta';
+      meta.textContent = member.reconnecting ? 'RECONNECTING' : member.connected === false ? 'OFFLINE' : member.id === networkPlayerId ? 'YOU' : member.leader ? 'LEADER' : 'ONLINE';
+      copy.append(name, meta); row.append(face, copy); partyRosterList.append(row);
+    }
+    const hasMore = members.length > PARTY_ROSTER_PREVIEW;
+    partyRosterToggle.hidden = !hasMore;
+    partyRosterToggle.textContent = partyRosterExpanded ? 'Show less' : `… Show ${members.length - PARTY_ROSTER_PREVIEW} more`;
+    partyRosterToggle.setAttribute('aria-expanded', String(partyRosterExpanded));
+  }
+  partyRosterToggle.onclick = () => { partyRosterExpanded = !partyRosterExpanded; renderPartyRoster(); };
+  function updatePartyRosterMembers(members: PartyHudMember[]) {
+    const appearances = new Map(roomPlayers.map(player => [player.id, player.appearance]));
+    partyRosterMembers = members.map(member => ({...member, appearance: appearances.get(member.id) || member.appearance}));
+    renderPartyRoster();
+  }
+  function clearPartyState() {
+    partyMembers = new Set(); partyLeaderId = ''; partyRosterMembers = []; partyRosterExpanded = false;
+    renderPartyRoster(); gengUI.live(null); chat.party(null); voice.party(false); tableSocial.geng(0, false);
+  }
   let networkSendTimer = 0, networkIdleTimer = 0;
   let lastNetworkState = '';
   let networkReconnectTimer: number | null = null;
@@ -1238,6 +1282,7 @@ async function init() {
     const me = players.find(p => p.id === networkPlayerId);
     if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
     roomPlayers = players;
+    if (partyRosterMembers.length) updatePartyRosterMembers(partyRosterMembers);
     chat.online(players.map(p => p.id).filter((id): id is string => !!id));
     weatherUI.role(!!players.find(p=>p.id===networkPlayerId)?.gameMaster);
     tableSocial.state(roomTables, networkPlayerId, networkConnected);
@@ -1342,7 +1387,7 @@ async function init() {
     seatedChairId = null; if (seated) chat.seated(false); seated = false;
     beachResting = null; beachRestSpot = null; beachRestPose(player, null);
     tableSocial.close(); tableSocial.offline(); roomTables = [];
-    partyMembers = new Set(); partyLeaderId = ''; gengUI.live(null); chat.party(null);
+    clearPartyState();
     wall.close();
     voice.connected(false);
     if (passengerOf) { passengerOf = null; riding = false; speed = 0; }
@@ -1501,10 +1546,11 @@ async function init() {
         if (message.type === 'lobby-state') tableSocial.lobby(message.lobby);
         if (message.type === 'lobby-react') tableSocial.react(message);
         if (message.type === 'party-state') {
-          // Reconnecting members have no live player id. They remain visible in the Geng
+          // Reconnecting members have no live player id. They remain visible in the Party
           // panel, but must not become a minimap marker or count as an online voice peer.
           partyMembers = new Set((message.party?.members || []).map((m: {id: string}) => m.id).filter(Boolean));
           partyLeaderId = String(message.party?.leader || '');
+          updatePartyRosterMembers(message.party?.members || []);
           gengUI.live(message.party || null);
           chat.party(message.party?.members || null);
           voice.party(partyMembers.size > 0);
@@ -1576,7 +1622,7 @@ async function init() {
         }
         frames.push(event.data);
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; netStatus.offline(); park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; peerDots = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; netStatus.offline(); clearPartyState(); park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; peerDots = [];
         // A normal JWT expiry is recoverable: Supabase already owns the refresh token, so
         // reconnect with a fresh access token instead of making the player restart the page.
         if (event.code === 4001) {

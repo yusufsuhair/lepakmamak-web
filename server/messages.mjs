@@ -64,7 +64,7 @@ export function createMessages({store = null, moderation = createModeration(), l
     if (penalty.banned) throw new HttpError(403, 'Your account is suspended from LepakMamak.');
     if (penalty.muted) throw new HttpError(403, 'You are muted, so this did not send.');
     // 2. The Werewolf and Lukis rule from the socket's chat gate. Not in the city means no game.
-    if (liveGame(user.id)) throw new HttpError(403, 'Geng dan DM ditutup masa main. Guna chat meja.');
+    if (liveGame(user.id)) throw new HttpError(403, 'Party dan DM ditutup masa main. Guna chat meja.');
     // 3. A block reads exactly like an unknown player: no fake delivery, no hint of the block.
     if (await store.isBlocked(to, user.id)) throw new HttpError(403, REFUSED);
     // 4. A refused recipient (unknown, or no handle) must not spend rate-limit budget, so this

@@ -87,17 +87,17 @@ export function createTableShell(send: (message: object) => boolean, inviteTable
         tick.dataset.ready = String(!!member.ready);
         seat.append(face, name, tick);
       } else {
-        // An empty seat can send a clickable invitation to the social Geng. Being outside
-        // a Geng only disables this convenience; it never disables READY or game entry.
+        // An empty seat can send a clickable invitation to the live Party. Being outside
+        // a Party only disables this convenience; it never disables READY or game entry.
         const invite = document.createElement('button');
         invite.type = 'button'; invite.className = 'seat-invite';
-        invite.textContent = '+ Invite Geng';
+        invite.textContent = '+ Invite Party';
         const canInvite = gengSize > 1 && gengLeader;
         invite.disabled = !canInvite;
         invite.title = gengSize < 2
-          ? 'Geng is optional. Join the game yourself, or join a Geng to invite members.'
+          ? 'Party is optional. Join the game yourself, or join a Party to invite members.'
           : !gengLeader
-            ? 'Only the Geng leader can invite members.'
+            ? 'Only the Party leader can invite members.'
             : 'Send a clickable invitation for this game and table.';
         invite.onclick = () => {
           if (!lobby || !canInvite) return;
@@ -108,7 +108,7 @@ export function createTableShell(send: (message: object) => boolean, inviteTable
             : send({type: 'chat', channel: 'party', text: `Join ${TITLES[lobby.game] || lobby.game} at this table!`});
           if (!sent) return;
           invite.textContent = 'Invite sent ✓';
-          window.setTimeout(() => { invite.textContent = '+ Invite Geng'; }, 2500);
+          window.setTimeout(() => { invite.textContent = '+ Invite Party'; }, 2500);
         };
         seat.append(invite);
       }
@@ -135,8 +135,8 @@ export function createTableShell(send: (message: object) => boolean, inviteTable
     get playing() { return lobby?.phase === 'playing'; },
     get game() { return lobby?.game || ''; },
     geng(size: number, leader: boolean) { gengSize = Math.max(0, size); gengLeader = leader; render(); },
-    // Compatibility alias for older callers while the visible product language changes to
-    // Geng. A non-empty legacy group is treated as leader-owned in old harnesses.
+    // Compatibility alias for older callers while the visible product language stays Party.
+    // A non-empty legacy group is treated as leader-owned in old harnesses.
     party(size: number) { gengSize = Math.max(0, size); gengLeader = size > 0; render(); },
     state(value: LobbyState | null, selfId: string) {
       // Anchor the count-in to arrival, so it ticks down without a server round trip.

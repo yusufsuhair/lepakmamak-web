@@ -71,14 +71,14 @@ test('a city lobby says so, instead of pretending to be this table',async({page}
  await expect(page.locator('.table-seat')).toHaveCount(9);
 });
 
-test('an empty seat offers a Geng invite, while game entry stays open without one',async({page})=>{
+test('an empty seat offers a Party invite, while game entry stays open without one',async({page})=>{
  await mount(page,'invite-harness');
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
 
  // No party yet: the seat must not pretend it can do anything.
  const idle=page.locator('.table-seat.empty button').first();
  await expect(idle).toBeDisabled();
- await expect(idle).toHaveAttribute('title',/Geng is optional/);
+ await expect(idle).toHaveAttribute('title',/Party is optional/);
 
  await page.evaluate(()=>(window as any).shell.party(2));
  await page.evaluate(l=>(window as any).shell.state(l,'a'),lobby());
@@ -93,7 +93,7 @@ test('an empty seat offers a Geng invite, while game entry stays open without on
  await expect(invite).toContainText('Invite sent');
 });
 
-test('a live Geng table invite is clickable and does not auto-enrol anyone',async({page})=>{
+test('a live Party table invite is clickable and does not auto-enrol anyone',async({page})=>{
  await page.route('**/invite-shell',(route:any)=>route.fulfill({contentType:'text/html',body:'<div id="root"></div>'}));
  await page.goto('/invite-shell');
  await page.evaluate(async l=>{

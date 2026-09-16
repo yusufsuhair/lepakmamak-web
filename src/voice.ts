@@ -31,10 +31,10 @@ export function setupVoice(send: (message: VoiceMessage) => boolean, onActivity?
   function renderScopes() {
     // Without a party there is no second audience to choose between.
     micScopeButton.hidden = !inParty; speakerScopeButton.hidden = !inParty;
-    micScopeButton.textContent = micScope === 'party' ? 'Cakap: GENG' : 'Cakap: SEMUA';
-    speakerScopeButton.textContent = speakerScope === 'party' ? 'Dengar: GENG' : 'Dengar: SEMUA';
-    micScopeButton.setAttribute('aria-label', micScope === 'party' ? 'Speaking to your Geng only' : 'Speaking to everyone nearby');
-    speakerScopeButton.setAttribute('aria-label', speakerScope === 'party' ? 'Hearing your Geng only' : 'Hearing everyone nearby');
+    micScopeButton.textContent = micScope === 'party' ? 'Cakap: PARTY' : 'Cakap: SEMUA';
+    speakerScopeButton.textContent = speakerScope === 'party' ? 'Dengar: PARTY' : 'Dengar: SEMUA';
+    micScopeButton.setAttribute('aria-label', micScope === 'party' ? 'Speaking to your Party only' : 'Speaking to everyone nearby');
+    speakerScopeButton.setAttribute('aria-label', speakerScope === 'party' ? 'Hearing your Party only' : 'Hearing everyone nearby');
     micScopeButton.dataset.scope = micScope; speakerScopeButton.dataset.scope = speakerScope;
   }
   micScopeButton.onclick = () => { micScope = micScope === 'party' ? 'all' : 'party'; renderScopes(); announce(); };

@@ -41,16 +41,16 @@ test('the channel selector lives inside the composer and opens upward',async({pa
  expect(above).toBe(true);
 });
 
-test('Geng appears in the list only while you are in one, and choosing it routes the message',async({page})=>{
+test('Party appears in the list only while you are in one, and choosing it routes the message',async({page})=>{
  await mount(page,'route-harness');
  await openComposer(page);
  await page.locator('#chat-channel').click();
- await expect(page.getByRole('option',{name:/GENG/})).toHaveCount(0);
+ await expect(page.getByRole('option',{name:/PARTY/})).toHaveCount(0);
 
  await page.evaluate(()=>(window as any).chat.party([{id:'a',name:'Ali'}]));
- await expect(page.getByRole('option',{name:/GENG/})).toBeVisible();
- await page.getByRole('option',{name:/GENG/}).click();
- await expect(page.locator('#chat-channel')).toHaveText(/GENG/);
+ await expect(page.getByRole('option',{name:/PARTY/})).toBeVisible();
+ await page.getByRole('option',{name:/PARTY/}).click();
+ await expect(page.locator('#chat-channel')).toHaveText(/PARTY/);
  await expect(page.locator('#chat-channel-menu')).toBeHidden();
 
  await page.locator('#chat-input').fill('geng only');
@@ -100,13 +100,13 @@ test('unread piles up per channel and shows against its entry in the list',async
  await expect(page.getByRole('button',{name:/Private messages with Aina, 1 unread/})).toBeVisible();
  await openComposer(page);
  await page.locator('#chat-channel').click();
- await expect(page.getByRole('option',{name:/GENG/})).toContainText('1');
+ await expect(page.getByRole('option',{name:/PARTY/})).toContainText('1');
  await expect(page.getByRole('option',{name:/@Aina/})).toHaveCount(0);
 
- await page.getByRole('option',{name:/GENG/}).click();
+ await page.getByRole('option',{name:/PARTY/}).click();
  await expect(page.locator('.chat-log:not([hidden])')).toContainText('Ali: geng talk');
  await page.locator('#chat-channel').click();
- await expect(page.getByRole('option',{name:/GENG/})).not.toContainText('1');
+ await expect(page.getByRole('option',{name:/PARTY/})).not.toContainText('1');
 });
 
 test('the chat blows up into a bigger window on any screen',async({page})=>{
