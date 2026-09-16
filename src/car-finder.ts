@@ -22,7 +22,7 @@ export function createCarFinder(root:HTMLElement,onSelect:()=>void){
  const buttons=new Map<string,HTMLButtonElement>();let selected='';let snapshot=new Map<string,FleetLocation>();
  for(const car of ownerCars){const button=document.createElement('button');button.type='button';button.dataset.carId=car.id;button.setAttribute('aria-pressed','false');
   const name=document.createElement('strong'),model=document.createElement('span');name.textContent=car.owner;model.textContent=car.model;button.append(name,model);
-  button.onclick=()=>{selected=car.id;for(const [id,b] of buttons)b.setAttribute('aria-pressed',String(id===selected));onSelect();};buttons.set(car.id,button);panel.append(button);
+  button.onclick=()=>{selected=selected===car.id?'':car.id;for(const [id,b] of buttons)b.setAttribute('aria-pressed',String(id===selected));onSelect();};buttons.set(car.id,button);panel.append(button);
  }
  const status=document.createElement('p');status.className='car-finder-status';status.textContent='Choose a car to show its live map pin.';panel.append(status);root.append(panel);
  return{

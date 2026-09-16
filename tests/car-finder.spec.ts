@@ -20,5 +20,8 @@ for(const width of [1280,390])test(`find owner cars follows live fleet in the 2D
  await page.locator('#car-finder').scrollIntoViewIfNeeded();await page.screenshot({path:`test-results/car-finder-${width}.png`});
  await expect(page.locator('#expanded-map')).toHaveAttribute('data-mode','2d');await expect(page.locator('.map-view-controls')).toHaveCount(0);
  await expect(page.locator('.car-finder-status')).toContainText('Daddy Fizal');
+ await page.getByRole('button',{name:'Daddy Fizal Porsche 911 GT3 RS',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Daddy Fizal Porsche 911 GT3 RS',exact:true})).toHaveAttribute('aria-pressed','false');
+ await expect(page.locator('.car-finder-status')).toHaveText('Choose a car to show its live map pin.');
  disconnect();await expect(page.locator('.car-finder-status')).toContainText('City offline');expect(teleports).toEqual([]);expect(errors).toEqual([]);
 });
