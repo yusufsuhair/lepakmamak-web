@@ -88,7 +88,7 @@ test('Geng names are normalized before they reach the database', () => {
   expect(sanitizeGengName('x')).toBeNull();
 });
 
-test('Geng creation charges 1,000 Syiling and leader approval controls membership', async () => {
+test('Geng creation charges 1,000 Lepak Coin and leader approval controls membership', async () => {
   const db = fakeDatabase();
   const serverModule = createGengs({db});
   const server = createServer((request, response) => { void serverModule.handle(request, response); });
@@ -162,9 +162,9 @@ test('an underfunded Geng creation shows a top-up action', async ({page}) => {
   });
 
   await expect(page.locator('#geng-topup-prompt')).toBeVisible();
-  await expect(page.locator('#geng-topup-copy')).toHaveText('You have 500 Syiling. You need 1,000 Syiling to create a Geng.');
+  await expect(page.locator('#geng-topup-copy')).toHaveText('You have 500 Lepak Coin. You need 1,000 Lepak Coin to create a Geng.');
   await expect(page.locator('#geng-create-submit')).toBeDisabled();
-  await page.getByRole('button', {name: 'Tambah Syiling'}).click();
+  await page.getByRole('button', {name: 'Add Lepak Coin'}).click();
   await expect(page.locator('body')).toHaveAttribute('data-topup', 'opened');
 });
 

@@ -76,7 +76,7 @@ export function createShop(onEquip = () => {}, services = {}) {
         if (!item) { reply(400, { error: 'Unknown item.' }); return true; }
         const result = check(await db.rpc('game_shop_buy', { p_user_id: userId, p_sku: item.id }));
         if (!result.purchased) {
-          reply(409, { error: result.reason === 'insufficient' ? 'Not enough Syiling Lepak.' : 'You already own this item.', ...result }); return true;
+          reply(409, { error: result.reason === 'insufficient' ? 'Not enough Lepak Coin.' : 'You already own this item.', ...result }); return true;
         }
         reply(200, { ...result, items: await inventory(userId) }); return true;
       }
@@ -89,14 +89,14 @@ export function createShop(onEquip = () => {}, services = {}) {
       if (url.pathname === '/shop/checkout') {
         if (!stripe) { reply(503, { error: 'Stripe Checkout is not available.' }); return true; }
         const pack = currencyPacks.find(candidate => candidate.id === input.packId);
-        if (!pack) { reply(400, { error: 'Unknown Syiling Lepak pack.' }); return true; }
+        if (!pack) { reply(400, { error: 'Unknown Lepak Coin pack.' }); return true; }
         const origin = requestOrigin && origins.has(requestOrigin) ? requestOrigin : 'https://lepakmamak.my';
         const checkout = await stripe.checkout.sessions.create({
           mode: 'payment',
           integration_identifier: `lepakmamak_${crypto.randomBytes(8).toString('hex').slice(0, 8).replace(/[0-9]/g, 'a')}`,
           client_reference_id: userId,
           customer_email: data.user.email || undefined,
-          line_items: [{ quantity: 1, price_data: { currency: 'myr', unit_amount: pack.amount, product_data: { name: `${pack.credits.toLocaleString('en-MY')} Syiling Lepak`, description: `${pack.name} untuk akaun LepakMamak` } } }],
+          line_items: [{ quantity: 1, price_data: { currency: 'myr', unit_amount: pack.amount, product_data: { name: `${pack.credits.toLocaleString('en-MY')} Lepak Coin`, description: `${pack.name} for your LepakMamak account` } } }],
           metadata: { user_id: userId, pack_id: pack.id, credits: String(pack.credits) },
           success_url: `${origin}/?coins=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${origin}/?coins=cancelled`,

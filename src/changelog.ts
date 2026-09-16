@@ -15,7 +15,7 @@ export function createWhatsNew(container: HTMLElement) {
 
   const root = document.createElement('section');
   root.id = 'whats-new';
-  root.innerHTML = `<header><h3>Apa yang baharu</h3><p><b id="whats-new-version">v${latest.version}</b> · dikemas kini <time id="whats-new-date" datetime="${latest.date}">${stamp}</time></p></header>`;
+  root.innerHTML = `<header><h3>What's new</h3><p><b id="whats-new-version">v${latest.version}</b> · updated <time id="whats-new-date" datetime="${latest.date}">${stamp}</time></p></header>`;
 
   const build = (release: typeof releases[number], index: number) => {
     const item = document.createElement('details');
@@ -40,7 +40,7 @@ export function createWhatsNew(container: HTMLElement) {
   if (releases.length > VISIBLE) {
     const more = document.createElement('button');
     more.type = 'button'; more.id = 'whats-new-more';
-    more.textContent = `Lihat ${releases.length - VISIBLE} kemas kini lama`;
+    more.textContent = `View ${releases.length - VISIBLE} older updates`;
     more.onclick = () => {
       for (const [index, release] of releases.slice(VISIBLE).entries()) root.append(build(release, index + VISIBLE));
       more.remove();

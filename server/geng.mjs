@@ -109,7 +109,7 @@ export function createGengs(services = {}) {
   function resultFailure(result) {
     if (!result || typeof result !== 'object') return null;
     const messages = {
-      insufficient: 'You need 1,000 Syiling to create a Geng.',
+      insufficient: 'You need 1,000 Lepak Coin to create a Geng.',
       name_taken: 'That Geng name is already taken.',
       already_in_geng: 'You already belong to a Geng.',
       member: 'You are already in this Geng.',

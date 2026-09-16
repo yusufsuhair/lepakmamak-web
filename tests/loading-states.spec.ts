@@ -23,8 +23,8 @@ test('the character screen says what it knows and no more while the collection i
 
   const balance = page.locator('.inventory-balance');
   await expect(balance.locator('.skel')).toHaveCount(1);
-  // The old screen said "0 Syiling" here, which reads as an empty wallet rather than an unread one.
-  await expect(balance).not.toContainText('0 Syiling');
+  // The old screen said "🪙 0" here, which reads as an empty wallet rather than an unread one.
+  await expect(balance).not.toContainText('🪙 0');
   await expect(page.locator('.equipment-slots')).not.toContainText('Empty');
   await expect(page.locator('.equipment-slots')).toContainText('Head');
   await expect(page.locator('.inventory-grid .skel').first()).toBeVisible();
@@ -32,10 +32,10 @@ test('the character screen says what it knows and no more while the collection i
   await page.screenshot({path: 'test-results/loading-inventory-desktop.png'});
 
   await page.evaluate(() => (window as any).land());
-  await expect(balance).toHaveText('1,250 Syiling');
+  await expect(balance).toHaveText('1,250 Lepak Coin');
   // Nothing shimmering once the answer is in.
   await expect(page.locator('#inventory .skel')).toHaveCount(0);
-  await expect(page.locator('.equipment-slots')).toContainText('Topi Lepak');
+  await expect(page.locator('.equipment-slots')).toContainText('Lepak Cap');
 });
 
 test('the character screen keeps its placeholders honest on a phone', async ({page}) => {
@@ -68,21 +68,21 @@ test('the shop offers nothing for sale until it knows what is already owned', as
   await expect(page.locator('#shop-balance .skel')).toHaveCount(1);
   await expect(page.locator('#shop-balance')).not.toContainText('🪙 0');
   await expect(page.locator('#shop-daily .skel')).toHaveCount(1);
-  // Every card used to say Beli while the inventory was still loading, including for items
+  // Every card used to say Buy while the inventory was still loading, including for items
   // already paid for.
-  await expect(page.locator('#shop-items button', {hasText: 'Beli'})).toHaveCount(0);
+  await expect(page.locator('#shop-items button', {hasText: 'Buy'})).toHaveCount(0);
   await expect(page.locator('#shop-items .skel').first()).toBeVisible();
   // The parts that come from the bundled catalogue are known immediately and are not hidden.
-  await expect(page.locator('#shop-items')).toContainText('Topi');
-  await expect(page.locator('#shop-message')).toHaveText('Memuatkan kedai…');
+  await expect(page.locator('#shop-items')).toContainText('Lepak Cap');
+  await expect(page.locator('#shop-message')).toHaveText('Loading shop…');
   await page.screenshot({path: 'test-results/loading-shop-desktop.png'});
 
   open();
   // Nobody is signed in here, so the catalogue lands but no wallet does. A zero would be a
   // claim about an account that does not exist; the dash is the truth.
   await expect(page.locator('#shop-balance')).toHaveText('🪙 —');
-  await expect(page.locator('#shop-daily')).toHaveText('Tuntut harian · +100');
+  await expect(page.locator('#shop-daily')).toHaveText('Claim daily · +100');
   await expect(page.locator('#item-shop .skel')).toHaveCount(0);
   // Prices come from the bundled catalogue, so they are shown even signed out.
-  await expect(page.locator('#shop-items button', {hasText: 'Beli'}).first()).toBeVisible();
+  await expect(page.locator('#shop-items button', {hasText: 'Buy'}).first()).toBeVisible();
 });

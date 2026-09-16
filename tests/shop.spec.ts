@@ -89,7 +89,7 @@ test('currency shop authorizes accounts and uses server-owned wallet operations'
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });
 
-test('shop UI offers Stripe Syiling Lepak top-ups', async ({ page }) => {
+test('shop UI offers Stripe Lepak Coin top-ups', async ({ page }) => {
   await page.route('**/src/auth.ts*', route => route.fulfill({ contentType: 'application/javascript', body: 'export const session={access_token:"test"};' }));
   await page.route('http://shop.test/shop/catalog', route => route.fulfill({ json: { available: true, paymentsAvailable: true, items: [] }, headers: { 'Access-Control-Allow-Origin': '*' } }));
   await page.route('http://shop.test/shop/inventory', route => route.fulfill({ json: { balance: 500, dailyAvailable: true, nextDailyAt: null, items: [] }, headers: { 'Access-Control-Allow-Origin': '*' } }));
@@ -98,11 +98,11 @@ test('shop UI offers Stripe Syiling Lepak top-ups', async ({ page }) => {
   await page.evaluate(async () => { const { setupShop } = await import('/src/shop.ts'); setupShop(() => {}, 'http://shop.test').open(); });
   await expect(page.locator('#item-shop')).toBeVisible();
   await expect(page.locator('#shop-balance')).toContainText('🪙 500');
-  await expect(page.getByText('Tambah Syiling Lepak')).toBeVisible();
+  await expect(page.getByText('Add Lepak Coin')).toBeVisible();
   await expect(page.locator('#coin-packs button')).toHaveCount(3);
   await expect(page.locator('#coin-packs')).toContainText('RM 5.00');
   await expect(page.locator('#coin-packs')).toContainText('RM 20.00');
-  await expect(page.getByRole('button', { name: /Beli · 🪙/ })).toHaveCount(8);
+  await expect(page.getByRole('button', { name: /Buy · 🪙/ })).toHaveCount(8);
   await expect(page.locator('#item-shop')).toContainText('STRIPE CHECKOUT');
 });
 

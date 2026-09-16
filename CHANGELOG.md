@@ -61,7 +61,7 @@
 
 - Redesigned Wardrobe as a visual character studio with a large live avatar stage, Tops and Bottoms tabs, graphical clothing choices, random outfit button and responsive mobile layout.
 
-- Added live Stripe Checkout top-ups for Syiling Lepak with RM5, RM10 and RM20 packs, verified server-side and credited idempotently to signed-in accounts.
+- Added live Stripe Checkout top-ups for Lepak Coin with RM5, RM10 and RM20 packs, verified server-side and credited idempotently to signed-in accounts.
 
 - Expanded city traffic to twelve vehicles with distinct Ferrari-style and Lamborghini-style supercars plus an open-wheel F1 car with wings, cockpit and halo details.
 
@@ -75,7 +75,7 @@
 
 - Added Masjid Kampung Maju across the road from Mamak Maju, with its entrance facing the mamak and a searchable city-map marker.
 
-- Replaced Stripe purchases with Syiling Lepak: 500 starter coins, a 100-coin daily reward, atomic server-side spending, two accessories and two Malaysian outfit skins.
+- Replaced Stripe purchases with Lepak Coin: 500 starter coins, a 100-coin daily reward, atomic server-side spending, two accessories and two Malaysian outfit skins.
 
 - Added a PETRONAS-inspired Malaysian fuel station with Kedai Mesra, a turquoise canopy, six pumps and a dedicated city-map marker.
 

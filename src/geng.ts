@@ -20,11 +20,11 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
   const dialog = document.createElement('dialog');
   dialog.id = 'game-geng'; dialog.setAttribute('aria-labelledby', 'game-geng-title');
   dialog.innerHTML = `<header><div><small>LEPAKMAMAK · SOCIAL</small><h2 id="game-geng-title">Geng</h2><p>Build your squad, one request at a time.</p></div><button type="button" aria-label="Close Geng">×</button></header>
-    <div class="geng-balance"><span>YOUR SYILING</span><strong id="geng-balance">—</strong></div>
+    <div class="geng-balance"><span>YOUR LEPAK COIN</span><strong id="geng-balance">—</strong></div>
     <p id="geng-message" class="geng-message" role="status" aria-live="polite"></p>
     <section id="geng-live" class="geng-live" hidden aria-labelledby="geng-live-title"><div class="geng-section-head"><div><small>LIVE PARTY</small><h3 id="geng-live-title">Your Party</h3></div><span id="geng-live-leader-badge" hidden>LEADER</span></div><p id="geng-live-meta"></p><ul id="geng-live-members"></ul><p class="geng-live-help">Only the Party leader can invite members. Party is optional for table games.</p><button type="button" id="geng-live-leave">Leave Party</button></section>
     <section id="geng-current" hidden aria-labelledby="geng-current-title"><div class="geng-section-head"><div><small>YOUR GENG</small><h3 id="geng-current-title"></h3></div><span id="geng-leader-badge" hidden>LEADER</span></div><p id="geng-current-meta"></p><ul id="geng-members"></ul><div id="geng-pending-wrap" hidden><h4>Join requests</h4><ul id="geng-pending"></ul></div><div class="geng-actions"><button type="button" id="geng-leave">Leave Geng</button><button type="button" id="geng-disband" class="danger" hidden>Disband Geng</button></div></section>
-    <section id="geng-create" hidden aria-labelledby="geng-create-title"><small>START A NEW SQUAD</small><h3 id="geng-create-title">Create a Geng</h3><p>It costs 1,000 Syiling. You become the leader and approve every member.</p><div id="geng-topup-prompt" class="geng-topup-prompt" hidden><div><small>SYILING TAK CUKUP</small><strong>Tambah Syiling untuk teruskan</strong><p id="geng-topup-copy"></p></div><button type="button" id="geng-topup" class="primary">Tambah Syiling</button></div><form id="geng-create-form"><label for="geng-create-name">Geng name<input id="geng-create-name" minlength="2" maxlength="24" autocomplete="off" required placeholder="e.g. Budak Mamak"></label><button type="submit" class="primary" id="geng-create-submit">Create Geng · 1,000 Syiling</button></form></section>
+    <section id="geng-create" hidden aria-labelledby="geng-create-title"><small>START A NEW SQUAD</small><h3 id="geng-create-title">Create a Geng</h3><p>It costs 1,000 Lepak Coin. You become the leader and approve every member.</p><div id="geng-topup-prompt" class="geng-topup-prompt" hidden><div><small>NOT ENOUGH LEPAK COIN</small><strong>Add Lepak Coin to continue</strong><p id="geng-topup-copy"></p></div><button type="button" id="geng-topup" class="primary">Add Lepak Coin</button></div><form id="geng-create-form"><label for="geng-create-name">Geng name<input id="geng-create-name" minlength="2" maxlength="24" autocomplete="off" required placeholder="e.g. Budak Mamak"></label><button type="submit" class="primary" id="geng-create-submit">Create Geng · 1,000 Lepak Coin</button></form></section>
     <section aria-labelledby="geng-discover-title"><div class="geng-section-head"><div><small>FIND A SQUAD</small><h3 id="geng-discover-title">Open Gengs</h3></div><button type="button" id="geng-refresh" aria-label="Refresh Geng list">↻</button></div><ul id="geng-list"></ul></section>`;
   document.body.append(dialog);
   const roster = document.createElement('dialog');
@@ -163,7 +163,7 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
     const state = currentState;
     renderLive();
     dialog.setAttribute('aria-busy', String(loading || busy));
-    balance.textContent = state ? `${Number(state.balance || 0).toLocaleString('en-MY')} Syiling` : '—';
+    balance.textContent = state ? `${Number(state.balance || 0).toLocaleString('en-MY')} Lepak Coin` : '—';
     if (loading) {
       currentSection.hidden = true;
       createSection.hidden = true;
@@ -179,7 +179,7 @@ export function setupGeng(endpoint: string, onState: (state: GengState | null) =
     const insufficient = !!state && !hasCurrent && Number(state.balance || 0) < 1000;
     const topupPrompt = el('geng-topup-prompt');
     topupPrompt.hidden = !insufficient;
-    if (insufficient) el('geng-topup-copy').textContent = `You have ${Number(state.balance || 0).toLocaleString('en-MY')} Syiling. You need 1,000 Syiling to create a Geng.`;
+    if (insufficient) el('geng-topup-copy').textContent = `You have ${Number(state.balance || 0).toLocaleString('en-MY')} Lepak Coin. You need 1,000 Lepak Coin to create a Geng.`;
     el<HTMLButtonElement>('geng-topup').disabled = busy;
     el<HTMLButtonElement>('geng-create-submit').disabled = busy || !state || state.balance < 1000;
     if (state?.current) {

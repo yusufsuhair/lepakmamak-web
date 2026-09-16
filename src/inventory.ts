@@ -27,7 +27,7 @@ export function setupInventory(
   const dialog = document.createElement('dialog');
   dialog.id = 'inventory'; dialog.setAttribute('aria-labelledby', 'inventory-title');
   dialog.innerHTML = `<header><div><small>LEPAKMAMAK · CHARACTER</small><h2 id="inventory-title">Character</h2></div><button type="button" aria-label="Close inventory">×</button></header>
-    <div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Syiling</strong></div>
+    <div class="inventory-summary"><span>Your collection</span><strong class="inventory-balance">— Lepak Coin</strong></div>
     <div class="inventory-layout">
       <aside><h3>Equipped</h3><div class="equipment-slots"></div><h3>Wearing</h3><div class="outfit-slots"></div></aside>
       <div class="inventory-stage"><canvas width="280" height="360" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><p class="inventory-model-status" role="status"></p><button type="button" class="inventory-model-retry" hidden>Retry model</button><small class="inventory-stage-hint">DRAG TO ROTATE · SWIPE ON MOBILE</small><div class="inventory-look"><small>CURRENT LOOK</small><strong class="inventory-look-name"></strong></div><button type="button" class="inventory-random">Surprise me</button></div>
@@ -183,7 +183,7 @@ export function setupInventory(
     }
     if (!items.length) {
       const empty = document.createElement('p'); empty.className = 'inventory-empty';
-      empty.textContent = ready ? 'No items here yet. Visit Kedai to grow your collection.' : 'Could not load your collection.';
+      empty.textContent = ready ? 'No items here yet. Visit the shop to grow your collection.' : 'Could not load your collection.';
       grid.append(empty);
     }
   }
@@ -211,7 +211,7 @@ export function setupInventory(
   function render() {
     const balanceLabel = dialog.querySelector<HTMLElement>('.inventory-balance')!;
     if (loading()) skeleton(balanceLabel, 'Loading balance', '82px', '14px');
-    else settled(balanceLabel, ready ? `${state.balance.toLocaleString()} Syiling` : '— Syiling');
+    else settled(balanceLabel, ready ? `${state.balance.toLocaleString()} Lepak Coin` : '— Lepak Coin');
     dialog.querySelector('.inventory-look-name')!.textContent = `${look.tudung === 'none' ? lookLabel('hairstyle', look.hairstyle) : lookLabel('tudung', look.tudung)} · ${lookLabel('shirt', look.shirt)} top · ${lookLabel('trousers', look.trousers)} bottoms`;
     avatarPreview.setLook(look);
     avatarPreview.setAccessories(state.items.filter(item => item.equipped).map(item => item.sku));

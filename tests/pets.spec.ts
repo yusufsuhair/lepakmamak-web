@@ -46,12 +46,12 @@ test('pet shop buys and equips cats and decorations through the account inventor
   await page.evaluate(async()=>{const {setupShop}=await import('/src/shop.ts'); setupShop((items:string[])=>{document.body.dataset.equipped=items.join(',');},'http://shop.test').open('pets');});
   await expect(page.locator('#shop-items article')).toHaveCount(4);
   const cat=page.locator('#shop-items article').filter({has:page.getByRole('heading',{name:'Oyen',exact:true})});
-  await cat.getByRole('button',{name:'Beli · 🪙 250'}).click();
-  await cat.getByRole('button',{name:'Pakai',exact:true}).click();
+  await cat.getByRole('button',{name:'Buy · 🪙 250'}).click();
+  await cat.getByRole('button',{name:'Equip',exact:true}).click();
   await expect(page.locator('body')).toHaveAttribute('data-equipped','pet-ginger');
   const ribbon=page.locator('#shop-items article').filter({has:page.getByRole('heading',{name:'Red ribbon',exact:true})});
-  await ribbon.getByRole('button',{name:'Beli · 🪙 60'}).click();
-  await ribbon.getByRole('button',{name:'Pakai',exact:true}).click();
+  await ribbon.getByRole('button',{name:'Buy · 🪙 60'}).click();
+  await ribbon.getByRole('button',{name:'Equip',exact:true}).click();
   await expect(page.locator('body')).toHaveAttribute('data-equipped','pet-ginger,pet-collar-red');
   await page.screenshot({path:'test-results-pets/pet-shop.png'});
   await page.getByRole('button',{name:'Close shop'}).click();
@@ -65,6 +65,6 @@ for (const width of [1280,390]) test(`cat toolbar opens pet studio at ${width}px
   await page.getByRole('button',{name:'Open pets',exact:true}).click();
   await expect(page.locator('#pet-studio')).toBeVisible();
   await expect(page.locator('.pet-studio-empty')).toContainText('No pet yet');
-  await expect(page.getByRole('button',{name:'Visit Kedai'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Visit Shop'})).toBeVisible();
   await page.screenshot({path:`test-results-pets/pet-toolbar-${width}.png`});
 });

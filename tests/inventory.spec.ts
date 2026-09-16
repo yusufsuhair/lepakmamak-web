@@ -16,10 +16,10 @@ const mount=async(page:any,width:number)=>{
 for(const width of [390,1280])test(`one screen holds items, equipment and clothes at ${width}px`,async({page})=>{
  await mount(page,width);
  await expect(page.locator('.inventory-item')).toHaveCount(2);
- await page.locator('.inventory-item').filter({hasText:'Topi Lepak'}).click();
+ await page.locator('.inventory-item').filter({hasText:'Lepak Cap'}).click();
  await page.getByRole('button',{name:'Equip',exact:true}).click();
  await expect(page.getByRole('button',{name:'Unequip',exact:true})).toBeVisible();
- await expect(page.locator('.equipment-slots')).toContainText('Topi Lepak');
+ await expect(page.locator('.equipment-slots')).toContainText('Lepak Cap');
 
  await page.getByRole('button',{name:'Skins',exact:true}).click();
  await expect(page.locator('.inventory-item')).toHaveCount(1);
@@ -48,18 +48,18 @@ for(const width of [390,1280])test(`one screen holds items, equipment and clothe
  await expect(page.locator('#inventory')).not.toBeVisible();
 });
 
-test('the top bar reads wall, recentre, Kedai, character, settings',async({page})=>{
+test('the top bar reads wall, recenter, Shop, character, settings',async({page})=>{
  await page.goto('/');
  const order=await page.locator('.hud-right').evaluate(el=>[...el.children].map(child=>child.id||child.className));
  // The ⋮ leads, because on a phone it is the only one showing and the rest drop under it.
- expect(order).toEqual(['hud-more','open-wall','camera-controls','open-shop','open-inventory','open-geng','open-friends','open-my-profile-hud','menu']);
+ expect(order).toEqual(['hud-more','open-wall','camera-controls','open-shop','open-inventory','open-pets','open-geng','open-friends','open-my-profile-hud','menu']);
  const gengIcon=await page.locator('#open-geng svg').innerHTML();
  const friendIcon=await page.locator('#open-friends svg').innerHTML();
  expect(gengIcon).toContain('M12 3 20 6');
  expect(gengIcon).not.toBe(friendIcon);
- // Character is a wardrobe, so it is a hanger: a backpack beside Kedai's bag read as a second shop.
+ // Character is a wardrobe, so it is a hanger: a backpack beside the Shop's bag read as a second shop.
  expect(await page.locator('#open-inventory svg').innerHTML()).toContain('M9.6 6.2a2.4');
- // Neither Kedai nor the wardrobe is buried in settings any more, and the wardrobe is
+ // Neither the Shop nor the wardrobe is buried in settings any more, and the wardrobe is
  // not a dialog of its own at all.
  await expect(page.locator('#pause #open-shop,#pause #open-wardrobe')).toHaveCount(0);
  await expect(page.locator('#open-wardrobe')).toHaveCount(0);

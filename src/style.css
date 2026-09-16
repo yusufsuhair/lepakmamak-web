@@ -432,7 +432,7 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 .shop-art.batik i,.shop-art.harimau i { width:72px; height:67px; clip-path:polygon(20% 0,36% 10%,64% 10%,80% 0,100% 20%,84% 39%,75% 29%,75% 100%,25% 100%,25% 29%,16% 39%,0 20%); }
 .shop-art.batik i { background:repeating-linear-gradient(55deg,#244f75 0 10px,#e2b94e 11px 15px,#244f75 16px 24px); }
 .shop-art.harimau i { background:repeating-linear-gradient(70deg,#efc62f 0 12px,#202b2d 13px 18px,#efc62f 19px 29px); }
-/* Cuba sits beside Beli where the card is wide enough, and above it where it is not. */
+/* Try sits beside Buy where the card is wide enough, and above it where it is not. */
 .shop-item-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:10px; }
 #shop-items .shop-item-actions > * { flex:1 1 auto; width:auto; margin:0; }
 .shop-try-toggle { min-height:44px; padding:0 14px; border:1px solid #8da28c; border-radius:10px; background:transparent; color:inherit; font-size:13px; font-weight:700; cursor:pointer; }

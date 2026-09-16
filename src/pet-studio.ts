@@ -13,7 +13,7 @@ const cleanName = (value: unknown) => String(typeof value === 'string' ? value :
 
 export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}) {
   const dialog = document.createElement('dialog'); dialog.id = 'pet-studio'; dialog.setAttribute('aria-labelledby', 'pet-studio-title');
-  dialog.innerHTML = `<header><div><small>LEPAKMAMAK · COMPANION</small><h2 id="pet-studio-title">Pet Studio</h2><p>Your pet is a character of its own.</p></div><button type="button" id="pet-studio-close" aria-label="Close pet studio">×</button></header><div class="pet-studio-layout"><section class="pet-studio-stage"><canvas width="300" height="300" aria-label="Live 3D pet preview. Drag or swipe to rotate"></canvas><small>DRAG TO ROTATE · SWIPE ON MOBILE</small><strong class="pet-studio-preview-name"></strong></section><section class="pet-studio-controls"><div class="pet-studio-choice"><h3>Companion</h3><div class="pet-studio-cats"></div></div><div class="pet-studio-choice"><h3>Ribbon</h3><div class="pet-studio-ribbons"></div></div><form id="pet-name-form"><label>Pet name<input id="pet-name" maxlength="18" autocomplete="nickname" placeholder="Give your pet a name"></label><button type="submit" class="primary">Save pet name</button></form><button type="button" id="pet-open-shop">Visit Kedai</button><p id="pet-studio-status" role="status" aria-live="polite"></p></section></div>`;
+  dialog.innerHTML = `<header><div><small>LEPAKMAMAK · COMPANION</small><h2 id="pet-studio-title">Pet Studio</h2><p>Your pet is a character of its own.</p></div><button type="button" id="pet-studio-close" aria-label="Close pet studio">×</button></header><div class="pet-studio-layout"><section class="pet-studio-stage"><canvas width="300" height="300" aria-label="Live 3D pet preview. Drag or swipe to rotate"></canvas><small>DRAG TO ROTATE · SWIPE ON MOBILE</small><strong class="pet-studio-preview-name"></strong></section><section class="pet-studio-controls"><div class="pet-studio-choice"><h3>Companion</h3><div class="pet-studio-cats"></div></div><div class="pet-studio-choice"><h3>Ribbon</h3><div class="pet-studio-ribbons"></div></div><form id="pet-name-form"><label>Pet name<input id="pet-name" maxlength="18" autocomplete="nickname" placeholder="Give your pet a name"></label><button type="submit" class="primary">Save pet name</button></form><button type="button" id="pet-open-shop">Visit Shop</button><p id="pet-studio-status" role="status" aria-live="polite"></p></section></div>`;
   document.body.append(dialog);
   const canvas = dialog.querySelector<HTMLCanvasElement>('canvas')!;
   const preview = createPetPreview(canvas);
@@ -41,8 +41,8 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
     layout.hidden = false; stage.hidden = !hasPet; nameForm.hidden = !hasPet;
     openShop.hidden = false;
     if (!hasPet) {
-      cats.innerHTML = '<p class="pet-studio-empty">No pet yet. Adopt one in Kedai.</p>'; ribbons.replaceChildren();
-      status.textContent = 'Your pets appear here after you buy one from Kedai.'; return;
+      cats.innerHTML = '<p class="pet-studio-empty">No pet yet. Adopt one in the shop.</p>'; ribbons.replaceChildren();
+      status.textContent = 'Your pets appear here after you buy one from the shop.'; return;
     }
     cats.replaceChildren();
     for (const item of catsOwned) {
@@ -91,7 +91,7 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
   async function load() {
     busy = true; status.textContent = 'Loading your companions…'; draw();
     try { state = await api.inventory(); status.textContent = ''; }
-    catch { state = {items: [], balance: 0}; status.textContent = 'Sign in and buy a pet from Kedai to start your companion collection.'; }
+    catch { state = {items: [], balance: 0}; status.textContent = 'Sign in and buy a pet from the shop to start your companion collection.'; }
     finally { busy = false; draw(); }
   }
   dialog.querySelector<HTMLButtonElement>('#pet-studio-close')!.onclick = () => dialog.close();

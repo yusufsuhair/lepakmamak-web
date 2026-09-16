@@ -8,8 +8,8 @@ const enter=async(page:any)=>{
  await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
  await expect(page.locator('#hud')).toBeVisible();
 };
-// A guest gets Kedai too: Cuba needs no account, and every Beli inside it stays disabled.
-const items=['Open Lepak Wall','Centre camera','Open inventory','Open Kedai','Open settings'];
+// A guest gets the Shop too: Try needs no account, and every Buy inside it stays disabled.
+const items=['Open Lepak Wall','Centre camera','Open inventory','Open Shop','Open settings'];
 
 test('on a phone the top-right controls fold into one ⋮ that drops them underneath',async({browser})=>{
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
@@ -24,7 +24,7 @@ test('on a phone the top-right controls fold into one ⋮ that drops them undern
   await more.tap();
   await expect(more).toHaveAttribute('aria-expanded','true');
   for(const name of items) await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
-  // What that Kedai contains for a guest is shop-try.spec's business, not this layout test's.
+  // What that Shop contains for a guest is shop-try.spec's business, not this layout test's.
 
   // They drop below the ⋮ rather than beside it, and stay on screen.
   const dots=(await more.boundingBox())!;

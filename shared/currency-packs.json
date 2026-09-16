@@ -1,5 +1,5 @@
 [
-  {"id":"lepak-500","name":"Pek Lepak","credits":500,"amount":500,"badge":"MULA"},
-  {"id":"lepak-1200","name":"Pek Member","credits":1200,"amount":1000,"badge":"+20%"},
-  {"id":"lepak-3000","name":"Pek Sekampung","credits":3000,"amount":2000,"badge":"PALING BERBALOI"}
+  {"id":"lepak-500","name":"Lepak Pack","credits":500,"amount":500,"badge":"STARTER"},
+  {"id":"lepak-1200","name":"Member Pack","credits":1200,"amount":1000,"badge":"+20%"},
+  {"id":"lepak-3000","name":"Neighbourhood Pack","credits":3000,"amount":2000,"badge":"BEST VALUE"}
 ]

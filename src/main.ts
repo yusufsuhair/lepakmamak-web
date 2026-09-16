@@ -321,7 +321,7 @@ async function init() {
       row.classList.toggle('hud-open', open);
       more.setAttribute('aria-expanded', String(open));
     };
-    // Delegated, not per child: the inventory and Kedai buttons are created later in
+    // Delegated, not per child: the inventory and Shop buttons are created later in
     // startup, so a listener attached to each child now would miss them.
     row.addEventListener('click', event => { if (!more.contains(event.target as Node)) shut(); });
     addEventListener('pointerdown', event => { if (!row.contains(event.target as Node)) shut(); });
@@ -1745,7 +1745,7 @@ async function init() {
   // Password and deletion belong to the account, so guests never see the panel at all.
   const security = setupSecurity(apiBase);
   $('open-security').onclick = () => security();
-  // Kedai's try-on starts from exactly what the city character has on.
+  // Shop try-on starts from exactly what the city character has on.
   const itemShop = setupShop(setAccessories, undefined, () => player.group.userData.appearance);
   const petStudio = setupPetStudio(itemShop, {
     release: () => { keys.clear(); resetStick(); dragging = false; },
@@ -1760,9 +1760,9 @@ async function init() {
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: 'outfit', ...look }));
   });
-  // A hanger, not a second bag: beside Kedai's shopping bag the old backpack read as another shop.
-  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 6.2a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5v.8"/><path d="m12 10.7-8.3 5.6c-.9.6-.5 2 .6 2h15.4c1.1 0 1.5-1.4.6-2L12 10.7Z"/></svg>';// Wall · recentre · Kedai · character · Geng · settings, reading outwards along the top bar.
-  const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Kedai');shopButton.title='Kedai · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
+  // A hanger, not a second bag: beside the Shop's shopping bag the old backpack read as another shop.
+  const inventoryButton=document.createElement('button');inventoryButton.id='open-inventory';inventoryButton.type='button';inventoryButton.setAttribute('aria-label','Open inventory');inventoryButton.title='Inventory';inventoryButton.setAttribute('aria-haspopup','dialog');inventoryButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 6.2a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5v.8"/><path d="m12 10.7-8.3 5.6c-.9.6-.5 2 .6 2h15.4c1.1 0 1.5-1.4.6-2L12 10.7Z"/></svg>';// Wall · recenter · Shop · character · Geng · settings, reading outwards along the top bar.
+  const shopButton=document.createElement('button');shopButton.id='open-shop';shopButton.type='button';shopButton.setAttribute('aria-label','Open Shop');shopButton.title='Shop · Skins & Accessories';shopButton.setAttribute('aria-haspopup','dialog');shopButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 12H5.2L4 8Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>';
   gengButton=document.createElement('button');gengButton.id='open-geng';gengButton.type='button';gengButton.setAttribute('aria-label','Open Geng');gengButton.title='Create or join a Geng';gengButton.setAttribute('aria-haspopup','dialog');gengButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.5-3.2 7.9-8 9.5-4.8-1.6-8-5-8-9.5V6l8-3Z"/><path d="m12 7.7 1.25 2.55 2.8.4-2.03 1.98.48 2.79L12 14.1l-2.5 1.32.48-2.79-2.03-1.98 2.8-.4L12 7.7Z"/></svg>';
   gengButton.insertAdjacentHTML('beforeend','<i id="geng-unread" aria-hidden="true" hidden>0</i>');
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
