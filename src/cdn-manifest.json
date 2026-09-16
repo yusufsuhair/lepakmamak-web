@@ -1,6 +1,6 @@
 {
   "base": "https://assets.lepakmamak.my/",
-  "version": "c1a59d4a38ff",
+  "version": "3d1a838e3a0f",
   "files": {
     "busking.mp3": {
       "key": "audio/busking.7a65f8ca7ca7.mp3",
@@ -264,6 +264,12 @@
       "key": "models/LM_ENV_Pickleball.29b7cddf0bfc.glb",
       "bytes": 134892,
       "etag": "8db9ae1511d0fe385db7c5f4d39251dc",
+      "encoding": "br"
+    },
+    "assets/models/props/LM_PROP_TehTarikLoading.glb": {
+      "key": "models/LM_PROP_TehTarikLoading.6b14916d0275.glb",
+      "bytes": 22656,
+      "etag": "a9c3c686f55c3a3527614174ce2aaf6a",
       "encoding": "br"
     },
     "assets/models/vehicles/avanza-far.glb": {

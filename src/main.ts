@@ -71,7 +71,7 @@ import {createLrt,setLrtNight} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
 import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setCrowdRadius, setObjectShadows, type CarStyle, type KlccLift, updateStreaming} from './world';
-import { configureMamakLighting, disposeWebAsset, type MamakLighting, type WebAssetState } from './web-assets';
+import { configureMamakLighting, disposeWebAsset, gltfLoader, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
 import {loadMamakRealism,mamakRealismStatus} from './mamak-realism';
@@ -122,7 +122,10 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 $('app').innerHTML = `
   <div id="loading" role="status" aria-live="polite" aria-busy="true">
     <div class="loading-card">
-      <img src="/icon-80.png" width="54" height="54" alt="" />
+      <div class="loading-model-wrap" aria-hidden="true">
+        <canvas id="loading-model" width="128" height="128"></canvas>
+        <img id="loading-model-fallback" src="/icon-80.png" width="54" height="54" alt="" hidden />
+      </div>
       <div class="loading-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
       <strong>LEPAK<span>MAMAK.</span></strong>
       <p id="loading-title">Getting the city ready</p>
@@ -171,7 +174,88 @@ const lofiMusic = $<HTMLAudioElement>('lofi-music');
 let lofiTrack = Math.floor(Math.random() * LOFI_TRACKS.length);
 let lofiGain: GainNode | null = null;
 function lofiLevel() { return LOFI_UNDER_CITY * LOFI_TRACKS[lofiTrack].trim; }
+const LOADING_MODEL_URL = cdnUrl('assets/models/props/LM_PROP_TehTarikLoading.glb');
+type LoadingModelState = {renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; model: THREE.Group; frame: number; resize: () => void};
+let loadingModel: LoadingModelState | null = null;
+let loadingModelPromise: Promise<void> | null = null;
+let loadingModelDismissed = false;
+
+function releaseLoadingModel(model: THREE.Object3D) {
+  const materials = new Set<THREE.Material>();
+  model.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry.dispose();
+    for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material);
+  });
+  for (const material of materials) material.dispose();
+}
+
+function disposeLoadingModel() {
+  const state = loadingModel;
+  loadingModel = null;
+  if (!state) return;
+  cancelAnimationFrame(state.frame);
+  removeEventListener('resize', state.resize);
+  releaseLoadingModel(state.model);
+  state.renderer.dispose();
+}
+
+function ensureLoadingModel() {
+  if (loadingModel || loadingModelPromise) return;
+  const canvas = $<HTMLCanvasElement>('loading-model');
+  const fallback = $<HTMLImageElement>('loading-model-fallback');
+  canvas.dataset.state = 'loading';
+  loadingModelPromise = (async () => {
+    let renderer: THREE.WebGLRenderer | undefined;
+    let model: THREE.Group | undefined;
+    try {
+      renderer = new THREE.WebGLRenderer({canvas, alpha: true, antialias: true, powerPreference: 'low-power'});
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      renderer.setClearColor(0, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      const scene = new THREE.Scene();
+      scene.add(new THREE.HemisphereLight('#fff1d2', '#234b3e', 2.1));
+      const key = new THREE.DirectionalLight('#fff1cf', 3.2);
+      key.position.set(3, -4, 5); scene.add(key);
+      const camera = new THREE.PerspectiveCamera(28, 1, .01, 100);
+      camera.position.set(2.8, -5, 2.25); camera.lookAt(0, 0, 0);
+      model = (await gltfLoader.loadAsync(LOADING_MODEL_URL)).scene;
+      model.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = bounds.getSize(new THREE.Vector3());
+      model.position.sub(bounds.getCenter(new THREE.Vector3()));
+      model.scale.setScalar(1.5 / Math.max(size.x, size.y, size.z));
+      scene.add(model);
+      const resize = () => {
+        const width = Math.max(1, canvas.clientWidth);
+        const height = Math.max(1, canvas.clientHeight);
+        camera.aspect = width / height; camera.updateProjectionMatrix(); renderer!.setSize(width, height, false);
+      };
+      if (loadingModelDismissed || $('loading').hidden) { releaseLoadingModel(model); renderer.dispose(); return; }
+      loadingModel = {renderer, scene, camera, model, frame: 0, resize};
+      fallback.hidden = true; canvas.hidden = false; canvas.dataset.state = 'ready';
+      addEventListener('resize', resize); resize();
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const draw = () => {
+        if (!loadingModel || loadingModel.model !== model) return;
+        if (!reducedMotion) model.rotation.y = performance.now() * .00045;
+        renderer!.render(scene, camera);
+        loadingModel.frame = requestAnimationFrame(draw);
+      };
+      draw();
+    } catch (error) {
+      if (model) releaseLoadingModel(model);
+      renderer?.dispose();
+      canvas.hidden = true; fallback.hidden = false; canvas.dataset.state = 'fallback';
+      console.warn('[loading-model] 3D teh tarik unavailable; using the compact fallback icon', error);
+    }
+  })().finally(() => { loadingModelPromise = null; });
+}
+
 function showLoading(title: string, detail: string, progress: number) {
+  loadingModelDismissed = false;
   const value = Math.max(0, Math.min(100, progress));
   $('loading-title').textContent = title; $('loading-detail').textContent = detail;
   const bar = $('loading-progress'); bar.setAttribute('aria-valuenow', String(value));
@@ -180,8 +264,9 @@ function showLoading(title: string, detail: string, progress: number) {
   $('loading-percent').textContent = `${Math.round(value)}%`;
   $('loading-stage').textContent = value < 60 ? 'WORLD' : value < 100 ? 'CITY LINK' : 'READY';
   $('loading').hidden = false; $('loading').setAttribute('aria-busy', 'true');
+  ensureLoadingModel();
 }
-function hideLoading() { $('loading').hidden = true; $('loading').setAttribute('aria-busy', 'false'); }
+function hideLoading() { loadingModelDismissed = true; disposeLoadingModel(); $('loading').hidden = true; $('loading').setAttribute('aria-busy', 'false'); }
 function fail(message: string) { hideLoading(); $('error-message').textContent = message; $('error').hidden = false; }
 
 async function init() {

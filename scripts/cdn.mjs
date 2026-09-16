@@ -37,6 +37,7 @@ export const FILES = ['busking.mp3', 'arrahman.mp3', 'background-short.mp3', 'lo
   'assets/models/lrt/LM_LRT_Train.glb', 'assets/models/lrt/LM_LRT_Station.glb',
   'assets/models/environment/LM_ENV_Church.glb', 'assets/models/environment/LM_ENV_HinduTemple.glb', 'assets/models/environment/LM_ENV_ChineseTemple.glb',
   'assets/models/environment/LM_ENV_Busking.glb', 'assets/models/environment/LM_ENV_Basketball.glb', 'assets/models/environment/LM_ENV_Pickleball.glb',
+  'assets/models/props/LM_PROP_TehTarikLoading.glb',
   // Every player loads all 39 car levels on entry, and Pages serves GLBs uncompressed.
   ...readdirSync('public/assets/models/vehicles').filter(f => f.endsWith('.glb')).sort().map(f => `assets/models/vehicles/${f}`)];
 

@@ -72,7 +72,9 @@ button, a { touch-action: manipulation; }
 .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .19em; text-transform: uppercase; }
 #loading { position: fixed; inset: 0; display: grid; place-content: center; padding:24px; text-align: center; background:radial-gradient(circle at 50% 42%,#315e4c 0,#1c3c32 48%,#122b24 100%); z-index: 30; }
 .loading-card { display:grid; justify-items:center; width:min(390px,calc(100vw - 40px)); padding:28px 24px 24px; border:1px solid #dff8a540; border-radius:18px; background:linear-gradient(150deg,#173d32e8,#102a23eb); box-shadow:0 24px 70px #071b157a,inset 0 1px #ffffff16; }
-.loading-card>img { margin-bottom:15px; filter:drop-shadow(0 7px 16px #071b1566); animation:loading-float 1.8s ease-in-out infinite; }
+.loading-model-wrap { width:112px; height:112px; display:grid; place-items:center; margin-bottom:9px; }
+#loading-model { display:block; width:112px; height:112px; pointer-events:none; }
+#loading-model-fallback { display:block; margin:0; filter:drop-shadow(0 7px 16px #071b1566); animation:loading-float 1.8s ease-in-out infinite; }
 #loading strong { font: 800 clamp(52px,13vw,70px)/.82 'Oxanium'; letter-spacing: -.03em; }
 #loading strong span { display:block; color:var(--lime); }
 #loading p { margin:22px 0 11px; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#eef4da; }
@@ -85,7 +87,7 @@ button, a { touch-action: manipulation; }
 .loading-meta { display:flex; justify-content:space-between; width:100%; margin-top:10px; color:#dff69a; font:700 10px/1 'Oxanium'; letter-spacing:.14em; }
 .loading-meta span:last-child { color:#eef4da; font-variant-numeric:tabular-nums; }
 @keyframes loading-dots{to{height:12px;background:#f3d38b}}@keyframes loading-float{50%{transform:translateY(-5px)}}
-@media(prefers-reduced-motion:reduce){.loading-card>img,.loading-spinner i{animation:none}.loading-progress i{transition:none}}
+@media(prefers-reduced-motion:reduce){#loading-model-fallback,.loading-spinner i{animation:none}.loading-progress i{transition:none}}
 #intro { position: absolute; inset: 0; z-index: 5; background: linear-gradient(90deg, rgba(19,43,35,.96) 0%, rgba(24,47,37,.78) 28%, rgba(30,49,36,.18) 58%, transparent 78%); }
 .intro-top { position: absolute; top: calc(32px + var(--safe-top)); left: 44px; right: 40px; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .15em; }
