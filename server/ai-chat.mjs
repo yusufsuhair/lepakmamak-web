@@ -52,15 +52,17 @@ export function createAiChat(options = {}) {
   }
   return {
     enqueue(room, message, onFailure) {
-      if (!apiKey || message.id === AI_PLAYER.id || message.channel !== 'all') return Promise.resolve();
+      const input = typeof message.text === 'string' ? message.text : '';
+      if (!apiKey || message.id === AI_PLAYER.id || message.channel !== 'all' || !/^\/ai(?:\s|$)/.test(input)) return Promise.resolve();
+      const prompt = input.slice(3).trim();
       let state = rooms.get(room.players);
       if (!state) { state = { history: [], pending: [], running: null }; rooms.set(room.players, state); }
-      remember(state, { role: 'user', content: JSON.stringify({ name: message.name, text: message.text }) });
+      remember(state, { role: 'user', content: JSON.stringify({ name: message.name, text: prompt }) });
       if (state.pending.length >= 100) {
         onFailure?.('Ah Meng is busy. Please try again later.');
         return state.running;
       }
-      state.pending.push({ message: { name: message.name, text: message.text }, onFailure });
+      state.pending.push({ message: { name: message.name, text: prompt }, onFailure });
       if (!state.running) state.running = drain(room, state).finally(() => { state.running = null; });
       return state.running;
     },

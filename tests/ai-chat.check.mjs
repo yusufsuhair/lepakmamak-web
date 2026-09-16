@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createAiChat, AI_PLAYER } from '../server/ai-chat.mjs';
 
 const room = () => ({ name: 'test', players: new Map() });
-const message = (name, text = 'hello') => ({ id: name, name, text, channel: 'all' });
+const message = (name, text = '/ai hello') => ({ id: name, name, text, channel: 'all' });
 test('serial replies, isolated rooms, bounded context, failures and no self-replies', async () => {
   const requests = [], replies = [], failures = [];
   let release;
@@ -18,11 +18,13 @@ test('serial replies, isolated rooms, bounded context, failures and no self-repl
     publish: async (r, payload) => { replies.push({ r, ...payload }); },
   });
   const a = room(), b = room();
+  await ai.enqueue(a, message('Ignored', 'hello without a command'));
+  assert.equal(requests.length, 0);
   const done = ai.enqueue(a, message('Ali'));
   ai.enqueue(a, message('Sarah'));
   ai.enqueue(a, message('John'));
   assert.equal(requests.length, 1);
-  await ai.enqueue(b, message('Other', 'secret room'));
+  await ai.enqueue(b, message('Other', '/ai secret room'));
   assert.equal(replies[0].r, b);
   release(); await done;
   assert.deepEqual(replies.filter(p => p.r === a).map(p => p.text), ['@Ali hello lah', '@Sarah hello lah', '@John hello lah']);
@@ -30,12 +32,12 @@ test('serial replies, isolated rooms, bounded context, failures and no self-repl
   assert.ok(!JSON.stringify(requests[2]).includes('secret room'));
   assert.equal(requests[0].model, 'deepseek-flash');
   assert.equal(requests[0].thinking.type, 'disabled');
-  for (let i = 0; i < 40; i++) await ai.enqueue(a, message(`p${i}`, '好'.repeat(200)));
+  for (let i = 0; i < 40; i++) await ai.enqueue(a, message(`p${i}`, `/ai ${'好'.repeat(200)}`));
   const last = requests.at(-1).messages;
   assert.ok(last.length <= 32);
   assert.ok(Buffer.byteLength(JSON.stringify(last.slice(1, -1))) <= 12000);
-  await ai.enqueue(a, message('fail'), text => failures.push(text));
-  await ai.enqueue(a, message('recovered'));
+  await ai.enqueue(a, message('fail', '/ai fail'), text => failures.push(text));
+  await ai.enqueue(a, message('recovered', '/ai recovered'));
   assert.equal(failures.length, 1);
   assert.equal(replies.at(-1).text, '@recovered hello lah');
   const count = requests.length;

@@ -8,7 +8,7 @@ For this worktree, the ignored `.env.deepseek.local` contains the local credenti
 PORT=8137 node --env-file=.env.deepseek.local server/index.mjs
 ```
 
-Ah Meng uses a stable server-owned chat identity (`Ah Meng · AI`), with no human login or game-master permissions. It responds to every accepted public chat message, sequentially per city room. DMs, party/table chat and announcements are excluded. It does not have a world avatar or profile yet.
+Ah Meng uses a stable server-owned chat identity (`Ah Meng · AI`), with no human login or game-master permissions. It responds only to accepted public chat messages that begin with `/ai` (for example, `/ai what should I eat?`), sequentially per city room. DMs, party/table chat and announcements are excluded. It does not have a world avatar or profile yet.
 
 Each request sends up to 30 recent in-memory room messages, capped at 12 KB of serialized UTF-8 (a conservative token ceiling), plus the personality and triggering message. Memory starts fresh after a server restart or room recreation. Replies use the existing chat filter and 200-character limit, and are persisted through public chat history.
 
