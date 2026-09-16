@@ -11,11 +11,11 @@ function createPetLabel(value: string) {
   texture.colorSpace = THREE.SRGBColorSpace;
   const material = new THREE.SpriteMaterial({map: texture, transparent: true, depthWrite: false, depthTest: false});
   const sprite = new THREE.Sprite(material);
-  sprite.position.set(0, 1.55, 0); sprite.scale.set(2.35, .44, 1);
+  sprite.position.set(0, 1.78, 0); sprite.scale.set(3.1, .58, 1);
   const draw = (next: string) => {
     const shown = next || 'Pet';
     context.clearRect(0, 0, canvas.width, canvas.height);
-    context.font = '700 30px Oxanium, sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
+    context.font = '700 38px Oxanium, sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
     const width = Math.min(canvas.width - 24, context.measureText(shown).width + 28);
     context.fillStyle = '#173c32eb'; context.strokeStyle = '#ddf69a99'; context.lineWidth = 3;
     context.beginPath(); context.roundRect((canvas.width - width) / 2, 9, width, canvas.height - 18, 18); context.fill(); context.stroke();
