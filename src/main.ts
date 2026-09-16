@@ -520,8 +520,8 @@ async function init() {
   setSoundRange(soundRange);
   // A larger value makes the same source audible farther away; 100% preserves the authored falloffs.
   const soundDistance = (distance: number) => distance / soundRange;
-  type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; petName?: string; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite|null; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number; petName: string };
+  type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; petName?: string; petBreed?: string; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite|null; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number; petName: string; petBreed: string };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   let localSupermanUntil=0;
@@ -529,6 +529,7 @@ async function init() {
   const isSuperman=()=>riding&&!passengerOf&&vehicle==='bike'&&supermanUntil()>Date.now();
   const remotePlayers = new Map<string, RemotePlayer>();
   let localPetName = String(session?.user.user_metadata?.pet_name || '').trim().slice(0, 18);
+  let localPetBreed = String(session?.user.user_metadata?.pet_breed || '').trim();
   let knownPlayerIds = new Set<string>();
   let hasPlayerSnapshot = false;
   let partyMembers = new Set<string>();
@@ -1280,7 +1281,7 @@ async function init() {
     const stand = new THREE.Mesh(STAND_GEOMETRY, new THREE.MeshLambertMaterial({ color: player.color || '#72c8ba' }));
     stand.position.y = .74; stand.visible = false; stand.castShadow = false; group.add(stand);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0, petName: String(player.petName || '') };
+    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0, petName: String(player.petName || ''), petBreed: String(player.petBreed || '') };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     const currentPlayerIds = new Set(players.map(player => player.id).filter(Boolean));
@@ -1300,6 +1301,7 @@ async function init() {
     const self = players.find(p => p.id === networkPlayerId);
     if (self) {
       if (self.petName !== undefined) localPetName = String(self.petName).trim().slice(0, 18);
+      if (self.petBreed !== undefined) localPetBreed = String(self.petBreed).trim();
       geng = String(self.geng || '').slice(0, 24);
       gengLeader = !!self.gengLeader;
       if (gengButton) { gengButton.hidden = !session || !!guestName; gengButton.dataset.geng = geng; gengButton.title = geng ? `${geng}${gengLeader ? ' · Leader' : ''}` : 'Create or join a Geng'; }
@@ -1355,6 +1357,7 @@ async function init() {
       else speaking.away(remote.id);
       entity.resting = remote.resting || null;
       entity.petName = String(remote.petName || '').trim().slice(0, 18);
+      entity.petBreed = String(remote.petBreed || '').trim();
       const remoteBaseY = entity.resting ? .12 : remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12;
       entity.target.set(remote.x, remoteBaseY + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       // Visibility is settled once per frame in the detail pass below, which runs more often
@@ -1753,6 +1756,10 @@ async function init() {
     onName: name => {
       localPetName = name;
       if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'pet-name', name}));
+    },
+    onBreed: breed => {
+      localPetBreed = breed;
+      if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'pet-breed', breed}));
     },
   });
   openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
@@ -2998,8 +3005,8 @@ async function init() {
       }
     }
     pets.begin();
-    if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed, localPetName);
-    for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed, remote.petName);
+    if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed, localPetName, localPetBreed);
+    for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed, remote.petName, remote.petBreed);
     pets.end();
     beach.update(simTime,pos);
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,

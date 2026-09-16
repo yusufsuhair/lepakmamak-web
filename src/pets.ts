@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {createAnimal} from './animals';
+import {animateAnimal, createAnimal, petBreedList} from './animals';
 import {box} from './world';
 import {moveWithCollisions, type Solid} from './physics';
 
@@ -28,41 +28,43 @@ function createPetLabel(value: string) {
 
 // Pets use the owner's existing, server-authorized equipment stream.
 export function createPets(scene: THREE.Scene, solids: Solid[]) {
-  const followers = new Map<string, {animal: ReturnType<typeof createAnimal>; key: string; stuck: number; label: ReturnType<typeof createPetLabel>}>();
+  const followers = new Map<string, {animal: ReturnType<typeof createAnimal>; key: string; stuck: number; phase: number; label: ReturnType<typeof createPetLabel>}>();
   const seen = new Set<string>();
   function remove(id: string) {
     const pet = followers.get(id);
     if (!pet) return;
     scene.remove(pet.animal.group);
     pet.label.dispose();
-    // Spheres, boxes and materials belong to the shared world caches; ears are unique.
+    // Spheres, boxes and model geometry are shared; only cloned model materials are owned here.
     pet.animal.group.traverse(object => { if (object instanceof THREE.Mesh && object.geometry.type === 'ConeGeometry') object.geometry.dispose(); });
+    for (const material of pet.animal.group.userData.catMaterials || []) material.dispose?.();
     followers.delete(id);
   }
   return {
     begin() { seen.clear(); },
-    update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '') {
+    update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '', petBreed = '') {
       const items = equipment.split(',');
       const cat = items.includes('pet-ginger') ? 'pet-ginger' : items.includes('pet-cream') ? 'pet-cream' : '';
       if (!cat) return;
       seen.add(id);
       const ribbon = items.includes('pet-collar-red') ? '#df655e' : items.includes('pet-collar-teal') ? '#51b8ab' : '';
-      const key = cat + ribbon;
+      const breed = petBreedList.find(item => item.id === petBreed && item.base === cat)?.id || (cat === 'pet-ginger' ? 'ginger-tabby' : 'cream-shorthair');
+      const key = cat + ribbon + breed;
       let pet = followers.get(id);
       if (pet?.key !== key) {
         remove(id);
-        const animal = createAnimal(true, cat === 'pet-ginger' ? '#e6a34e' : '#f0e8d8');
+        const animal = createAnimal(true, cat === 'pet-ginger' ? '#e6a34e' : '#f0e8d8', breed);
         const label = createPetLabel(String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih'));
         animal.group.name = `Pet · ${id}`; animal.group.scale.setScalar(.8);
         animal.group.position.set(x - Math.sin(yaw), y, z - Math.cos(yaw));
         animal.group.add(label.sprite);
         if (ribbon) {
-          box(animal.body, 0, .58, .32, .39, .08, .2, ribbon);
-          for (const side of [-1, 1]) { const bow = box(animal.body, side * .09, .58, .44, .16, .14, .06, ribbon); bow.rotation.z = side * .35; }
+          box(animal.group, 0, .52, .30, .39, .08, .2, ribbon);
+          for (const side of [-1, 1]) { const bow = box(animal.group, side * .09, .52, .42, .16, .14, .06, ribbon); bow.rotation.z = side * .35; }
         }
-        scene.add(animal.group); pet = {animal, key, stuck: 0, label}; followers.set(id, pet);
+        scene.add(animal.group); pet = {animal, key, stuck: 0, phase: [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 32, label}; followers.set(id, pet);
       }
-      const {group, legs, tail, body} = pet.animal;
+      const {group} = pet.animal;
       const shownName = String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih');
       if (pet.label.sprite.userData.name !== shownName) pet.label.draw(shownName);
       group.userData.petName = shownName;
@@ -79,10 +81,10 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
         if (pet.stuck > 2) { group.position.set(x, y, z); pet.stuck = 0; }
         group.rotation.y = Math.atan2(dx, dz);
       }
-      group.position.y = y;
-      legs.forEach((leg, index) => { leg.rotation.x = walking ? Math.sin(time * 10 + (index === 0 || index === 3 ? 0 : Math.PI)) * .45 : 0; });
-      body.position.y = walking ? Math.abs(Math.sin(time * 10)) * .025 : 0;
-      tail.rotation.z = Math.sin(time * 3) * .25;
+      const cycle = (time + pet.phase) % 16;
+      const action = walking ? 'walk' : cycle < 4 ? 'idle' : cycle < 8 ? 'lie' : cycle < 12 ? 'play' : 'jump';
+      animateAnimal(pet.animal, action, time, pet.phase);
+      group.position.y = y + (group.userData.poseYOffset || 0);
     },
     end() { for (const id of followers.keys()) if (!seen.has(id)) remove(id); },
   };

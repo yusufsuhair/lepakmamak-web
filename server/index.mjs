@@ -48,6 +48,7 @@ import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
+import petBreeds from '../shared/pet-breeds.json' with { type: 'json' };
 const { version } = packageInfo;
 import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
 const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c', tudung: 'none' };
@@ -126,7 +127,7 @@ const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
 // feature lands, so they are all refused at one gate before any handler sees them.
-const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess', 'pet-name']);
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess', 'pet-name', 'pet-breed']);
 const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
 const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
 function penaltyNotice(status) {
@@ -257,6 +258,10 @@ function cleanPetName(value) {
   const text = typeof value === 'string' ? value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18) : '';
   return text && filterChat(text) === '***' ? '' : text;
 }
+function cleanPetBreed(value) {
+  const id = typeof value === 'string' ? value.trim() : '';
+  return petBreeds.some(item => item.id === id) ? id : '';
+}
 
 async function identify(token, guest = false, guestName) {
   if (guest === true && !token) {
@@ -264,9 +269,9 @@ async function identify(token, guest = false, guestName) {
     if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
     const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
     if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');
-    return { name, guest: true, gameMaster: false, accessories: [], petName: '', geng: null, expiresAt: Date.now() + 86400000 };
+    return { name, guest: true, gameMaster: false, accessories: [], petName: '', petBreed: '', geng: null, expiresAt: Date.now() + 86400000 };
   }
-  if (!authUrl || !authKey) return { name: 'Local guest', geng: null, expiresAt: Date.now() + 3600000 };
+  if (!authUrl || !authKey) return { name: 'Local guest', petBreed: '', geng: null, expiresAt: Date.now() + 3600000 };
   if (typeof token !== 'string' || token.length > 3500) throw new Error('Log in to join the city.');
   const result = await fetch(`${authUrl}/auth/v1/user`, { headers: { apikey: authKey, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) });
   if (!result.ok) throw new Error('Your session expired. Please log in again.');
@@ -274,7 +279,7 @@ async function identify(token, guest = false, guestName) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), petName: cleanPetName(user.user_metadata?.pet_name), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', geng: (await safeGeng(user.id)) || null, expiresAt: claims.exp * 1000 };
+  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), petName: cleanPetName(user.user_metadata?.pet_name), petBreed: cleanPetBreed(user.user_metadata?.pet_breed), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', geng: (await safeGeng(user.id)) || null, expiresAt: claims.exp * 1000 };
 }
 
 // Standing announcements live here, keyed by room name: roomFor() returns a fresh object
@@ -458,7 +463,7 @@ webSocketServer.on('connection', ws => {
   let lastPunchAt = 0;
   let lastHornAt = 0;
   let joining = false;
-  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0, lastReportAt = 0, lastPetNameAt = 0;
+  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0, lastReportAt = 0, lastPetNameAt = 0, lastPetBreedAt = 0;
   const reported = new Set();
   let expiresAt = 0;
   let voiceTokens = 30, voiceAt = Date.now(), lastAudienceAt = 0;
@@ -537,7 +542,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [], petName: identity.petName || '',
+        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [], petName: identity.petName || '', petBreed: identity.petBreed || '',
         geng: identity.geng?.name || '', gengId: identity.geng?.id || null, gengLeader: !!identity.geng?.leader,
         muted: penalty.muted,
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
@@ -811,6 +816,14 @@ webSocketServer.on('connection', ws => {
       const name = cleanPetName(message.name);
       if (player.petName === name) return;
       player.petName = name;
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'pet-breed') {
+      if (!player.userId || player.guest || Date.now() - lastPetBreedAt < 500) return;
+      lastPetBreedAt = Date.now();
+      const breed = cleanPetBreed(message.breed);
+      if (!breed || player.petBreed === breed) return;
+      player.petBreed = breed;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if(message.type==='network-telemetry'){metrics.clientSample(player.id,message);return;}

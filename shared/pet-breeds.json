@@ -1,0 +1,8 @@
+[
+  {"id":"ginger-tabby","name":"Ginger tabby","base":"pet-ginger","fur":"#c97836","belly":"#f4d5ad","stripe":"#75402a","eye":"#9c6b2f","scale":1},
+  {"id":"cream-shorthair","name":"Cream shorthair","base":"pet-cream","fur":"#ead8bd","belly":"#fff1d9","stripe":"#b69268","eye":"#6f8e70","scale":1.02},
+  {"id":"tuxedo","name":"Tuxedo","base":"pet-cream","fur":"#252a2b","belly":"#f0eee5","stripe":"#4b5150","eye":"#b4c878","scale":1},
+  {"id":"siamese","name":"Siamese","base":"pet-cream","fur":"#e6c9a5","belly":"#f7e7ca","stripe":"#604842","eye":"#67a1ad","scale":0.98},
+  {"id":"calico","name":"Calico","base":"pet-ginger","fur":"#f0e3cf","belly":"#fff4df","stripe":"#c86c3f","eye":"#82955e","scale":1.01},
+  {"id":"russian-blue","name":"Russian blue","base":"pet-cream","fur":"#7d8994","belly":"#cbd2d2","stripe":"#56616c","eye":"#c6b65d","scale":1.03}
+]
