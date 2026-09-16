@@ -386,6 +386,31 @@ async function init() {
     $('notification-email-note').textContent = toggle.checked ? 'Will be sent to this email.' : 'Email alerts are off.';
   };
   renderActivityItems(); syncNotificationSettings();
+  const playerJoinNotice = document.createElement('aside');
+  playerJoinNotice.id = 'player-join-notice'; playerJoinNotice.hidden = true;
+  playerJoinNotice.setAttribute('role', 'status'); playerJoinNotice.setAttribute('aria-live', 'polite');
+  $('speedometer').prepend(playerJoinNotice);
+  const playerJoinQueue: string[] = [];
+  let playerJoinTimer: number | null = null;
+  function showPlayerJoined(name: string) {
+    const cleanName = name.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18) || 'A player';
+    if (playerJoinQueue.length >= 20) playerJoinQueue.shift();
+    playerJoinQueue.push(cleanName);
+    if (playerJoinTimer !== null) return;
+    const next = () => {
+      const nextName = playerJoinQueue.shift();
+      if (!nextName) { playerJoinTimer = null; playerJoinNotice.hidden = true; return; }
+      playerJoinNotice.textContent = `${nextName} just joined the game`;
+      playerJoinNotice.hidden = false;
+      playerJoinTimer = window.setTimeout(next, 4200);
+    };
+    next();
+  }
+  function clearPlayerJoinNotice() {
+    playerJoinQueue.length = 0;
+    if (playerJoinTimer !== null) { window.clearTimeout(playerJoinTimer); playerJoinTimer = null; }
+    playerJoinNotice.hidden = true;
+  }
   const lrtPanel=document.createElement('section');lrtPanel.className='lrt-panel';lrtPanel.hidden=true;lrtPanel.innerHTML='<strong></strong><small></small><button type="button">Turun di stesen</button>';notificationStack.append(lrtPanel);
   lrtPanel.querySelector('button')!.onclick=()=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-exit'}));};
   const village=createVillageResidents(scene);
@@ -499,6 +524,8 @@ async function init() {
   const supermanUntil=()=>Math.max(localSupermanUntil,Number(roomPlayers.find(p=>p.id===networkPlayerId)?.supermanUntil)||0);
   const isSuperman=()=>riding&&!passengerOf&&vehicle==='bike'&&supermanUntil()>Date.now();
   const remotePlayers = new Map<string, RemotePlayer>();
+  let knownPlayerIds = new Set<string>();
+  let hasPlayerSnapshot = false;
   let partyMembers = new Set<string>();
   // The only raised floor in the city. onBridge is what keeps the road underneath open.
   let onBridge = false, deckY = 0;
@@ -1202,6 +1229,11 @@ async function init() {
     return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
+    const currentPlayerIds = new Set(players.map(player => player.id).filter(Boolean));
+    if (hasPlayerSnapshot) for (const player of players) {
+      if (player.id !== networkPlayerId && !knownPlayerIds.has(player.id)) showPlayerJoined(player.name);
+    }
+    knownPlayerIds = currentPlayerIds; hasPlayerSnapshot = true;
     peerDots = players.filter(p => p.id !== networkPlayerId && Number.isFinite(p.x) && Number.isFinite(p.z)).map(p => ({x: p.x, z: p.z, party: partyMembers.has(p.id), name: p.name}));
     const me = players.find(p => p.id === networkPlayerId);
     if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
@@ -1319,6 +1351,7 @@ async function init() {
     const oldSocket = networkSocket; networkSocket = null;
     oldSocket?.close(1000, 'Leaving the city');
     networkConnected = false; networkPlayerId = '';
+    knownPlayerIds = new Set(); hasPlayerSnapshot = false; clearPlayerJoinNotice();
     netStatus.offline();
     refresher.hideConnectionRestart();
     localSupermanUntil = 0;
@@ -1371,6 +1404,7 @@ async function init() {
       return;
     }
     rejection = null;
+    knownPlayerIds = new Set(); hasPlayerSnapshot = false; clearPlayerJoinNotice();
     connectionAttempts++;
     setNetworkStatus(connectedOnceThisEntry ? 'RECONNECTING…' : 'JOINING CITY', 'connecting', 1);
     if (!connectedOnceThisEntry && !entryOverlayDismissed) showLoading(connectionAttempts > 1 ? 'Still joining the city' : 'Connecting to LepakMamak', connectionAttempts > 1 ? `Connection attempt ${connectionAttempts}…` : 'Opening a secure connection to the city…', connectionAttempts > 1 ? 80 : 74);

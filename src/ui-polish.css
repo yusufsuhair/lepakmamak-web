@@ -210,6 +210,8 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
   right: 24px; bottom: 24px; width: 150px; padding: 0; border: 0;
   border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none;
 }
+#player-join-notice { position: relative; align-self: flex-end; width: min(240px, 68vw); margin-bottom: 12px; padding: 8px 11px; border: 1px solid rgb(221 246 154 / 45%); border-radius: 10px; background: rgb(7 29 23 / 88%); color: var(--ui-lime-hot); box-shadow: 0 8px 22px rgb(1 13 10 / 24%); font: 600 11px/1.35 'Oxanium'; text-align: right; text-shadow: none; pointer-events: none; }
+#player-join-notice[hidden] { display: none; }
 .speed-number { font-size: 65px; }
 .speed-unit, .vehicle-label { color: var(--ui-muted); }
 .speed-track { height: 4px; border-radius: 5px; background: rgb(255 255 255 / 12%); overflow: hidden; }
