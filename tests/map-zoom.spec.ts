@@ -21,6 +21,17 @@ test('city map opens zoomed out and supports controls, wheel, and both views',as
  await expect(map).toHaveAttribute('data-zoom','1');
 });
 
+test('city map keeps teleport controls above the 2D drawing',async({page})=>{
+ await page.goto('/');
+ await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());
+ const [teleport,map]=await Promise.all([
+  page.locator('#map-teleport').boundingBox(),
+  page.locator('#expanded-map').boundingBox(),
+ ]);
+ expect(teleport).not.toBeNull();expect(map).not.toBeNull();
+ expect(teleport!.y+teleport!.height).toBeLessThanOrEqual(map!.y);
+});
+
 test('map zoom controls remain reachable on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');
  await page.evaluate(()=>document.querySelector<HTMLDialogElement>('#city-map')!.showModal());

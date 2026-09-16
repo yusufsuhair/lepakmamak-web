@@ -156,6 +156,7 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
 .map-north { top: 9px; left: 10px; padding: 4px 6px; border-radius: 6px; background: rgb(5 26 20 / 68%); backdrop-filter: blur(6px); }
 .map-caption { margin-top: 8px; padding-inline: 2px; color: var(--ui-muted); }
 .map-caption span:last-child { color: var(--ui-lime); }
+#city-map:not(.park-map) .map-frame { padding-top: 74px; }
 .hud-right { gap: 7px; padding: 5px; border: 1px solid var(--ui-line); border-radius: 15px; background: rgb(7 28 22 / 56%); box-shadow: 0 10px 35px rgb(1 13 10 / 24%); backdrop-filter: blur(14px); }
 .wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button, #open-shop, #open-inventory, #hud-more {
   width: 44px; min-width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 11px;
@@ -356,6 +357,7 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
   }
   .pause-panel { padding: 20px 18px; }
   #inventory, #city-map { width: calc(100vw - 8px); max-height: calc(100dvh - 8px); padding: 12px; border-radius: 18px; }
+  #city-map:not(.park-map) .map-frame { padding-top: 72px; }
   .inventory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .equipment-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #table-social .table-game-grid { grid-template-columns: 1fr; }
