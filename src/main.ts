@@ -1913,6 +1913,7 @@ async function init() {
     setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
     if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose();sun.shadow.map=null;}
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
+    netStatus.quality(graphicsQuality);
   }
   $('graphics-quality').onchange = () => {
     graphicsQuality = $<HTMLSelectElement>('graphics-quality').value as GraphicsQuality; slowSeconds = 0; autoReduced = false;

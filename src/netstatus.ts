@@ -13,11 +13,12 @@ const GRADES: {grade: string; upTo: number; bars: number}[] = [
 export function createNetStatus(hud: HTMLElement) {
   const root = document.createElement('div');
   root.id = 'net-status'; root.dataset.grade = 'none';
-  root.innerHTML = '<span class="bars">' + [1, 2, 3, 4].map(n => `<i class="bar bar-${n}"></i>`).join('') + '</span><span class="net-readings"><b id="net-ping">—</b><b id="net-fps" aria-hidden="true">— FPS</b></span>';
+  root.innerHTML = '<span class="bars">' + [1, 2, 3, 4].map(n => `<i class="bar bar-${n}"></i>`).join('') + '</span><span class="net-readings"><b id="net-ping">—</b><b id="net-fps" aria-hidden="true">— FPS</b><b id="net-graphics">GRAPHIC: —</b></span>';
   root.setAttribute('role', 'status');
   hud.append(root);
   const ping = root.querySelector<HTMLElement>('#net-ping')!;
   const fps = root.querySelector<HTMLElement>('#net-fps')!;
+  const graphics = root.querySelector<HTMLElement>('#net-graphics')!;
   const bars = [...root.querySelectorAll<HTMLElement>('.bar')];
   let frameCount = 0, frameSeconds = 0;
 
@@ -43,6 +44,7 @@ export function createNetStatus(hud: HTMLElement) {
       fps.textContent = `${Math.round(frameCount / frameSeconds)} FPS`;
       frameCount = 0; frameSeconds = 0;
     },
+    quality(value: string) { graphics.textContent = `GRAPHIC: ${value.toUpperCase()}`; },
     offline() { paint('none', 0, '—'); },
   };
 }

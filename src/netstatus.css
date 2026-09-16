@@ -10,5 +10,6 @@
 #net-status[data-grade="bad"] .bar.on { background: #e5644f; }
 #net-ping { font-size: 10px; letter-spacing: .04em; color: #cdd8c0; font-weight: 600; }
 #net-fps { margin-top: 2px; font-size: 9px; letter-spacing: .04em; color: #9fb09a; font-weight: 600; }
+#net-graphics { margin-top: 2px; font-size: 8px; letter-spacing: .04em; color: #879b8b; font-weight: 600; }
 #net-status[data-grade="bad"] #net-ping { color: #ffb9ae; }
 #net-status[data-grade="none"] #net-ping { color: #93a48c; }

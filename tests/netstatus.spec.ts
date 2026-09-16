@@ -66,9 +66,12 @@ test('FPS appears below the round-trip time using a stable frame window',async({
  });
  await expect(page.locator('#net-ping')).toHaveText('42 ms');
  await expect(page.locator('#net-fps')).toHaveText('60 FPS');
+ await page.evaluate(()=>(window as any).net.quality('low'));
+ await expect(page.locator('#net-graphics')).toHaveText('GRAPHIC: LOW');
  const readings=page.locator('#net-status .net-readings');
  await expect(readings.locator('b').nth(0)).toHaveAttribute('id','net-ping');
  await expect(readings.locator('b').nth(1)).toHaveAttribute('id','net-fps');
+ await expect(readings.locator('b').nth(2)).toHaveAttribute('id','net-graphics');
 });
 
 const mountSpeaking=async(page:any,route:string)=>{
