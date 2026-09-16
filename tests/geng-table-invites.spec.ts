@@ -58,8 +58,22 @@ function inviteRig() {
   party.handle(players, a, {type: 'party-invite', id: b.id});
   party.handle(players, b, {type: 'party-accept'});
   const invites = createTableInvites(send, {party, tableLobby: lobby}, () => clock);
-  return {get clock() { return clock; }, advance(value: number) { clock += value; }, sent, players, a, b, c, lobby, invites, add};
+  return {get clock() { return clock; }, advance(value: number) { clock += value; }, sent, players, a, b, c, party, lobby, invites, add};
 }
+
+test('only the Party leader can kick a member', () => {
+  const rig = inviteRig();
+  rig.party.handle(rig.players, rig.b, {type: 'party-kick', id: rig.c.id});
+  expect(rig.sent.filter(message => message.ws === 'b' && message.type === 'notice').at(-1)).toMatchObject({code: 'GENG_LEADER_ONLY'});
+  expect(rig.c.partyId).toBeTruthy();
+
+  rig.party.handle(rig.players, rig.a, {type: 'party-kick', id: rig.c.id});
+  expect(rig.c.partyId).toBeFalsy();
+  expect(rig.sent.some(message => message.ws === 'c' && message.type === 'party-state' && message.party === null)).toBe(true);
+  expect(rig.sent.some(message => message.ws === 'c' && message.type === 'notice' && message.message === 'You were removed from the Party.')).toBe(true);
+  const remaining = rig.party.state(rig.players, rig.a);
+  expect(remaining?.members.map(member => member.id)).toEqual(['a', 'b']);
+});
 
 test('table invite includes authoritative game, table and capacity without seating the recipient', () => {
   const rig = inviteRig();

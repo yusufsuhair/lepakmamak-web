@@ -222,6 +222,23 @@ export function createParty(send, now = Date.now) {
       return 'changed';
     }
 
+    if (message.type === 'party-kick') {
+      const party = partyOf(players, player);
+      const targetId = typeof message.id === 'string' ? message.id : '';
+      const target = players.get(targetId);
+      if (!party || party.leaderKey !== memberKey(player)) {
+        denied(player, 'GENG_LEADER_ONLY', 'Only the Party leader can kick members.');
+        return true;
+      }
+      if (!target || target.id === player.id || target.partyId !== party.id) {
+        denied(player, 'GENG_MEMBER_NOT_FOUND', 'That player is not in your Party.');
+        return true;
+      }
+      drop(players, target);
+      send(target.ws, {type: 'notice', message: 'You were removed from the Party.'});
+      return 'changed';
+    }
+
     if (message.type === 'party-leave') { drop(players, player); return 'changed'; }
     return true;
   }

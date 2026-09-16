@@ -57,6 +57,7 @@ test('an invite can be answered in the city without a numeric map count',async({
   await expect(page.locator('.party-roster-member')).toHaveCount(2);
   await expect(page.locator('#party-roster').getByText('Player', {exact: true})).toBeVisible();
   await expect(page.locator('#party-roster').getByText('Geng', {exact: true})).toBeVisible();
+  await expect(page.locator('.party-leader-crown')).toHaveCount(1);
 
   await expect.poll(async()=>page.evaluate(()=>{
    const canvas=document.getElementById('minimap') as HTMLCanvasElement;

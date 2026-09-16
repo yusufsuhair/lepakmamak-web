@@ -24,9 +24,10 @@
 #party-roster-list { display: grid; gap: 4px; max-height: 156px; margin: 0; padding: 0; overflow-y: auto; list-style: none; scrollbar-width: thin; scrollbar-color: #728364 transparent; }
 .party-roster-member { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 30px; padding: 2px 4px; border-radius: 6px; background: #ffffff12; }
 .party-roster-member .party-face { flex: 0 0 28px; width: 38px; height: 42px; transform: scale(.72); transform-origin: top left; margin-right: -10px; margin-bottom: -11px; }
-.party-roster-copy { display: grid; min-width: 0; gap: 2px; }
+.party-roster-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
 .party-roster-name { overflow: hidden; color: #fffdf1; font: 700 10px/1.1 'Oxanium', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
 .party-roster-meta { color: #a7b99d; font: 700 7px/1 'Oxanium', sans-serif; letter-spacing: .08em; }
+.party-leader-crown { display: grid; place-items: center; flex: 0 0 20px; width: 20px; height: 20px; border: 1px solid #e2c66e99; border-radius: 50%; background: #6d5418; color: #ffe69a; font: 700 14px/1 serif; text-shadow: 0 1px 4px #000b; }
 #party-roster-toggle { width: 100%; min-height: 24px; margin-top: 5px; padding: 0 5px; border: 1px solid #ffffff38; border-radius: 5px; background: #ffffff16; color: #dfff87; font: 700 8px 'Oxanium', sans-serif; cursor: pointer; }
 #party-roster-toggle:hover { background: #ffffff26; }
 #party-roster-toggle:focus-visible { outline: 2px solid #dfff87; outline-offset: 2px; }
