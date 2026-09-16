@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.41.0 — 2026-09-17
+
+- Added cat companions that follow their owners around the city. One 250-Lepak-Coin purchase includes all 16 breed/style choices and 17 coat colours.
+- Added Pet Studio with independent breed and coat selection, pet names, optional shop ribbons, and a rotatable animated 3D preview.
+
 - Made `/health` report live traffic: sockets, players, per-room socket counts and outbound bytes, bytes in and out per second, voice packet rates in and out, dropped frames, resident memory and uptime. Added optional saturation, shutdown and heartbeat alerts via `ALERT_WEBHOOK_URL` and `HEARTBEAT_URL`.
 - Added player reporting, review and enforcement. Players can report someone from the player menu; reports land in the admin console at /reports with their evidence, where they can be muted or banned. Bans are refused at the socket on join so they survive reconnects and Railway restarts, mutes are refused at one server-side gate covering chat, voice, drawings, display names and the Wall, and a 15-second sweep applies both to players already in the city. Voice is still never recorded — a voice report carries the names of who was in earshot instead.
 

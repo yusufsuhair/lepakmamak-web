@@ -51,9 +51,9 @@ test('settings shows the version, when it last changed, and what changed',async(
  // that grows with every release pushes the buttons under it out of reach.
  await expect(page.locator('.release')).toHaveCount(3);
  // The whole story is still one click away.
- await page.getByRole('button',{name:/kemas kini lama/}).click();
+ await page.getByRole('button',{name:/older updates/}).click();
  await expect(page.locator('.release')).toHaveCount(changelog.length);
- await expect(page.getByRole('button',{name:/kemas kini lama/})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:/older updates/})).toHaveCount(0);
  await expect(page.locator('.release').last()).toContainText(changelog.at(-1)!.title);
 });
 
