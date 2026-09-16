@@ -248,7 +248,7 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
 #afk-settings input, #graphics-quality, #profile-fields input, #profile-fields textarea, #report-form select, #report-form textarea {
   border: 1px solid #aab7a7; border-radius: 9px; background: rgb(255 255 255 / 70%); color: var(--ui-ink);
 }
-.settings { gap: 0; padding: 4px 14px; border: 1px solid #c7cec0; border-radius: 14px; background: rgb(255 255 255 / 27%); }
+.settings { gap: 0; padding: 10px 14px 4px; border: 1px solid #c7cec0; border-radius: 14px; background: rgb(255 255 255 / 27%); }
 .settings label { min-height: 50px; border-bottom: 1px solid #d4d9cf; }
 .settings label:last-child { border-bottom: 0; }
 #notification-settings { margin: 18px 0 24px; padding: 14px; border: 1px solid #c7cec0; border-radius: 14px; background: rgb(255 255 255 / 27%); }
