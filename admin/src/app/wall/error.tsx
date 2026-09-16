@@ -8,9 +8,9 @@ export default function WallError({
   reset: () => void;
 }) {
   return (
-    <main style={{ fontFamily: "system-ui", padding: 32, maxWidth: 820 }}>
+    <main className="admin-shell error-page">
       <h1>Something went wrong</h1>
-      <p style={{ whiteSpace: "pre-wrap", color: "#a13f31" }}>{error.message}</p>
+      <p className="error-message">{error.message}</p>
       <button type="button" onClick={() => reset()}>
         Try again
       </button>

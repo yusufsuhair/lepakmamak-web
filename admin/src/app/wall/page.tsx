@@ -2,36 +2,36 @@ import { adminClient } from "@/lib/supabase";
 import { currentAdmin } from "@/lib/admin-auth";
 import { listWallPosts } from "@/lib/wall";
 import { removePost } from "./actions";
+import { AdminShell } from "../admin-shell";
 
 export const dynamic = "force-dynamic";
 
 export default async function WallPage() {
-  await currentAdmin();
+  const identity = await currentAdmin();
   const posts = await listWallPosts(adminClient());
   return (
-    <main style={{ fontFamily: "system-ui", padding: 32, maxWidth: 820 }}>
-      <h1>Wall moderation</h1>
+    <AdminShell email={identity.email} title="Wall moderation" description="Review the latest community posts.">
       {posts.length === 0 && <p>No posts.</p>}
       {posts.map((post) => (
-        <article key={post.id} style={{ border: "1px solid #ccc", borderRadius: 8, padding: 16, marginBottom: 12 }}>
+        <article key={post.id} className="card">
           <strong>{post.author}</strong>
-          <time style={{ marginLeft: 8, color: "#666" }}>{new Date(post.createdAt).toLocaleString("en-MY")}</time>
-          {post.text && <p style={{ whiteSpace: "pre-wrap" }}>{post.text}</p>}
+          <time className="post-time">{new Date(post.createdAt).toLocaleString("en-MY")}</time>
+          {post.text && <p className="post-text">{post.text}</p>}
           {post.mediaType === "image" && post.mediaUrl && (
-            <img src={post.mediaUrl} alt="" style={{ maxWidth: "100%", borderRadius: 6 }} />
+            <img src={post.mediaUrl} alt="" className="post-media" />
           )}
           {post.mediaType === "audio" && post.mediaUrl && (
-            <div>
+            <div className="voice-note">
               <span>Voice note</span>
               <audio controls preload="metadata" src={post.mediaUrl} />
             </div>
           )}
           <form action={removePost}>
             <input type="hidden" name="postId" value={post.id} />
-            <button type="submit" style={{ marginTop: 8, color: "#a13f31" }}>Delete post</button>
+            <button type="submit" className="danger">Delete post</button>
           </form>
         </article>
       ))}
-    </main>
+    </AdminShell>
   );
 }
