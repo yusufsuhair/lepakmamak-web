@@ -8,24 +8,26 @@ test('pets follow, catch up after travel, change decoration and leave with their
     const THREE = await import('/node_modules/three/build/three.module.js');
     const {createPets} = await import('/src/pets.ts');
     const scene = new THREE.Scene(), pets = createPets(scene, []);
-    function tick(x:number,y:number,z:number,equipment:string) { pets.begin(); pets.update('owner',x,y,z,0,equipment,.04,1); pets.end(); }
+    function tick(x:number,y:number,z:number,equipment:string,name='') { pets.begin(); pets.update('owner',x,y,z,0,equipment,.04,1,name); pets.end(); }
     tick(0,0,0,'pet-ginger');
     for(let i=0;i<100;i++) tick(5,0,0,'pet-ginger');
     const followed = scene.children[0].position.distanceTo(new THREE.Vector3(5,0,0));
     tick(100,12,100,'pet-ginger,pet-collar-red');
     const traveled = scene.children[0].position.distanceTo(new THREE.Vector3(100,12,100));
     const red = scene.children[0].children[0].children.length;
-    tick(100,12,100,'pet-cream,pet-collar-teal');
+    tick(100,12,100,'pet-cream,pet-collar-teal','Mochi');
     const count = scene.children.length;
+    const petName = scene.children[0]?.userData.petName;
     const colors:string[]=[]; scene.traverse((object:any)=>{if(object.material) colors.push(object.material.color.getHexString());});
     tick(100,12,100,'cap');
-    return {followed,traveled,red,count,colors,removed:scene.children.length};
+    return {followed,traveled,red,count,colors,petName,removed:scene.children.length};
   });
   expect(result.followed).toBeLessThan(1.2);
   expect(result.traveled).toBeLessThan(1.2);
   expect(result.count).toBe(1);
   expect(result.colors).toContain('51b8ab');
   expect(result.colors).toContain('f0e8d8');
+  expect(result.petName).toBe('Mochi');
   expect(result.removed).toBe(0);
 });
 
@@ -56,13 +58,13 @@ test('pet shop buys and equips cats and decorations through the account inventor
   await expect(page.locator('#item-shop')).not.toBeVisible();
 });
 
-for (const width of [1280,390]) test(`cat toolbar opens pet shop at ${width}px`, async ({page}) => {
+for (const width of [1280,390]) test(`cat toolbar opens pet studio at ${width}px`, async ({page}) => {
   await page.setViewportSize({width,height:800});
   await enterAt(page,-18,52);
   if(width===390) await page.getByRole('button',{name:'More controls'}).click();
   await page.getByRole('button',{name:'Open pets',exact:true}).click();
-  await expect(page.locator('#pet-guide')).toBeVisible();
-  await expect(page.locator('#shop-items article')).toHaveCount(4);
-  await expect(page.locator('#shop-items button.primary').first()).toBeDisabled();
+  await expect(page.locator('#pet-studio')).toBeVisible();
+  await expect(page.locator('.pet-studio-empty')).toContainText('No pet yet');
+  await expect(page.getByRole('button',{name:'Visit Kedai'})).toBeVisible();
   await page.screenshot({path:`test-results-pets/pet-toolbar-${width}.png`});
 });

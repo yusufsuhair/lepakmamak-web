@@ -3,21 +3,45 @@ import {createAnimal} from './animals';
 import {box} from './world';
 import {moveWithCollisions, type Solid} from './physics';
 
+function createPetLabel(value: string) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 96;
+  const context = canvas.getContext('2d')!;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({map: texture, transparent: true, depthWrite: false, depthTest: false});
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(0, 1.55, 0); sprite.scale.set(2.35, .44, 1);
+  const draw = (next: string) => {
+    const shown = next || 'Pet';
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.font = '700 30px Oxanium, sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
+    const width = Math.min(canvas.width - 24, context.measureText(shown).width + 28);
+    context.fillStyle = '#173c32eb'; context.strokeStyle = '#ddf69a99'; context.lineWidth = 3;
+    context.beginPath(); context.roundRect((canvas.width - width) / 2, 9, width, canvas.height - 18, 18); context.fill(); context.stroke();
+    context.fillStyle = '#f7efd9'; context.fillText(shown, canvas.width / 2, canvas.height / 2 + 1);
+    texture.needsUpdate = true; sprite.userData.name = shown;
+  };
+  draw(value);
+  return {sprite, draw, dispose() { texture.dispose(); material.dispose(); }};
+}
+
 // Pets use the owner's existing, server-authorized equipment stream.
 export function createPets(scene: THREE.Scene, solids: Solid[]) {
-  const followers = new Map<string, {animal: ReturnType<typeof createAnimal>; key: string; stuck: number}>();
+  const followers = new Map<string, {animal: ReturnType<typeof createAnimal>; key: string; stuck: number; label: ReturnType<typeof createPetLabel>}>();
   const seen = new Set<string>();
   function remove(id: string) {
     const pet = followers.get(id);
     if (!pet) return;
     scene.remove(pet.animal.group);
+    pet.label.dispose();
     // Spheres, boxes and materials belong to the shared world caches; ears are unique.
     pet.animal.group.traverse(object => { if (object instanceof THREE.Mesh && object.geometry.type === 'ConeGeometry') object.geometry.dispose(); });
     followers.delete(id);
   }
   return {
     begin() { seen.clear(); },
-    update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number) {
+    update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '') {
       const items = equipment.split(',');
       const cat = items.includes('pet-ginger') ? 'pet-ginger' : items.includes('pet-cream') ? 'pet-cream' : '';
       if (!cat) return;
@@ -28,15 +52,20 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
       if (pet?.key !== key) {
         remove(id);
         const animal = createAnimal(true, cat === 'pet-ginger' ? '#e6a34e' : '#f0e8d8');
+        const label = createPetLabel(String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih'));
         animal.group.name = `Pet · ${id}`; animal.group.scale.setScalar(.8);
         animal.group.position.set(x - Math.sin(yaw), y, z - Math.cos(yaw));
+        animal.group.add(label.sprite);
         if (ribbon) {
           box(animal.body, 0, .58, .32, .39, .08, .2, ribbon);
           for (const side of [-1, 1]) { const bow = box(animal.body, side * .09, .58, .44, .16, .14, .06, ribbon); bow.rotation.z = side * .35; }
         }
-        scene.add(animal.group); pet = {animal, key, stuck: 0}; followers.set(id, pet);
+        scene.add(animal.group); pet = {animal, key, stuck: 0, label}; followers.set(id, pet);
       }
       const {group, legs, tail, body} = pet.animal;
+      const shownName = String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih');
+      if (pet.label.sprite.userData.name !== shownName) pet.label.draw(shownName);
+      group.userData.petName = shownName;
       const dx = x - group.position.x, dz = z - group.position.z, distance = Math.hypot(dx, dz);
       const walking = distance > 1.1;
       // Catch up after teleports and rides; normal walking uses the city's collisions.

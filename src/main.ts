@@ -1,4 +1,5 @@
 import {createPets} from './pets';
+import {setupPetStudio} from './pet-studio';
 import { createMusicPlayer } from './music-player';
 import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
@@ -519,14 +520,15 @@ async function init() {
   setSoundRange(soundRange);
   // A larger value makes the same source audible farther away; 100% preserves the authored falloffs.
   const soundDistance = (distance: number) => distance / soundRange;
-  type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
-  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite|null; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number };
+  type NetworkPlayer = { skyDining?:boolean; parkRide?:ParkRide|null; y?: number; liftId?: string | null; lrtId?:number|null;lrtSeat?:number;lrtAlong?:number|null;lrtAcross?:number|null; carStyle?:CarStyle; supermanUntil?:number; danceUntil?:number; resting?: BeachRestKind|null; chairId?: string | null; afkNote?: string; gameMaster?: boolean; geng?: string; gengId?: string | null; gengLeader?: boolean; accessories?: string[]; petName?: string; seatIndex?: number | null; passengerOf?: string | null; vehicle?: 'bike' | 'car'; appearance?: Appearance; id: string; name: string; color: string; x: number; z: number; yaw: number; riding: boolean; speed: number; mic?: boolean; speaker?: boolean; seated?: boolean; jumpHeight?: number };
+  type RemotePlayer = { stand: THREE.Mesh; detail: boolean; bike: ReturnType<typeof createBike>; passengerOf: string | null; id: string; car: ReturnType<typeof createDriveableCar>; vehicle: string; label: THREE.Sprite|null; group: THREE.Group; target: THREE.Vector3; yaw: number; targetYaw: number; riding: boolean; speed: number; seated: boolean; resting: BeachRestKind|null; recallUntil: number; person: ReturnType<typeof createPerson>; punchUntil: number; petName: string };
   const danceAudio=createDanceAudio();
   const isDancing=()=>!!roomPlayers.find(p=>p.id===networkPlayerId&&Number(p.danceUntil)>Date.now());
   let localSupermanUntil=0;
   const supermanUntil=()=>Math.max(localSupermanUntil,Number(roomPlayers.find(p=>p.id===networkPlayerId)?.supermanUntil)||0);
   const isSuperman=()=>riding&&!passengerOf&&vehicle==='bike'&&supermanUntil()>Date.now();
   const remotePlayers = new Map<string, RemotePlayer>();
+  let localPetName = String(session?.user.user_metadata?.pet_name || '').trim().slice(0, 18);
   let knownPlayerIds = new Set<string>();
   let hasPlayerSnapshot = false;
   let partyMembers = new Set<string>();
@@ -1278,7 +1280,7 @@ async function init() {
     const stand = new THREE.Mesh(STAND_GEOMETRY, new THREE.MeshLambertMaterial({ color: player.color || '#72c8ba' }));
     stand.position.y = .74; stand.visible = false; stand.castShadow = false; group.add(stand);
     group.position.set(player.x, .12, player.z); scene.add(group);
-    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0 };
+    return { stand, detail: true, bike, passengerOf: player.passengerOf || null, id: player.id, car, vehicle: player.vehicle || 'bike', label:null, group, target: new THREE.Vector3(player.x, .12, player.z), yaw: player.yaw, targetYaw: player.yaw, riding: player.riding, speed: player.speed, seated: !!player.seated, resting: player.resting || null, recallUntil: 0, person, punchUntil: 0, petName: String(player.petName || '') };
   }
   function syncRemotePlayers(players: NetworkPlayer[]) {
     const currentPlayerIds = new Set(players.map(player => player.id).filter(Boolean));
@@ -1297,6 +1299,7 @@ async function init() {
     const ownAccessories = players.find(p=>p.id===networkPlayerId)?.accessories; if(ownAccessories) setAccessories(ownAccessories);
     const self = players.find(p => p.id === networkPlayerId);
     if (self) {
+      if (self.petName !== undefined) localPetName = String(self.petName).trim().slice(0, 18);
       geng = String(self.geng || '').slice(0, 24);
       gengLeader = !!self.gengLeader;
       if (gengButton) { gengButton.hidden = !session || !!guestName; gengButton.dataset.geng = geng; gengButton.title = geng ? `${geng}${gengLeader ? ' · Leader' : ''}` : 'Create or join a Geng'; }
@@ -1351,6 +1354,7 @@ async function init() {
       if (remote.mic && Math.hypot(remote.x - pos.x, remote.z - pos.z) < voiceConfig.hearingRadius) speaking.nearby(remote.id, remote.name, remote.appearance);
       else speaking.away(remote.id);
       entity.resting = remote.resting || null;
+      entity.petName = String(remote.petName || '').trim().slice(0, 18);
       const remoteBaseY = entity.resting ? .12 : remote.passengerOf ? remote.vehicle === 'car' ? .36 : .42 : remote.seated ? -.22 : .12;
       entity.target.set(remote.x, remoteBaseY + (remote.jumpHeight || 0) + (remote.y || 0) + (remote.gameMaster ? gmHover(simTime) : 0), remote.z); entity.targetYaw = remote.yaw; entity.riding = remote.riding; entity.speed = remote.speed; entity.seated = !!remote.seated; entity.vehicle = remote.vehicle || 'bike'; entity.passengerOf = remote.passengerOf || null;
       // Visibility is settled once per frame in the detail pass below, which runs more often
@@ -1743,6 +1747,14 @@ async function init() {
   $('open-security').onclick = () => security();
   // Kedai's try-on starts from exactly what the city character has on.
   const itemShop = setupShop(setAccessories, undefined, () => player.group.userData.appearance);
+  const petStudio = setupPetStudio(itemShop, {
+    release: () => { keys.clear(); resetStick(); dragging = false; },
+    openShop: () => itemShop.open('pets'),
+    onName: name => {
+      localPetName = name;
+      if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'pet-name', name}));
+    },
+  });
   openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
@@ -1756,9 +1768,9 @@ async function init() {
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
   friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
   profileButton=document.createElement('button');profileButton.id='open-my-profile-hud';profileButton.type='button';profileButton.setAttribute('aria-label','Open my profile');profileButton.title='My social profile';profileButton.setAttribute('aria-haspopup','dialog');profileButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.3 19.2c.6-3.1 3.1-5.1 6.7-5.1s6.1 2 6.7 5.1"/></svg>';
-  const petButton = document.createElement('button'); petButton.id = 'open-pets'; petButton.type = 'button'; petButton.title = 'Pets · Cats & decorations'; petButton.setAttribute('aria-label', 'Open pets'); petButton.setAttribute('aria-haspopup', 'dialog');
+  const petButton = document.createElement('button'); petButton.id = 'open-pets'; petButton.type = 'button'; petButton.title = 'Pet Studio · Companion'; petButton.setAttribute('aria-label', 'Open pets'); petButton.setAttribute('aria-haspopup', 'dialog');
   petButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10 4 3l6 4h4l6-4-1 7a8 8 0 1 1-14 0Z"/><path d="M8 12h.01M16 12h.01m-5 3 1 1 1-1M2 14l5 1m-5 3 5-1m15-3-5 1m5 3-5-1"/></svg>';
-  petButton.onclick = () => { keys.clear(); resetStick(); dragging = false; itemShop.open('pets'); };
+  petButton.onclick = () => petStudio.open();
   $('menu').before(shopButton,inventoryButton,petButton,gengButton,friendsButton,profileButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
   friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!accountToken();
@@ -1803,7 +1815,7 @@ async function init() {
     afkNote = ''; $<HTMLInputElement>('afk-note').value = '';
     $('afk-status').textContent = '';
     setMap(false); profile.close(); closeOptions();
-    inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); inbox.reset(); clearStandIn(); clearGuest();
+    inventory.close(); petStudio.close(); itemShop.close(); profileEditor.close(); friendsUI.close(); inbox.reset(); clearStandIn(); clearGuest();
     if (friendsButton) friendsButton.hidden = true;
     if (profileButton) profileButton.hidden = true;
     onlinePlayersDialog.close();
@@ -2986,8 +2998,8 @@ async function init() {
       }
     }
     pets.begin();
-    if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed);
-    for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed);
+    if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed, localPetName);
+    for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed, remote.petName);
     pets.end();
     beach.update(simTime,pos);
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,

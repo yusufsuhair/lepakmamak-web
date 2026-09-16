@@ -126,7 +126,7 @@ const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
 // feature lands, so they are all refused at one gate before any handler sees them.
-const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess']);
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess', 'pet-name']);
 const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
 const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
 function penaltyNotice(status) {
@@ -253,13 +253,18 @@ async function safeGeng(userId) {
   try { return await gengs.forPlayer(userId); } catch { return undefined; }
 }
 
+function cleanPetName(value) {
+  const text = typeof value === 'string' ? value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 18) : '';
+  return text && filterChat(text) === '***' ? '' : text;
+}
+
 async function identify(token, guest = false, guestName) {
   if (guest === true && !token) {
     if (process.env.ALLOW_GUESTS !== 'true') throw new Error('Guest access is disabled.');
     if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
     const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
     if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');
-    return { name, guest: true, gameMaster: false, accessories: [], geng: null, expiresAt: Date.now() + 86400000 };
+    return { name, guest: true, gameMaster: false, accessories: [], petName: '', geng: null, expiresAt: Date.now() + 86400000 };
   }
   if (!authUrl || !authKey) return { name: 'Local guest', geng: null, expiresAt: Date.now() + 3600000 };
   if (typeof token !== 'string' || token.length > 3500) throw new Error('Log in to join the city.');
@@ -269,7 +274,7 @@ async function identify(token, guest = false, guestName) {
   if (!user.id || user.is_anonymous) throw new Error('Register to join the city.');
   const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
   if (!Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now()) throw new Error('Your session expired.');
-  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', geng: (await safeGeng(user.id)) || null, expiresAt: claims.exp * 1000 };
+  return { profile: cleanProfile(user.user_metadata?.profile), userId: user.id, gameMaster: isGameMaster(user), accessories: await shop.accessories(user.id), appearance: cleanAppearance(user.user_metadata?.appearance), petName: cleanPetName(user.user_metadata?.pet_name), name: String(user.user_metadata?.display_name || 'Player').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 18) || 'Player', geng: (await safeGeng(user.id)) || null, expiresAt: claims.exp * 1000 };
 }
 
 // Standing announcements live here, keyed by room name: roomFor() returns a fresh object
@@ -453,7 +458,7 @@ webSocketServer.on('connection', ws => {
   let lastPunchAt = 0;
   let lastHornAt = 0;
   let joining = false;
-  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0, lastReportAt = 0;
+  let lastChatAt = 0, lastProfileAt = 0, lastProfileViewAt = 0, lastReportAt = 0, lastPetNameAt = 0;
   const reported = new Set();
   let expiresAt = 0;
   let voiceTokens = 30, voiceAt = Date.now(), lastAudienceAt = 0;
@@ -532,7 +537,7 @@ webSocketServer.on('connection', ws => {
       player = {
         id,
         ws,
-        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [],
+        name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [], petName: identity.petName || '',
         geng: identity.geng?.name || '', gengId: identity.geng?.id || null, gengLeader: !!identity.geng?.leader,
         muted: penalty.muted,
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
@@ -798,6 +803,14 @@ webSocketServer.on('connection', ws => {
     if (message.type === 'outfit') {
       const changes = Object.fromEntries(Object.keys(defaults).filter(key => typeof message[key] === 'string').map(key => [key, message[key]]));
       player.appearance = cleanAppearance({...player.appearance, ...changes});
+      broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
+    }
+    if (message.type === 'pet-name') {
+      if (!player.userId || player.guest || Date.now() - lastPetNameAt < 500) return;
+      lastPetNameAt = Date.now();
+      const name = cleanPetName(message.name);
+      if (player.petName === name) return;
+      player.petName = name;
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if(message.type==='network-telemetry'){metrics.clientSample(player.id,message);return;}
