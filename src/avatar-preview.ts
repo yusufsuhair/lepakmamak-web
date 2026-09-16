@@ -10,9 +10,9 @@ export function createAvatarPreview(canvas: HTMLCanvasElement) {
   renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(25, 280 / 360, .1, 20);
+  const camera = new THREE.PerspectiveCamera(29, 280 / 360, .1, 20);
   camera.position.set(2.8, 2.15, 5.8);
-  camera.lookAt(0, 1.12, 0);
+  camera.lookAt(0, 1.24, 0);
   scene.add(new THREE.HemisphereLight(0xe8f7e5, 0x102c27, 2.4));
   const key = new THREE.DirectionalLight(0xfff0c8, 3.2);
   key.position.set(-3, 5, 5);
