@@ -2,6 +2,7 @@ import {auth, session} from './auth';
 import catalog from '../shared/shop.json';
 import {createPetPreview} from './pet-preview';
 import {petBreedList, type PetBreedId} from './animals';
+import {bar} from './skeleton';
 import './pet-studio.css';
 
 type InventoryItem = {sku: string; equipped: boolean};
@@ -28,7 +29,7 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
   const previewName = dialog.querySelector<HTMLElement>('.pet-studio-preview-name')!;
   const status = dialog.querySelector<HTMLElement>('#pet-studio-status')!;
   const openShop = dialog.querySelector<HTMLButtonElement>('#pet-open-shop')!;
-  let state: ShopState = {items: [], balance: 0}, selectedCat: PetKind, selectedBreed: PetBreedId, selectedRibbon = '', petName = cleanName(session?.user.user_metadata?.pet_name || ''), busy = false;
+  let state: ShopState = {items: [], balance: 0}, selectedCat: PetKind, selectedBreed: PetBreedId, selectedRibbon = '', petName = cleanName(session?.user.user_metadata?.pet_name || ''), busy = false, ready = false, loadError = '';
   type PetKind = 'pet-ginger' | 'pet-cream';
   const catItems = () => catalog.filter(item => item.type === 'pet' && state.items.some(entry => entry.sku === item.id)) as PetItem[];
   const ribbonItems = () => catalog.filter(item => item.type === 'pet-decoration' && state.items.some(entry => entry.sku === item.id)) as PetItem[];
@@ -44,12 +45,20 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
   function draw() {
     const catsOwned = catItems(), ribbonsOwned = ribbonItems(), activeCat = currentCat() || catsOwned[0]?.id as PetKind | undefined;
     selectedCat = activeCat || 'pet-ginger'; selectedBreed = currentBreed(); selectedRibbon = currentRibbon();
-    const hasPet = catsOwned.length > 0;
-    layout.hidden = false; stage.hidden = !hasPet; nameForm.hidden = !hasPet;
-    openShop.hidden = false;
+    const hasPet = catsOwned.length > 0, loading = busy && !ready;
+    dialog.setAttribute('aria-busy', String(loading));
+    layout.hidden = false; stage.hidden = loading || !hasPet; nameForm.hidden = loading || !hasPet;
+    openShop.hidden = false; openShop.disabled = loading || busy;
+    if (loading) {
+      cats.replaceChildren(bar('100%', '44px'), bar('100%', '44px'));
+      breeds.replaceChildren(bar('100%', '44px'), bar('100%', '44px'));
+      ribbons.replaceChildren(bar('100%', '44px'));
+      status.textContent = 'Loading your companions…';
+      return;
+    }
     if (!hasPet) {
       cats.innerHTML = '<p class="pet-studio-empty">No pet yet. Adopt one in the shop.</p>'; breeds.replaceChildren(); ribbons.replaceChildren();
-      status.textContent = 'Your pets appear here after you buy one from the shop.'; return;
+      status.textContent = loadError || 'Your pets appear here after you buy one from the shop.'; return;
     }
     cats.replaceChildren();
     for (const item of catsOwned) {
@@ -113,10 +122,10 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
     }
   };
   async function load() {
-    busy = true; status.textContent = 'Loading your companions…'; draw();
+    busy = true; ready = false; loadError = ''; status.textContent = 'Loading your companions…'; draw();
     try { state = await api.inventory(); status.textContent = ''; }
-    catch { state = {items: [], balance: 0}; status.textContent = 'Sign in and buy a pet from the shop to start your companion collection.'; }
-    finally { busy = false; draw(); }
+    catch { state = {items: [], balance: 0}; loadError = 'Could not load your companions. Sign in and buy a pet from the shop to start your companion collection.'; }
+    finally { ready = true; busy = false; draw(); }
   }
   dialog.querySelector<HTMLButtonElement>('#pet-studio-close')!.onclick = () => dialog.close();
   openShop.onclick = () => { dialog.close(); options.openShop?.(); };

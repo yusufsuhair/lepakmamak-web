@@ -58,6 +58,19 @@ test('pet shop buys and equips cats and decorations through the account inventor
   await expect(page.locator('#item-shop')).not.toBeVisible();
 });
 
+test('pet studio shows a loading state before inventory is ready', async ({page}) => {
+  await page.route('**/pet-loading', route => route.fulfill({contentType:'text/html', body:'<main></main>'}));
+  await page.goto('/pet-loading');
+  await page.evaluate(async () => {
+    const {setupPetStudio} = await import('/src/pet-studio.ts');
+    setupPetStudio({inventory: () => new Promise(() => {}), equip: async () => ({items: [], balance: 0})}).open();
+  });
+  await expect(page.locator('#pet-studio')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('#pet-studio-status')).toHaveText('Loading your companions…');
+  await expect(page.locator('#pet-studio .skel')).toHaveCount(5);
+  await expect(page.locator('.pet-studio-empty')).toHaveCount(0);
+});
+
 for (const width of [1280,390]) test(`cat toolbar opens pet studio at ${width}px`, async ({page}) => {
   await page.setViewportSize({width,height:800});
   await enterAt(page,-18,52);
