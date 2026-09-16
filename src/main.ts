@@ -2875,7 +2875,9 @@ async function init() {
     if (voicePanel) voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
     if(localName && voicePanel && !voicePanel.hidden && !voiceInTable){
       camera.updateMatrixWorld();
-      const anchor=localName.position.clone().add(new THREE.Vector3(0,.35,0)).project(camera);
+      // A missing Geng leaves the name-tag row empty; use that space for the voice controls
+      // instead of making them float above an invisible badge.
+      const anchor=localName.position.clone().add(new THREE.Vector3(0,geng ? .35 : .05,0)).project(camera);
       voicePanel.hidden=anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x)>1;
       voicePanel.style.left=`${Math.max(60,Math.min(innerWidth-60,(anchor.x+1)*innerWidth/2))}px`;
       voicePanel.style.top=`${Math.max(105,Math.min(innerHeight-65,(1-anchor.y)*innerHeight/2))}px`;
