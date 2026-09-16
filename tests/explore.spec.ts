@@ -45,6 +45,7 @@ test('all destination cards use existing travel, guides dismiss, and the full ma
 
 test('mobile cards fit, keyboard focus stays in the dialog, and hint dismissal persists',async({page},info)=>{
  await page.setViewportSize({width:390,height:844});await page.addInitScript(()=>Object.defineProperty(navigator,'maxTouchPoints',{get:()=>5}));await city(page);await enter(page);
+ const hud=await page.evaluate(()=>{const explore=document.querySelector('#open-explore')!.getBoundingClientRect(),weather=document.querySelector('#weather-label')!.getBoundingClientRect();return{exploreBottom:explore.bottom,weatherTop:weather.top};});expect(hud.weatherTop-hud.exploreBottom).toBeGreaterThanOrEqual(8);
  await page.getByRole('button',{name:'Dismiss exploration hint'}).click();await page.locator('#open-explore').click();
  await expect(page.locator('#close-explore')).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(page.locator('#explore-map')).toBeFocused();
  const bounds=await page.locator('#explore-city').evaluate(e=>({client:e.clientWidth,scroll:e.scrollWidth}));expect(bounds.scroll).toBe(bounds.client);
