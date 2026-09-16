@@ -1,5 +1,71 @@
 import {test, expect} from '@playwright/test';
 import {enterAt} from './city';
+import {petStyle} from '../shared/pet-style.mjs';
+import petBreeds from '../shared/pet-breeds.json' with {type:'json'};
+import petCoats from '../shared/pet-coats.json' with {type:'json'};
+
+test('all breed and coat combinations validate while old styles remain supported', () => {
+  for (const breed of petBreeds) {
+    expect(petStyle(breed.id)?.coatId).toBe(breed.coat);
+    for (const coat of petCoats) expect(petStyle(`${breed.id}:${coat.id}`)).toMatchObject({breedId:breed.id,coatId:coat.id});
+  }
+  for (const invalid of [null,{},'munchkin:missing','missing:blue','munchkin:blue:extra','munchkin:']) expect(petStyle(invalid)).toBeNull();
+});
+
+test('breed silhouettes survive animation and share the Blender rig', async ({page}) => {
+  await page.route('**/pet-breeds', route => route.fulfill({contentType:'text/html',body:'<main style="display:grid;grid-template-columns:repeat(4,1fr);background:#18382d;color:#f6efd9;font:16px sans-serif;padding:20px;gap:12px"></main>'}));
+  await page.goto('/pet-breeds');
+  const result = await page.evaluate(async () => {
+    const {createAnimal,animateAnimal}=await import('/src/animals.ts');
+    const {createPetPreview}=await import('/src/pet-preview.ts');
+    const ids=['british-shorthair:blue','maine-coon:brown-tabby','munchkin:ginger-tabby','persian:white'];
+    const animals=ids.map(id=>createAnimal(true,'#ead8bd',id));
+    for(const id of ids){const tile=document.createElement('section');const canvas=document.createElement('canvas');canvas.style.cssText='width:100%;aspect-ratio:1';tile.append(canvas,document.createTextNode(id.split(':')[0]));document.querySelector('main')!.append(tile);const preview=createPetPreview(canvas);preview.setPet('pet-cream','',id);preview.setAction('idle');preview.start();}
+    await new Promise<void>((resolve,reject)=>{const until=Date.now()+10000;const timer=setInterval(()=>{if(animals.every(animal=>animal.parts)){clearInterval(timer);resolve();}else if(Date.now()>until){clearInterval(timer);reject(Error('Cat model did not load'));}},25);});
+    for(const animal of animals){animateAnimal(animal,'lie',1);animateAnimal(animal,'walk',2);animateAnimal(animal,'idle',3);}
+    return animals.map(animal=>({headWidth:animal.parts!.head.scale.x,legHeight:animal.parts!.legs[0].position.y,legScale:animal.parts!.legs[0].scale.y,fluffy:animal.parts!.visual.getObjectByName('pet-ruff--1-0')!.visible,model:animal.group.userData.catModel}));
+  });
+  expect(result[0].headWidth).toBeGreaterThan(result[2].headWidth);
+  expect(result[2].legHeight).toBeLessThan(result[0].legHeight);
+  expect(result[2].legScale).toBeLessThan(result[0].legScale);
+  expect(result.map(item=>item.fluffy)).toEqual([false,true,false,true]);
+  for(const canvas of await page.locator('canvas').all()) await expect(canvas).toHaveAttribute('data-model','blender');
+  await page.screenshot({path:'test-results/pet-breed-lineup.png'});
+});
+
+for (const width of [1280,390]) test(`pet studio customises breeds and coats independently at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width,height:850});
+  await page.route('**/src/auth.ts*', route => route.fulfill({contentType:'application/javascript',body:`export const session={user:{id:'owner',user_metadata:{pet_breed:'ginger-tabby'}}}; export const auth={auth:{updateUser:async({data})=>{Object.assign(session.user.user_metadata,data);return {data:{user:session.user},error:null};}}};`}));
+  await page.route('**/pet-customise', route => route.fulfill({contentType:'text/html',body:'<link rel="stylesheet" href="/src/style.css"><main></main>'}));
+  await page.goto('/pet-customise');
+  await page.evaluate(async () => {
+    const {setupPetStudio}=await import('/src/pet-studio.ts');
+    const state={items:[{sku:'pet-ginger',equipped:true}],balance:200};
+    const studio=setupPetStudio({inventory:async()=>state,equip:async()=>state},{onBreed:value=>{document.body.dataset.style=value;}});
+    (window as any).petStudio=studio;studio.open();
+  });
+  const modal=page.locator('#pet-studio'),canvas=modal.locator('canvas');
+  await expect(modal.locator('.pet-studio-breeds button')).toHaveCount(petBreeds.length);
+  await modal.getByRole('button',{name:'British Shorthair',exact:true}).click();
+  await modal.getByRole('button',{name:'Blue grey',exact:true}).click();
+  await expect(canvas).toHaveAttribute('data-breed','british-shorthair:blue');
+  await expect(canvas).toHaveAttribute('data-model','blender');
+  await modal.getByRole('button',{name:'Maine Coon',exact:true}).click();
+  await modal.getByRole('button',{name:'Black smoke',exact:true}).click();
+  await expect(page.locator('body')).toHaveAttribute('data-style','maine-coon:smoke');
+  await modal.getByRole('button',{name:'Rest',exact:true}).click();
+  await expect(canvas).toHaveAttribute('data-action','lie');
+  await modal.getByRole('button',{name:'Close pet studio'}).click();
+  await page.evaluate(()=>(window as any).petStudio.open());
+  await expect(canvas).toHaveAttribute('data-breed','maine-coon:smoke');
+  await modal.getByRole('button',{name:'Munchkin',exact:true}).click();
+  await expect(canvas).toHaveAttribute('data-breed','munchkin:smoke');
+  await modal.getByRole('button',{name:'Stand',exact:true}).click();
+  await expect(canvas).toHaveAttribute('data-model','blender');
+  await modal.evaluate(el=>el.scrollTop=0);
+  expect(await modal.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  await page.screenshot({path:`test-results/pet-revamp-${width}.png`});
+});
 
 test('pets follow, catch up after travel, change decoration and leave with their owner', async ({page}) => {
   await page.route('**/pet-harness', route => route.fulfill({contentType:'text/html', body:'<main></main>'}));

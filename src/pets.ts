@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {animateAnimal, createAnimal, petBreedList} from './animals';
+import {animateAnimal, createAnimal} from './animals';
+import {petStyle} from '../shared/pet-style.mjs';
 import {box} from './world';
 import {moveWithCollisions, type Solid} from './physics';
 
@@ -34,6 +35,7 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
     const pet = followers.get(id);
     if (!pet) return;
     scene.remove(pet.animal.group);
+    pet.animal.group.userData.disposed = true;
     pet.label.dispose();
     // Spheres, boxes and model geometry are shared; only cloned model materials are owned here.
     pet.animal.group.traverse(object => { if (object instanceof THREE.Mesh && object.geometry.type === 'ConeGeometry') object.geometry.dispose(); });
@@ -44,7 +46,7 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
     begin() { seen.clear(); },
     update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '', petBreed = '') {
       const items = equipment.split(',');
-      const savedBreed = petBreedList.find(item => item.id === petBreed);
+      const savedBreed = petStyle(petBreed);
       const hasPet = items.includes('pet-companion') || items.includes('pet-ginger') || items.includes('pet-cream');
       const cat = hasPet ? (savedBreed?.base || (items.includes('pet-cream') ? 'pet-cream' : 'pet-ginger')) : '';
       if (!cat) return;

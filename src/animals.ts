@@ -2,16 +2,17 @@ import * as THREE from 'three';
 import {box, cullCrowd, material, setObjectShadows} from './world';
 import {loadGltf} from './web-assets';
 import petBreeds from '../shared/pet-breeds.json';
+import {petStyle} from '../shared/pet-style.mjs';
 import type {Solid} from './physics';
 
 const roundGeometry=new THREE.SphereGeometry(1,10,8);
-const CAT_MODEL_URL='/assets/models/pets/LM_PET_Cats.glb?v=cats-v1';
+const CAT_MODEL_URL='/assets/models/pets/LM_PET_Cats.glb?v=cats-v2';
 let catModel:Promise<THREE.Group|null>|null=null;
 function loadCatModel(){return catModel||(catModel=loadGltf(CAT_MODEL_URL).then(result=>result.scene).catch(()=>null));}
 
 export type PetBreedId=typeof petBreeds[number]['id'];
-export type PetBreed=typeof petBreeds[number];
-export const petBreedList=petBreeds as readonly PetBreed[];
+export type PetBreed=NonNullable<ReturnType<typeof petStyle>>;
+export const petBreedList=petBreeds;
 export type AnimalAction='idle'|'walk'|'lie'|'play'|'jump';
 type CatParts={visual:THREE.Group;body:THREE.Object3D;head:THREE.Object3D;legs:THREE.Object3D[];tail:THREE.Object3D;ears:THREE.Object3D[];eyes:THREE.Object3D[]};
 type Animal={group:THREE.Group;body:THREE.Group;head:THREE.Group;legs:THREE.Mesh[];tail:THREE.Group;cat:boolean;anchor:THREE.Object3D;parts:CatParts|null;breed:PetBreedId|null};
@@ -19,31 +20,55 @@ type Animal={group:THREE.Group;body:THREE.Group;head:THREE.Group;legs:THREE.Mesh
 function round(parent:THREE.Object3D,x:number,y:number,z:number,scale:number[],color:string){const mesh=new THREE.Mesh(roundGeometry,material(color));mesh.position.set(x,y,z);mesh.scale.set(...scale as [number,number,number]);mesh.castShadow=true;parent.add(mesh);return mesh;}
 
 function breedFor(color:string,breed?:string){
-  const selected=petBreedList.find(item=>item.id===breed);
-  if(selected)return selected;
-  return petBreedList.find(item=>item.base==='pet-ginger'&&item.fur.toLowerCase()===color.toLowerCase())||petBreedList[0];
+  return petStyle(breed)||petStyle(color==='#f0e8d8'?'cream-shorthair':'ginger-tabby')!;
+}
+
+const coatTextures=new Map<string,THREE.CanvasTexture>();
+function coatTexture(breed:PetBreed){
+  if(coatTextures.has(breed.coatId))return coatTextures.get(breed.coatId)!;
+  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+  const ctx=canvas.getContext('2d')!;
+  ctx.fillStyle=breed.fur;ctx.fillRect(0,0,256,256);ctx.fillStyle=breed.stripe;
+  if(breed.pattern==='tabby')for(let i=0;i<12;i++){
+    ctx.beginPath();for(let y=0;y<=256;y+=8){const x=i*24+Math.sin(y*.04+i)*8; if(y===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    ctx.strokeStyle=breed.stripe;ctx.lineWidth=5+(i%3);ctx.stroke();
+  }
+  if(breed.pattern==='spotted')for(let i=0;i<38;i++){
+    const x=(i*73)%256,y=(i*97)%256;ctx.beginPath();ctx.ellipse(x,y,8,5,i,0,Math.PI*2);ctx.strokeStyle=breed.stripe;ctx.lineWidth=3;ctx.stroke();
+  }
+  if(breed.pattern==='calico')for(let i=0;i<10;i++){
+    ctx.fillStyle=i%2?breed.stripe:'#34302e';ctx.beginPath();ctx.ellipse((i*83)%256,(i*107)%256,28,37,i,0,Math.PI*2);ctx.fill();
+  }
+  if(breed.pattern==='smoke'){
+    const gradient=ctx.createLinearGradient(0,0,0,256);gradient.addColorStop(0,breed.stripe);gradient.addColorStop(1,breed.belly);ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);
+  }
+  // Fine, deterministic coat grain: one shared texture per palette, no extra draw calls.
+  for(let i=0;i<1800;i++){ctx.fillStyle=i%2?'#ffffff12':'#0000000b';ctx.fillRect((i*73)%256,(i*157+Math.floor(i/256)*31)%256,1,3);}
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;coatTextures.set(breed.coatId,texture);return texture;
 }
 
 function materialShade(mesh:THREE.Mesh,breed:PetBreed,source:THREE.Material){
-  const next=source.clone() as THREE.Material & {color?:THREE.Color};
+  const next=source.clone() as THREE.MeshStandardMaterial;
   const name=mesh.name.toLowerCase();
   let shade='';
   if(name.includes('eye-glint'))shade='#fffdf0';
+  else if(name.includes('eye-pupil'))shade='#10181b';
   else if(name.includes('eye'))shade=breed.eye;
   else if(name.includes('nose'))shade='#c66f75';
   else if(name.includes('ear-inner'))shade='#dd9698';
   else if(name.includes('belly')||name.includes('cheek')||name.includes('paw-shell'))shade=breed.belly;
-  else if(breed.id==='tuxedo'&&(name.includes('chest')||name.includes('neck')||name.includes('paw')))shade=breed.belly;
-  else if(breed.id==='siamese'&&(name.includes('ear-shell')||name.includes('tail-segment')||name.includes('leg-shin')))shade=breed.stripe;
-  else if(breed.id==='calico'&&(name.includes('tail-segment-tip')||name.includes('ear-shell-l')))shade=breed.stripe;
+  else if(name.includes('whisker'))shade=breed.belly;
+  else if(breed.pattern==='bicolor'&&name.includes('chest'))shade=breed.belly;
+  else if(breed.pattern==='point'&&(name.includes('ear-shell')||name.includes('tail-segment')||name.includes('leg-shin')||name.includes('head-shell')))shade=breed.stripe;
   else shade=breed.fur;
   if(next.color&&shade)next.color.set(shade);
+  if(next.isMeshStandardMaterial&&shade===breed.fur&&!name.includes('eye')&&!name.includes('ear')){next.color.set('#ffffff');next.map=coatTexture(breed);next.roughness=.9;}
   return next;
 }
 
 function attachCatModel(animal:Animal,template:THREE.Group,breed:PetBreed){
   if(animal.group.userData.disposed||animal.parts)return;
-  const visual=template.clone(true);visual.name='LM_PET_Cat_Visual';visual.rotation.x=Math.PI/2;visual.position.y=-.24;visual.scale.setScalar(breed.scale);
+  const visual=template.clone(true);visual.name='LM_PET_Cat_Visual';
   const materials=new Set<THREE.Material>();
   visual.traverse(object=>{
     if(!(object instanceof THREE.Mesh))return;
@@ -56,6 +81,17 @@ function attachCatModel(animal:Animal,template:THREE.Group,breed:PetBreed){
   const legs=['pet-leg-fl','pet-leg-fr','pet-leg-bl','pet-leg-br'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
   const ears=['pet-ear-l','pet-ear-r'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
   const eyes=['pet-eye-l','pet-eye-r'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
+  const fluffy=breed.shape.includes('fluffy'),roundFace=['round','fluffy-round','flat-fluffy','fold'].includes(breed.shape),short=breed.shape==='short-legged';
+  const slender=breed.shape.includes('slender'),large=breed.shape==='large-fluffy';
+  visual.scale.setScalar(large?1.16:1);
+  const shell=visual.getObjectByName('pet-body-shell');if(shell)shell.scale.set(slender?.82:roundFace?1.16:1,roundFace?1.06:1,large?1.12:1);
+  head.scale.set(roundFace?1.17:slender?.9:1,roundFace?1.08:1,breed.shape==='flat-fluffy'?.78:1);
+  for(const ear of ears){ear.scale.setScalar(roundFace?.76:large?1.18:1);if(breed.shape==='fold')ear.rotation.x=.95;}
+  if(fluffy)tail.scale.set(1.8,1.4,1.15);
+  for(const leg of legs)if(short){leg.position.y=.23;leg.scale.y=.55;}
+  if(short){body.position.y-=.17;head.position.y-=.17;tail.position.y-=.17;}
+  visual.traverse(object=>{if(object.name.includes('pet-ruff')||object.name.includes('pet-fluff'))object.visible=fluffy;if(object.name.includes('ear-tuft'))object.visible=large;});
+  for(const part of [body,head,tail,...legs,...ears,...eyes]){part.userData.restPosition=part.position.clone();part.userData.restRotation=part.rotation.clone();part.userData.restScale=part.scale.clone();}
   animal.body.visible=false;animal.group.add(visual);animal.anchor=body;animal.parts={visual,body,head,legs,tail,ears,eyes};animal.breed=breed.id;animal.group.userData.catModel='blender';animal.group.userData.catMaterials=materials;
 }
 
@@ -63,16 +99,16 @@ function attachCatModel(animal:Animal,template:THREE.Group,breed:PetBreed){
 export function animateAnimal(animal:Animal,action:AnimalAction,time:number,phase=0){
   const parts=animal.parts;
   const body=parts?.body||animal.body,head=parts?.head||animal.head,legs=parts?.legs||animal.legs,tail=parts?.tail||animal.tail;
-  body.rotation.set(0,0,0);head.rotation.set(0,0,0);tail.rotation.set(0,0,0);body.position.y=0;
-  for(const leg of legs)leg.rotation.set(0,0,0);
+  if(parts)for(const part of [body,head,tail,...legs,...parts.ears,...parts.eyes]){part.position.copy(part.userData.restPosition);part.rotation.copy(part.userData.restRotation);part.scale.copy(part.userData.restScale);}
+  else {body.rotation.set(0,0,0);head.rotation.set(0,0,0);tail.rotation.set(0,0,0);body.position.y=0;for(const leg of legs)leg.rotation.set(0,0,0);}
   animal.group.userData.poseYOffset=0;
-  if(parts){parts.head.position.set(0,.31,action==='lie'?- .75:-.92);parts.body.position.set(0,0,action==='lie'?- .36:-.47);}
   const stride=time*10+phase;
   if(action==='walk'){
     for(const [index,leg] of legs.entries())leg.rotation.x=Math.sin(stride+(index===0||index===3?0:Math.PI))*.48;
-    body.position.y=Math.abs(Math.sin(stride))*.025;tail.rotation.z=Math.sin(time*3+phase)*.28;head.rotation.z=Math.sin(time*1.7+phase)*.04;
+    body.position.y+=Math.abs(Math.sin(stride))*.025;tail.rotation.y=Math.sin(time*3+phase)*.28;head.rotation.z=Math.sin(time*1.7+phase)*.04;
   }else if(action==='lie'){
-    body.rotation.y=.92;head.rotation.z=-.25;tail.rotation.z=.4;animal.group.userData.poseYOffset=-.16;
+    if(parts){body.position.y=.26;head.position.y=.46;tail.position.y=.28;for(const leg of legs){leg.rotation.x=-1.15;leg.position.y=.15;}head.rotation.z=-.12;tail.rotation.y=.6;}
+    else {body.rotation.z=.8;head.rotation.z=-.25;animal.group.userData.poseYOffset=-.16;}
   }else if(action==='play'){
     body.rotation.x=-.20;head.rotation.x=.22;head.rotation.z=Math.sin(time*4+phase)*.14;tail.rotation.z=Math.sin(time*5+phase)*.7;
     for(const [index,leg] of legs.entries())leg.rotation.x=index<2?-.34+Math.sin(time*5+index)*.14:.18;
@@ -80,7 +116,7 @@ export function animateAnimal(animal:Animal,action:AnimalAction,time:number,phas
     animal.group.userData.poseYOffset=Math.max(0,Math.sin((time+phase)*5))* .42;body.rotation.x=.12;head.rotation.x=-.12;tail.rotation.z=Math.sin(time*6+phase)*.5;
     for(const leg of legs)leg.rotation.x=-.65;
   }else{
-    body.position.y=Math.abs(Math.sin(time*1.8+phase))*.018;head.rotation.z=Math.sin(time*.9+phase)*.06;tail.rotation.z=Math.sin(time*1.8+phase)*.22;
+    body.position.y+=Math.abs(Math.sin(time*1.8+phase))*.018;head.rotation.z=Math.sin(time*.9+phase)*.06;tail.rotation.y=Math.sin(time*1.8+phase)*.22;
     if(parts&&Math.sin(time*.8+phase)>0.93)for(const ear of parts.ears)ear.rotation.z=Math.sin(time*14+phase)*.16;
   }
   if(parts){const blink=Math.sin(time*.95+phase)>0.985? .12:1;for(const eye of parts.eyes)eye.scale.y=blink;}

@@ -48,7 +48,7 @@ import city from '../shared/city.json' with {type:'json'};
 import voiceConfig from '../shared/voice.json' with { type: 'json' };
 import vehicleSeats from '../shared/vehicle-seats.json' with { type: 'json' };
 import packageInfo from '../package.json' with { type: 'json' };
-import petBreeds from '../shared/pet-breeds.json' with { type: 'json' };
+import {petStyle} from '../shared/pet-style.mjs';
 const { version } = packageInfo;
 import appearanceOptions from '../shared/appearance.json' with { type: 'json' };
 const defaults = { gender: 'male', hairstyle: 'short', hair: '#202c2b', skin: '#b98157', shirt: '#ef734c', trousers: '#c7be9c', tudung: 'none' };
@@ -260,7 +260,7 @@ function cleanPetName(value) {
 }
 function cleanPetBreed(value) {
   const id = typeof value === 'string' ? value.trim() : '';
-  return petBreeds.some(item => item.id === id) ? id : '';
+  return petStyle(id)?.id || '';
 }
 
 async function identify(token, guest = false, guestName) {

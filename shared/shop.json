@@ -3,7 +3,7 @@
   {"id":"cap","name":"Lepak Cap","description":"Green cap with a lime brim.","price":150,"type":"accessory"},
   {"id":"batik","name":"Night Batik Skin","description":"Blue batik shirt with a Malaysian gold pattern.","price":220,"type":"skin"},
   {"id":"harimau","name":"Malayan Tiger Skin","description":"Yellow-and-black jersey with the spirit of Harimau Malaya.","price":260,"type":"skin"},
-  {"id":"pet-companion","name":"Lepak Cat Companion","description":"A lively 3D cat companion. Choose from six breeds and colours in Pet Studio.","price":250,"type":"pet"},
+  {"id":"pet-companion","name":"Lepak Cat Companion","description":"Buy once. All breeds and coat colours included — customise your companion in Pet Studio.","price":250,"type":"pet"},
   {"id":"pet-collar-red","name":"Red ribbon","description":"Dress your cat in a red bow collar.","price":60,"type":"pet-decoration"},
   {"id":"pet-collar-teal","name":"Teal ribbon","description":"A teal bow collar for your companion.","price":60,"type":"pet-decoration"}
 ]

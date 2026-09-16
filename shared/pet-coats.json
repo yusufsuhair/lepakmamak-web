@@ -1,0 +1,19 @@
+[
+  {"id":"ginger-tabby","name":"Ginger tabby","fur":"#cb803e","belly":"#f7deb7","stripe":"#784029","eye":"#b79a38","pattern":"tabby"},
+  {"id":"cream","name":"Cream","fur":"#ead8bd","belly":"#fff1d9","stripe":"#b69268","eye":"#78985e","pattern":"solid"},
+  {"id":"blue","name":"Blue grey","fur":"#7d8994","belly":"#a8b3bc","stripe":"#56616c","eye":"#d99b38","pattern":"solid"},
+  {"id":"lilac","name":"Lilac","fur":"#b4a2ae","belly":"#d7c6ce","stripe":"#84717d","eye":"#c79743","pattern":"solid"},
+  {"id":"chocolate","name":"Chocolate","fur":"#705041","belly":"#9d7963","stripe":"#412d28","eye":"#b5b354","pattern":"solid"},
+  {"id":"cinnamon","name":"Cinnamon","fur":"#ac6e4d","belly":"#d9ac86","stripe":"#74462d","eye":"#b1a74d","pattern":"solid"},
+  {"id":"fawn","name":"Fawn","fur":"#c5ac94","belly":"#e4d2bb","stripe":"#96816d","eye":"#92ab6c","pattern":"solid"},
+  {"id":"white","name":"Snow white","fur":"#f4efe6","belly":"#fff9ef","stripe":"#ded8ce","eye":"#70b7d1","pattern":"solid"},
+  {"id":"black","name":"Midnight black","fur":"#282c32","belly":"#353942","stripe":"#171b20","eye":"#d3bc51","pattern":"solid"},
+  {"id":"tuxedo","name":"Tuxedo","fur":"#252a2b","belly":"#f0eee5","stripe":"#171b20","eye":"#b4c878","pattern":"bicolor"},
+  {"id":"calico","name":"Calico","fur":"#f0e3cf","belly":"#fff4df","stripe":"#c86c3f","eye":"#82955e","pattern":"calico"},
+  {"id":"seal-point","name":"Seal point","fur":"#e6c9a5","belly":"#f7e7ca","stripe":"#604842","eye":"#67a9d0","pattern":"point"},
+  {"id":"blue-point","name":"Blue point","fur":"#e3e0d8","belly":"#f5f0e6","stripe":"#727e94","eye":"#70b6e0","pattern":"point"},
+  {"id":"silver-tabby","name":"Silver tabby","fur":"#bfc3c5","belly":"#eeeeea","stripe":"#4c5259","eye":"#8caf67","pattern":"tabby"},
+  {"id":"brown-tabby","name":"Brown tabby","fur":"#9d805f","belly":"#d5bea0","stripe":"#48392c","eye":"#b9a755","pattern":"tabby"},
+  {"id":"smoke","name":"Black smoke","fur":"#565965","belly":"#bab9c0","stripe":"#2c3039","eye":"#cead4b","pattern":"smoke"},
+  {"id":"golden-spotted","name":"Golden spotted","fur":"#cda06a","belly":"#f0dbb7","stripe":"#513927","eye":"#88a566","pattern":"spotted"}
+]

@@ -1,8 +1,18 @@
 [
-  {"id":"ginger-tabby","name":"Ginger tabby","base":"pet-ginger","fur":"#c97836","belly":"#f4d5ad","stripe":"#75402a","eye":"#9c6b2f","scale":1},
-  {"id":"cream-shorthair","name":"Cream shorthair","base":"pet-cream","fur":"#ead8bd","belly":"#fff1d9","stripe":"#b69268","eye":"#6f8e70","scale":1.02},
-  {"id":"tuxedo","name":"Tuxedo","base":"pet-cream","fur":"#252a2b","belly":"#f0eee5","stripe":"#4b5150","eye":"#b4c878","scale":1},
-  {"id":"siamese","name":"Siamese","base":"pet-cream","fur":"#e6c9a5","belly":"#f7e7ca","stripe":"#604842","eye":"#67a1ad","scale":0.98},
-  {"id":"calico","name":"Calico","base":"pet-ginger","fur":"#f0e3cf","belly":"#fff4df","stripe":"#c86c3f","eye":"#82955e","scale":1.01},
-  {"id":"russian-blue","name":"Russian blue","base":"pet-cream","fur":"#7d8994","belly":"#cbd2d2","stripe":"#56616c","eye":"#c6b65d","scale":1.03}
+  {"id":"ginger-tabby","name":"Domestic Shorthair","base":"pet-ginger","coat":"ginger-tabby","shape":"standard","description":"An easygoing classic with a sleek coat."},
+  {"id":"cream-shorthair","name":"Cream Shorthair","base":"pet-cream","coat":"cream","shape":"standard","description":"A soft cream classic with bright, curious eyes."},
+  {"id":"tuxedo","name":"Tuxedo","base":"pet-cream","coat":"tuxedo","shape":"standard","description":"A dapper domestic cat in a white bib and socks."},
+  {"id":"siamese","name":"Siamese","base":"pet-cream","coat":"seal-point","shape":"slender","description":"A slender silhouette with tall ears and blue eyes."},
+  {"id":"calico","name":"Calico","base":"pet-ginger","coat":"calico","shape":"standard","description":"A domestic favourite with a colourful patchwork coat."},
+  {"id":"russian-blue","name":"Russian Blue","base":"pet-cream","coat":"blue","shape":"slender","description":"An elegant frame with a plush blue-grey coat."},
+  {"id":"british-shorthair","name":"British Shorthair","base":"pet-cream","coat":"blue","shape":"round","description":"Round cheeks, small ears and a chunky plush body."},
+  {"id":"british-longhair","name":"British Longhair","base":"pet-cream","coat":"lilac","shape":"fluffy-round","description":"British roundness with a full ruff and fluffy tail."},
+  {"id":"maine-coon","name":"Maine Coon","base":"pet-ginger","coat":"brown-tabby","shape":"large-fluffy","description":"A large companion with ear tufts and a sweeping tail."},
+  {"id":"munchkin","name":"Munchkin","base":"pet-ginger","coat":"ginger-tabby","shape":"short-legged","description":"Little legs, a low stance and a full-length body."},
+  {"id":"persian","name":"Persian","base":"pet-cream","coat":"white","shape":"flat-fluffy","description":"A soft round face, short muzzle and flowing coat."},
+  {"id":"ragdoll","name":"Ragdoll","base":"pet-cream","coat":"blue-point","shape":"fluffy","description":"Blue eyes, a soft ruff and a long feathery tail."},
+  {"id":"bengal","name":"Bengal","base":"pet-ginger","coat":"golden-spotted","shape":"athletic","description":"An athletic frame with a striking spotted coat."},
+  {"id":"scottish-fold","name":"Scottish Fold","base":"pet-cream","coat":"silver-tabby","shape":"fold","description":"A round face with little ears folded forward."},
+  {"id":"norwegian-forest","name":"Norwegian Forest","base":"pet-ginger","coat":"smoke","shape":"large-fluffy","description":"A tall, fluffy companion with a generous neck ruff."},
+  {"id":"turkish-angora","name":"Turkish Angora","base":"pet-cream","coat":"white","shape":"slender-fluffy","description":"A fine frame, pointed ears and a silky plumed tail."}
 ]
