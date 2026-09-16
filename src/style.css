@@ -664,6 +664,9 @@ html, body, #app { touch-action: manipulation; }
    pair on the same line as the message rather than pushing it to a third row. */
 .chat-who { display: inline-flex; flex-direction: column; vertical-align: top; margin-right: 6px; }
 .chat-who strong { line-height: 1.25; }
+.chat-who .chat-author { margin: 0; padding: 0; border: 0; background: none; color: #ddf69a; font: inherit; font-weight: 700; line-height: 1.25; text-align: left; cursor: pointer; }
+.chat-who .chat-author:hover { text-decoration: underline; }
+.chat-who .chat-author:focus-visible { outline: 2px solid #dfff87; outline-offset: 2px; border-radius: 3px; }
 .chat-area { font-size: 9px; letter-spacing: .06em; line-height: 1.2; color: #9fb094; text-transform: uppercase; }
 .chat-said { overflow-wrap: anywhere; }
 .chat-log strong { color: #ddf69a; }

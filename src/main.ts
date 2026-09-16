@@ -683,6 +683,7 @@ async function init() {
     older: userId => inbox.older(userId),
     block: userId => void inbox.block(userId),
     report: userId => inbox.report(userId),
+    profile: (id, name) => { selectedName = name; selectedProfileId = id; openSelectedProfile(); },
   });
   let networkSocket: WebSocket | null = null;
   if(import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true') setupDeveloperOptions(message=>{if(networkSocket?.readyState!==WebSocket.OPEN)return false;networkSocket.send(JSON.stringify(message));return true;},value=>weatherUI.preview(value),{get:()=>soundRange,set:setSoundRange});
@@ -1584,7 +1585,7 @@ async function init() {
           const thread = message.channel === 'dm'
             ? (own ? {id: message.to as string, name: message.toName as string} : {id: message.id as string, name: message.name as string})
             : undefined;
-          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' || message.channel === 'table' ? message.channel : 'all', thread, String((message as unknown as {area?:string}).area || ''));
+          chat.append(message.name, message.text, message.sentAt, !!message.gameMaster, !own, message.channel === 'party' || message.channel === 'dm' || message.channel === 'table' ? message.channel : 'all', thread, String((message as unknown as {area?:string}).area || ''), String(message.id || ''));
           if(message.id !== networkPlayerId)chatPop();
           if (message.id) showSpeechBubble(message.id, message.name, message.text);
         }
