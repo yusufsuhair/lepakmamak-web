@@ -1,6 +1,6 @@
 import './announce.css';
 
-export const CRAWL_MS = 13000;
+export const CRAWL_MS = 24000;
 
 // A crawl across the top edge, where players expect server announcements. The server keeps
 // the standing line until the GM replaces it or explicitly sends /gmoff.
