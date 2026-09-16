@@ -324,6 +324,68 @@ async function init() {
   }
   const refresher = createRefresher($('hud'));
   const notificationStack=document.createElement('div');notificationStack.id='notification-stack';$('hud').append(notificationStack);notificationStack.append($('toast'));
+  type ActivityNotification = {title: string; body: string; at: number};
+  const notificationSettings = document.createElement('section');
+  notificationSettings.id = 'notification-settings';
+  notificationSettings.setAttribute('aria-labelledby', 'notifications-title');
+  notificationSettings.innerHTML = '<div class="notification-settings-head"><div><small>ACTIVITY</small><h3 id="notifications-title">Notifications</h3></div><button type="button" id="notifications-clear">Clear</button></div><ol id="notification-list" aria-live="polite"></ol><p id="notifications-empty">No notifications yet.</p><label class="notification-email-toggle" for="email-notifications-toggle"><span><strong>Email notifications</strong><small>Get game invites and friend updates by email.</small></span><input id="email-notifications-toggle" type="checkbox" /></label><label class="notification-email-field" for="notification-email"><span>Email destination</span><input id="notification-email" type="email" disabled placeholder="Sign in to enable email alerts" /></label><small id="notification-email-note" role="status">Sign in to enable email alerts.</small>';
+  const pausePanel = $('pause').querySelector<HTMLElement>('.pause-panel')!;
+  pausePanel.insertBefore(notificationSettings, $('reset'));
+  let activityItems: ActivityNotification[] = [];
+  let activityKey = '';
+  const activityStorageKey = () => `lepakmamak-notifications:${session?.user.id || (guestName ? `guest:${guestName}` : 'local')}`;
+  const emailPreferenceKey = () => session?.user.id ? `lepakmamak-email-notifications:${session.user.id}` : '';
+  function saveActivityItems() {
+    try { localStorage.setItem(activityKey, JSON.stringify(activityItems)); } catch { /* storage can be unavailable in private browsing */ }
+  }
+  function loadActivityItems() {
+    const key = activityStorageKey();
+    if (key === activityKey) return;
+    activityKey = key; activityItems = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(parsed)) activityItems = parsed.filter(item => item && typeof item.title === 'string' && typeof item.body === 'string' && Number.isFinite(item.at) && Math.abs(item.at) <= 8640000000000000).slice(0, 40);
+    } catch { /* a malformed local record should not stop the city */ }
+  }
+  function renderActivityItems() {
+    const list = $('notification-list'); list.replaceChildren();
+    $('notifications-empty').hidden = activityItems.length > 0;
+    const clear = $<HTMLButtonElement>('notifications-clear'); clear.disabled = activityItems.length === 0;
+    for (const item of activityItems) {
+      const row = document.createElement('li'); row.className = 'notification-item';
+      const copy = document.createElement('span'); copy.className = 'notification-copy';
+      const title = document.createElement('strong'); title.textContent = item.title;
+      const body = document.createElement('span'); body.textContent = item.body;
+      const time = document.createElement('time'); time.dateTime = new Date(item.at).toISOString(); time.textContent = new Date(item.at).toLocaleString('en-MY', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+      copy.append(title, body); row.append(copy, time); list.append(row);
+    }
+  }
+  function recordActivityNotification(title: string, body: string) {
+    loadActivityItems();
+    const now = Date.now();
+    if (activityItems[0] && activityItems[0].title === title && activityItems[0].body === body && now - activityItems[0].at < 1500) return;
+    activityItems.unshift({title, body, at: now}); activityItems = activityItems.slice(0, 40); saveActivityItems(); renderActivityItems();
+  }
+  function syncNotificationSettings() {
+    loadActivityItems(); renderActivityItems();
+    const email = session?.user.email?.trim() || '';
+    const toggle = $<HTMLInputElement>('email-notifications-toggle');
+    const field = $<HTMLInputElement>('notification-email');
+    const note = $('notification-email-note');
+    toggle.disabled = !email;
+    toggle.checked = !!email && (() => { try { return localStorage.getItem(emailPreferenceKey()) === 'true'; } catch { return false; } })();
+    field.value = email; field.disabled = true;
+    note.textContent = email ? 'Will be sent to this email.' : 'Sign in to enable email alerts.';
+  }
+  $<HTMLButtonElement>('notifications-clear').onclick = () => { loadActivityItems(); activityItems = []; saveActivityItems(); renderActivityItems(); };
+  $<HTMLInputElement>('email-notifications-toggle').onchange = event => {
+    const toggle = event.currentTarget as HTMLInputElement;
+    const key = emailPreferenceKey();
+    if (!key) { toggle.checked = false; return; }
+    try { localStorage.setItem(key, String(toggle.checked)); } catch { /* preference is best effort */ }
+    $('notification-email-note').textContent = toggle.checked ? 'Will be sent to this email.' : 'Email alerts are off.';
+  };
+  renderActivityItems(); syncNotificationSettings();
   const lrtPanel=document.createElement('section');lrtPanel.className='lrt-panel';lrtPanel.hidden=true;lrtPanel.innerHTML='<strong></strong><small></small><button type="button">Turun di stesen</button>';notificationStack.append(lrtPanel);
   lrtPanel.querySelector('button')!.onclick=()=>{if(networkSocket?.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'lrt-exit'}));};
   const village=createVillageResidents(scene);
@@ -488,6 +550,7 @@ async function init() {
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type}));
   }
   function showPartyInvite(name: string) {
+    recordActivityNotification('Geng invite', `${name} invited you to join their Geng.`);
     partyInvite.querySelector('#party-invite-text')!.textContent = `${name} ajak anda masuk geng.`;
     partyInvite.hidden = false;
     // The server drops the invite after a minute; the banner should not outlive it.
@@ -500,7 +563,9 @@ async function init() {
   }
   function showTableInvite(invite: TableInvite) {
     tableInviteId = invite.id;
-    tableInvite.querySelector('#table-invite-text')!.textContent = `${invite.inviter.name} invited you to ${invite.game === 'lukis' ? 'Lukis Lah!' : invite.game === 'poker' ? 'Poker Kampung' : invite.game === 'uno' ? 'UNO Lepak' : 'Werewolf'} at ${invite.tableName}.`;
+    const gameTitle = invite.game === 'lukis' ? 'Lukis Lah!' : invite.game === 'poker' ? 'Poker Kampung' : invite.game === 'uno' ? 'UNO Lepak' : 'Werewolf';
+    recordActivityNotification('Table game invite', `${invite.inviter.name} invited you to ${gameTitle} at ${invite.tableName}.`);
+    tableInvite.querySelector('#table-invite-text')!.textContent = `${invite.inviter.name} invited you to ${gameTitle} at ${invite.tableName}.`;
     tableInvite.querySelector('#table-invite-meta')!.textContent = `${invite.available} space${invite.available === 1 ? '' : 's'} available · Open the table first, then choose JOIN and READY yourself.`;
     tableInvite.querySelector<HTMLButtonElement>('#table-invite-open')!.disabled = false;
     tableInvite.hidden = false;
@@ -521,7 +586,10 @@ async function init() {
   let gengButton: HTMLButtonElement | null = null;
   let friendsButton: HTMLButtonElement | null = null;
   let profileButton: HTMLButtonElement | null = null;
+  let latestGengState: GengState | null = null;
+  let latestFriendState: FriendState | null = null;
   function applyGengState(state: GengState | null) {
+    latestGengState = state;
     const current = state?.current || null;
     geng = current?.name || ''; gengLeader = !!current?.leader;
     if (gengButton) { gengButton.hidden = !session || !!guestName; gengButton.dataset.geng = geng; gengButton.title = geng ? `${geng}${gengLeader ? ' · Leader' : ''}` : 'Create or join a Geng'; }
@@ -685,11 +753,18 @@ async function init() {
       if (badge) { badge.hidden = pending < 1; badge.textContent = pending > 99 ? '99+' : String(pending); }
       gengButton.setAttribute('aria-label', pending ? `Open Geng, ${pending} pending request${pending === 1 ? '' : 's'}` : 'Open Geng');
     }
+    if (event === 'request-received') {
+      const sender = latestGengState?.pending.at(-1)?.name || 'Someone';
+      recordActivityNotification('Geng invite', `${sender} sent you a request to join their Geng.`);
+    } else if (event === 'accepted') recordActivityNotification('Geng request accepted', 'Your Geng request was accepted.');
+    else if (event === 'declined') recordActivityNotification('Geng request declined', 'Your Geng request was declined.');
+    else if (event === 'request-sent') recordActivityNotification('Geng request sent', 'Your request to join the Geng was sent.');
     const sound = event === 'request-received' ? 'notify' : event === 'accepted' ? 'success' : event === 'declined' ? 'close' : event === 'request-sent' ? 'open' : null;
     if (sound) uiSounds.play(sound);
   });
   closeGeng = () => gengUI.close();
-  const friendsUI = setupFriends(apiBase, (_state: FriendState | null) => {
+  const friendsUI = setupFriends(apiBase, (state: FriendState | null) => {
+    latestFriendState = state;
     if (friendsButton) friendsButton.hidden = !accountToken();
     renderProfileActions();
   }, () => { keys.clear(); resetStick(); dragging = false; }, (playerId, name) => {
@@ -699,6 +774,17 @@ async function init() {
       const badge = friendsButton.querySelector<HTMLElement>('#friends-unread');
       if (badge) { badge.hidden = unread < 1; badge.textContent = unread > 99 ? '99+' : String(unread); }
       friendsButton.setAttribute('aria-label', unread ? `Open friends, ${unread} new notification${unread === 1 ? '' : 's'}` : 'Open friends');
+    }
+    if (event === 'request-received') {
+      const sender = latestFriendState?.incoming.at(-1)?.name || 'Someone';
+      recordActivityNotification('Friend request', `${sender} sent you a friend request.`);
+    } else if (event === 'accepted') recordActivityNotification('Friend request accepted', 'You are now friends.');
+    else if (event === 'declined') recordActivityNotification('Friend request declined', 'A friend request was declined.');
+    else if (event === 'cancelled') recordActivityNotification('Friend request cancelled', 'A friend request was cancelled.');
+    else if (event === 'removed') recordActivityNotification('Friend removed', 'Someone was removed from your Friend List.');
+    else if (event === 'request-sent') {
+      const recipient = latestFriendState?.outgoing.at(-1)?.name || 'a player';
+      recordActivityNotification('Friend request sent', `Your friend request to ${recipient} was sent.`);
     }
     const sound = event === 'request-received' ? 'notify'
       : event === 'accepted' ? 'success'
@@ -1358,7 +1444,7 @@ async function init() {
         }
         if (message.type === 'dm-new') {
           const pushed = message as unknown as {message?: StoredMessage; from?: Peer};
-          if (pushed.message) { inbox.receive(pushed.message, pushed.from); chatPop(); }
+          if (pushed.message) { recordActivityNotification('Private message', `${pushed.from?.name || 'Someone'} sent you a private message.`); inbox.receive(pushed.message, pushed.from); chatPop(); }
         }
         if (message.type === 'profile' && message.id === selectedProfileId && profile.open) { if (message.profile) showLoadedProfile(message.profile, '', message.id); else renderProfileMessage($('profile-details'), 'This player has left the city.'); }
         if(message.type==='lukis-correct')tableSocial.gameCorrect((message as any).name,(message as any).points,message);
@@ -1370,7 +1456,7 @@ async function init() {
         if(message.type==='poker-state')tableSocial.poker((message as any).game);
         if(message.type==='pickleball-state')pickleball.state((message as any).game);
         if(message.type==='basketball-state')basketball.state((message as any).game);
-        if(message.type==='achievement-unlocked'&&(message as any).badges?.length){const badge=(message as any).badges[0];toast('Achievement unlocked!',`${badge.name} · ${badge.detail}`,6);}
+        if(message.type==='achievement-unlocked'&&(message as any).badges?.length){const badge=(message as any).badges[0];recordActivityNotification('Achievement unlocked', `${badge.name} · ${badge.detail}`);toast('Achievement unlocked!',`${badge.name} · ${badge.detail}`,6);}
         if(message.type==='pickleball-swing'&&message.id){if(message.id===networkPlayerId)punchUntil=simTime+.38;else{const remote=remotePlayers.get(message.id);if(remote)remote.punchUntil=simTime+.38;}}
         if(message.type==='lukis-ink')tableSocial.gameInk(message);
         if(message.type==='lukis-line')tableSocial.gameLine((message as any).line);
@@ -1596,6 +1682,7 @@ async function init() {
     $('open-edit-profile').hidden = !session || !!guestName;
     $('open-security').hidden = !session || !!guestName;
     if (friendsButton) friendsButton.hidden = !accountToken();
+    syncNotificationSettings();
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
     $('session-replaced-message').hidden = true;
     void itemShop.enter();

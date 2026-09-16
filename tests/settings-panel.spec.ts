@@ -18,6 +18,10 @@ test('settings is titled Settings, keeps the version and closes from its own X',
  // The filler is gone.
  await expect(page.locator('#pause')).not.toContainText('Ambil rehat dulu');
  await expect(page.locator('#pause')).not.toContainText('The city keeps moving');
+ await expect(page.getByRole('heading',{name:'Notifications'})).toBeVisible();
+ await expect(page.locator('#notifications-empty')).toContainText('No notifications yet.');
+ await expect(page.locator('#email-notifications-toggle')).toBeDisabled();
+ await expect(page.locator('#notification-email')).toBeDisabled();
 
  const close=page.getByRole('button',{name:'Close settings'});
  const title=await page.locator('#pause-title').boundingBox();
@@ -34,6 +38,20 @@ test('the settings button is a gear',async({page})=>{
  // One path is the cog body, the other its teeth; two bars were neither.
  expect(await page.locator('#menu svg path').count()).toBe(2);
  expect(await page.locator('#menu span').count()).toBe(0);
+});
+
+test('incoming game invites appear in the settings notifications',async({page})=>{
+ await page.routeWebSocket('**/ws',ws=>ws.onMessage(raw=>{
+  const message=JSON.parse(String(raw));
+  if(message.type==='join'){
+   ws.send(JSON.stringify({type:'welcome',id:'invite-player',players:[{id:'invite-player',name:'Invites',x:0,z:0,yaw:0,riding:false,guest:true}]}));
+   setTimeout(()=>ws.send(JSON.stringify({type:'party-invited',inviter:{id:'alya',name:'Alya'}})),100);
+  }
+ }));
+ await enter(page,'Invites');
+ await expect(page.locator('#notification-list .notification-item')).toContainText('Alya invited you to join their Geng.');
+ await page.getByRole('button',{name:'Open settings'}).click();
+ await expect(page.getByRole('heading',{name:'Notifications'})).toBeVisible();
 });
 
 test('keyboard hints show on desktop and never on a touch device',async({browser})=>{
