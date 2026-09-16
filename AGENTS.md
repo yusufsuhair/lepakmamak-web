@@ -15,7 +15,7 @@
 - Each task reports status, commit, checks, and blockers directly to Yusuf in its own task. Do not automatically push updates to the orchestrator or other tasks. Direct task-to-task communication is only for a concrete collision or when Yusuf explicitly requests coordination.
 - After completing its assignment, a task stops at its own branch. It must not automatically rebase, merge, cherry-pick, switch another worktree, or deploy. Yusuf decides whether and when a branch is rebased or merged into `main`.
 - The orchestrator is on-demand. It only pulls status, reviews branches, coordinates integration, or deploys when Yusuf explicitly asks for that action.
-- When Yusuf authorises deployment after integration, deploy frontend changes to both Cloudflare Pages projects (`lepakmamak` and `lepak-city`), and verify `lepakmamak.my` plus both default Pages domains. Deploy Railway when backend changes require it.
+- When Yusuf authorises deployment after integration, deploy frontend changes to the `lepakmamak` Cloudflare Pages project and verify `lepakmamak.my` plus its default Pages domain. Deploy Railway when backend changes require it.
 - Keep the archived KLCC rebuild off production unless explicitly requested.
 
 ## graphify

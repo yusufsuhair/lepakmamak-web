@@ -14,7 +14,7 @@
 
 Set `CF_SFU_APP_ID` and `CF_SFU_APP_SECRET` on the Railway service. The secret is used only in server-side calls to Cloudflare; never set a VITE-prefixed secret or put it in public assets. Configure with `--skip-deploys`, then deploy the tested commit once. No SFU credentials means legacy transport for local development; an enabled SFU outage never silently downgrades the city to PCM.
 
-Frontend must deploy before the newer backend so the existing version refresh mechanism can obtain the new bundle. Production frontend targets are `lepakmamak` and `lepak-city`. Verify backend `/health` reports the intended version and `voiceTransport: "sfu"`. A realtime deployment restarts in-memory rooms; it is not a rolling room migration.
+Frontend must deploy before the newer backend so the existing version refresh mechanism can obtain the new bundle. The production frontend target is the `lepakmamak` Pages project. Verify backend `/health` reports the intended version and `voiceTransport: "sfu"`. A realtime deployment restarts in-memory rooms; it is not a rolling room migration.
 
 To roll back, deploy a compatible known-good frontend/backend pair. Do not remove SFU variables while expecting the same voice protocol; that explicitly re-enables legacy voice and its bandwidth cost.
 

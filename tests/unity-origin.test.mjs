@@ -15,7 +15,7 @@ async function call(handler,url,origin,method='OPTIONS'){
   return {status,headers};
 }
 test('Unity custom production origin is exact and existing clients are retained',()=>{
-  for(const origin of ['https://app.lepakmamak.my','https://lepakmamak.my','https://lepakmamak.pages.dev','https://lepak-city.pages.dev','capacitor://localhost','https://localhost'])assert.ok(origins.has(origin));
+  for(const origin of ['https://app.lepakmamak.my','https://lepakmamak.my','https://lepakmamak.pages.dev','capacitor://localhost','https://localhost'])assert.ok(origins.has(origin));
   for(const origin of ['https://evil.test','https://app.lepakmamak.my.evil.test','http://app.lepakmamak.my','https://untrusted.lepakmamak-unity.pages.dev'])assert.ok(!origins.has(origin));
 });
 for(const [handler,path] of [[shop,'/shop/inventory'],[friends,'/friends/state']]){

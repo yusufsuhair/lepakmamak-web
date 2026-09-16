@@ -10,7 +10,7 @@ Git is already initialized on `main`, with no remote. See [VERSIONING.md](VERSIO
 
 Primary domain: https://lepakmamak.my/.
 Cloudflare fallback: https://lepakmamak.pages.dev/
-Both domains serve the same app and share Supabase accounts and Railway rooms. Sessions and local earnings are browser-origin-specific. The former lepak-city.pages.dev address remains available for existing links.
+The primary domain and Cloudflare fallback serve the same app and share Supabase accounts and Railway rooms. Sessions and local earnings are browser-origin-specific.
 
 The frontend is hosted on Cloudflare Pages and the realtime room service runs on Railway. The game still keeps earnings in the current browser's local storage; the shared room is temporary and does not need a database yet.
 
