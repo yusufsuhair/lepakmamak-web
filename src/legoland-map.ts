@@ -8,6 +8,7 @@ export const LEGOLAND_MAP_BOUNDS = {minX: -195, maxX: 295, minZ: -185, maxZ: 185
 export const LEGOLAND_MAX_ZOOM = 4;
 
 export type LegolandMapPlayer = {x:number;z:number;yaw?:number};
+export type LegolandMapPeer = {x:number;z:number;name?:string;party?:boolean};
 export type LegolandMapView = {panX?:number;panZ?:number};
 
 export function isInLegoland(x:number){return Number.isFinite(x)&&x<LEGOLAND_WORLD_MIN_X;}
@@ -37,7 +38,7 @@ function playerPoint(x:number,z:number){return toParkLocal(x,z);}
  * The renderer is intentionally 2D: a compact top-down map is much easier to read on a
  * phone, while the attraction names and land colours make it useful at desktop size too.
  */
-export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlayer,expanded=false,zoom=1,view:LegolandMapView={},played:ReadonlySet<number>=new Set()){
+export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlayer,peers:LegolandMapPeer[]=[],expanded=false,zoom=1,view:LegolandMapView={},played:ReadonlySet<number>=new Set()){
  const ctx=canvas.getContext('2d');if(!ctx)return;
  const width=canvas.width,height=canvas.height;
  const parkWidth=LEGOLAND_MAP_BOUNDS.maxX-LEGOLAND_MAP_BOUNDS.minX;
@@ -106,7 +107,14 @@ export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlaye
   if(fits(x-w/2-2*u,y-size/2-u,w+4*u,size+2*u))label(ctx,attraction.name,x,y,size,'#fff8df',undefined,'#173c32');
  }
 
+ const visiblePeers=peers.filter(peer=>isInLegoland(peer.x));
  canvas.dataset.attractionCount=String(attractions.length);
+ for(const peer of visiblePeers){
+  const point=playerPoint(peer.x,peer.z),x=mapX(point.x),y=mapY(point.z),colour=peer.party?'#ff5a4f':'#49cfff';
+  ctx.save();ctx.globalAlpha=.25;ctx.fillStyle=colour;ctx.beginPath();ctx.arc(x,y,expanded?12*u:7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.fillStyle=colour;ctx.strokeStyle='#fff';ctx.lineWidth=expanded?2*u:1.5;ctx.beginPath();ctx.arc(x,y,expanded?5*u:3.5,0,Math.PI*2);ctx.fill();ctx.stroke();
+  if(expanded&&peer.name){const name=peer.name.trim().slice(0,16);ctx.font=`700 ${9*u}px sans-serif`;const w=ctx.measureText(name).width+10*u;ctx.fillStyle='#173c32e8';roundRect(ctx,x-w/2,y-22*u,w,15*u,5*u);ctx.fill();label(ctx,name,x,y-14.5*u,9*u,'#fff8e7',w-6*u);}
+  ctx.restore();
+ }
 
  const you=playerPoint(player.x,player.z),youX=mapX(you.x),youY=mapY(you.z);
  ctx.fillStyle='#173c32';ctx.globalAlpha=.32;ctx.beginPath();ctx.arc(youX,youY,expanded?12*u:7,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.fillStyle='#dfff87';ctx.strokeStyle='#fff';ctx.lineWidth=expanded?2*u:1.5;ctx.beginPath();ctx.arc(youX,youY,expanded?6*u:4,0,Math.PI*2);ctx.fill();ctx.stroke();
@@ -115,7 +123,7 @@ export function drawLegolandMap(canvas:HTMLCanvasElement,player:LegolandMapPlaye
  }
  ctx.restore();
  if(expanded){
-  const legend='● You   ✓ Played';ctx.font=`600 ${10*u}px sans-serif`;
+  const legend='● You   ● People   ✓ Played';ctx.font=`600 ${10*u}px sans-serif`;
   ctx.fillStyle='#173c32d9';roundRect(ctx,6*u,6*u,ctx.measureText(legend).width+12*u,40*u,8*u);ctx.fill();
   ctx.fillStyle='#fff8df';ctx.font=`700 ${12*u}px sans-serif`;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('LEGOLAND MAP',12*u,12*u);
   ctx.font=`600 ${10*u}px sans-serif`;ctx.fillStyle='#d4eee0';ctx.fillText(legend,12*u,29*u);

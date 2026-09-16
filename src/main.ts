@@ -137,7 +137,7 @@ $('app').innerHTML = `
   </section>
   <section id="hud" aria-label="Game information" hidden>
     <div class="hud-top"><div class="hud-left"><div class="brand-status"><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 player online</b></button></div><div class="hud-divider"></div><div class="district"><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="hud-more" aria-label="More controls" aria-expanded="false" aria-controls="hud-right-items"><span aria-hidden="true">⋮</span></button><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)"><svg id="compass-needle" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 8.5 13 12 11.2 15.5 13Z" fill="#e2564a"/><path d="M12 21.5 8.5 11 12 12.8 15.5 11Z" fill="#e8efdc"/></svg></button></div><button class="menu-btn" id="menu" aria-label="Open settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path d="M19.4 13.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9Z"/></svg></button></div></div>
-    <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
+    <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and online people"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
     <section id="vehicle-seats" aria-label="Car occupants" hidden></section><div id="speedometer"><div><span class="speed-number" id="speed">00</span><span class="speed-unit">KM/H</span></div><div class="speed-track"><div id="speed-fill"></div></div><div class="vehicle-label" id="vehicle-label">ON FOOT · TAKE IT EASY</div></div>
@@ -145,7 +145,7 @@ $('app').innerHTML = `
   </section>
   <div id="toast" role="status" aria-live="polite" hidden></div>
   <section id="pause" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden><div class="pause-panel"><div class="pause-head"><h2 id="pause-title">Settings</h2><button type="button" id="pause-close" aria-label="Close settings">×</button></div><p id="app-version">LepakMamak v${appVersion}</p><button class="primary" id="resume">Resume</button><button class="secondary" id="open-my-profile" type="button" hidden>My social profile</button><button class="secondary" id="open-edit-profile" type="button" hidden>Edit profile · About you</button><button class="secondary" id="open-security" type="button" hidden>Security · Password &amp; account</button><div id="afk-settings"><label for="afk-note">Note</label><input id="afk-note" maxlength="60" placeholder="e.g. AFK jap" autocomplete="off" /><small>Stays above your head until you clear it.</small><div><button id="save-afk" type="button">Set note</button><button id="clear-afk" type="button">Clear note</button></div><span id="afk-status" role="status"></span></div><div class="settings"><label>Graphics<select id="graphics-quality" aria-label="Graphics quality"><option value="lowest">Lowest</option><option value="low">Low</option><option value="high">High</option></select></label><label>Rain over KL<input id="rain-toggle" type="checkbox" /></label><label>Background music<input id="music-toggle" type="checkbox" checked /></label><label>City sounds<input id="sound-toggle" type="checkbox" checked /></label><label>Sound effects <span class="range-control"><input id="sfx-volume" type="range" min="0" max="1" step="0.05" aria-label="Sound effects volume" /><output id="sfx-volume-value"></output></span></label><label>Background music volume <span class="range-control"><input id="music-volume" type="range" min="0" max="1" step="0.05" aria-label="Background music volume" /><output id="music-volume-value"></output></span></label><label>Voice chat <span class="range-control"><input id="voice-volume" type="range" min="0" max="1" step="0.05" aria-label="Voice chat volume" /><output id="voice-volume-value"></output></span></label></div><button class="secondary" id="reset">Return to Mamak Maju</button><div class="pause-controls"><b>W A S D / arrows</b><span>Move or drive</span><b>Shift</b><span>Run on foot</span><b>Space</b><span>Jump on foot / brake on bike</span><b>Click / tap action</b><span>Sit, stand, enter or leave vehicles</span><b>R</b><span>Send a recall emote</span><b>Click / tap world</b><span>Punch on foot</span><b>Drag / scroll</b><span>Look around / camera distance</span><b>M</b><span>Open or close city map</span><b>C</b><span>Centre camera</span><b>Esc</b><span>Open or close settings</span></div></div></section>
-  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><span class="map-kicker">LEPAK DIRECTORY</span><h2 id="city-map-title">City map</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info" role="status" aria-live="polite">All city locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full 2D city map with your location and motorbike"></canvas></div><p class="city-map-hint">N ↑ · Drag to explore · pinch or wheel to zoom.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span class="map-legend">▲ You &nbsp; <i class="map-key-bike"></i> Bike &nbsp; <i class="map-key-car"></i> Car</span><span>Drag to pan · M / Esc to close</span></footer></dialog>
+  <dialog id="city-map" aria-labelledby="city-map-title"><header><div><span class="map-kicker">LEPAK DIRECTORY</span><h2 id="city-map-title">City map</h2></div><button id="close-map" type="button" aria-label="Close city map">Close ×</button></header><p id="map-place-info" role="status" aria-live="polite">All city locations are shown. Tap a name to highlight the way.</p><div class="city-map-layout"><div><div class="city-map-viewport"><canvas id="expanded-map" width="1024" height="1024" aria-label="Full 2D city map with your location, online people and motorbike"></canvas></div><p class="city-map-hint">N ↑ · Drag to explore · pinch or wheel to zoom.</p></div><nav id="city-directory" class="city-directory" aria-label="City location directory"></nav></div><footer><span class="map-legend">▲ You &nbsp; <i class="map-key-friend"></i> People &nbsp; <i class="map-key-bike"></i> Bike &nbsp; <i class="map-key-car"></i> Car</span><span>Drag to pan · M / Esc to close</span></footer></dialog>
   <div id="player-options" role="menu" aria-label="Player options" hidden><button id="superman-action" class="stunt-button" type="button" role="menuitem" hidden>Superman · 6s</button><button id="dance-action" type="button" role="menuitem" hidden>Dance · 10s</button><button id="view-profile" type="button" role="menuitem">View profile</button><button id="add-friend" type="button" role="menuitem" hidden>Add friend</button><button id="invite-party" type="button" role="menuitem" hidden>Invite to Party</button><button id="message-player" type="button" role="menuitem" hidden>Message</button><button id="leave-party" type="button" role="menuitem" hidden>Leave Geng</button><button id="report-player" type="button" role="menuitem" hidden>Report player</button></div>
   <dialog id="report-player-dialog" aria-labelledby="report-title"><form id="report-form" method="dialog"><h2 id="report-title">Report a player</h2><p id="report-target"></p><label for="report-surface">What happened where?</label><select id="report-surface"><option value="voice">Voice in the room</option><option value="chat">City chat</option><option value="dm">Private messages</option><option value="wall">Wall post</option><option value="drawing">Lukis drawing</option><option value="name">Their display name</option><option value="behaviour">Something else they did</option></select><label for="report-reason">What was wrong with it?</label><select id="report-reason"><option value="harassment">Harassment or bullying</option><option value="sexual">Sexual content</option><option value="hate">Hate speech or slurs</option><option value="threat">Threats or violence</option><option value="scam">Scam or begging for money</option><option value="child-safety">Something involving a child</option><option value="other">Other</option></select><label for="report-note">Anything the moderator should know? (optional)</label><textarea id="report-note" maxlength="300" rows="3" placeholder="In your own words. Not shown to anyone else."></textarea><p id="report-privacy">Voice is never recorded. We send who you reported, the room, and who else was close enough to hear.</p><div><button type="button" id="cancel-report">Cancel</button><button type="submit" id="send-report" class="primary">Send report</button></div></form></dialog>
   <dialog id="player-profile" aria-labelledby="profile-title"><h2 id="profile-title">Player profile</h2><p id="profile-name"></p><div id="profile-details"></div><div id="profile-actions" hidden><button id="profile-add-friend" type="button">Add friend</button><button id="profile-message" type="button">Message</button></div><button id="close-profile" type="button">Close</button></dialog>
@@ -527,6 +527,7 @@ async function init() {
   let knownPlayerIds = new Set<string>();
   let hasPlayerSnapshot = false;
   let partyMembers = new Set<string>();
+  let peerDots: {x:number;z:number;party:boolean;name?:string}[] = [];
   // The only raised floor in the city. onBridge is what keeps the road underneath open.
   let onBridge = false, deckY = 0;
   type KlccLiftRide = { lift: KlccLift; direction: 'up' | 'down'; elapsed: number; phase: 'moving' | 'top' };
@@ -1233,6 +1234,7 @@ async function init() {
       if (player.id !== networkPlayerId && !knownPlayerIds.has(player.id)) showPlayerJoined(player.name);
     }
     knownPlayerIds = currentPlayerIds; hasPlayerSnapshot = true;
+    peerDots = players.filter(p => p.id !== networkPlayerId && Number.isFinite(p.x) && Number.isFinite(p.z)).map(p => ({x:p.x,z:p.z,party:partyMembers.has(p.id),name:p.name}));
     const me = players.find(p => p.id === networkPlayerId);
     if (me?.gameMaster && !isGm) { isGm = true; gmAura.group.visible = true; player.group.add(gmAura.group); }
     roomPlayers = players;
@@ -1354,7 +1356,7 @@ async function init() {
     refresher.hideConnectionRestart();
     localSupermanUntil = 0;
     for (const entity of remotePlayers.values()) disposeRemote(entity);
-    remotePlayers.clear(); roomPlayers = [];
+    remotePlayers.clear(); roomPlayers = []; peerDots = [];
   }
   function disposeRemote(entity: RemotePlayer) {
     (entity.stand.material as THREE.Material).dispose();
@@ -1574,7 +1576,7 @@ async function init() {
         }
         frames.push(event.data);
       });
-      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; netStatus.offline(); park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = [];
+      socket.addEventListener('close', event => { if (socket !== networkSocket) return;carFinder.clear(); if (event.code === 4002) { finishEntryLoading(); sessionReplaced(); return; } voice.connected(false); if (passengerOf) { passengerOf = null; riding = false; speed = 0; } networkConnected = false; netStatus.offline(); park.disconnect(); tableSocial.offline(); roomTables=[]; if (seatedChairId) { seatedChairId = null; seated = false; } beachResting=null; beachRestSpot=null; beachRestPose(player,null); for (const remote of remotePlayers.values()) disposeRemote(remote); remotePlayers.clear(); roomPlayers = []; peerDots = [];
         // A normal JWT expiry is recoverable: Supabase already owns the refresh token, so
         // reconnect with a fresh access token instead of making the player restart the page.
         if (event.code === 4001) {
@@ -2350,7 +2352,7 @@ async function init() {
     $('open-map').setAttribute('aria-label',inPark?'Open Legoland map':'Open city map');
     $('city-map-title').textContent=inPark?'LEGOLAND map':'City map';
     const hint=document.querySelector<HTMLElement>('.city-map-hint');
-    if(hint)hint.textContent=inPark?'LEGOLAND · Your position is shown here.':'N ↑ · Drag to explore · pinch or wheel to zoom.';
+    if(hint)hint.textContent=inPark?'LEGOLAND · Your position and people are shown here.':'N ↑ · Drag to explore · pinch or wheel to zoom.';
   }
 
   function drawMap(expanded = false) {
@@ -2358,7 +2360,7 @@ async function init() {
     syncMapScope(inPark);
     if(inPark){
       const map=$<HTMLCanvasElement>(expanded?'expanded-map':'minimap');
-      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},expanded,expanded?mapZoom:.86,expanded?{panX:parkMapPanX,panZ:parkMapPanZ}:undefined,park.played);
+      drawLegolandMap(map,{x:pos.x,z:pos.z,yaw},peerDots,expanded,expanded?mapZoom:.86,expanded?{panX:parkMapPanX,panZ:parkMapPanZ}:undefined,park.played);
       if(expanded)$('map-place-info').textContent=`LEGOLAND MAP · ${park.summary}`;
       return;
     }
@@ -2387,6 +2389,7 @@ async function init() {
     ctx.setLineDash([]);
     for (const b of cityMapBuildings) { ctx.fillStyle = b.color || '#4d6c56'; ctx.globalAlpha=.78; ctx.fillRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); ctx.globalAlpha=1;ctx.strokeStyle='#183e344d';ctx.lineWidth=.65;ctx.strokeRect(b.x - b.w / 2, b.z - b.d / 2, b.w, b.d); }
     lrt.drawMap(ctx);
+    const cityPeers=peerDots.filter(peer=>!isInLegoland(peer.x));
     for(const place of CITY_PLACES){
       const chosen=place.id===selectedMapPlace;
       ctx.fillStyle=chosen?'#ffffff':place.kind==='kedai'?'#f1c85c':place.kind==='gerai'?'#efab83':place.kind==='minyak'?'#45d8cf':place.kind==='ibadah'?'#d3a6f5':'#7ee1bd';ctx.beginPath();ctx.arc(place.x,place.z,expanded?5.5:2,0,Math.PI*2);ctx.fill();
@@ -2397,6 +2400,10 @@ async function init() {
     if(expanded){drawPlaceLabels(ctx,mapDirectory.labels,selectedMapPlace);$('map-place-info').textContent=selectedPlace?`${selectedPlace.name} · ${Math.round(distanceTo(selectedPlace))} m away · Follow the dotted line`:'All city locations are shown. Tap a map label or directory name to highlight the way.';}
     if (!riding || vehicle !== 'car') { ctx.fillStyle = '#f4a5bf'; ctx.beginPath(); ctx.arc(car.group.position.x, car.group.position.z, 3, 0, Math.PI * 2); ctx.fill(); }
     if (!riding || vehicle !== 'bike') { ctx.fillStyle = '#5ed7c3'; ctx.beginPath(); ctx.arc(bike.group.position.x, bike.group.position.z, 2.8, 0, Math.PI * 2); ctx.fill(); }
+    for (const peer of [...cityPeers].sort((a,b)=>Number(a.party)-Number(b.party))) {
+      ctx.fillStyle=peer.party?'#ff5a4f':'#49cfff';
+      ctx.beginPath();ctx.arc(peer.x,peer.z,expanded?3.2:2.6,0,Math.PI*2);ctx.fill();
+    }
     const arrowSize=expanded?1:1.75;
     ctx.save();ctx.translate(pos.x,pos.z);
     ctx.fillStyle='#173c32aa';ctx.strokeStyle='#dff092';ctx.lineWidth=expanded?1.4:2.3;ctx.beginPath();ctx.arc(0,0,expanded?5:10,0,Math.PI*2);ctx.fill();ctx.stroke();
