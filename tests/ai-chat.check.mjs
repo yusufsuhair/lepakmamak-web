@@ -44,3 +44,19 @@ test('serial replies, isolated rooms, bounded context, failures and no self-repl
   assert.equal(requests.length, count);
   await createAiChat({ apiKey: '', fetchImpl: () => { throw Error('must not call'); } }).enqueue(a, message('disabled'));
 });
+
+test('can publish a reply through the OpenAI chat endpoint', async () => {
+  const requests = [], replies = [];
+  const ai = createAiChat({ provider: 'openai', apiKey: 'test',
+    fetchImpl: async (url, options) => {
+      requests.push({ url, body: JSON.parse(options.body) });
+      return { ok: true, json: async () => ({ choices: [{ message: { content: 'hello from fallback' } }] }) };
+    },
+    publish: async (_room, payload) => replies.push(payload),
+  });
+  await ai.enqueue(room(), message('Ali'));
+  assert.equal(requests[0].url, 'https://api.openai.com/v1/chat/completions');
+  assert.equal(requests[0].body.model, 'gpt-4o-mini');
+  assert.equal(requests[0].body.thinking, undefined);
+  assert.equal(replies[0].text, '@Ali hello from fallback');
+});
