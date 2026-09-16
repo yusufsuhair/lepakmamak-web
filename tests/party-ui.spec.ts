@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 
 const PORT='8126', VITE='5189';
 
-test('an invite can be answered in the city, and the geng turns the map dot red',async({page})=>{
+test('an invite can be answered in the city without online map markers',async({page})=>{
  const server=spawn(process.execPath,['server/index.mjs'],{env:{...process.env,PORT,ALLOW_GUESTS:'true',SUPABASE_URL:'',SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});
  const vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',VITE,'--strictPort'],{env:{...process.env,VITE_MULTIPLAYER_URL:`ws://127.0.0.1:${PORT}`,VITE_SUPABASE_URL:'',VITE_SUPABASE_PUBLISHABLE_KEY:''},stdio:'ignore'});
  let friend:WebSocket|undefined;
@@ -50,14 +50,6 @@ test('an invite can be answered in the city, and the geng turns the map dot red'
   await expect(page.locator('#mic-scope')).toBeVisible();
   await expect(page.locator('#speaker-scope')).toBeVisible();
 
-  // The friend standing at the origin should now be drawn in party red, not peer blue.
-  await expect.poll(async()=>page.evaluate(()=>{
-   const canvas=document.getElementById('minimap') as HTMLCanvasElement;
-   const {data}=canvas.getContext('2d')!.getImageData(0,0,canvas.width,canvas.height);
-   let red=0;
-   for(let i=0;i<data.length;i+=4) if(data[i]>200&&data[i+1]<120&&data[i+2]<110) red++;
-   return red;
-  }),{timeout:15000}).toBeGreaterThan(0);
-  await expect(page.locator('#map-online')).toHaveText('2 online');
+  await expect(page.locator('#map-online')).toHaveCount(0);
  } finally { friend?.close(); vite.kill(); server.kill(); }
 });
