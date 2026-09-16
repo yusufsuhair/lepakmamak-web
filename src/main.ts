@@ -23,6 +23,7 @@ import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
 import {createOnboarding} from './onboarding';
+import {createExplore} from './explore';
 import {createRefresher,shouldOfferConnectionRestart} from './refresh';
 import {createRipples} from './ripple';
 import {createCarFinder,drawCarPin} from './car-finder';
@@ -755,11 +756,11 @@ async function init() {
     if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
     entryOverlayDismissed = true;
     hideLoading();
-    onboarding.showOnce();
+    if (!onboarding.showOnce()) explore.showHint();
   }
   function completeEntryLoading() {
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
-    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); onboarding.showOnce(); }, 320);
+    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); if (!onboarding.showOnce()) explore.showHint(); }, 320);
   }
   function beginEntryLoading() {
     connectedOnceThisEntry = false; connectionAttempts = 0; entryOverlayDismissed = false;
@@ -1510,7 +1511,7 @@ async function init() {
             pos.set(message.car.x,.12,message.car.z);yaw=message.car.yaw;car.group.position.copy(pos);car.group.rotation.y=yaw;speed=0;orbit=0;keys.clear();resetStick();chime();}
         }
         if(message.type==='teleported'&&message.id)finishTeleport(message.id);
-        if(message.type==='teleport-denied'){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
+        if(message.type==='teleport-denied'){clearTimeout(teleportTimer);teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Teleport unavailable',message.message||'Try again.');}
         if(message.type==='weather-override')weatherUI.override((message as unknown as {override:{condition:string;daylight:string}}).override);
         if(message.type==='lamps')streetLights.setLamps((message as unknown as {lamps:Record<string,boolean>}).lamps);
         if(message.type==='lamp'){const lamp=message as unknown as {index:number;on:boolean};streetLights.setLamp(lamp.index,lamp.on);}
@@ -1788,6 +1789,8 @@ async function init() {
     if(networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'leave-city'}));
     vehicleRadio.update(false);
     locationArrival.reset();
+    explore.reset();
+    clearTimeout(teleportTimer);teleportPending=false;
     saveLocation();danceAudio.stop();localSupermanUntil=0;
     if (klccLiftRide) setKlccLiftHeight(klccLiftRide.lift, 0);
     klccLiftRide = null; renderKlccLiftStatus(); deckY = 0; onBridge = false; player.group.position.set(pos.x, .12, pos.z);
@@ -2005,7 +2008,7 @@ async function init() {
     if (!$('auth-panel').hidden) return;
     if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
     if(wall.opened){if(event.code==='Escape'){event.preventDefault();wall.close();}return;}
-    if (profile.open || tableSocial.opened) return;
+    if (profile.open || tableSocial.opened || explore.opened) return;
     // Enter is the chat key, the way it is in every other game. The guard above already
     // excluded every open modal, and this listener bails on input targets, so a second
     // Enter lands on the composer's own form rather than reopening it.
@@ -2271,25 +2274,43 @@ async function init() {
   document.querySelector('.brand-status')!.append($('vehicle-seats'));
   let selectedMapPlace='';
   let teleportPending=false;
+  let teleportTimer:ReturnType<typeof setTimeout>|undefined;
   const teleportButton=document.createElement('button');teleportButton.type='button';teleportButton.className='primary';teleportButton.id='map-teleport';teleportButton.textContent='Teleport';teleportButton.title='Select a place on the map first';teleportButton.disabled=true;
   const teleportBar=document.createElement('div');teleportBar.className='map-teleport-bar';teleportBar.append(teleportButton);$('map-place-info').before(teleportBar);
   function finishTeleport(id:string){
     const destination=teleports.find(p=>p.id===id);if(!destination)return;
-    teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
+    clearTimeout(teleportTimer);teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';
     seated=false;seatedChairId=null;beachResting=null;beachRestSpot=null;beachRestPose(player,null);jumpHeight=0;jumpVelocity=0;speed=0;walkSpeed=0;localSupermanUntil=0;
+    if (klccLiftRide) setKlccLiftHeight(klccLiftRide.lift, 0);
+    klccLiftRide=null;renderKlccLiftStatus();
     skyDining=false;deckY=0;onBridge=false;
     pos.set(destination.x,.12,destination.z);player.group.position.copy(pos);keys.clear();resetStick();
     camera.position.set(pos.x+2,pos.y+5,pos.z+9);setMap(false);sendNetworkState(1);
+    explore.arrive(id);
     toast('Teleported',mapPlaces.find(p=>p.id===id)?.name||'You have arrived.');
   }
-  teleportButton.onclick=()=>{
-    if(park.active){toast('Keluar tarikan dahulu','Tekan Keluar tarikan sebelum teleport.');return;}
-    if(!started||teleportPending||!selectedMapPlace)return;
-    if(riding||passengerOf){toast('Leave your vehicle first','Get out, then choose your teleport destination.');return;}
-    if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){teleportPending=true;teleportButton.disabled=true;teleportButton.textContent='Teleporting…';networkSocket.send(JSON.stringify({type:'teleport',id:selectedMapPlace}));setTimeout(()=>{if(teleportPending){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';}},5000);}
-
-    else toast('City offline','Reconnect before teleporting.');
-  };
+  function requestTeleport(id:string):string|null {
+    if(park.active||lrtId!=null||klccLiftRide?.phase==='moving')return 'Leave the attraction or wait for the lift before travelling.';
+    if(!started||!teleports.some(p=>p.id===id))return 'Choose a city destination first.';
+    if(teleportPending)return 'Your trip is already being arranged. Please wait.';
+    if(riding||passengerOf)return 'Leave your vehicle first, then choose your destination.';
+    if(networkConnected&&networkSocket?.readyState===WebSocket.OPEN){
+      teleportPending=true;teleportButton.disabled=true;teleportButton.textContent='Teleporting…';
+      networkSocket.send(JSON.stringify({type:'teleport',id}));
+      clearTimeout(teleportTimer);teleportTimer=setTimeout(()=>{if(teleportPending){teleportPending=false;teleportButton.disabled=false;teleportButton.textContent='Teleport';toast('Travel timed out','Please try again.');}},5000);
+      return null;
+    }
+    return 'City offline. Reconnect before travelling.';
+  }
+  teleportButton.onclick=()=>{const error=requestTeleport(selectedMapPlace);if(error)toast('Travel unavailable',error);};
+  const explore=createExplore({
+    releaseInput:()=>{keys.clear();resetStick();dragging=false;},
+    canOpen:()=>started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,
+    visit:requestTeleport,
+    map:()=>setMap(true),
+    enableSound:()=>{if(audioVolume('sfx')===0){const volume=$<HTMLInputElement>('sfx-volume');volume.value='0.5';volume.dispatchEvent(new Event('input'));}const toggle=$<HTMLInputElement>('sound-toggle');toggle.checked=true;toggle.dispatchEvent(new Event('change'));},
+  });
+  onboarding.dialog.addEventListener('close',()=>explore.showHint());
   const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
   let mapZoom=defaultMapZoom;
   let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
@@ -2639,8 +2660,8 @@ async function init() {
     }
     if (active) {
       if (!paused) updateKlccLift(dt);
-      const forward = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
-      const turn = isDancing()?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
+      const forward = isDancing()||explore.opened?0:THREE.MathUtils.clamp(Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')) + stickY, -1, 1);
+      const turn = isDancing()||explore.opened?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       // Far traffic cannot collide with the player. Keep the broad phase cheap on phones.
       // ponytail: 48 m broad phase; use a spatial hash if the fleet grows materially.
       const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)&&((c.x-pos.x)**2+(c.z-pos.z)**2<48**2)).map(c => vehicleSolid(c.group,c.x,c.z,c.yaw));
@@ -2959,6 +2980,8 @@ async function init() {
       }
     }
     beach.update(simTime,pos);
+    explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
+      experienced:!started?[]:[...(skyDining?['wet-deck']:[]),...(klccLiftRide?.phase==='top'?['15']:[]),...(!riding&&!seated&&deckY<1&&insidePickleball(pos)&&networkConnected?['21']:[]),...(!riding&&deckY<1&&pos.x>=95&&pos.x<=153&&pos.z>=134&&pos.z<=152?['pantai-senja']:[]),...(started&&audioEnabled&&audioContext?.state==='running'&&audioVolume('sfx')>0&&!masjidSong.paused&&(masjidGain?.gain.value??0)>.01?['17']:[])]});
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     updateVehiclePresentation(scene,camera,dt,mamakNight,
