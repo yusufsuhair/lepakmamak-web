@@ -44,17 +44,19 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
     begin() { seen.clear(); },
     update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '', petBreed = '') {
       const items = equipment.split(',');
-      const cat = items.includes('pet-ginger') ? 'pet-ginger' : items.includes('pet-cream') ? 'pet-cream' : '';
+      const savedBreed = petBreedList.find(item => item.id === petBreed);
+      const hasPet = items.includes('pet-companion') || items.includes('pet-ginger') || items.includes('pet-cream');
+      const cat = hasPet ? (savedBreed?.base || (items.includes('pet-cream') ? 'pet-cream' : 'pet-ginger')) : '';
       if (!cat) return;
       seen.add(id);
       const ribbon = items.includes('pet-collar-red') ? '#df655e' : items.includes('pet-collar-teal') ? '#51b8ab' : '';
-      const breed = petBreedList.find(item => item.id === petBreed && item.base === cat)?.id || (cat === 'pet-ginger' ? 'ginger-tabby' : 'cream-shorthair');
+      const breed = savedBreed?.base === cat ? savedBreed.id : (cat === 'pet-ginger' ? 'ginger-tabby' : 'cream-shorthair');
       const key = cat + ribbon + breed;
       let pet = followers.get(id);
       if (pet?.key !== key) {
         remove(id);
         const animal = createAnimal(true, cat === 'pet-ginger' ? '#e6a34e' : '#f0e8d8', breed);
-        const label = createPetLabel(String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih'));
+        const label = createPetLabel(String(petName || '').trim().slice(0, 18) || 'Lepak Cat');
         animal.group.name = `Pet · ${id}`; animal.group.scale.setScalar(.8);
         animal.group.position.set(x - Math.sin(yaw), y, z - Math.cos(yaw));
         animal.group.add(label.sprite);
@@ -65,7 +67,7 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
         scene.add(animal.group); pet = {animal, key, stuck: 0, phase: [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 32, label}; followers.set(id, pet);
       }
       const {group} = pet.animal;
-      const shownName = String(petName || '').trim().slice(0, 18) || (cat === 'pet-ginger' ? 'Oyen' : 'Si Putih');
+      const shownName = String(petName || '').trim().slice(0, 18) || 'Lepak Cat';
       if (pet.label.sprite.userData.name !== shownName) pet.label.draw(shownName);
       group.userData.petName = shownName;
       const dx = x - group.position.x, dz = z - group.position.z, distance = Math.hypot(dx, dz);

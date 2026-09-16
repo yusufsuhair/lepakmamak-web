@@ -5,6 +5,8 @@ import currencyPacks from '../shared/currency-packs.json' with { type: 'json' };
 import crypto from 'node:crypto';
 import { origins } from '../shared/origins.mjs';
 
+const PET_SKUS = new Set(['pet-companion', 'pet-ginger', 'pet-cream']);
+
 export function createShop(onEquip = () => {}, services = {}) {
   const db = services.db || (process.env.SUPABASE_SERVICE_ROLE_KEY
     ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -15,7 +17,25 @@ export function createShop(onEquip = () => {}, services = {}) {
   const webhookSecret = services.webhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET;
   const check = result => { if (result.error) throw Error('Database operation failed'); return result.data; };
   const inventory = async userId => db ? check(await db.from('shop_inventory').select('sku,equipped').eq('user_id', userId)) : [];
-  const accessories = async userId => (await inventory(userId)).filter(item => item.equipped).map(item => item.sku);
+  const publicInventory = async userId => {
+    const items = await inventory(userId), pets = items.filter(item => PET_SKUS.has(item.sku));
+    if (!pets.length) return items;
+    const firstPet = items.findIndex(item => PET_SKUS.has(item.sku)), normalized = [];
+    for (const [index, item] of items.entries()) {
+      if (index === firstPet) normalized.push({sku: 'pet-companion', equipped: pets.some(item => item.equipped)});
+      if (!PET_SKUS.has(item.sku)) normalized.push(item);
+    }
+    return normalized;
+  };
+  const accessories = async userId => {
+    const equipped = (await inventory(userId)).filter(item => item.equipped);
+    const normalized = []; let seenPet = false;
+    for (const item of equipped) {
+      if (PET_SKUS.has(item.sku)) { if (!seenPet) { normalized.push('pet-companion'); seenPet = true; } }
+      else normalized.push(item.sku);
+    }
+    return [...new Set(normalized)];
+  };
   const wallet = async userId => check(await db.rpc('game_wallet_get', { p_user_id: userId }));
   const creditSession = async session => {
     if (session.payment_status !== 'paid') return null;
@@ -66,7 +86,7 @@ export function createShop(onEquip = () => {}, services = {}) {
       if (error || !data.user || data.user.is_anonymous) { reply(401, { error: 'Please log in again.' }); return true; }
       const userId = data.user.id;
       if (url.pathname === '/shop/inventory' && request.method === 'GET') {
-        reply(200, { items: await inventory(userId), ...(await wallet(userId)) }); return true;
+        reply(200, { items: await publicInventory(userId), ...(await wallet(userId)) }); return true;
       }
       if (request.method !== 'POST') { reply(405, { error: 'Method not allowed' }); return true; }
       const input = await readBody(request);
@@ -78,7 +98,7 @@ export function createShop(onEquip = () => {}, services = {}) {
         if (!result.purchased) {
           reply(409, { error: result.reason === 'insufficient' ? 'Not enough Lepak Coin.' : 'You already own this item.', ...result }); return true;
         }
-        reply(200, { ...result, items: await inventory(userId) }); return true;
+        reply(200, { ...result, items: await publicInventory(userId) }); return true;
       }
 
       if (url.pathname === '/shop/daily') {
@@ -110,13 +130,13 @@ export function createShop(onEquip = () => {}, services = {}) {
         if (checkout.client_reference_id !== userId || checkout.metadata?.user_id !== userId) { reply(403, { error: 'This payment belongs to another account.' }); return true; }
         const credited = await creditSession(checkout);
         if (!credited) { reply(202, { pending: true, ...(await wallet(userId)) }); return true; }
-        reply(200, { ...credited, ...(await wallet(userId)), items: await inventory(userId) }); return true;
+        reply(200, { ...credited, ...(await wallet(userId)), items: await publicInventory(userId) }); return true;
       }
 
       if (url.pathname === '/shop/equip') {
         const item = catalog.find(candidate => candidate.id === input.sku);
         if (!item || typeof input.equipped !== 'boolean') { reply(400, { error: 'Invalid item.' }); return true; }
-        const owned = (await inventory(userId)).some(record => record.sku === item.id);
+        const owned = (await inventory(userId)).some(record => item.type === 'pet' ? PET_SKUS.has(record.sku) : record.sku === item.id);
         if (!owned) { reply(403, { error: 'You do not own this item.' }); return true; }
         if (item.type.startsWith('pet')) {
           check(await db.rpc('game_pet_equip', { p_user_id: userId, p_sku: item.id, p_equipped: input.equipped }));
@@ -128,7 +148,7 @@ export function createShop(onEquip = () => {}, services = {}) {
           check(await db.from('shop_inventory').update({ equipped: input.equipped }).eq('user_id', userId).eq('sku', item.id));
         }
         const equipped = await accessories(userId); onEquip(userId, equipped);
-        reply(200, { items: await inventory(userId), ...(await wallet(userId)) }); return true;
+        reply(200, { items: await publicInventory(userId), ...(await wallet(userId)) }); return true;
       }
 
       reply(404, { error: 'Not found' });

@@ -29,23 +29,29 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
   const previewName = dialog.querySelector<HTMLElement>('.pet-studio-preview-name')!;
   const status = dialog.querySelector<HTMLElement>('#pet-studio-status')!;
   const openShop = dialog.querySelector<HTMLButtonElement>('#pet-open-shop')!;
-  let state: ShopState = {items: [], balance: 0}, selectedCat: PetKind, selectedBreed: PetBreedId, selectedRibbon = '', petName = cleanName(session?.user.user_metadata?.pet_name || ''), busy = false, ready = false, loadError = '';
+  let state: ShopState = {items: [], balance: 0}, selectedCat: PetKind = 'pet-ginger', selectedBreed: PetBreedId = 'ginger-tabby', selectedRibbon = '', petName = cleanName(session?.user.user_metadata?.pet_name || ''), busy = false, ready = false, loadError = '';
   type PetKind = 'pet-ginger' | 'pet-cream';
-  const catItems = () => catalog.filter(item => item.type === 'pet' && state.items.some(entry => entry.sku === item.id)) as PetItem[];
+  const companionSkus = ['pet-companion', 'pet-ginger', 'pet-cream'];
+  const ownedPet = () => state.items.find(item => companionSkus.includes(item.sku));
   const ribbonItems = () => catalog.filter(item => item.type === 'pet-decoration' && state.items.some(entry => entry.sku === item.id)) as PetItem[];
   const equipped = (sku: string) => !!state.items.find(item => item.sku === sku)?.equipped;
-  const currentCat = () => catItems().find(item => equipped(item.id))?.id as PetKind | undefined;
+  const currentCat = () => {
+    const saved = String(session?.user.user_metadata?.pet_breed || '');
+    const active = petBreedList.find(item => item.id === saved);
+    return (active?.base || petBreedList.find(item => item.id === selectedBreed)?.base || selectedCat) as PetKind;
+  };
   const currentRibbon = () => ribbonItems().find(item => equipped(item.id))?.id || '';
   const currentBreed = () => {
     const saved = String(session?.user.user_metadata?.pet_breed || '');
     const active = petBreedList.find(item => item.id === saved && item.base === selectedCat);
-    return active?.id || (selectedCat === 'pet-ginger' ? 'ginger-tabby' : 'cream-shorthair');
+    const selected = petBreedList.find(item => item.id === selectedBreed && item.base === selectedCat);
+    return active?.id || selected?.id || (selectedCat === 'pet-ginger' ? 'ginger-tabby' : 'cream-shorthair');
   };
   const labelFor = (item: PetItem) => item.name;
   function draw() {
-    const catsOwned = catItems(), ribbonsOwned = ribbonItems(), activeCat = currentCat() || catsOwned[0]?.id as PetKind | undefined;
-    selectedCat = activeCat || 'pet-ginger'; selectedBreed = currentBreed(); selectedRibbon = currentRibbon();
-    const hasPet = catsOwned.length > 0, loading = busy && !ready;
+    const pet = ownedPet(), ribbonsOwned = ribbonItems();
+    selectedCat = currentCat(); selectedBreed = currentBreed(); selectedRibbon = currentRibbon();
+    const hasPet = !!pet, loading = busy && !ready;
     dialog.setAttribute('aria-busy', String(loading));
     layout.hidden = false; stage.hidden = loading || !hasPet; nameForm.hidden = loading || !hasPet;
     openShop.hidden = false; openShop.disabled = loading || busy;
@@ -61,10 +67,8 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
       status.textContent = loadError || 'Your pets appear here after you buy one from the shop.'; return;
     }
     cats.replaceChildren();
-    for (const item of catsOwned) {
-      const button = document.createElement('button'); button.type = 'button'; button.textContent = labelFor(item); button.setAttribute('aria-pressed', String(equipped(item.id))); button.disabled = busy;
-      button.onclick = () => void toggle(item.id, !equipped(item.id)); cats.append(button);
-    }
+    const companion = document.createElement('button'); companion.type = 'button'; companion.textContent = 'Lepak Cat Companion'; companion.setAttribute('aria-pressed', String(!!pet?.equipped)); companion.disabled = busy;
+    companion.onclick = () => { if (pet) void toggle(pet.sku, !pet.equipped); }; cats.append(companion);
     breeds.replaceChildren();
     for (const breed of petBreedList.filter(item => item.base === selectedCat)) {
       const button = document.createElement('button'); button.type = 'button'; button.textContent = breed.name; button.setAttribute('aria-pressed', String(selectedBreed === breed.id)); button.disabled = busy;
@@ -76,7 +80,7 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
       const button = document.createElement('button'); button.type = 'button'; button.textContent = labelFor(item); button.setAttribute('aria-pressed', String(equipped(item.id))); button.disabled = busy;
       button.onclick = () => void toggle(item.id, !equipped(item.id)); ribbons.append(button);
     }
-    preview.setPet(selectedCat, selectedRibbon, selectedBreed); previewName.textContent = petName || (catsOwned.find(item => item.id === selectedCat)?.name || 'Pet'); nameInput.value = petName;
+    preview.setPet(selectedCat, selectedRibbon, selectedBreed); previewName.textContent = petName || 'Lepak Cat'; nameInput.value = petName;
   }
   async function apply(result: Promise<ShopState>, message: string) {
     if (busy) return; busy = true; status.textContent = 'Updating companion…'; draw();
@@ -85,7 +89,7 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
     finally { busy = false; draw(); }
   }
   async function toggle(sku: string, value: boolean) {
-    const isCat = sku === 'pet-ginger' || sku === 'pet-cream';
+    const isCat = companionSkus.includes(sku);
     const isRibbon = sku.startsWith('pet-collar-');
     if (isCat && !value) { await apply(api.equip(sku, false), 'Pet hidden.'); return; }
     if (isCat || isRibbon) await apply(api.equip(sku, value), value ? 'Companion updated.' : 'Ribbon removed.');
@@ -98,7 +102,7 @@ export function setupPetStudio(api: PetStudioApi, options: PetStudioOptions = {}
         const {data, error} = await auth.auth.updateUser({data: {pet_breed: value}}); if (error) throw error;
         if (data.user?.user_metadata) Object.assign(session!.user.user_metadata, data.user.user_metadata);
       }
-      selectedBreed = value; await options.onBreed?.(value); status.textContent = 'Cat style saved.';
+      selectedBreed = value; selectedCat = petBreedList.find(item => item.id === value)!.base as PetKind; await options.onBreed?.(value); status.textContent = 'Cat style saved.';
     } catch (error) { status.textContent = error instanceof Error ? error.message : 'Could not save cat style.'; }
     finally { busy = false; draw(); }
   }

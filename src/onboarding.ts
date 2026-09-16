@@ -13,7 +13,7 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
     ['🪑', 'Tap SIT on a chair', 'Stand next to an empty chair until a SIT button appears, then tap it.'],
     ['🎮', 'Open the table games', 'Once seated, tap the table name above it, then choose Lukis Lah, Poker, UNO or Werewolf.'],
     ['✅', 'Press READY', 'Everyone at the table presses READY. The game starts by itself when enough players are ready.'],
-    ['🐱', 'Bring a pet along', 'Tap the cat icon at the top right to buy a cat in the shop. Choose Equip to have them follow you, and change their ribbon anytime.'],
+    ['🐱', 'Bring a pet along', 'Tap the cat icon at the top right to buy one companion. Choose its breed and colour in Pet Studio, then equip it to follow you.'],
     ['👋', 'Ajak kawan', 'Table empty? Tap INVITE inside the game to call your geng or anyone in the city.'],
   ];
   const dialog = document.createElement('dialog');

@@ -4,6 +4,7 @@ import currencyPacks from '../shared/currency-packs.json';
 import {skeleton, settled} from './skeleton';
 import {defaultAppearance, type Appearance} from './appearance';
 import {createAvatarPreview} from './avatar-preview';
+import {createPetPreview} from './pet-preview';
 import {applyAccessories} from './world';
 
 type InventoryItem = { sku: string; equipped: boolean };
@@ -11,7 +12,7 @@ type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: b
 
 export function setupShop(onEquip: (items: string[]) => void, endpoint?: string, look: () => Appearance = () => defaultAppearance) {
   const dialog = document.createElement('dialog'); dialog.id = 'item-shop'; dialog.setAttribute('aria-labelledby', 'shop-title');
-  dialog.innerHTML = `<header><div><h2 id="shop-title">Lepak Shop.</h2><p>Skins, pets, accessories and Lepak Coin</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Lepak Coin balance"><div><small>YOUR BALANCE</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Claim daily · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Add Lepak Coin</h3><p>One-time payment · credits are added to this account.</p></div><div id="coin-packs"></div></section><p>Buy once, keep it in your account, and your items will always appear here.</p><section class="shop-try" aria-labelledby="shop-try-name" hidden><canvas width="280" height="360" aria-label="Live 3D character preview. Drag to rotate"></canvas><div><small>TRY IT · ONLY YOU CAN SEE THIS</small><h3 id="shop-try-name"></h3><p>Preview only: nothing is equipped, saved, or shown to other players.</p><button type="button" class="primary" id="shop-try-buy"></button><button type="button" id="shop-try-end">End preview</button></div></section><nav id="shop-filters" aria-label="Shop categories"><button type="button" data-category="all">All items</button><button type="button" data-category="pets">🐱 Pets & decorations</button></nav><p id="pet-guide" hidden>Buy a cat, then choose Equip to bring them along. Switch cats or ribbons here anytime. Your equipped cat follows you automatically.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
+  dialog.innerHTML = `<header><div><h2 id="shop-title">Lepak Shop.</h2><p>Skins, pets, accessories and Lepak Coin</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Lepak Coin balance"><div><small>YOUR BALANCE</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Claim daily · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Add Lepak Coin</h3><p>One-time payment · credits are added to this account.</p></div><div id="coin-packs"></div></section><p>Buy once, keep it in your account, and your items will always appear here.</p><section class="shop-try" aria-labelledby="shop-try-name" hidden><canvas width="280" height="360" aria-label="Live 3D character preview. Drag to rotate"></canvas><div><small>TRY IT · ONLY YOU CAN SEE THIS</small><h3 id="shop-try-name"></h3><p>Preview only: nothing is equipped, saved, or shown to other players.</p><button type="button" class="primary" id="shop-try-buy"></button><button type="button" id="shop-try-end">End preview</button></div></section><nav id="shop-filters" aria-label="Shop categories"><button type="button" data-category="all">All items</button><button type="button" data-category="pets">🐱 Pets & decorations</button></nav><p id="pet-guide" hidden>Buy the companion once, then choose any breed and colour in Pet Studio. Ribbons are optional decorations, and your equipped companion follows you automatically.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog);
   const message = dialog.querySelector<HTMLElement>('#shop-message')!;
   const balanceLabel = dialog.querySelector<HTMLElement>('#shop-balance')!;
@@ -30,7 +31,13 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   }
   const equipped = () => owned.filter(item => item.equipped).map(item => item.sku);
   function applyState(state: ShopState) {
-    if (state.items) owned = state.items;
+    if (state.items) {
+      const pets = state.items.filter(item => ['pet-companion', 'pet-ginger', 'pet-cream'].includes(item.sku));
+      if (pets.length) {
+        const firstPet = state.items.findIndex(item => ['pet-companion', 'pet-ginger', 'pet-cream'].includes(item.sku));
+        owned = state.items.flatMap((item, index) => index === firstPet ? [{sku: 'pet-companion', equipped: pets.some(item => item.equipped)}] : ['pet-companion', 'pet-ginger', 'pet-cream'].includes(item.sku) ? [] : [item]);
+      } else owned = state.items;
+    }
     if (Number.isFinite(state.balance)) balance = state.balance!;
     if (typeof state.dailyAvailable === 'boolean') dailyAvailable = state.dailyAvailable;
     if ('nextDailyAt' in state) nextDailyAt = state.nextDailyAt || null;
@@ -46,6 +53,8 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   // is equipped, saved or sent, so ending a try has nothing to undo: it only hides the copy.
   const tryPanel = dialog.querySelector<HTMLElement>('.shop-try')!, tryCanvas = tryPanel.querySelector('canvas')!, tryBuy = dialog.querySelector<HTMLButtonElement>('#shop-try-buy')!;
   let trying = '', fitting: ReturnType<typeof createAvatarPreview> | null = null;
+  const petPreviews = new Set<ReturnType<typeof createPetPreview>>();
+  const clearPetPreviews = () => { for (const preview of petPreviews) preview.dispose(); petPreviews.clear(); };
   const isSkin = (sku: string) => catalog.find(item => item.id === sku)?.type === 'skin';
   function tryOn(sku: string) {
     // Skins replace each other, as equipping one does on the server.
@@ -81,16 +90,23 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
       };
       packs.append(button);
     }
-    const list = dialog.querySelector('#shop-items')!; list.replaceChildren();
+    const list = dialog.querySelector('#shop-items')!; clearPetPreviews(); list.replaceChildren();
     dialog.querySelector<HTMLElement>('#pet-guide')!.hidden = category !== 'pets';
     for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-category]')) button.setAttribute('aria-pressed', String(category === button.dataset.category));
     for (const item of catalog.filter(item => category !== 'pets' || item.type.startsWith('pet'))) {
       const record = owned.find(entry => entry.sku === item.id), card = document.createElement('article');
       card.dataset.type = item.type;
-      const preview = document.createElement('div'); preview.className = `shop-art ${item.id}`; preview.setAttribute('aria-hidden', 'true'); preview.innerHTML = item.id === 'spectacles' ? '<i></i><i></i>' : '<i></i>';
-      if (item.type.startsWith('pet')) {
-        const color = item.id === 'pet-ginger' ? '#e6a34e' : item.id === 'pet-cream' ? '#f0e8d8' : item.id === 'pet-collar-red' ? '#df655e' : '#51b8ab';
-        preview.innerHTML = `<svg width="76" height="76" viewBox="0 0 64 64" fill="${color}" stroke="#263f35" stroke-width="2" aria-hidden="true">${item.type === 'pet' ? '<path d="M12 27 10 8l16 11h12L54 8l-2 19a23 23 0 1 1-40 0Z"/><path d="M23 33h1m16 0h1M29 42l3 3 3-3M7 39l13 3M5 48l15-2m37-7-13 3m15 6-15-2" fill="none" stroke-linecap="round"/>' : '<path d="M29 28 9 17v30l20-11m6-8 20-11v30L35 36Z"/><circle cx="32" cy="32" r="6"/>'}</svg>`;
+      const preview = document.createElement('div'); preview.className = `shop-art ${item.id}`;
+      if (item.type === 'pet') {
+        preview.classList.add('shop-pet-art'); preview.setAttribute('role', 'img'); preview.setAttribute('aria-label', `${item.name} 3D preview`);
+        const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 120; canvas.setAttribute('aria-label', `Live 3D preview of ${item.name}`); preview.append(canvas);
+        const petPreview = createPetPreview(canvas); petPreview.start(); petPreviews.add(petPreview);
+      } else {
+        preview.setAttribute('aria-hidden', 'true'); preview.innerHTML = item.id === 'spectacles' ? '<i></i><i></i>' : '<i></i>';
+        if (item.type === 'pet-decoration') {
+          const color = item.id === 'pet-collar-red' ? '#df655e' : '#51b8ab';
+          preview.innerHTML = `<svg width="76" height="76" viewBox="0 0 64 64" fill="${color}" stroke="#263f35" stroke-width="2" aria-hidden="true"><path d="M29 28 9 17v30l20-11m6-8 20-11v30L35 36Z"/><circle cx="32" cy="32" r="6"/></svg>`;
+        }
       }
       const kind = document.createElement('small'); kind.className = 'shop-kind'; kind.textContent = item.type.toUpperCase().replace('-', ' ');
       const title = document.createElement('h3'); title.textContent = item.name;
@@ -152,7 +168,7 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   dialog.querySelector('#shop-close')!.addEventListener('click', () => dialog.close());
   dialog.querySelector('#shop-try-end')!.addEventListener('click', () => { endTry(); draw(); });
   // When the shop closes (the button, Escape, logging out), a try ends with it.
-  dialog.addEventListener('close', endTry);
+  dialog.addEventListener('close', () => { endTry(); clearPetPreviews(); });
   dialog.addEventListener('keydown', event => event.stopPropagation());
   return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open(filter = 'all') { category = filter; endTry(); draw(); if (!dialog.open) dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }

@@ -9,7 +9,7 @@ import {session} from './auth';
 type State = {items: {sku: string; equipped: boolean}[]; balance: number};
 type Filter = 'all' | 'accessory' | 'owned-skin' | keyof Appearance;
 
-const ICONS: Record<string, string> = {'pet-ginger': '🐈', 'pet-cream': '🐈', 'pet-collar-red': '🎀', 'pet-collar-teal': '🎀', spectacles: '👓', cap: '🧢', batik: '👔', harimau: '👕'};
+const ICONS: Record<string, string> = {'pet-companion': '🐈', 'pet-ginger': '🐈', 'pet-cream': '🐈', 'pet-collar-red': '🎀', 'pet-collar-teal': '🎀', spectacles: '👓', cap: '🧢', batik: '👔', harimau: '👕'};
 const FILTERS: {key: Filter; label: string}[] = [
   {key: 'all', label: 'All'}, {key: 'accessory', label: 'Accessories'}, {key: 'owned-skin', label: 'Skins'},
   {key: 'gender', label: 'Body'}, {key: 'hairstyle', label: 'Hair'}, {key: 'hair', label: 'Hair colour'}, {key: 'skin', label: 'Skin tone'},

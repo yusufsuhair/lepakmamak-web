@@ -427,6 +427,8 @@ button.multiplayer-status { pointer-events: auto; min-height: 44px; }
 #shop-items button:disabled { opacity:.5; cursor:default; }
 .shop-kind { display:inline-block; margin-top:10px; padding:3px 6px; border-radius:4px; background:#d6dfc6; font-size:9px; font-weight:700; letter-spacing:.1em; }
 .shop-art { height:94px; background:#dbe1cb; border-radius:8px; display:flex; justify-content:center; align-items:center; position:relative; }
+.shop-art.shop-pet-art { overflow:hidden; background:radial-gradient(circle at 50% 28%,#8fae91,#dbe1cb 72%); }
+.shop-pet-art canvas { display:block; width:100%; max-width:150px; height:94px; touch-action:none; cursor:grab; }
 .shop-art.spectacles { gap:7px; }
 .shop-art.spectacles i { width:36px; height:29px; border:5px solid #172b27; border-radius:8px; }
 .shop-art.spectacles:after { content:''; width:13px; height:5px; background:#172b27; position:absolute; }
