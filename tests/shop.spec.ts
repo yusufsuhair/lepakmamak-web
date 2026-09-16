@@ -18,6 +18,11 @@ test('currency shop authorizes accounts and uses server-owned wallet operations'
         if (!rows.some(row => row.sku === params.p_sku)) rows.push({ sku: params.p_sku, equipped: false });
         return { data: { purchased: true, balance: 350 }, error: null };
       }
+      if (name === 'game_pet_equip') {
+        const slot = params.p_sku.startsWith('pet-collar-') ? ['pet-collar-red','pet-collar-teal'] : ['pet-ginger','pet-cream'];
+        for (const row of rows) if (slot.includes(row.sku)) row.equipped = row.sku === params.p_sku && params.p_equipped;
+        return {data:null,error:null};
+      }
       if (name === 'game_wallet_credit_stripe') { const first = !credited; credited = true; return { data: { credited: first, balance: 1000 }, error: null }; }
       return { data: null, error: {} };
     },
@@ -53,7 +58,7 @@ test('currency shop authorizes accounts and uses server-owned wallet operations'
   const call = (path:string, method='GET', body:any=undefined, token='valid') => fetch(`http://127.0.0.1:${address.port}/shop/${path}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
   try {
     const catalog = await (await call('catalog')).json();
-    expect(catalog.items).toHaveLength(4); expect(catalog.packs).toHaveLength(3); expect(catalog.paymentsAvailable).toBe(true);
+    expect(catalog.items).toHaveLength(8); expect(catalog.packs).toHaveLength(3); expect(catalog.paymentsAvailable).toBe(true);
     expect(catalog.items.every((item:any) => Number.isInteger(item.price) && !('amount' in item))).toBe(true);
     expect((await call('webhook', 'POST', {}, 'bad')).status).toBe(400);
     expect((await call('inventory', 'GET', undefined, 'bad')).status).toBe(401);
@@ -65,6 +70,13 @@ test('currency shop authorizes accounts and uses server-owned wallet operations'
     expect((await call('equip', 'POST', { sku: 'batik', equipped: true })).status).toBe(200);
     expect(rows.find(row => row.sku === 'harimau')?.equipped).toBe(false); expect(rows.find(row => row.sku === 'batik')?.equipped).toBe(true);
     expect(equippedBroadcast).toEqual(['batik']); expect(updates.some(update => update.inside?.includes('harimau'))).toBe(true);
+    expect((await call('equip', 'POST', {sku:'pet-ginger',equipped:true})).status).toBe(403);
+    rows.push({sku:'pet-ginger',equipped:true},{sku:'pet-cream',equipped:false},{sku:'pet-collar-red',equipped:true},{sku:'pet-collar-teal',equipped:false});
+    expect((await call('equip', 'POST', {sku:'pet-cream',equipped:true})).status).toBe(200);
+    expect(rows.find(row=>row.sku==='pet-ginger')?.equipped).toBe(false);
+    expect((await call('equip', 'POST', {sku:'pet-collar-teal',equipped:true})).status).toBe(200);
+    expect(equippedBroadcast).toEqual(['batik','pet-cream','pet-collar-teal']);
+    expect(rpcCalls.filter(call=>call.name==='game_pet_equip')).toHaveLength(2);
     expect(await (await call('daily', 'POST', {})).json()).toMatchObject({ claimed: true, balance: 600 });
     const checkout = await (await call('checkout', 'POST', { packId: 'lepak-500' })).json();
     expect(checkout.url).toContain('checkout.stripe.com');
@@ -90,7 +102,7 @@ test('shop UI offers Stripe Syiling Lepak top-ups', async ({ page }) => {
   await expect(page.locator('#coin-packs button')).toHaveCount(3);
   await expect(page.locator('#coin-packs')).toContainText('RM 5.00');
   await expect(page.locator('#coin-packs')).toContainText('RM 20.00');
-  await expect(page.getByRole('button', { name: /Beli · 🪙/ })).toHaveCount(4);
+  await expect(page.getByRole('button', { name: /Beli · 🪙/ })).toHaveCount(8);
   await expect(page.locator('#item-shop')).toContainText('STRIPE CHECKOUT');
 });
 

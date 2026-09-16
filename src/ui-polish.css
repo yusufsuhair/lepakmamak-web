@@ -158,11 +158,11 @@ kbd { border-color: rgb(255 248 231 / 25%); background: rgb(255 255 255 / 8%); b
 .map-caption span:last-child { color: var(--ui-lime); }
 #city-map:not(.park-map) .map-frame { padding-top: 74px; }
 .hud-right { gap: 7px; padding: 5px; border: 1px solid var(--ui-line); border-radius: 15px; background: rgb(7 28 22 / 56%); box-shadow: 0 10px 35px rgb(1 13 10 / 24%); backdrop-filter: blur(14px); }
-.wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button, #open-shop, #open-inventory, #hud-more {
+.wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button, #open-shop, #open-pets, #open-inventory, #hud-more {
   width: 44px; min-width: 44px; height: 44px; padding: 0; border: 1px solid transparent; border-radius: 11px;
   background: transparent; color: var(--ui-ivory); box-shadow: none;
 }
-.wall-toggle:hover, #camera-controls button:hover, .menu-btn:hover, .voice-buttons button:hover, #open-shop:hover, #open-inventory:hover, #hud-more:hover {
+.wall-toggle:hover, #camera-controls button:hover, .menu-btn:hover, .voice-buttons button:hover, #open-shop:hover, #open-pets:hover, #open-inventory:hover, #hud-more:hover {
   border-color: var(--ui-line); background: rgb(255 255 255 / 9%); color: var(--ui-lime-hot);
 }
 .wall-toggle { gap: 0; }
@@ -388,7 +388,7 @@ dialog::backdrop { background: rgb(2 15 12 / 76%); backdrop-filter: blur(11px) s
 }
 
 @media (max-width: 390px) {
-  .wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button, #open-shop, #open-inventory, #hud-more { width: 42px; min-width: 42px; height: 42px; }
+  .wall-toggle, #camera-controls button, .menu-btn, .voice-buttons button, #open-shop, #open-pets, #open-inventory, #hud-more { width: 42px; min-width: 42px; height: 42px; }
   #city-chat { width: min(220px, calc(100vw - 112px)); }
   .auth-card { padding-inline: 17px; }
   #avatar-choices { grid-template-columns: 1fr; }

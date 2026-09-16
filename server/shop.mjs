@@ -118,11 +118,15 @@ export function createShop(onEquip = () => {}, services = {}) {
         if (!item || typeof input.equipped !== 'boolean') { reply(400, { error: 'Invalid item.' }); return true; }
         const owned = (await inventory(userId)).some(record => record.sku === item.id);
         if (!owned) { reply(403, { error: 'You do not own this item.' }); return true; }
-        if (input.equipped && item.type === 'skin') {
-          const skinIds = catalog.filter(candidate => candidate.type === 'skin').map(candidate => candidate.id);
-          check(await db.from('shop_inventory').update({ equipped: false }).eq('user_id', userId).in('sku', skinIds));
+        if (item.type.startsWith('pet')) {
+          check(await db.rpc('game_pet_equip', { p_user_id: userId, p_sku: item.id, p_equipped: input.equipped }));
+        } else {
+          if (input.equipped && item.type === 'skin') {
+            const skinIds = catalog.filter(candidate => candidate.type === 'skin').map(candidate => candidate.id);
+            check(await db.from('shop_inventory').update({ equipped: false }).eq('user_id', userId).in('sku', skinIds));
+          }
+          check(await db.from('shop_inventory').update({ equipped: input.equipped }).eq('user_id', userId).eq('sku', item.id));
         }
-        check(await db.from('shop_inventory').update({ equipped: input.equipped }).eq('user_id', userId).eq('sku', item.id));
         const equipped = await accessories(userId); onEquip(userId, equipped);
         reply(200, { items: await inventory(userId), ...(await wallet(userId)) }); return true;
       }
