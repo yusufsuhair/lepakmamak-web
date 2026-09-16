@@ -1774,7 +1774,9 @@ async function init() {
   function nearbyDriver() { return [...remotePlayers.values()].filter(p => roomPlayers.find(q=>q.id===p.id)?.lrtId==null && p.riding && !p.passengerOf && distanceTo(p.target) < 3.8).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function backSeatFull(id: string) { return roomPlayers.filter(p => p.passengerOf === id).length >= (remotePlayers.get(id)?.vehicle === 'car' ? 3 : 1); }
   function chairOccupied(id: string) { return roomPlayers.some(p => p.id !== networkPlayerId && p.chairId === id); }
-  function nearbyChair() { return world.chairs.filter(c => Math.abs((c.y||0)-deckY)<2 && distanceTo(c) < 2.2).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
+  const interactionReach = 2.2;
+  function nearbyChair() { return world.chairs.filter(c => Math.abs((c.y||0)-deckY)<2 && distanceTo(c) < interactionReach).sort((a, b) => distanceTo(a) - distanceTo(b))[0]; }
+  function nearbyPlayer() { return [...remotePlayers.values()].filter(p => distanceTo(p.target) < interactionReach).sort((a, b) => distanceTo(a.target) - distanceTo(b.target))[0]; }
   function nearbyCar(){return world.traffic.filter(c=>!c.owner&&distanceTo(c)<4.8).sort((a,b)=>distanceTo(a)-distanceTo(b))[0];}
   const unciloked=(id:string)=>world.traffic.find(c=>c.id===id)?.group.userData.model==='lamborghini';
   function claimCar(id:string){
@@ -1800,6 +1802,11 @@ async function init() {
     if (driver) return { point: driver.target, height: 2, label: backSeatFull(driver.id) ? 'Full' : Math.abs(driver.speed) >= 1.5 ? 'Wait until stopped' : 'Enter', disabled: backSeatFull(driver.id) || Math.abs(driver.speed) >= 1.5 };
     const chair = nearbyChair();
     if (chair) return { point: chair, height: 1.3, label: chairOccupied(chair.id) ? 'Occupied' : 'Sit', disabled: chairOccupied(chair.id) };
+    const player = nearbyPlayer();
+    if (player) {
+      const name = String(roomPlayers.find(p => p.id === player.id)?.name || player.group.userData.profileName || 'Player').trim().slice(0, 18);
+      return { playerId: player.id, point: player.target, height: 2.4, label: `Interact · ${name}`, disabled: false };
+    }
     const lift = nearbyKlccLift();
     if (lift) return { point: lift, height: klccLiftRide?.phase === 'top' ? lift.topY + 2.6 : 3, label: klccLiftRide?.phase === 'top' ? 'Turun lif KLCC' : 'Naik lif KLCC', disabled: false };
     const station=lrtStations.find(s=>distanceTo(s)<5);
@@ -1874,7 +1881,7 @@ async function init() {
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
   $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false);
   const interactionButton = $<HTMLButtonElement>('interaction');
-  interactionButton.onclick = () => { const id=pressedCarId||interactionButton.dataset.carId;pressedCarId=null;interactionPressUntil=0;interactionPointerDown=false;if(id)claimCar(id);else interact();keys.clear(); canvas.focus(); }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
+  interactionButton.onclick = () => { const id=pressedCarId||interactionButton.dataset.carId,playerId=interactionButton.dataset.playerId;pressedCarId=null;interactionPressUntil=0;interactionPointerDown=false;if(id)claimCar(id);else if(playerId){const rect=interactionButton.getBoundingClientRect();openPlayerOptions(rect.left+rect.width/2,rect.top,playerId);keys.clear();}else{interact();keys.clear();canvas.focus();} }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   interactionButton.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&interactionButton.dataset.carId){pressedCarId=interactionButton.dataset.carId;interactionPressUntil=performance.now()+800;}});
   interactionButton.addEventListener('pointerdown',()=>{interactionPointerDown=true;pressedCarId=interactionButton.dataset.carId||null;if(pressedCarId)interactionPressUntil=performance.now()+800;});
   interactionButton.addEventListener('pointercancel',()=>{interactionPointerDown=false;pressedCarId=null;interactionPressUntil=0;});
@@ -2046,20 +2053,27 @@ async function init() {
     if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({ type: cancel ? 'superman-cancel' : 'superman' }));
     updateHud();
   }
-  function openPlayerOptions(x: number, y: number) {
+  function openPlayerOptions(x: number, y: number, proximityId = '') {
     closeOptions();
     if (!started || paused || cityMap.open || profile.open || wall.opened) return;
-    const rect = canvas.getBoundingClientRect();
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
-    const own = riding && !passengerOf ? (vehicle === 'car' ? car.driver : bike.rider) : player.group;
-    own.userData.profileName = displayName(); own.userData.profileId = networkPlayerId;
-    if (localName) { localName.userData.profileName = displayName(); localName.userData.profileId = networkPlayerId; }
-    const targets = [own, ...Array.from(remotePlayers.values(), p => p.group), ...(localName ? [localName] : [])];
-    const hit = ray.intersectObjects(targets, true)[0];
-    if (!hit) return;
-    let object: THREE.Object3D | null = hit.object;
-    while (object && typeof object.userData.profileName !== 'string') object = object.parent;
+    let object: THREE.Object3D | null;
+    if (proximityId) {
+      const target = remotePlayers.get(proximityId);
+      if (!target || distanceTo(target.target) >= interactionReach) return;
+      object = target.group;
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1), camera);
+      const own = riding && !passengerOf ? (vehicle === 'car' ? car.driver : bike.rider) : player.group;
+      own.userData.profileName = displayName(); own.userData.profileId = networkPlayerId;
+      if (localName) { localName.userData.profileName = displayName(); localName.userData.profileId = networkPlayerId; }
+      const targets = [own, ...Array.from(remotePlayers.values(), p => p.group), ...(localName ? [localName] : [])];
+      const hit = ray.intersectObjects(targets, true)[0];
+      if (!hit) return;
+      object = hit.object;
+      while (object && typeof object.userData.profileName !== 'string') object = object.parent;
+    }
     if (!object) return;
     $('dance-action').hidden=object.userData.profileId!==networkPlayerId;
     $('dance-action').textContent=isDancing()?'Stop dance':'Dance · 10s';
@@ -2784,6 +2798,7 @@ async function init() {
     const action = objectAction();
     if(actionButton && !interactionPointerDown && performance.now()>=interactionPressUntil){
     actionButton.dataset.carId=action&&'carId' in action?action.carId||'':'';
+    actionButton.dataset.playerId=action&&'playerId' in action?action.playerId||'':'';
     actionButton.hidden = !started || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
     if (action && !actionButton.hidden) {
       const anchor = new THREE.Vector3(action.point.x, action.height, action.point.z).project(camera);
