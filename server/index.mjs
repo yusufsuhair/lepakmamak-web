@@ -21,6 +21,7 @@ import { createPickleball } from './pickleball.mjs';
 import { createBasketball } from './basketball.mjs';
 import {createSocialProfiles} from './social-profiles.mjs';
 import { createChatHistory } from './chat-history.mjs';
+import { createAiChat, AI_PLAYER } from './ai-chat.mjs';
 import { cleanProfile, publicProfile } from './profiles.mjs';
 import { createTableSocial } from './tables.mjs';
 import { createParty } from './party.mjs';
@@ -113,6 +114,14 @@ setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
 setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);}},500).unref();
 setInterval(()=>{for(const ps of rooms.values())casualGames.tick(ps);},500).unref();
 const chatHistory = createChatHistory();
+const aiChat = createAiChat({
+  async publish(room, payload) {
+    broadcast(room.players, payload);
+    try { await chatHistory.save(room.name, AI_PLAYER, payload.text, payload.sentAt); }
+    catch { console.warn('AI chat history could not save'); }
+  },
+  report: message => console.warn(message),
+});
 const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
@@ -917,11 +926,13 @@ webSocketServer.on('connection', ws => {
         return;
       }
 
+      // Queue synchronously in arrival order, before storage can reorder concurrent messages.
+      const chatRoom = currentRoom;
+      broadcast(chatRoom.players, payload);
+      void aiChat.enqueue(chatRoom, payload, message => send(ws, { type: 'notice', message }));
       // Only the public channel belongs in the room's saved history.
-      try { await chatHistory.save(currentRoom.name, player, filtered, sentAt); }
+      try { await chatHistory.save(chatRoom.name, player, filtered, sentAt); }
       catch { send(ws, { type: 'notice', message: 'Message sent live, but chat history could not save it.' }); }
-      if (!player || !currentRoom || ws.readyState !== 1) return;
-      broadcast(currentRoom.players, payload);
       return;
     }
     if (message.type === 'state') {
