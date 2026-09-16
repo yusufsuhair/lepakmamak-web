@@ -69,6 +69,11 @@ test('signed-out players have no profile editor in settings',async({page})=>{
 test('settings has no duplicate social profile action',async({page})=>{
  await page.goto('/');await expect(page.locator('#open-my-profile')).toHaveCount(0);
 });
+test('profile view keeps unset detail fields visible as dashes',async({page})=>{
+ await page.route('**/profile-empty-details-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="profile-details"></div>'}));await page.goto('/profile-empty-details-harness');
+ await page.evaluate(async()=>{const {renderProfile}=await import('/src/profile.ts');renderProfile(document.getElementById('profile-details')!,{id:'member',name:'Member',registered:true,details:{}});});
+ await expect(page.locator('.profile-about dt')).toHaveCount(6);await expect(page.locator('.profile-about dd')).toHaveCount(6);await expect(page.locator('.profile-about dd').first()).toHaveText('-');await expect(page.locator('.profile-about dd').last()).toHaveText('-');
+});
 test('complete social profile renders achievements, activity and a safe guestbook on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.route('**/social-profile-harness',r=>r.fulfill({contentType:'text/html',body:'<div id="profile-details"></div>'}));await page.route('**/src/auth.ts*',r=>r.fulfill({contentType:'application/javascript',body:`export let guestName='';export let session={access_token:'token',user:{id:'viewer'}};export const auth=null;`}));await page.goto('/social-profile-harness');
  await page.evaluate(async()=>{const {renderProfile}=await import('/src/profile.ts');renderProfile(document.getElementById('profile-details'),{id:'member',name:'Aina <script>',registered:true,details:{bio:'Mamak explorer',favouriteHangout:'Basket Lepak',geng:'Geng Malam'},stats:{sessions:9,recalls:54,dances:12,basketballPoints:31},achievements:[{id:'hoops',name:'Hoops!',detail:'Scored 25 basketball points',unlockedAt:new Date().toISOString()}],activity:[{type:'achievement',label:'Unlocked Hoops!',createdAt:new Date().toISOString()}],posts:[{id:'p',text:'Jumpa kat mamak',mediaType:null,createdAt:new Date().toISOString()}],guestbook:[{id:'g',authorId:'x',author:'<img onerror=alert(1)>',text:'Hello <script>',createdAt:new Date().toISOString()}]});});
