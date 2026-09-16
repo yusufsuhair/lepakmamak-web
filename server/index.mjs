@@ -351,43 +351,55 @@ setInterval(()=>{for(const players of rooms.values()){tableLobby.tick(players);t
 setInterval(()=>{for(const players of rooms.values())fleet.tick(players,.1);},100).unref();
 const weatherControls=createWeatherControls(send,broadcast);
 const lamps=createLamps(send,broadcast);
-const server = http.createServer(async (request, response) => {
-  response.setHeader('X-Content-Type-Options', 'nosniff');
-  if(request.url==='/weather' && request.method==='GET'){
-    const report=await weather();
-    response.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'});
-    response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
-  }
-  response.setHeader('Cache-Control', 'no-store');
-  if (await friends.handle(request, response)) return;
-  if (await handles.handle(request, response)) return;
-  if (await messages.handle(request, response)) return;
-  if (await gengs.handle(request, response)) return;
-  if (await shop.handle(request, response)) return;
-  if (await socialProfiles.handle(request,response)) return;
-  if (await wall.handle(request,response)) return;
-  if (await accounts.handle(request,response)) return;
-  if (await leaderboard.handle(request,response)) return;
-  if (request.url === '/health/public' && request.method === 'GET') {
-    const report=metrics.report({rooms,sockets:webSocketServer.clients.size,version});
-    response.writeHead(200,{
-      'content-type':'application/json; charset=utf-8','cache-control':'no-store',
-      'access-control-allow-origin':'*','access-control-allow-methods':'GET',
-    });
-    response.end(JSON.stringify({
-      ok:report.ok,status:report.saturated?'degraded':'operational',version:report.version,
-      service:report.service,uptimeSeconds:report.uptimeSeconds,players:report.players,
-      rooms:report.rooms.length,updatedAt:new Date().toISOString(),
-    }));
-    return;
-  }
-  if (request.url === '/health' || request.url === '/') {
-    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(JSON.stringify({...metrics.report({ rooms, sockets: webSocketServer.clients.size, version }),voiceTransport:sfu.enabled?'sfu':'legacy'}));
-    return;
-  }
-  response.writeHead(404, { 'content-type': 'application/json; charset=utf-8' });
-  response.end(JSON.stringify({ error: 'Not found' }));
+const server = http.createServer((request, response) => {
+  response.on('error', error => console.error('[http] response failed:', error.message));
+  void (async () => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    if(request.url==='/weather' && request.method==='GET'){
+      const report=await weather();
+      response.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*','cache-control':'no-store'});
+      response.end(JSON.stringify({...report,serverTime:Date.now()}));return;
+    }
+    response.setHeader('Cache-Control', 'no-store');
+    if (await friends.handle(request, response)) return;
+    if (await handles.handle(request, response)) return;
+    if (await messages.handle(request, response)) return;
+    if (await gengs.handle(request, response)) return;
+    if (await shop.handle(request, response)) return;
+    if (await socialProfiles.handle(request,response)) return;
+    if (await wall.handle(request,response)) return;
+    if (await accounts.handle(request,response)) return;
+    if (await leaderboard.handle(request,response)) return;
+    if (request.url === '/health/public' && request.method === 'GET') {
+      const report=metrics.report({rooms,sockets:webSocketServer.clients.size,version});
+      response.writeHead(200,{
+        'content-type':'application/json; charset=utf-8','cache-control':'no-store',
+        'access-control-allow-origin':'*','access-control-allow-methods':'GET',
+      });
+      response.end(JSON.stringify({
+        ok:report.ok,status:report.saturated?'degraded':'operational',version:report.version,
+        service:report.service,uptimeSeconds:report.uptimeSeconds,players:report.players,
+        rooms:report.rooms.length,updatedAt:new Date().toISOString(),
+      }));
+      return;
+    }
+    if (request.url === '/health' || request.url === '/') {
+      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      response.end(JSON.stringify({...metrics.report({ rooms, sockets: webSocketServer.clients.size, version }),voiceTransport:sfu.enabled?'sfu':'legacy'}));
+      return;
+    }
+    // A route may have already replied before returning false (for example after a client
+    // disconnect). Do not turn that harmless late fallback into ERR_HTTP_HEADERS_SENT.
+    if (response.headersSent || response.writableEnded) return;
+    response.writeHead(404, { 'content-type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ error: 'Not found' }));
+  })().catch(error => {
+    console.error('[http] request failed:', error);
+    if (response.destroyed || response.writableEnded) return;
+    if (response.headersSent) { response.end(); return; }
+    response.writeHead(500, { 'content-type': 'application/json; charset=utf-8' });
+    response.end(JSON.stringify({ error: 'Internal server error' }));
+  });
 });
 
 const webSocketServer = new WebSocketServer({ noServer: true, maxPayload: 65536 });
