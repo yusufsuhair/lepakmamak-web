@@ -816,6 +816,11 @@ html, body, #app { touch-action: manipulation; }
 #open-friends { position: relative; overflow: visible; }
 #open-friends #friends-unread { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; display: grid; place-items: center; border: 2px solid #173c32; border-radius: 999px; background: #e5644f; color: #fff5dc; font: 800 9px/1 'Oxanium'; font-style: normal; letter-spacing: 0; box-shadow: 0 2px 8px #0006; }
 #open-friends #friends-unread[hidden] { display: none; }
+#open-my-profile-hud { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; padding: 0; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
+#open-my-profile-hud svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#open-my-profile-hud:hover { background: #255647; }
+#open-my-profile-hud:focus-visible { outline: 2px solid #ddf69a; outline-offset: 2px; }
+#open-my-profile-hud[hidden] { display: none; }
 
 /* The weekly board reads on open and never pushes, so it is plain markup with no state.
    The Wall is a cream panel, so this matches the feed cards rather than the dark HUD. */

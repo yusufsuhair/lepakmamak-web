@@ -520,6 +520,7 @@ async function init() {
   let geng = '', gengLeader = false;
   let gengButton: HTMLButtonElement | null = null;
   let friendsButton: HTMLButtonElement | null = null;
+  let profileButton: HTMLButtonElement | null = null;
   function applyGengState(state: GengState | null) {
     const current = state?.current || null;
     geng = current?.name || ''; gengLeader = !!current?.leader;
@@ -1579,9 +1580,11 @@ async function init() {
   gengButton.insertAdjacentHTML('beforeend','<i id="geng-unread" aria-hidden="true" hidden>0</i>');
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
   friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
-  $('menu').before(shopButton,inventoryButton,gengButton,friendsButton);inventoryButton.onclick=()=>inventory.open();
+  profileButton=document.createElement('button');profileButton.id='open-my-profile-hud';profileButton.type='button';profileButton.setAttribute('aria-label','Open my profile');profileButton.title='My social profile';profileButton.setAttribute('aria-haspopup','dialog');profileButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.3 19.2c.6-3.1 3.1-5.1 6.7-5.1s6.1 2 6.7 5.1"/></svg>';
+  $('menu').before(shopButton,inventoryButton,gengButton,friendsButton,profileButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
   friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!accountToken();
+  profileButton.onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
 
   $('open-shop').onclick = () => itemShop.open();
   function start() {
@@ -1589,6 +1592,7 @@ async function init() {
     if (started) return;
     beginEntryLoading();
     $('open-my-profile').hidden = !session || !!guestName;
+    if (profileButton) profileButton.hidden = !session || !!guestName;
     $('open-edit-profile').hidden = !session || !!guestName;
     $('open-security').hidden = !session || !!guestName;
     if (friendsButton) friendsButton.hidden = !accountToken();
@@ -1621,6 +1625,7 @@ async function init() {
     setMap(false); profile.close(); closeOptions();
     inventory.close();itemShop.close(); profileEditor.close(); friendsUI.close(); inbox.reset(); clearStandIn(); clearGuest();
     if (friendsButton) friendsButton.hidden = true;
+    if (profileButton) profileButton.hidden = true;
     onlinePlayersDialog.close();
     finishEntryLoading(); started = false; paused = false; keys.clear(); resetStick(); disconnectMultiplayer(); backgroundMusic.pause(); lofiMusic.pause(); iceCreamSong.pause();lamboSong.pause();if(lamboGain)lamboGain.gain.value=0;buskingSong.pause();watsonsSong.pause();familyMartSong.pause();masjidSong.pause();stallVoiceSong.pause();if(buskingGain)buskingGain.gain.value=0;if(watsonsGain)watsonsGain.gain.value=0;if(familyMartGain)familyMartGain.gain.value=0;if(masjidGain)masjidGain.gain.value=0;if(stallVoiceGain)stallVoiceGain.gain.value=0;
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;

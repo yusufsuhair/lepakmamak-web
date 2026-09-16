@@ -52,7 +52,7 @@ test('the top bar reads wall, recentre, Kedai, character, settings',async({page}
  await page.goto('/');
  const order=await page.locator('.hud-right').evaluate(el=>[...el.children].map(child=>child.id||child.className));
  // The ⋮ leads, because on a phone it is the only one showing and the rest drop under it.
- expect(order).toEqual(['hud-more','open-wall','camera-controls','open-shop','open-inventory','open-geng','open-friends','menu']);
+ expect(order).toEqual(['hud-more','open-wall','camera-controls','open-shop','open-inventory','open-geng','open-friends','open-my-profile-hud','menu']);
  const gengIcon=await page.locator('#open-geng svg').innerHTML();
  const friendIcon=await page.locator('#open-friends svg').innerHTML();
  expect(gengIcon).toContain('M12 3 20 6');
