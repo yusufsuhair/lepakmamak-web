@@ -115,7 +115,7 @@ type Member = {id: string; name: string};
 type Thread = {key: string; label: string; channel: 'all' | 'party' | 'dm' | 'table' | 'pm'; to?: string; name?: string; log: HTMLElement; unread: number; closable: boolean};
 // Stored conversations (channel 'pm', keyed by account) travel over HTTP through src/inbox.ts;
 // the chat only draws them and reports what the player did.
-export type PmHooks = {opened?: (userId: string) => void; older?: (userId: string) => void; block?: (userId: string) => void; report?: (userId: string) => void};
+export type PmHooks = {opened?: (userId: string) => void; older?: (userId: string) => void; block?: (userId: string) => void; report?: (userId: string) => void; profile?: (playerId: string, name: string) => void};
 export type PmEntry = {key: string; name: string; text: string; sentAt?: string};
 
 export function setupChat(send: (text: string, channel: Thread['channel'], to?: string) => boolean, focus: () => void, hooks: PmHooks = {}) {
@@ -342,7 +342,7 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     return thread;
   }
 
-  function line(name: string, text: string, sentAt?: string, gameMaster = false, area = '') {
+  function line(name: string, text: string, sentAt?: string, gameMaster = false, area = '', profileId = '') {
     const parsed = sentAt ? new Date(sentAt) : new Date();
     const date = Number.isFinite(parsed.getTime()) ? parsed : new Date();
     const timestamp = document.createElement('time'); timestamp.dateTime = date.toISOString();
@@ -353,7 +353,12 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
     // Name on top, where they were standing underneath it. The area is stamped by the
     // server when the message is sent, so it is where they said it, not where they are now.
     const who = document.createElement('span'); who.className = 'chat-who';
-    const author = document.createElement('strong'); author.textContent = gameMaster ? `✦ GM · ${name}:` : `${name}:`;
+    const author = document.createElement(profileId ? 'button' : 'strong'); author.textContent = gameMaster ? `✦ GM · ${name}:` : `${name}:`;
+    if (profileId) {
+      const button = author as HTMLButtonElement;
+      button.type = 'button'; button.className = 'chat-author'; button.setAttribute('aria-label', `View profile of ${name}`);
+      button.onclick = () => hooks.profile?.(profileId, name);
+    }
     who.append(author);
     if (area) { const place = document.createElement('small'); place.className = 'chat-area'; place.textContent = area; who.append(place); }
     if (gameMaster) row.className = 'game-master-chat';
@@ -433,16 +438,16 @@ export function setupChat(send: (text: string, channel: Thread['channel'], to?: 
       render();
     },
     status(value: boolean) { online = value; status.textContent = statusText(); },
-    history(history: {name: string; text: string; sentAt?: string; gameMaster?: boolean; area?: string}[]) {
+    history(history: {id?: string; name: string; text: string; sentAt?: string; gameMaster?: boolean; area?: string}[]) {
       all.log.replaceChildren(); all.unread = 0;
-      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster, false, 'all', undefined, entry.area || '');
+      for (const entry of history.slice(-50)) this.append(entry.name, entry.text, entry.sentAt, !!entry.gameMaster, false, 'all', undefined, entry.area || '', entry.id || '');
       all.unread = 0;
       render(); toBottom(all.log); renderJump();
     },
-    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '') {
+    append(name: string, text: string, sentAt?: string, gameMaster = false, notify = true, channel: 'all' | 'party' | 'dm' | 'table' = 'all', thread?: Member, area = '', profileId = '') {
       const target = channel === 'dm' && thread ? openDm(thread.id, thread.name) : channel === 'party' ? (party ??= build('party', 'PARTY', 'party')) : channel === 'table' ? (table ??= build('table', 'MEJA', 'table')) : all;
       const follow = !collapsed && target.key === active && atBottom(target.log);
-      target.log.append(line(name, text, sentAt, gameMaster, area));
+      target.log.append(line(name, text, sentAt, gameMaster, area, profileId));
       while (target.log.children.length > 50) target.log.firstElementChild!.remove();
       if (notify && (hidden || collapsed || target.key !== active)) target.unread++;
       render();

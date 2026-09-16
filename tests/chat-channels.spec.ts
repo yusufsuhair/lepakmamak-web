@@ -87,6 +87,22 @@ test('a private thread gets its own chip, and never a slot in the broadcast list
  await expect(page.getByRole('option',{name:/@Aina/})).toHaveCount(0);
 });
 
+test('chat usernames open the sender profile', async ({page}) => {
+ await page.route('**/profile-link-harness', r => r.fulfill({contentType:'text/html', body:'<link rel="stylesheet" href="/src/style.css"><div id="hud"></div>'}));
+ await page.goto('/profile-link-harness');
+ await page.evaluate(async () => {
+  const {setupChat} = await import('/src/social.ts');
+  (window as any).profile = null;
+  (window as any).chat = setupChat(() => true, () => {}, {profile: (id: string, name: string) => { (window as any).profile = {id, name}; }});
+  (window as any).chat.append('Ali', 'Jom lepak', undefined, false, false, 'all', undefined, 'Kampung Maju', 'player-42');
+ });
+ const author = page.getByRole('button', {name: 'View profile of Ali'});
+ await expect(author).toBeVisible();
+ await expect(author).toHaveText('Ali:');
+ await author.click();
+ await expect.poll(() => page.evaluate(() => (window as any).profile)).toEqual({id: 'player-42', name: 'Ali'});
+});
+
 test('unread piles up per channel and shows against its entry in the list',async({page})=>{
  await mount(page,'unread-harness');
  await page.evaluate(()=>{
