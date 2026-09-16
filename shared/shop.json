@@ -2,5 +2,9 @@
   {"id":"spectacles","name":"Cermin Mata Lepak","description":"Bingkai hitam klasik untuk character anda.","price":120,"type":"accessory"},
   {"id":"cap","name":"Topi Lepak","description":"Topi hijau dengan brim warna limau.","price":150,"type":"accessory"},
   {"id":"batik","name":"Skin Batik Malam","description":"Baju batik biru dengan corak emas Malaysia.","price":220,"type":"skin"},
-  {"id":"harimau","name":"Skin Harimau","description":"Jersi kuning hitam dengan semangat Harimau Malaya.","price":260,"type":"skin"}
+  {"id":"harimau","name":"Skin Harimau","description":"Jersi kuning hitam dengan semangat Harimau Malaya.","price":260,"type":"skin"},
+  {"id":"pet-ginger","name":"Oyen","description":"A ginger cat who follows you around the city.","price":250,"type":"pet"},
+  {"id":"pet-cream","name":"Si Putih","description":"A cream cat. Switch cats whenever you like.","price":250,"type":"pet"},
+  {"id":"pet-collar-red","name":"Red ribbon","description":"Dress your cat in a red bow collar.","price":60,"type":"pet-decoration"},
+  {"id":"pet-collar-teal","name":"Teal ribbon","description":"A teal bow collar for your companion.","price":60,"type":"pet-decoration"}
 ]

@@ -1,0 +1,60 @@
+import * as THREE from 'three';
+import {createAnimal} from './animals';
+import {box} from './world';
+import {moveWithCollisions, type Solid} from './physics';
+
+// Pets use the owner's existing, server-authorized equipment stream.
+export function createPets(scene: THREE.Scene, solids: Solid[]) {
+  const followers = new Map<string, {animal: ReturnType<typeof createAnimal>; key: string; stuck: number}>();
+  const seen = new Set<string>();
+  function remove(id: string) {
+    const pet = followers.get(id);
+    if (!pet) return;
+    scene.remove(pet.animal.group);
+    // Spheres, boxes and materials belong to the shared world caches; ears are unique.
+    pet.animal.group.traverse(object => { if (object instanceof THREE.Mesh && object.geometry.type === 'ConeGeometry') object.geometry.dispose(); });
+    followers.delete(id);
+  }
+  return {
+    begin() { seen.clear(); },
+    update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number) {
+      const items = equipment.split(',');
+      const cat = items.includes('pet-ginger') ? 'pet-ginger' : items.includes('pet-cream') ? 'pet-cream' : '';
+      if (!cat) return;
+      seen.add(id);
+      const ribbon = items.includes('pet-collar-red') ? '#df655e' : items.includes('pet-collar-teal') ? '#51b8ab' : '';
+      const key = cat + ribbon;
+      let pet = followers.get(id);
+      if (pet?.key !== key) {
+        remove(id);
+        const animal = createAnimal(true, cat === 'pet-ginger' ? '#e6a34e' : '#f0e8d8');
+        animal.group.name = `Pet · ${id}`; animal.group.scale.setScalar(.8);
+        animal.group.position.set(x - Math.sin(yaw), y, z - Math.cos(yaw));
+        if (ribbon) {
+          box(animal.body, 0, .58, .32, .39, .08, .2, ribbon);
+          for (const side of [-1, 1]) { const bow = box(animal.body, side * .09, .58, .44, .16, .14, .06, ribbon); bow.rotation.z = side * .35; }
+        }
+        scene.add(animal.group); pet = {animal, key, stuck: 0}; followers.set(id, pet);
+      }
+      const {group, legs, tail, body} = pet.animal;
+      const dx = x - group.position.x, dz = z - group.position.z, distance = Math.hypot(dx, dz);
+      const walking = distance > 1.1;
+      // Catch up after teleports and rides; normal walking uses the city's collisions.
+      if (distance > 8 || Math.abs(y - group.position.y) > 2) group.position.set(x - Math.sin(yaw), y, z - Math.cos(yaw));
+      else if (walking) {
+        const step = Math.min(distance - 1.1, Math.max(3.5, distance * 3) * Math.max(0, dt));
+        const previousX = group.position.x, previousZ = group.position.z;
+        moveWithCollisions(group.position, dx / distance * step, dz / distance * step, .23, solids);
+        pet.stuck = Math.hypot(group.position.x - previousX, group.position.z - previousZ) < step * .1 ? pet.stuck + dt : 0;
+        // ponytail: no pathfinder; recall beside the owner after two seconds blocked.
+        if (pet.stuck > 2) { group.position.set(x, y, z); pet.stuck = 0; }
+        group.rotation.y = Math.atan2(dx, dz);
+      }
+      group.position.y = y;
+      legs.forEach((leg, index) => { leg.rotation.x = walking ? Math.sin(time * 10 + (index === 0 || index === 3 ? 0 : Math.PI)) * .45 : 0; });
+      body.position.y = walking ? Math.abs(Math.sin(time * 10)) * .025 : 0;
+      tail.rotation.z = Math.sin(time * 3) * .25;
+    },
+    end() { for (const id of followers.keys()) if (!seen.has(id)) remove(id); },
+  };
+}

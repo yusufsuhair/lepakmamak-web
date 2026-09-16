@@ -11,7 +11,7 @@ type ShopState = { items?: InventoryItem[]; balance?: number; dailyAvailable?: b
 
 export function setupShop(onEquip: (items: string[]) => void, endpoint?: string, look: () => Appearance = () => defaultAppearance) {
   const dialog = document.createElement('dialog'); dialog.id = 'item-shop'; dialog.setAttribute('aria-labelledby', 'shop-title');
-  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan item anda akan terus muncul di sini.</p><section class="shop-try" aria-labelledby="shop-try-name" hidden><canvas width="280" height="360" aria-label="Pratonton 3D character anda. Seret untuk pusing"></canvas><div><small>CUBA DULU · HANYA ANDA NAMPAK</small><h3 id="shop-try-name"></h3><p>Pratonton sahaja: tidak dipakai, tidak disimpan dan pemain lain tidak nampak.</p><button type="button" class="primary" id="shop-try-buy"></button><button type="button" id="shop-try-end">Tamat cuba</button></div></section><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
+  dialog.innerHTML = `<header><div><h2 id="shop-title">Kedai Lepak.</h2><p>Skins, pets, aksesori dan Syiling Lepak</p></div><button type="button" id="shop-close" aria-label="Close shop">Close ×</button></header><section class="shop-wallet" aria-label="Syiling Lepak balance"><div><small>BAKI ANDA</small><strong id="shop-balance">🪙 —</strong></div><button type="button" id="shop-daily">Tuntut harian · +100</button></section><section class="coin-topup" aria-labelledby="coin-topup-title"><div><small>STRIPE CHECKOUT</small><h3 id="coin-topup-title">Tambah Syiling Lepak</h3><p>Pembayaran sekali sahaja · kredit masuk ke akaun ini.</p></div><div id="coin-packs"></div></section><p>Beli sekali, simpan dalam akaun dan item anda akan terus muncul di sini.</p><section class="shop-try" aria-labelledby="shop-try-name" hidden><canvas width="280" height="360" aria-label="Pratonton 3D character anda. Seret untuk pusing"></canvas><div><small>CUBA DULU · HANYA ANDA NAMPAK</small><h3 id="shop-try-name"></h3><p>Pratonton sahaja: tidak dipakai, tidak disimpan dan pemain lain tidak nampak.</p><button type="button" class="primary" id="shop-try-buy"></button><button type="button" id="shop-try-end">Tamat cuba</button></div></section><nav id="shop-filters" aria-label="Shop categories"><button type="button" data-category="all">All items</button><button type="button" data-category="pets">🐱 Pets & decorations</button></nav><p id="pet-guide" hidden>Buy a cat, then choose Pakai to bring them along. Switch cats or ribbons here anytime. Your equipped cat follows you automatically.</p><div id="shop-items"></div><p id="shop-message" role="status" aria-live="polite"></p>`;
   document.body.append(dialog);
   const message = dialog.querySelector<HTMLElement>('#shop-message')!;
   const balanceLabel = dialog.querySelector<HTMLElement>('#shop-balance')!;
@@ -20,7 +20,8 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   let owned: InventoryItem[] = [], balance = 0, dailyAvailable = false, nextDailyAt: string | null = null, available = false, paymentsAvailable = false, busy = false;
   // busy is true for a purchase too, when the numbers on screen are real and should stay put.
   // Only the first load has nothing true to show, and that is the one that gets placeholders.
-  let ready = false;
+  let ready = false, category = 'all';
+  for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-category]')) button.onclick = () => { category = button.dataset.category!; endTry(); draw(); };
 
   async function request(path: string, body?: unknown) {
     if (!base) throw Error('The shop needs an online connection.');
@@ -81,11 +82,17 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
       packs.append(button);
     }
     const list = dialog.querySelector('#shop-items')!; list.replaceChildren();
-    for (const item of catalog) {
+    dialog.querySelector<HTMLElement>('#pet-guide')!.hidden = category !== 'pets';
+    for (const button of dialog.querySelectorAll<HTMLButtonElement>('[data-category]')) button.setAttribute('aria-pressed', String(category === button.dataset.category));
+    for (const item of catalog.filter(item => category !== 'pets' || item.type.startsWith('pet'))) {
       const record = owned.find(entry => entry.sku === item.id), card = document.createElement('article');
       card.dataset.type = item.type;
       const preview = document.createElement('div'); preview.className = `shop-art ${item.id}`; preview.setAttribute('aria-hidden', 'true'); preview.innerHTML = item.id === 'spectacles' ? '<i></i><i></i>' : '<i></i>';
-      const kind = document.createElement('small'); kind.className = 'shop-kind'; kind.textContent = item.type === 'skin' ? 'SKIN' : 'ACCESSORY';
+      if (item.type.startsWith('pet')) {
+        const color = item.id === 'pet-ginger' ? '#e6a34e' : item.id === 'pet-cream' ? '#f0e8d8' : item.id === 'pet-collar-red' ? '#df655e' : '#51b8ab';
+        preview.innerHTML = `<svg width="76" height="76" viewBox="0 0 64 64" fill="${color}" stroke="#263f35" stroke-width="2" aria-hidden="true">${item.type === 'pet' ? '<path d="M12 27 10 8l16 11h12L54 8l-2 19a23 23 0 1 1-40 0Z"/><path d="M23 33h1m16 0h1M29 42l3 3 3-3M7 39l13 3M5 48l15-2m37-7-13 3m15 6-15-2" fill="none" stroke-linecap="round"/>' : '<path d="M29 28 9 17v30l20-11m6-8 20-11v30L35 36Z"/><circle cx="32" cy="32" r="6"/>'}</svg>`;
+      }
+      const kind = document.createElement('small'); kind.className = 'shop-kind'; kind.textContent = item.type.toUpperCase().replace('-', ' ');
       const title = document.createElement('h3'); title.textContent = item.name;
       const description = document.createElement('p'); description.textContent = item.description;
       const button = document.createElement('button'); button.className = 'primary shop-item-action'; button.type = 'button'; button.disabled = busy || !available || !session;
@@ -105,7 +112,7 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
       };
       const actions = document.createElement('div'); actions.className = 'shop-item-actions';
       // Cuba needs no account, wallet or connection, because it never leaves this dialog.
-      if (!loading && !record) {
+      if (!loading && !record && !item.type.startsWith('pet')) {
         const tryButton = document.createElement('button'); tryButton.type = 'button'; tryButton.className = 'shop-try-toggle'; tryButton.textContent = 'Cuba';
         tryButton.setAttribute('aria-label', `Cuba ${item.name}`); tryButton.setAttribute('aria-pressed', String(trying === item.id));
         tryButton.onclick = () => { if (trying === item.id) { endTry(); draw(); } else tryOn(item.id); };
@@ -147,5 +154,5 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   // However Kedai closes (the button, Escape, logging out) a try ends with it.
   dialog.addEventListener('close', endTry);
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open() { dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
+  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open(filter = 'all') { category = filter; endTry(); draw(); if (!dialog.open) dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }

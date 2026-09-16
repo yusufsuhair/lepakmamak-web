@@ -1,3 +1,4 @@
+import {createPets} from './pets';
 import { createMusicPlayer } from './music-player';
 import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
@@ -1727,6 +1728,7 @@ async function init() {
   $('pause').addEventListener('pointerdown', event => { pressedOutsidePause = event.target === $('pause'); });
   $('pause').addEventListener('click', event => { if (pressedOutsidePause && event.target === $('pause')) setPause(false); });
 
+  const pets = createPets(scene, world.solids);
   function setAccessories(items: string[]) { for(const model of [player.group,bike.rider,car.driver]) applyAccessories(model,items); }
   const profileEditor = setupProfileEditor(async newName => {
     const token = (await auth?.auth.getSession())?.data.session?.access_token;
@@ -1754,7 +1756,10 @@ async function init() {
   friendsButton=document.createElement('button');friendsButton.id='open-friends';friendsButton.type='button';friendsButton.setAttribute('aria-label','Open friends');friendsButton.title='Friend List';friendsButton.setAttribute('aria-haspopup','dialog');friendsButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 11.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM15.7 10a2.8 2.8 0 1 0 0-5.6M3.7 19.5v-1.1c0-2.3 2-4.1 4.6-4.1h.1c2.6 0 4.6 2 4.6 4.1v1.1M14.2 14.1h1.2c2.7 0 4.9 1.7 4.9 4.2v1.2"/><path d="M18.2 14.5v5M15.7 17h5"/></svg>';
   friendsButton.insertAdjacentHTML('beforeend','<i id="friends-unread" aria-hidden="true" hidden>0</i>');
   profileButton=document.createElement('button');profileButton.id='open-my-profile-hud';profileButton.type='button';profileButton.setAttribute('aria-label','Open my profile');profileButton.title='My social profile';profileButton.setAttribute('aria-haspopup','dialog');profileButton.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.3 19.2c.6-3.1 3.1-5.1 6.7-5.1s6.1 2 6.7 5.1"/></svg>';
-  $('menu').before(shopButton,inventoryButton,gengButton,friendsButton,profileButton);inventoryButton.onclick=()=>inventory.open();
+  const petButton = document.createElement('button'); petButton.id = 'open-pets'; petButton.type = 'button'; petButton.title = 'Pets · Cats & decorations'; petButton.setAttribute('aria-label', 'Open pets'); petButton.setAttribute('aria-haspopup', 'dialog');
+  petButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10 4 3l6 4h4l6-4-1 7a8 8 0 1 1-14 0Z"/><path d="M8 12h.01M16 12h.01m-5 3 1 1 1-1M2 14l5 1m-5 3 5-1m15-3-5 1m5 3-5-1"/></svg>';
+  petButton.onclick = () => { keys.clear(); resetStick(); dragging = false; itemShop.open('pets'); };
+  $('menu').before(shopButton,inventoryButton,petButton,gengButton,friendsButton,profileButton);inventoryButton.onclick=()=>inventory.open();
   gengButton.onclick=()=>gengUI.open(); gengButton.hidden=!session||!!guestName;
   friendsButton.onclick=()=>friendsUI.open(); friendsButton.hidden=!accountToken();
   profileButton.onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
@@ -2980,6 +2985,10 @@ async function init() {
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
+    pets.begin();
+    if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed);
+    for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed);
+    pets.end();
     beach.update(simTime,pos);
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
       experienced:!started?[]:[...(skyDining?['wet-deck']:[]),...(klccLiftRide?.phase==='top'?['15']:[]),...(!riding&&!seated&&deckY<1&&insidePickleball(pos)&&networkConnected?['21']:[]),...(!riding&&deckY<1&&pos.x>=95&&pos.x<=153&&pos.z>=134&&pos.z<=152?['pantai-senja']:[]),...(started&&audioEnabled&&audioContext?.state==='running'&&audioVolume('sfx')>0&&!masjidSong.paused&&(masjidGain?.gain.value??0)>.01?['17']:[])]});

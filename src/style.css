@@ -797,9 +797,9 @@ html, body, #app { touch-action: manipulation; }
 }
 
 /* Kedai sits in the top bar beside the character screen, same size as its neighbours. */
-#open-shop { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
-#open-shop svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
-#open-shop[hidden] { display: none; }
+#open-shop, #open-pets { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
+#open-shop svg, #open-pets svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+#open-shop[hidden], #open-pets[hidden] { display: none; }
 #open-geng { width: 44px; height: 44px; min-width: 44px; display: grid; place-items: center; background: #173c32e8; border: 1px solid #ffffff38; border-radius: 8px; color: #fff8e7; pointer-events: auto; cursor: pointer; }
 #open-geng svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #open-geng[data-geng]:not([data-geng=""]) { border-color: #d8b86a; color: #ffe8a5; }
@@ -1038,3 +1038,5 @@ body:has(#loading:not([hidden]),#pause:not([hidden]),#auth-panel:not([hidden]),#
   #force-refresh.refresh-optional .refresh-card strong { font-size: 18px; }
   #force-refresh.refresh-optional .refresh-card p { font-size: 11px; }
 }
+
+#shop-filters{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}#shop-filters button{min-height:44px}#shop-filters [aria-pressed=true]{background:#d9bf79;color:#17382f}#pet-guide{line-height:1.6}
