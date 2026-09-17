@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.42.0",
+    "date": "2026-09-17",
+    "title": "LepakMamak Is On Air",
+    "notes": [
+      "Switch between the original lofi soundtrack and live Malaysian radio without leaving the city.",
+      "Tune in to Fly FM, Hot FM or Eight FM, then change stations, pause playback and adjust one shared volume control.",
+      "Your selected source and station are remembered the next time you visit.",
+      "On phones, the player stays compact while you explore and expands into a touch-friendly station picker when needed."
+    ]
+  },
+  {
     "version": "1.41.0",
     "date": "2026-09-17",
     "title": "Meet Your New Lepak Companion",

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.42.0 — 2026-09-17
 
 - Added Music / Radio switching with three Malaysian stations, remembered source/station, shared volume, and retry on stream failure. Added a compact mobile player with an accessible expanded station picker. Radio disconnects when stopped and replaces the car soundtrack while selected.
 
