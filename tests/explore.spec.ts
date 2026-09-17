@@ -24,6 +24,9 @@ test('Explore takes players to Wet Deck, guides the lift, and remembers the expe
  const before=await page.evaluate(()=>(window as any).__lepak.position);await page.keyboard.press('KeyW');
  expect(await page.evaluate(()=>(window as any).__lepak.position)).toEqual(before);await expect(page.locator('#explore-city')).toBeVisible();
  await page.screenshot({path:info.outputPath('explore-desktop.png')});
+ await page.getByRole('tab',{name:/Tutorial/}).click();await expect(page.locator('.tutorial-card')).toHaveCount(4);await expect(page.locator('#explore-title')).toHaveText('Learn the city.');
+ await expect(page.locator('[data-tutorial="afk"]')).toContainText('Set note');await expect(page.locator('[data-tutorial="clothes"]')).toContainText('saves automatically');
+ await page.screenshot({path:info.outputPath('explore-tutorial-desktop.png')});await page.getByRole('tab',{name:/Places/}).click();
  await page.locator('[data-visit="wet-deck"]').click();await expect(page.locator('#explore-guide')).toContainText('Naik Wet Deck');await expect(page.locator('#interaction')).toHaveClass(/explore-target/);
  await expect(page.locator('#interaction')).toHaveText('Naik Wet Deck');await page.locator('#interaction').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.skyDining)).toBe(true);await expect(page.locator('#explore-guide')).toBeHidden();
@@ -50,6 +53,7 @@ test('mobile cards fit, keyboard focus stays in the dialog, and hint dismissal p
  await expect(page.locator('#close-explore')).toBeFocused();await page.keyboard.press('Shift+Tab');await expect(page.locator('#explore-map')).toBeFocused();
  const bounds=await page.locator('#explore-city').evaluate(e=>({client:e.clientWidth,scroll:e.scrollWidth}));expect(bounds.scroll).toBe(bounds.client);
  await page.locator('#close-explore').focus();await page.locator('#explore-city').evaluate(e=>e.scrollTop=0);await page.screenshot({path:info.outputPath('explore-mobile.png')});
+ await page.getByRole('tab',{name:/Tutorial/}).click();await page.locator('#explore-city').evaluate(e=>e.scrollTop=0);await page.screenshot({path:info.outputPath('explore-tutorial-mobile.png')});await page.getByRole('tab',{name:/Places/}).click();
  await page.locator('[data-visit="wet-deck"]').click();await expect(page.locator('#explore-guide')).toBeVisible();await expect(page.locator('#interaction')).toBeVisible();
  await page.screenshot({path:info.outputPath('explore-mobile-guide.png')});
  await enter(page);await expect(page.locator('#explore-teaser')).toBeHidden();
