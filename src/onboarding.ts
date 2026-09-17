@@ -6,14 +6,14 @@ const KEY = 'lepakmamak-onboarded';
 const seen = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
 const remember = () => { try { localStorage.setItem(KEY, '1'); } catch { /* Storage is optional. */ } };
 
-export function createOnboarding(touch: boolean, releaseInput: () => void = () => {}) {
+export function createOnboarding(touch: boolean, releaseInput: () => void = () => {}, openPets?: () => void) {
   const move = touch ? 'Drag the MOVE stick' : 'Use W A S D';
   const steps: [string, string, string][] = [
     ['🛵', 'Jalan ke meja mamak', `${move} to walk to any mamak table. The nearest one is just across the road.`],
     ['🪑', 'Tap SIT on a chair', 'Stand next to an empty chair until a SIT button appears, then tap it.'],
     ['🎮', 'Open the table games', 'Once seated, tap the table name above it, then choose Lukis Lah, Poker, UNO or Werewolf.'],
     ['✅', 'Press READY', 'Everyone at the table presses READY. The game starts by itself when enough players are ready.'],
-    ['🐱', 'Bring a pet along', 'Tap the cat icon at the top right to buy one companion. Choose its breed and colour in Pet Studio, then equip it to follow you.'],
+    ['🐱', 'Bring a pet along', 'Adopt one companion for 250 Lepak Coin, then give it a name and change its breed, style or coat colour anytime in Pet Studio.'],
     ['👋', 'Ajak kawan', 'Table empty? Tap INVITE inside the game to call your geng or anyone in the city.'],
   ];
   const dialog = document.createElement('dialog');
@@ -23,6 +23,11 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
     <label id="cara-main-skip"><input type="checkbox" id="cara-main-skip-check">Do not show again</label>
     <button type="button" id="cara-main-done" class="primary">Faham, jom!</button>`;
   document.body.append(dialog);
+  if (openPets) {
+    const action = document.createElement('button'); action.type = 'button'; action.className = 'cara-main-action'; action.textContent = 'Buy or customise pet';
+    action.onclick = () => { dialog.close(); openPets(); };
+    dialog.querySelectorAll('li')[4].querySelector('div')!.append(action);
+  }
   const done = dialog.querySelector<HTMLButtonElement>('#cara-main-done')!;
   const skip = dialog.querySelector<HTMLInputElement>('#cara-main-skip-check')!;
   // The card used to remember itself the moment it closed, however that happened — Escape, a

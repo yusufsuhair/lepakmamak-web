@@ -9,8 +9,9 @@ test('Cara main keeps reappearing until the player ticks Do not show again',asyn
  await enter();
  const card=page.locator('#cara-main');
  await expect(card).toBeVisible();
- await expect(card.locator('li')).toHaveCount(5);
+ await expect(card.locator('li')).toHaveCount(6);
  await expect(card).toContainText('Tap SIT on a chair');
+ await expect(card).toContainText('give it a name and change its breed, style or coat colour');
  const skip=page.locator('#cara-main-skip-check');
  await expect(skip).not.toBeChecked();
  // Dismissing without ticking the box is not "seen" — a player who closes it by mistake, or
@@ -28,5 +29,8 @@ test('Cara main keeps reappearing until the player ticks Do not show again',asyn
  await page.keyboard.press('Escape');
  await page.locator('#open-cara-main').click();
  await expect(card).toBeVisible();
+ await page.getByRole('button',{name:'Buy or customise pet'}).click();
+ await expect(page.locator('#pet-studio')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Visit Shop'})).toBeVisible();
  }finally{vite.kill();server.kill();}
 });

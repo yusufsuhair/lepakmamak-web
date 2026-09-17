@@ -996,7 +996,8 @@ async function init() {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   createRipples(document.body, {reducedMotion});
   $('touch-controls').hidden = !touch;
-  const onboarding = createOnboarding(touch, () => { keys.clear(); resetStick(); dragging = false; });
+  let openPetsFromOnboarding = () => {};
+  const onboarding = createOnboarding(touch, () => { keys.clear(); resetStick(); dragging = false; }, () => openPetsFromOnboarding());
   document.querySelector('.pause-panel')!.insertBefore(onboarding.button, document.querySelector('#whats-new'));
   if (touch) { $('controls-bar').hidden = true; document.querySelector('.intro-hint')!.textContent = 'Drag the thumbstick to move · drag the world to look'; document.querySelector('#city-map footer span:last-child')!.textContent = 'Close the map to keep moving'; }
   function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number) {
@@ -1847,6 +1848,7 @@ async function init() {
       if (networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type: 'pet-breed', breed}));
     },
   });
+  openPetsFromOnboarding = () => petStudio.open();
   openShopFromGeng = () => { gengUI.close(); itemShop.open(); };
   const inventory=setupInventory(itemShop,()=>{keys.clear();resetStick();dragging=false;},look=>{
     applyAppearance(player.group, look); applyAppearance(bike.rider, look); applyAppearance(car.driver, look);
