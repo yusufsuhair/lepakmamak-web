@@ -1,6 +1,7 @@
 import {createPets} from './pets';
 import {setupPetStudio} from './pet-studio';
-import { createMusicPlayer } from './music-player';
+import { createMusicPlayer, type MusicSource } from './music-player';
+import { createRadio, RADIO_STATIONS } from './radio';
 import {disposeCharacter} from './character-assets';
 import {PlayerStateStream, createFrameQueue, createHeartbeat} from './network-stream';
 import {SKY,skyHeight,inSkyPool} from '../shared/sky-dining.mjs';
@@ -1113,21 +1114,61 @@ async function init() {
   let musicDuck = 1;
   let musicContext: AudioContext | null = null;
   let musicGain: GainNode | null = null;
+  let radioGain: GainNode | null = null;
   let skyMusic: ReturnType<typeof createSkyMusic> | null = null;
-  const updateMusicPlayer = createMusicPlayer(lofiMusic, () => {
+  let musicSource: MusicSource = 'music';
+  try { if (localStorage.getItem('lepakmamak-music-source') === 'radio') musicSource = 'radio'; } catch { /* Storage is optional. */ }
+  const liveRadio = createRadio(updateMusicPlayer);
+  const musicPlayer = createMusicPlayer({
+    toggle() {
+      const active = musicSource === 'radio' ? liveRadio.status === 'live' || liveRadio.status === 'connecting' : !lofiMusic.paused && !lofiMusic.ended;
+      setMusicEnabled(!musicEnabled || !active);
+    },
+    skip() {
+      if (musicSource === 'music') nextSong();
+      else selectStation(RADIO_STATIONS[(RADIO_STATIONS.findIndex(s => s.id === liveRadio.station.id) + 1) % RADIO_STATIONS.length].id);
+    },
+    source(value) {
+      if (musicSource === value) return;
+      backgroundMusic.pause(); lofiMusic.pause(); liveRadio.pause();
+      musicSource = value;
+      try { localStorage.setItem('lepakmamak-music-source', value); } catch { /* Storage is optional. */ }
+      if (value === 'radio') vehicleRadio.update(false);
+      if (musicEnabled && started) startBackgroundMusic(true);
+      updateMusicPlayer();
+    },
+    station: selectStation,
+    volume(value) { const input = $<HTMLInputElement>('music-volume'); input.value = String(value); input.dispatchEvent(new Event('input')); },
+    retry() { setMusicEnabled(true); },
+    open() { keys.clear(); resetStick(); },
+  });
+  function setMusicEnabled(enabled: boolean) {
     const toggle = $<HTMLInputElement>('music-toggle');
-    toggle.checked = !musicEnabled;
+    toggle.checked = enabled;
     toggle.dispatchEvent(new Event('change'));
-  }, nextSong);
-  updateMusicPlayer(LOFI_TRACKS[lofiTrack].file);
+  }
+  function selectStation(id: string) {
+    liveRadio.select(id);
+    if (musicSource === 'radio' && musicEnabled && started) startBackgroundMusic(true);
+    updateMusicPlayer();
+  }
+  function updateMusicPlayer() {
+    const radio = musicSource === 'radio';
+    musicPlayer.update({source:musicSource, title:radio ? liveRadio.station.name : `Lofi ${lofiTrack + 1}`, enabled:musicEnabled,
+      playing:radio ? liveRadio.status === 'live' : !lofiMusic.paused && !lofiMusic.ended,
+      radioStatus:liveRadio.status, station:liveRadio.station.id, volume:audioVolume('music'),
+      progress:Number.isFinite(lofiMusic.duration) && lofiMusic.duration > 0 ? lofiMusic.currentTime / lofiMusic.duration : 0});
+  }
+  for (const event of ['playing','pause','ended','emptied','timeupdate','error']) lofiMusic.addEventListener(event, updateMusicPlayer);
+  updateMusicPlayer();
   function nextSong() {
     lofiTrack = (lofiTrack + 1) % LOFI_TRACKS.length;
     if (lofiGain) lofiGain.gain.value = lofiLevel();
     lofiMusic.src = cdnUrl(LOFI_TRACKS[lofiTrack].file);
-    updateMusicPlayer(LOFI_TRACKS[lofiTrack].file);
+    updateMusicPlayer();
     if (musicEnabled && started) startBackgroundMusic();
   }
-  lofiMusic.addEventListener('ended', nextSong);
+  lofiMusic.addEventListener('ended', () => { if (musicSource === 'music') nextSong(); });
   function startBackgroundMusic(force = false) {
     // Entering the city starts the simulation before the socket has admitted the player.
     // Do not let a click on the sign-in form turn that short interval into a music preview.
@@ -1140,10 +1181,13 @@ async function init() {
         musicContext.createMediaElementSource(backgroundMusic).connect(musicGain); musicGain.connect(musicContext.destination);
         lofiGain = musicContext.createGain(); lofiGain.gain.value = lofiLevel();
         musicContext.createMediaElementSource(lofiMusic).connect(lofiGain); lofiGain.connect(musicGain);
+        radioGain = musicContext.createGain(); radioGain.gain.value = .83;
+        musicContext.createMediaElementSource(liveRadio.audio).connect(radioGain); radioGain.connect(musicGain);
         backgroundMusic.volume = 1;
       }
       if (musicContext.state === 'suspended') void musicContext.resume().catch(() => {});
     } catch { /* Retain the quieter media-element fallback where supported. */ }
+    if (musicSource === 'radio') { backgroundMusic.pause(); lofiMusic.pause(); liveRadio.play(); return; }
     // Attached here, not in the markup, so a player with music off never downloads the track.
     if (!backgroundMusic.hasAttribute('src')) backgroundMusic.src = cdnUrl('background-short.mp3');
     if (!lofiMusic.hasAttribute('src')) lofiMusic.src = cdnUrl(LOFI_TRACKS[lofiTrack].file);
@@ -1169,7 +1213,9 @@ async function init() {
     } else if (!song.paused) song.pause();
   }
   document.addEventListener('pointerdown', () => {
-    if (started && ((musicEnabled && (backgroundMusic.paused || lofiMusic.paused || musicContext?.state === 'suspended')) || (audioEnabled && audioContext?.state === 'suspended'))) { ensureAudio(); startBackgroundMusic(); }
+    if (started && audioEnabled && audioContext?.state === 'suspended') ensureAudio();
+    if (started && musicEnabled && musicSource === 'music' && (backgroundMusic.paused || lofiMusic.paused || musicContext?.state === 'suspended')) startBackgroundMusic();
+    if (started && musicEnabled && musicSource === 'radio' && musicContext?.state === 'suspended') void musicContext.resume().catch(() => {});
   });
   let footstepDistance = 0;
   let stepNoise: AudioBuffer | null = null;
@@ -1469,7 +1515,7 @@ async function init() {
     input.oninput=()=>{
       const value=setAudioVolume(channel,Number(input.value));output.value=`${Math.round(value*100)}%`;
       if(channel==='sfx'&&citySoundsGain)citySoundsGain.gain.value=.5*value;
-      if(channel==='music'){if(musicGain)musicGain.gain.value=.06*value;vehicleRadio.setVolume(value);}
+      if(channel==='music'){if(musicGain)musicGain.gain.value=.06*value;vehicleRadio.setVolume(value);updateMusicPlayer();}
       if(channel==='voice')voice.volume(value);
     };
   }
@@ -1897,6 +1943,7 @@ async function init() {
   for (const event of ['pointerdown','pointermove','keydown','wheel'] as const) window.addEventListener(event, e => { if(e.isTrusted) idleGuard.activity(); }, {passive:true});
   window.setInterval(() => idleGuard.tick(), 1000);
   function leaveCity() {
+    liveRadio.pause(); musicPlayer.close();
     if(networkSocket?.readyState === WebSocket.OPEN) networkSocket.send(JSON.stringify({type:'leave-city'}));
     vehicleRadio.update(false);
     locationArrival.reset();
@@ -2058,8 +2105,9 @@ async function init() {
   $<HTMLInputElement>('music-toggle').onchange = event => {
     musicEnabled = (event.target as HTMLInputElement).checked;
     try { localStorage.setItem('lepakmamak-music', musicEnabled ? 'on' : 'off'); } catch { /* Playback still works without storage. */ }
-    vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    if (musicEnabled && started) startBackgroundMusic(true); else { backgroundMusic.pause(); lofiMusic.pause(); }
+    vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled && musicSource === 'music');
+    if (musicEnabled && started) startBackgroundMusic(true); else { backgroundMusic.pause(); lofiMusic.pause(); liveRadio.pause(); }
+    updateMusicPlayer();
   };
   $<HTMLInputElement>('sound-toggle').onchange = event => { audioEnabled = (event.target as HTMLInputElement).checked; if (audioEnabled) { ensureAudio(); } else { danceAudio.stop();buskingSong.pause();if(buskingGain)buskingGain.gain.value=0;watsonsSong.pause();if(watsonsGain)watsonsGain.gain.value=0;familyMartSong.pause();if(familyMartGain)familyMartGain.gain.value=0;masjidSong.pause();if(masjidGain)masjidGain.gain.value=0;stallVoiceSong.pause();if(stallVoiceGain)stallVoiceGain.gain.value=0;iceCreamSong.pause(); if (iceCreamGain) iceCreamGain.gain.value = 0; lamboSong.pause(); if (lamboGain) lamboGain.gain.value = 0; } };
   function setShadows(enabled: boolean) {
@@ -2606,9 +2654,11 @@ async function init() {
   function updateHud() {
     document.body.classList.toggle('on-lrt',lrtId!=null);
     locationArrival.update(pos.x,pos.z,started&&lrtId==null,audioEnabled);
-    vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled);
-    musicDuck += ((tableSocial.playing || skyDining ? 0 : 1) - musicDuck) * .08;
-    skyMusic?.update(started && !paused && skyDining && musicEnabled, tableSocial.playing, audioVolume('music'));
+    vehicleRadio.update(started && lrtId==null && (riding || !!passengerOf) && musicEnabled && musicSource === 'music');
+    musicDuck += ((tableSocial.playing || (skyDining && musicSource === 'music') ? 0 : 1) - musicDuck) * .08;
+    skyMusic?.update(started && !paused && skyDining && musicEnabled && musicSource === 'music', tableSocial.playing, audioVolume('music'));
+    if (radioGain) radioGain.gain.value = .83 * musicDuck;
+    else liveRadio.audio.volume = .06 * audioVolume('music') * .83 * musicDuck;
     backgroundMusic.volume=(musicContext?1:.06*audioVolume('music'))*((riding||passengerOf)? .15:1)*musicDuck;
     lofiMusic.volume=(musicContext?1:.06*audioVolume('music')*lofiLevel())*((riding||passengerOf)? .15:1)*musicDuck;
     const jumpButton = document.querySelector<HTMLButtonElement>('.touch-actions [data-key="Space"]')!;

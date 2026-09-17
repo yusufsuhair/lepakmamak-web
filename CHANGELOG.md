@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added Music / Radio switching with three Malaysian stations, remembered source/station, shared volume, and retry on stream failure. Added a compact mobile player with an accessible expanded station picker. Radio disconnects when stopped and replaces the car soundtrack while selected.
+
 ## 1.41.0 — 2026-09-17
 
 - Added cat companions that follow their owners around the city. One 250-Lepak-Coin purchase includes all 16 breed/style choices and 17 coat colours.
