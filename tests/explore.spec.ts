@@ -24,10 +24,11 @@ test('Explore takes players to Wet Deck, guides the lift, and remembers the expe
  const before=await page.evaluate(()=>(window as any).__lepak.position);await page.keyboard.press('KeyW');
  expect(await page.evaluate(()=>(window as any).__lepak.position)).toEqual(before);await expect(page.locator('#explore-city')).toBeVisible();
  await page.screenshot({path:info.outputPath('explore-desktop.png')});
- await page.getByRole('tab',{name:/Tutorial/}).click();await expect(page.locator('.tutorial-card')).toHaveCount(4);await expect(page.locator('#explore-title')).toHaveText('Learn the city.');
+ await page.getByRole('tab',{name:/Tutorial/}).click();await expect(page.locator('.tutorial-card')).toHaveCount(5);await expect(page.locator('#explore-title')).toHaveText('Learn the city.');
  await expect(page.locator('[data-tutorial="afk"]')).toContainText('Set note');await expect(page.locator('[data-tutorial="clothes"]')).toContainText('saves automatically');
+ await expect(page.locator('[data-tutorial="games"]')).toContainText('Mamak Maju · game tables');await expect(page.locator('[data-tutorial="games"]')).toContainText('ZUS Coffee · social seating');await expect(page.locator('[data-tutorial="games"]')).toContainText('READY');
  await expect.poll(()=>page.locator('.tutorial-shot img').evaluateAll(images=>images.every(i=>(i as HTMLImageElement).complete&&(i as HTMLImageElement).naturalWidth===1280))).toBe(true);
- await page.screenshot({path:info.outputPath('explore-tutorial-desktop.png')});await page.getByRole('tab',{name:/Places/}).click();
+ await page.screenshot({path:info.outputPath('explore-tutorial-desktop.png')});await page.locator('[data-tutorial="games"]').scrollIntoViewIfNeeded();const chrome=page.locator('#explore-city>header,.explore-tabs');await chrome.evaluateAll(elements=>elements.forEach(element=>(element as HTMLElement).style.visibility='hidden'));await page.locator('[data-tutorial="games"]').screenshot({path:info.outputPath('explore-tutorial-games.png')});await chrome.evaluateAll(elements=>elements.forEach(element=>(element as HTMLElement).style.visibility=''));await page.getByRole('tab',{name:/Places/}).click();
  await page.locator('[data-visit="wet-deck"]').click();await expect(page.locator('#explore-guide')).toContainText('Naik Wet Deck');await expect(page.locator('#interaction')).toHaveClass(/explore-target/);
  await expect(page.locator('#interaction')).toHaveText('Naik Wet Deck');await page.locator('#interaction').click();
  await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.skyDining)).toBe(true);await expect(page.locator('#explore-guide')).toBeHidden();
