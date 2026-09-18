@@ -95,6 +95,8 @@
 
 ## Unreleased
 
+- Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button.
+
 - Switched the admin console from Cloudflare Access to server-validated Supabase Auth with an exact Yusuf email allowlist, Google/email sign-in, SSR session cookies, and an admin custom domain deployment.
 
 - Expanded the roaming street-animal population to ten cats and ten dogs across the city, with varied colours and sizes, distance culling and shared sound throttling for mobile performance.

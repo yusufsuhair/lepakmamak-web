@@ -900,6 +900,11 @@ body:has(#loading:not([hidden]),#pause:not([hidden]),#auth-panel:not([hidden]),#
    it can never intercept a press, and the same rule holds at 375px. */
 #table-social #city-chat { position: static; left: auto; right: auto; top: auto; bottom: auto; transform: none; width: auto; max-width: none; margin: 14px 0 0; z-index: auto; flex: none; }
 #table-social #city-chat.chat-expanded { position: static; width: auto; transform: none; }
+/* The hide tab hangs 8px off the panel's right edge in the HUD. Docked, the panel already fills
+   the dialog, so the tab landed outside it and the dialog scrolled sideways at every width. It
+   sits in the header row beside the fullscreen control, and the heading reserves room for both. */
+#table-social #city-chat #chat-visibility-toggle { top: 4px; bottom: auto; left: auto; right: 54px; }
+#table-social #city-chat #chat-heading { padding-right: 106px; }
 #table-social #chat-messages { max-height: 150px; }
 /* The narrow floating HUD chat stacks name above area to save width; the table dialog has
    plenty of it, and the stacked layout left the area tag orphaned under the name with a
