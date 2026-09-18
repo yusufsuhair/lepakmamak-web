@@ -39,6 +39,7 @@ import {createWall} from './wall.mjs';
 import {createAccounts} from './account.mjs';
 import {createLeaderboard} from './leaderboard.mjs';
 import {createFunnel} from './funnel.mjs';
+import {createHouseBots} from './house-bot.mjs';
 import guestNames from '../shared/guest-names.json' with { type: 'json' };
 import {createGengs} from './geng.mjs';
 import {createFriends} from './friends.mjs';
@@ -116,7 +117,10 @@ const basketball = createBasketball(send,Date.now,(player,points)=>socialProfile
 setInterval(()=>{for(const ps of rooms.values())basketball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())pickleball.tick(ps);},50).unref();
 setInterval(()=>{for(const ps of rooms.values())poker.tick(ps);},500).unref();
-setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);}},500).unref();
+// Ah Meng sits in when somebody has waited alone in an UNO lobby (see house-bot.mjs). The room
+// hears about him the way it hears about anybody arriving or leaving.
+const houseBots=createHouseBots({tableLobby,uno,maxPlayers,changed:players=>{broadcast(players,{type:'players',players:snapshot(players)});tableSocial.sync(players,true);}});
+setInterval(()=>{for(const ps of rooms.values()){lukis.tick(ps);werewolf.tick(ps);uno.tick(ps);houseBots.tick(ps);}},500).unref();
 setInterval(()=>{for(const ps of rooms.values())casualGames.tick(ps);},500).unref();
 const chatHistory = createChatHistory();
 const aiChat = createAiChat({
@@ -608,7 +612,7 @@ webSocketServer.on('connection', ws => {
         room = roomFor(message.room);
       }
       if (room.players.size >= maxPlayers) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
-      if (publicCity && identity.guest && [...room.players.values()].filter(person => person.guest).length >= guestSeats) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'The city is busy with visitors right now. Create a free account and there is a seat for you.' }); ws.close(1008, 'Guest seats full'); return; }
+      if (publicCity && identity.guest && [...room.players.values()].filter(person => person.guest && !person.bot).length >= guestSeats) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'The city is busy with visitors right now. Create a free account and there is a seat for you.' }); ws.close(1008, 'Guest seats full'); return; }
       currentRoom = room;
       ws.roomName = room.name;
       room.players.set(id, player);

@@ -221,6 +221,25 @@ That was already true for mutes; it now also decides what an unbannable visitor 
 Without accounts configured the server is a developer's machine: guests type their own
 names and chat freely, which is how the test suite enters the city.
 
+## Ah Meng, the house opponent
+
+Every table game needs two people and a new player usually arrives to a city with one in it.
+`server/house-bot.mjs` seats "Ah Meng · AI" at the table of anybody who has waited `WAIT_MS`
+(6 s) alone in an **UNO** lobby, if a chair is free. He readies up, plays, and gives the chair
+back as soon as no person is left in the lobby. Two people never get him.
+
+He is a client living in the server process. His fake socket keeps the last `uno-state` and
+`lobby-state` it was sent, which is exactly what a browser gets, his own hand and nobody
+else's. He acts only by passing `lobby-*` and `uno-*` messages to the same handlers, picking
+from the `playable` list the engine already computes for whoever's turn it is. So the engine
+has no bot code path, and a rules change in `uno.mjs` cannot leave him behind. His private
+state lives in a map beside the player object, never on it, because the player object is what
+the room snapshot broadcasts.
+
+In the snapshot he is `bot: true, guest: true` with no `userId`, so the client gives him a
+name-only card like any guest, and he is left out of the `GUEST_SEATS` count. Poker is not
+covered yet; `first_game` in the funnel will show whether people play him.
+
 ## Where new players give up
 
 `server/funnel.mjs` counts seven steps into `funnel_events`. The browser reports the ones

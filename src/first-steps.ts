@@ -38,7 +38,9 @@ export function createFirstSteps(options: { point: (target: GuideTarget | null, 
       if (table) {
         options.point(step(`table:${table.id}`, () => ({
           name: 'Jom main', marker: table.name, target: {x: table.x, y: 1, z: table.z},
-          hint: `${options.touch ? 'Tap' : 'Click'} ${table.name} above the table to pick a game, then press READY.`,
+          // UNO is the one to name: it is the game that can start with nobody else around
+          // (server/house-bot.mjs), and a first visit is usually to a quiet city.
+          hint: `${options.touch ? 'Tap' : 'Click'} ${table.name} above the table, pick UNO and press READY. Nobody around? Ah Meng will join you.`,
         })), finish);
         return;
       }
