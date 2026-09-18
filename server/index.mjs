@@ -38,6 +38,8 @@ import { createShop } from './shop.mjs';
 import {createWall} from './wall.mjs';
 import {createAccounts} from './account.mjs';
 import {createLeaderboard} from './leaderboard.mjs';
+import {createFunnel} from './funnel.mjs';
+import guestNames from '../shared/guest-names.json' with { type: 'json' };
 import {createGengs} from './geng.mjs';
 import {createFriends} from './friends.mjs';
 import {createSocialStore} from './social-store.mjs';
@@ -87,6 +89,8 @@ const tableSocial = createTableSocial(send, players => tableLobby?.summary(playe
 const party = createParty(send);
 const devBots = createDevBots(maxPlayers);
 const leaderboard=createLeaderboard();
+const funnel=createFunnel();
+void funnel.purge(); setInterval(() => void funnel.purge(), 86400000).unref();
 const socialProfiles=createSocialProfiles({playerFor:userId=>playerForUser(userId),onUnlock:(player,badges)=>send(player.ws,{type:'achievement-unlocked',badges}),onStats:(userId,name,values)=>leaderboard.record(userId,name,values).catch(()=>{})});
 const uno = createUno(send);
 const werewolf = createWerewolf(send);
@@ -96,7 +100,7 @@ const casualGames = createCasualGames(send);
 const sfu=createSfu({send,allowed:(ps,p,q)=>voiceAudience(ps,p,q,{party,werewolf,lukis,radius:voiceConfig.hearingRadius})});
 setInterval(()=>{for(const ps of rooms.values())sfu.tick(ps);},500).unref();
 // The lobby starts the games; the games keep their own rules once running.
-tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf, ...casualGames.games});
+tableLobby = createTableLobby(send, {lukis, poker, uno, werewolf, ...casualGames.games}, Date.now, seated => { for (const person of seated) void funnel.once(person, 'first_game'); });
 const tableInvites = createTableInvites(send, {party, tableLobby});
 // Geng reconnect records and table invitation links expire on the server. Keep empty room
 // maps alive only while a logged-in Geng member still has a reconnect grace window.
@@ -127,7 +131,7 @@ const moderation = createModeration();
 // Every verb that carries a player's own words, voice, drawing or display name to somebody
 // else. A mute enforced inside each feature is a mute with a hole in it the day the next
 // feature lands, so they are all refused at one gate before any handler sees them.
-const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess', 'pet-name', 'pet-breed']);
+const MUTED = new Set(['chat', 'voice-audio', 'afk-note', 'profile-refresh', 'lukis-ink', 'lukis-line', 'lukis-guess', 'werewolf-chat', 'pet-name', 'pet-breed']);
 const SURFACES = new Set(['voice', 'chat', 'wall', 'drawing', 'name', 'behaviour']);
 const REASONS = new Set(['harassment', 'sexual', 'hate', 'threat', 'scam', 'child-safety', 'other']);
 function penaltyNotice(status) {
@@ -245,7 +249,18 @@ const wall=createWall({onPost:post=>{for(const players of rooms.values())broadca
 const palette = ['#dafa8e', '#f4a06c', '#72c8ba', '#e4bd66', '#d58ca0', '#9cace0'];
 const authUrl = process.env.SUPABASE_URL;
 const authKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Error('Supabase configuration is required. ALLOW_GUESTS=true is for local development only.');
+if ((!authUrl || !authKey) && process.env.ALLOW_GUESTS !== 'true') throw new Error('Supabase configuration is required. Only a guests-only development server (ALLOW_GUESTS=true) runs without it.');
+// Accounts configured means a public city, where a guest cannot be reported into a ban and so
+// brings nothing of their own: not a typed name, not a word. Without accounts it is a
+// developer's machine, and the suite enters under typed names and chats as a guest.
+const publicCity = !!(authUrl && authKey);
+const GUEST_NAME = new RegExp(`^(?:${guestNames.join('|')}) \\d{2}$`);
+// Filling a room used to cost a hundred accounts; with guests it costs a script and none.
+// The per-address cap cannot stop that because its key is forgeable (see limits.mjs), so
+// guests are held to a share of the room and whoever has an account can always get in.
+const guestSeats = Number(process.env.GUEST_SEATS || Math.floor(maxPlayers * .6));
+const mamakTables = tableLocations.filter(table => table.id.startsWith('meja-'));
+const chairTables = new Map(chairs.map(chair => [chair.id, chair.tableId]));
 
 // A Geng is optional at join time. If its database is having a bad minute, the city still
 // lets people in and the next refresh fills the tag back in instead of blocking the door.
@@ -269,6 +284,8 @@ async function identify(token, guest = false, guestName) {
     if (typeof guestName !== 'string') throw new Error('Enter a guest name.');
     const name = guestName.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0,18);
     if (name.length < 2 || filterChat(name) === '***') throw new Error('Choose another guest name.');
+    // They do not get to type what floats over their head: the name comes off the menu.
+    if (publicCity && !GUEST_NAME.test(name)) throw new Error('Choose another guest name.');
     return { name, guest: true, gameMaster: false, accessories: [], petName: '', petBreed: '', geng: null, expiresAt: Date.now() + 86400000 };
   }
   if (!authUrl || !authKey) return { name: 'Local guest', petBreed: '', geng: null, expiresAt: Date.now() + 3600000 };
@@ -389,6 +406,7 @@ const server = http.createServer((request, response) => {
     if (await wall.handle(request,response)) return;
     if (await accounts.handle(request,response)) return;
     if (await leaderboard.handle(request,response)) return;
+    if (await funnel.handle(request,response)) return;
     if (request.url === '/health/public' && request.method === 'GET') {
       const report=metrics.report({rooms,sockets:webSocketServer.clients.size,version});
       response.writeHead(200,{
@@ -544,7 +562,10 @@ webSocketServer.on('connection', ws => {
         ws,
         name: identity.name, guest: !!identity.guest, gameMaster: !!identity.gameMaster, userId: identity.userId, standInId: standIn?.userId || null, accessories: identity.accessories || [], petName: identity.petName || '', petBreed: identity.petBreed || '',
         geng: identity.geng?.name || '', gengId: identity.geng?.id || null, gengLeader: !!identity.geng?.leader,
-        muted: penalty.muted,
+        // A guest has no account for a report to land on, so in a public city they join as a
+        // mute would: the one gate below refuses every verb that carries words, voice or
+        // drawing. The sweep only revisits accounts, so nothing lifts this while they stay a guest.
+        muted: penalty.muted || (publicCity && !!identity.guest),
         appearance: cleanAppearance(identity.appearance), profile: identity.profile || null,
         color: palette[number % palette.length],
         x: -18,
@@ -564,6 +585,13 @@ webSocketServer.on('connection', ws => {
       const resume=message.resume;
       if(resume && [resume.x,resume.z,resume.yaw].every(Number.isFinite) && insideWorld(resume.x,resume.z,1)){
         player.x=resume.x;player.z=resume.z;player.yaw=finiteNumber(resume.yaw,Math.PI,-Math.PI*4,Math.PI*4);
+      } else {
+        // Nowhere to resume is a first visit. Put them beside the mamak table with the most
+        // people at it, not on the kerb across the road wondering where everybody is.
+        const seatedAt = new Map();
+        for (const person of room.players.values()) { const table = person.chairId && chairTables.get(person.chairId); if (table) seatedAt.set(table, (seatedAt.get(table) || 0) + 1); }
+        const busiest = mamakTables.reduce((best, table) => (seatedAt.get(table.id) || 0) > (seatedAt.get(best.id) || 0) ? table : best);
+        player.x = busiest.arrivalX; player.z = busiest.arrivalZ;
       }
       const invitedTable = tableLocations.find(t => t.id === message.tableId);
       if (invitedTable) { player.x = invitedTable.arrivalX; player.z = invitedTable.arrivalZ; }
@@ -580,11 +608,13 @@ webSocketServer.on('connection', ws => {
         room = roomFor(message.room);
       }
       if (room.players.size >= maxPlayers) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'This room is full. Try again in a moment.' }); ws.close(1008, 'Room full'); return; }
+      if (publicCity && identity.guest && [...room.players.values()].filter(person => person.guest).length >= guestSeats) { send(ws, { type: 'error', code: 'ROOM_FULL', message: 'The city is busy with visitors right now. Create a free account and there is a seat for you.' }); ws.close(1008, 'Guest seats full'); return; }
       currentRoom = room;
       ws.roomName = room.name;
       room.players.set(id, player);
       const reconnectedGeng = party.reconnect(room.players, player);
       socialProfiles.event(player,'sessions',1,true);
+      funnel.attach(player, message.device); void funnel.once(player, 'entered_city');
       if (identity.userId) accountConnections.set(identity.userId, { ws, room, remove: removePlayer });
       // The version travels with the welcome so a page left open across a deploy finds out
       // it is stale without polling anything.
@@ -634,7 +664,7 @@ webSocketServer.on('connection', ws => {
       return;
     }
     if (Date.now() >= expiresAt) { ws.close(4001, 'Session expired'); return; }
-    if (player.muted && MUTED.has(message.type)) { send(ws, { type: 'notice', message: 'You are muted, so this did not go out. You can still walk around the city.' }); return; }
+    if (player.muted && MUTED.has(message.type)) { send(ws, { type: 'notice', message: player.guest ? 'Create a free account to chat, talk and draw. It takes ten seconds.' : 'You are muted, so this did not go out. You can still walk around the city.' }); return; }
     if (message.type === 'report') {
       const now = Date.now();
       if (now - lastReportAt < 60000) { send(ws, { type: 'notice', message: 'You just filed a report. Give it a minute.' }); return; }
@@ -790,7 +820,7 @@ webSocketServer.on('connection', ws => {
       player.chairStand = { x: player.x, z: player.z };
       player.chairId = chair.id; player.seated = true; player.resting = null; player.restSpotId = null;
       player.x = chair.x; player.z = chair.z; player.y=chair.y||0; player.yaw = chair.yaw; player.speed = 0; player.jumpHeight = 0;
-      socialProfiles.event(player,'tables_sat');
+      socialProfiles.event(player,'tables_sat'); void funnel.once(player, 'first_sit');
       broadcast(currentRoom.players, { type: 'players', players: snapshot(currentRoom.players) }); return;
     }
     if (message.type === 'chair-stand') {

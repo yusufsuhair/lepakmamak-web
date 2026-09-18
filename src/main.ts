@@ -82,6 +82,7 @@ import {createMamakFacade} from './mamak-facade';
 import { moveWithCollisions, safeDismount, dampAngle, overlaps } from './physics';
 import type { Solid } from './physics';
 import { auth, session, guestName, clearGuest, displayName, setupAuth } from './auth';
+import { deviceId, track } from './funnel';
 import * as authLifecycle from './auth';
 import {preparePetronasEnvironment,PETRONAS} from './petronas';
 import {cdnUrl} from './cdn';
@@ -142,11 +143,11 @@ $('app').innerHTML = `
   <canvas id="world" aria-label="Interactive 3D Kuala Lumpur game world"></canvas>
   <section id="intro" aria-label="Welcome to LepakMamak">
     <div class="intro-top"><div class="brand"><img class="brand-mark" src="/icon-80.png" width="28" height="28" alt="" /> LEPAKMAMAK</div><div class="place-tag"><i class="live-dot"></i>KUALA LUMPUR, MALAYSIA</div></div>
-    <div class="intro-copy"><div class="eyebrow intro-kicker">Your mamak. Your geng. Your cerita.</div><h1>LEPAK<span>MAMAK.</span></h1><p class="tagline">Good food. Good friends. A little chaos.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><p id="session-replaced-message" role="alert" hidden>Your account joined from another tab or device. This session has ended. Enter again to play here instead.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><div class="intro-hint"><span class="hint-keyboard"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</span><span class="hint-touch">Tap to hit the streets</span></div></div>
+    <div class="intro-copy"><div class="eyebrow intro-kicker">Your mamak. Your geng. Your cerita.</div><h1>LEPAK<span>MAMAK.</span></h1><p class="tagline">Good food. Good friends. A little chaos.</p><p class="intro-description">The teh tarik is hot. The streets are yours.<br>Grab your kapcai and find your own way<br>through a little slice of Kuala Lumpur.</p><p id="session-replaced-message" role="alert" hidden>Your account joined from another tab or device. This session has ended. Enter again to play here instead.</p><button class="primary" id="start">Jom, let's go <span class="arrow">↗</span></button><button type="button" class="secondary" id="login" hidden>Log in · Create account</button><div class="intro-hint"><span class="hint-keyboard"><kbd>Enter</kbd> to hit the streets <span>·</span> Best with a keyboard</span><span class="hint-touch">Tap to hit the streets</span></div></div>
     <div class="intro-bottom"><p>A small open world. A big Malaysian heart.</p><div class="postcard"><i class="postcard-line"></i><div><strong>Somewhere in Kuala Lumpur</strong><span>Late afternoon · no rush, lah.</span></div></div></div>
   </section>
   <section id="hud" aria-label="Game information" hidden>
-    <div class="hud-top"><div class="hud-left"><div class="brand-status"><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 player online</b></button></div><div class="hud-divider"></div><div class="district"><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="hud-more" aria-label="More controls" aria-expanded="false" aria-controls="hud-right-items"><span aria-hidden="true">⋮</span></button><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)"><svg id="compass-needle" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 8.5 13 12 11.2 15.5 13Z" fill="#e2564a"/><path d="M12 21.5 8.5 11 12 12.8 15.5 11Z" fill="#e8efdc"/></svg></button></div><button class="menu-btn" id="menu" aria-label="Open settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path d="M19.4 13.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9Z"/></svg></button></div></div>
+    <div class="hud-top"><div class="hud-left"><div class="brand-status"><button type="button" id="multiplayer-status" class="multiplayer-status" aria-label="Show online players" aria-haspopup="dialog"><i></i><span id="multiplayer-status-text">SOLO MODE</span><b id="player-count">1 player online</b></button><button type="button" id="guest-upgrade" hidden><span class="guest-upgrade-lead">Nak sembang? · </span>Free account</button></div><div class="hud-divider"></div><div class="district"><small id="weather-label">17:42 · Golden hour</small></div></div><div class="hud-right"><button type="button" id="hud-more" aria-label="More controls" aria-expanded="false" aria-controls="hud-right-items"><span aria-hidden="true">⋮</span></button><button type="button" id="open-wall" class="wall-toggle" aria-label="Open Lepak Wall" aria-haspopup="dialog"><span aria-hidden="true">▤</span><b>WALL</b><i id="wall-unread" hidden>0</i></button><div id="camera-controls" aria-label="Camera controls"><button id="camera-reset" aria-label="Centre camera" title="Centre camera (C)"><svg id="compass-needle" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 8.5 13 12 11.2 15.5 13Z" fill="#e2564a"/><path d="M12 21.5 8.5 11 12 12.8 15.5 11Z" fill="#e8efdc"/></svg></button></div><button class="menu-btn" id="menu" aria-label="Open settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z"/><path d="M19.4 13.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9Z"/></svg></button></div></div>
     <div id="minimap-wrap"><button type="button" id="open-map" class="map-frame" aria-label="Open city map" aria-haspopup="dialog"><canvas id="minimap" width="364" height="332" aria-label="Map showing your location and online people"></canvas><span class="map-north">N ↑ · M</span></button><div class="map-caption"><span id="map-area">KAMPUNG MAJU</span><span>● YOU</span></div></div>
     <button type="button" id="interaction" hidden><span id="interaction-text"></span></button>
     <div id="controls-bar"><div class="control"><kbd>W A S D</kbd><span id="move-label">Move</span></div><div class="control"><kbd id="action-key">Shift</kbd><span id="action-label">Run</span></div><div class="control"><kbd>Space</kbd><span>Jump / brake</span></div><div class="control"><kbd>Drag</kbd><span>Look</span></div><div class="control"><kbd>Esc</kbd><span>Settings</span></div><button id="desktop-superman" class="stunt-button" type="button" aria-label="Superman motorbike stunt" hidden>SUPERMAN</button><button id="desktop-horn" class="recall-button" aria-label="Honk horn" hidden>HONK <kbd>H</kbd></button><button id="desktop-recall" class="recall-button" type="button"><span>RECALL</span><kbd>R</kbd></button></div>
@@ -890,6 +891,7 @@ async function init() {
   // would send account deletion and weather to the live server. Better to have no API than
   // somebody else's.
   const apiBase = multiplayerEndpoint ? multiplayerEndpoint.replace(/^ws/, 'http').replace(/\/ws$/, '') : '';
+  track(apiBase, 'page_load');
   const roomName = (new URLSearchParams(location.search).get('room') || 'kampung').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'kampung';
   let invitedTableId = tableLocations.find(t=>t.id===new URLSearchParams(location.search).get('table'))?.id;
   const tableSocial = setupTableSocial(message => {
@@ -1639,7 +1641,7 @@ async function init() {
         if (!connectedOnceThisEntry && !entryOverlayDismissed) showLoading('Joining your room', 'Syncing nearby players, chat and tables…', 90);
         activeLocationKey=locationKey(roomName,guestName?'guest:'+guestName:'account:'+(session?.user.id||'solo'));
         carFinder.clear();
-        socket.send(JSON.stringify({ type: 'join', sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined, standInToken: guestName ? standInTokenFor() || undefined : undefined }));
+        socket.send(JSON.stringify({ type: 'join', device: deviceId() || undefined, sfu: true, delta: true, deflate: canInflate, opus: voice.opusCapable, resume:readLocation(activeLocationKey), room: roomName, tableId: invitedTableId, accessToken, guest: !!guestName, name: guestName || undefined, standInToken: guestName ? standInTokenFor() || undefined : undefined }));
       });
       const processMessage = (raw: string) => {
         if (socket !== networkSocket) return;
@@ -1925,6 +1927,8 @@ async function init() {
   profileButton.onclick = () => { selectedName=displayName();selectedProfileId=networkPlayerId;openSelectedProfile(); };
 
   $('open-shop').onclick = () => itemShop.open();
+  // Set once auth is ready: whether this build lets a visitor in with one tap.
+  let oneTap = false;
   function start() {
     if (auth && !session && !guestName) return;
     if (started) return;
@@ -1932,6 +1936,10 @@ async function init() {
     if (profileButton) profileButton.hidden = !session || !!guestName;
     $('open-edit-profile').hidden = !session || !!guestName;
     $('open-security').hidden = !session || !!guestName;
+    $('guest-upgrade').hidden = !(oneTap && guestName);
+    // A public guest may listen but the server drops anything they say, so the mic is not
+    // offered: it would ask for the microphone and then do nothing with it.
+    const mic = document.getElementById('voice-mic'); if (mic) mic.hidden = oneTap && !!guestName;
     if (friendsButton) friendsButton.hidden = !accountToken();
     syncNotificationSettings();
     applyAppearance(player.group, savedLook()); applyAppearance(bike.rider, savedLook()); applyAppearance(car.driver, savedLook());
@@ -1972,7 +1980,14 @@ async function init() {
     $('hud').hidden = true; $('pause').hidden = true; $('intro').hidden = false;
     if (localName) { localName.removeFromParent(); localName.material.map?.dispose(); localName.material.dispose(); localName = null; }
   }
-  const requestEntry = await setupAuth(start, leaveCity);
+  const requestEntry = await setupAuth(start, leaveCity, step => track(apiBase, step));
+  // A public build lets the main button straight in and keeps accounts one button away; a
+  // guest inside the city is offered one the whole time, because by then there is somebody
+  // at the table they want to talk to, and that is the reason to make one.
+  const playNow = requestEntry.playNow; oneTap = typeof playNow === 'function';
+  const enterFromTitle = () => { track(apiBase, 'play_tapped'); void (playNow ? playNow() : requestEntry()); };
+  $('login').hidden = !oneTap; $('login').onclick = () => void requestEntry();
+  $('guest-upgrade').onclick = () => { leaveCity(); void requestEntry(); };
   const signout = document.createElement('button'); signout.className = 'secondary'; signout.textContent = 'Log out'; signout.hidden = !auth;
   const exitConfirmation=setupExitConfirmation(async()=>{
     if(guestName){leaveCity();return;}
@@ -2101,7 +2116,7 @@ async function init() {
     if (distanceTo(bike.group.position) < 3.8) { vehicle = 'bike'; riding = true; player.group.visible = false; bike.rider.visible = true; pos.copy(bike.group.position); yaw = bikeYaw; speed = 0; orbit = 0; chime(); }
   }
   $('touch-horn').onclick = honk; $('desktop-horn').onclick = honk; $('touch-superman').onclick = toggleSuperman; $('desktop-superman').onclick = toggleSuperman;
-  $('start').onclick = requestEntry; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false);
+  $('start').onclick = enterFromTitle; $('menu').onclick = () => setPause(true); $('resume').onclick = () => setPause(false); $('pause-close').onclick = () => setPause(false);
   const interactionButton = $<HTMLButtonElement>('interaction');
   interactionButton.onclick = () => { const id=pressedCarId||interactionButton.dataset.carId,playerId=interactionButton.dataset.playerId;pressedCarId=null;interactionPressUntil=0;interactionPointerDown=false;if(id)claimCar(id);else if(playerId){const rect=interactionButton.getBoundingClientRect();openPlayerOptions(rect.left+rect.width/2,rect.top,playerId);keys.clear();}else{interact();keys.clear();canvas.focus();} }; $('touch-recall').onclick = () => triggerRecall(); $('desktop-recall').onclick = () => triggerRecall();
   interactionButton.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&interactionButton.dataset.carId){pressedCarId=interactionButton.dataset.carId;interactionPressUntil=performance.now()+800;}});
@@ -2176,7 +2191,7 @@ async function init() {
   window.addEventListener('keydown', event => {
     if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     if (!$('auth-panel').hidden) return;
-    if (event.code === 'Enter' && !started) { event.preventDefault(); requestEntry(); return; }
+    if (event.code === 'Enter' && !started) { event.preventDefault(); enterFromTitle(); return; }
     if(wall.opened){if(event.code==='Escape'){event.preventDefault();wall.close();}return;}
     if (profile.open || tableSocial.opened || explore.opened) return;
     // Enter is the chat key, the way it is in every other game. The guard above already

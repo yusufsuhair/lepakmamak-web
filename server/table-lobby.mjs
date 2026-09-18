@@ -23,7 +23,7 @@ export const REACTIONS = ['😂', '👏', '🔥', '😱'];
 
 // One ritual for every table game: sit, pick, sedia, three-two-one, play, run it back.
 // The games keep their own in-play rules — the lobby just decides when `<game>-start` fires.
-export function createTableLobby(send, games, now = Date.now) {
+export function createTableLobby(send, games, now = Date.now, onStart = () => {}) {
   const rooms = new WeakMap();
   const lobbies = players => {
     if (!rooms.has(players)) rooms.set(players, new Map());
@@ -82,6 +82,7 @@ export function createTableLobby(send, games, now = Date.now) {
     if (!game) return;
     const seated = lobby.members.map(member => players.get(member.id)).filter(Boolean);
     if (!seated.length) return;
+    onStart(seated);
     // Poker and Lukis keep their roster inside the engine. Do not make them rediscover it
     // from every occupied chair: sitting nearby is not consent to enter the match. The
     // start hook is internal (not a client message), so the engine can trust this selection.

@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import WebSocket from 'ws';
 
+// Everyone starts where the vehicle is. A first visit otherwise arrives beside a mamak table,
+// too far from the kerb to board, and this spec is about seats rather than arrivals.
 test('bike back seat is exclusive, follows only the driver, and releases on driver exit', async () => {
   const server = spawn(process.execPath, ['server/index.mjs'], { env: { ...process.env, PORT: '8097', ALLOW_GUESTS: 'true', SUPABASE_URL: '', SUPABASE_PUBLISHABLE_KEY: '' }, stdio: 'ignore' });
   const clients: WebSocket[] = [];
@@ -13,7 +15,7 @@ test('bike back seat is exclusive, follows only the driver, and releases on driv
       const ws = new WebSocket('ws://127.0.0.1:8097/ws'); clients.push(ws);
       await new Promise<void>((resolve, reject) => {
         ws.on('error', reject);
-        ws.on('open', () => ws.send(JSON.stringify({ type: 'join', room: 'pillion' })));
+        ws.on('open', () => ws.send(JSON.stringify({ type: 'join', room: 'pillion', resume: { x: -18, z: 52, yaw: 0 } })));
         ws.on('message', raw => { const m = JSON.parse(String(raw)); if (m.players) players = m.players; if (m.type === 'welcome') { ids.push(m.id); resolve(); } });
       });
     }

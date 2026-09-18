@@ -24,7 +24,7 @@
     <main>
       <div class="doc-head">
         <h1>Privacy Policy</h1>
-        <p class="updated">Last updated: 10 September 2026</p>
+        <p class="updated">Last updated: 18 September 2026</p>
       </div>
 
       <p class="lede">LepakMamak is a place to lepak with your friends, not a place to be harvested for data. This policy explains exactly what we collect, why we collect it, who else sees it, and what you can ask us to do about it. We have tried to write it in plain English rather than lawyer-speak.</p>
@@ -103,10 +103,10 @@
         <p>This part matters as much as the rest, so we want to be specific:</p>
         <ul>
           <li><strong>We never record your voice.</strong> Voice chat is relayed live through our server to the players near you and is discarded immediately. Nothing is written to disk, nothing is stored, nothing can be played back later — not by us, not by anyone.</li>
-          <li><strong>There is no analytics, no advertising, and no tracking.</strong> We do not run Google Analytics, advertising pixels, or any third-party tracking script. We do not build a profile of you for advertising, and we never sell your personal data.</li>
+          <li><strong>There is no advertising and no third-party tracking.</strong> We do not run Google Analytics, advertising pixels, or any third-party tracking script. We do not build a profile of you for advertising, and we never sell your personal data.</li>
           <li><strong>We do not store your card details</strong> — Stripe handles payments end to end.</li>
           <li><strong>We do not store or log your IP address</strong>, and we do not fingerprint your device. Our server does read your IP address in memory, to count how many requests are coming from one place and stop a single source flooding the city. Those counters are thrown away every few seconds and are never written to a database. Separately, the infrastructure companies listed in <a href="#share">section 6</a> see your IP address at their network edge, as any web host does, in order to route traffic and block abuse.</li>
-          <li><strong>We do not track how you play.</strong> Our server measures its own load — bandwidth, voice packets, dropped frames — to know when it is running out of capacity. Those are totals for the whole server, not a record of you.</li>
+          <li><strong>We count a few first steps, not how you play.</strong> To learn where new visitors give up, our own server counts seven moments: the page opening, tapping play, seeing the sign-up form, creating an account, entering the city, and the first time on a visit that you sit down and that you start a game. Each count carries a random number your browser makes up for itself — not your name, email or IP address, and nothing about your device — and your account id if you are signed in. It goes to our own database and to nobody else. We do not record where you walk, what you say, who you talk to or what happens inside a game. If your browser sends Do Not Track or Global Privacy Control, none of this is counted and the random number is never created. Our server measures its own load — bandwidth, voice packets, dropped frames — to know when it is running out of capacity. Those are totals for the whole server, not a record of you.</li>
           <li><strong>We do not ask for your real name, phone number, address, or date of birth.</strong></li>
         </ul>
       </section>
@@ -170,6 +170,8 @@
           <li>Your settings — music and sound preferences, graphics quality, chat panel state, and your wardrobe choices.</li>
           <li>Where you were standing in the city, and which places you have visited.</li>
           <li>Your saved city progress.</li>
+          <li>The name you were given if you play as a guest, so you are the same guest next time.</li>
+          <li>A random visitor number, used only for the first-step counts described in section 3. It is not created if your browser asks not to be tracked.</li>
         </ul>
         <p>This information stays in your browser. Clearing your browser data removes it, and doing so will sign you out and reset those preferences.</p>
       </section>
@@ -184,6 +186,7 @@
           <li><strong>Moderation records</strong> — when a moderator removes a post, we keep a record of that action, including the content that was removed, so that decisions can be reviewed and appealed. This means removed content can survive in our moderation log after it has disappeared from the game.</li>
           <li><strong>Reports</strong> — kept while under review and afterwards as a record of the decision, so repeat behaviour can be recognised and an appeal can be checked.</li>
           <li><strong>Mutes and bans</strong> — the record of a live penalty is deleted when that penalty is lifted or expires.</li>
+          <li><strong>First-step counts</strong> — deleted after thirteen months. If you delete your account, your account id is removed from them straight away.</li>
           <li><strong>Voice</strong> — not kept at all.</li>
         </ul>
       </section>

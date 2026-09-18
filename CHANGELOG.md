@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added one-tap guest entry for public builds (`VITE_ALLOW_GUESTS=true` with `ALLOW_GUESTS=true` on the realtime server). The title's main button puts a new visitor straight into the city; accounts stay one button away on the title and one chip away in the HUD. A public guest is given a name off a Malaysian food menu rather than typing one, joins muted at the same single gate a moderator's mute uses, may listen to voice but is not offered a microphone, is refused a typed name by the server, and shares at most `GUEST_SEATS` places per room (default 60%) so a script cannot fill the city without accounts. Both switches are off until set; nothing changes in production before then.
+- A first visit now arrives beside the mamak table with the most people at it instead of on the kerb across the road. Returning players still resume where they left off, and table invitations still win.
+- Added first-step counting so the places new players give up can be seen: page load, play tapped, sign-up shown, account created, entered city, first sit and first game per visit. The browser may only report the steps before a socket exists; the server writes the rest itself. Counts go to our own `funnel_events` table with a random per-browser number, honour Do Not Track and Global Privacy Control, lose their account id when an account is deleted and are purged after thirteen months. `funnel_daily` and `funnel_retention` views give the daily funnel and day-1/day-7 return. Needs `supabase/migrations/20260918000000_funnel_events.sql`; without it the server logs a warning and carries on.
+- Updated the privacy policy to describe that counting. It previously said there was no analytics and no tracking of play.
+- Fixed Werewolf game chat slipping past a moderator's mute: `werewolf-chat` was missing from the mute gate, so a muted account could still talk inside a match.
+
 ## 1.43.0 — 2026-09-19
 
 - Added soft contact shadows under chairs, tables, players, pedestrians, street animals, pets and vehicles. Real shadows are off on every touch device and on Low/Lowest quality, and rain or night starves the sun even on High, so furniture and characters floated. Two instanced draws and about 300 triangles at spawn; floor heights are arithmetic (Mamak Maju plaza, shoplot arcades, Rembayung, elevated decks), with no raycasts at runtime (measured 0.005 ms per update). Strength adapts: about 0.45 with no real shadow or a weak sun, about 0.18 beside a strong one. Hidden while seated, swimming, riding or on the LRT, and fades with jump height.

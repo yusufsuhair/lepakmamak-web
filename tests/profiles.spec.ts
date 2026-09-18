@@ -19,7 +19,7 @@ test('profile reads and refreshes trust the authenticated account, not guest or 
  const token=`x.${Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')}.x`;
  async function join(payload:any){const ws=new WebSocket('ws://127.0.0.1:8087/ws');clients.push(ws);const messages:any[]=[];await new Promise<void>((r,j)=>{ws.on('error',j);ws.on('open',()=>ws.send(JSON.stringify({type:'join',room:'profiles',...payload})));ws.on('message',raw=>{const m=JSON.parse(String(raw));messages.push(m);if(m.type==='welcome')r();});});return{ws,messages,id:messages.find(m=>m.type==='welcome').id};}
  try{await expect.poll(async()=>{try{return(await fetch('http://127.0.0.1:8087/health')).ok;}catch{return false;}}).toBe(true);
- const member=await join({accessToken:token});const guest=await join({guest:true,name:'Visitor',profile:{bio:'Spoofed'}});
+ const member=await join({accessToken:token});const guest=await join({guest:true,name:'Roti Canai 42',profile:{bio:'Spoofed'}});
  expect(member.messages.find(m=>m.type==='welcome').players[0]).not.toHaveProperty('profile');
  guest.ws.send(JSON.stringify({type:'profile-view',id:member.id}));await expect.poll(()=>guest.messages.find(m=>m.type==='profile')?.profile?.details.bio).toBe('Teh tarik fan');await expect.poll(()=>guest.messages.find(m=>m.type==='profile')?.profile?.details.socialMedia).toBe('@tehtarikfan');
  user.user_metadata.profile.bio='Updated account bio';member.ws.send(JSON.stringify({type:'profile-refresh',accessToken:token,profile:{bio:'Forged socket bio'}}));await expect.poll(()=>guest.messages.filter(m=>m.type==='profile').at(-1)?.profile?.details.bio).toBe('Updated account bio');

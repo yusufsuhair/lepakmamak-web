@@ -3,6 +3,7 @@ import { createClient, type Session } from '@supabase/supabase-js';
 import { appearance, appearanceOptions, defaultAppearance, TUDUNG_COMING_SOON } from './appearance';
 import { createAvatarPreview } from './avatar-preview';
 import { verifyRestoredSession } from './auth-session';
+import guestNames from '../shared/guest-names.json';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -34,15 +35,29 @@ function completeLogout() {
   release?.();
 }
 
-export async function setupAuth(onEnter: () => void, onLeave: () => void) {
-  // Development builds allow guests, and so does any build that asks for it explicitly —
-  // the dev deployment has no Supabase project of its own, so accounts cannot work there
-  // and guest entry is the only way in. Production sets neither, so it stays account-only.
-  const guestEnabled = import.meta.env.DEV || import.meta.env.VITE_ALLOW_GUESTS === 'true';
+// Development builds allow guests, and so does any build that asks for it explicitly.
+const guestEnabled = import.meta.env.DEV || import.meta.env.VITE_ALLOW_GUESTS === 'true';
+// A public build lets a visitor in with one tap and a name off the menu: the server refuses
+// a typed one there (see identify in server/index.mjs). Dev keeps the typed-name dialog the
+// suite enters through, unless the page asks to see what production sees with ?play-now.
+const oneTapGuests = guestEnabled && !(import.meta.env.DEV && !new URLSearchParams(location.search).has('play-now'));
+const GUEST_KEY = 'lepak-guest-name';
+const onMenu = new RegExp(`^(?:${guestNames.join('|')}) \\d{2}$`);
+function menuName(): string {
+  // The same stranger tomorrow is the same Roti Canai 42. A saved name that has since left
+  // the menu would be refused at the door forever, so it is checked before it is reused.
+  try { const saved = localStorage.getItem(GUEST_KEY); if (saved && onMenu.test(saved)) return saved; } catch { /* Storage is optional. */ }
+  const name = `${guestNames[Math.floor(Math.random() * guestNames.length)]} ${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`;
+  try { localStorage.setItem(GUEST_KEY, name); } catch { /* A new name next time. */ }
+  return name;
+}
+
+export async function setupAuth(onEnter: () => void, onLeave: () => void, onStep: (step: 'auth_shown' | 'account_created') => void = () => {}) {
+  const typedGuests = guestEnabled && !oneTapGuests;
   const overlay = document.createElement('section');
   overlay.id = 'auth-panel'; overlay.hidden = true;
   overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'auth-title');
-  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p><p class="auth-legal">By joining you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="secondary" id="auth-google"><span aria-hidden="true">G</span> Continue with Google</button>${guestEnabled?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
+  overlay.innerHTML = `<form class="auth-card"><div class="eyebrow">Your city. Your friends.</div><h2 id="auth-title">Join the lepak.</h2><p>Create an account or log in to enter the city.</p><p class="auth-legal">By joining you agree to our <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="secondary" id="auth-google"><span aria-hidden="true">G</span> Continue with Google</button>${typedGuests?'<button type="button" class="secondary" id="auth-guest">Play as guest · Name only</button>':''}<label id="name-field">Display name<input id="auth-name" autocomplete="nickname" minlength="2" maxlength="18" required></label><fieldset id="avatar-fields"><legend>Your character</legend><canvas id="avatar-preview" width="180" height="200" aria-label="Live 3D character preview. Drag or swipe to rotate"></canvas><div id="avatar-choices"></div></fieldset><label>Email<input id="auth-email" type="email" autocomplete="email" required></label><label>Password<input id="auth-password" type="password" autocomplete="new-password" minlength="8" required></label><p id="auth-message" role="status" aria-live="polite"></p><button class="primary" id="auth-submit">Create account</button><button type="button" class="secondary" id="auth-mode">Already registered? Log in</button><button type="button" class="secondary" id="auth-forgot" hidden>Forgot password?</button><button type="button" class="secondary" id="auth-back">Back</button></form>`;
   document.getElementById('app')!.append(overlay);
   const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const password = el<HTMLInputElement>('auth-password');
@@ -50,7 +65,7 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
   const name = el<HTMLInputElement>('auth-name');
   const submit = el<HTMLButtonElement>('auth-submit');
   const message = el('auth-message');
-  if(guestEnabled){
+  if(typedGuests){
     const guestDialog = document.createElement('dialog'); guestDialog.id = 'guest-entry';
     guestDialog.innerHTML = `<form class="auth-card"><h2>Just lepak.</h2><p>Join with a name. The shop is for registered accounts.</p><label>Guest name<input id="guest-name" minlength="2" maxlength="18" required autocomplete="nickname" /></label><button class="primary" type="submit">Enter as guest</button><button class="secondary" type="button" id="guest-back">Back</button></form>`;
     document.getElementById('app')!.append(guestDialog);
@@ -171,6 +186,8 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
         const { data, error } = await auth.auth.updateUser({ data: { display_name: name.value.trim() } });
         if (error) throw error;
         if (data.user) session = { ...(session as Session), user: data.user };
+        // Both doors, email and Google, end up here: an account exists once it has a name.
+        onStep('account_created');
         mode = 'looks'; render(); return;
       } else if (mode === 'looks') {
         const { data, error } = await auth.auth.updateUser({ data: { appearance: selectedAppearance() } });
@@ -259,8 +276,17 @@ export async function setupAuth(onEnter: () => void, onLeave: () => void) {
     // and it does not get into the city until it has chosen one.
     if (session && !named(session)) { mode = 'username'; render(); overlay.hidden = false; name.focus(); return; }
     if (session && mode !== 'recovery' && mode !== 'looks') { enter(); return; }
-    overlay.hidden = false;
+    overlay.hidden = false; onStep('auth_shown');
     (mode === 'register' || mode === 'login' ? email : mode === 'recovery' ? password : mode === 'username' ? name : choices.querySelector('select'))?.focus();
   };
-  return Object.assign(requestEntry, { invalidate });
+  // The title's main button in a public build. Someone with an account is still let in as
+  // themselves; everybody else is in the city before they have been asked for anything.
+  const playNow = async () => {
+    if (logoutBarrier) await logoutBarrier;
+    if (session) { await requestEntry(); return; }
+    guestName = menuName(); enter();
+  };
+  // Offered only in a public build; main.ts reads the mode off this rather than off a second
+  // export, so the many specs that stand in for this module do not have to know about it.
+  return Object.assign(requestEntry, { invalidate, playNow: oneTapGuests ? playNow : null });
 }

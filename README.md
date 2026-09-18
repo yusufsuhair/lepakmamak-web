@@ -53,7 +53,7 @@ The existing Supabase project (`sbzvvhzibqpozqvojzhe`, dashboard label `LepakCit
 
 Email confirmation is disabled for the initial friends MVP, so email ownership is unverified. Custom SMTP is not configured: password-reset delivery through Supabase's default mail service is limited and is not production-ready. Configure SMTP and test recovery before relying on email recovery or enabling confirmation. No application tables or RLS policies are needed for this release; auth records remain managed by Supabase.
 
-Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. Guest entry is absent from production builds; local development servers still require the explicit `ALLOW_GUESTS=true` alternative. Never place a secret or service-role key in frontend settings.
+Frontend public settings are in `.env.production`. Railway requires `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; it fails startup without them. Guest entry is off in production until two switches are set together: `ALLOW_GUESTS=true` on Railway, then `VITE_ALLOW_GUESTS=true` in the frontend build. Set the server first — a frontend that offers guest play to a server that refuses it turns the title's main button into an error. See **Guests** under Moderation for what a public guest can and cannot do. Never place a secret or service-role key in frontend settings.
 
 WebSocket connections are capped before any Supabase work is reached, so an anonymous caller cannot spend the auth quota or exhaust file descriptors: `WS_MAX_CONNECTIONS` (default ten rooms' worth) is the ceiling that holds regardless of what headers claim, and `WS_MAX_PER_ADDRESS` (default 64) stops a single host taking the whole server. The per-address share is read from the leftmost `X-Forwarded-For` entry, which a caller can forge — that only costs them the per-address cap, whereas reading the rightmost entry would collapse every player onto one key if the proxy chain ever gained a hop. Raise `WS_MAX_PER_ADDRESS` if legitimate players ever share one address. Unauthenticated Wall profile reads are capped separately at 30 per address per minute, since each one spends a Supabase admin call.
 
@@ -192,11 +192,52 @@ and neither is a filter or a prompt.
 
 ### What this does not cover
 
-- **Guests have no account, so they cannot be banned.** `ALLOW_GUESTS` is off in production
-  and this design assumes it stays off. Turning it on reopens the hole.
+- **Guests have no account, so they cannot be banned** — see Guests below for why that is
+  safe to switch on.
 - **Bans are per account, not per person.** A new sign-up is a new account.
 - Communications and Multimedia Act 1998 s.233 and MCMC takedown expectations apply to what
   the game broadcasts; the audit log is what lets us say who acted and when.
+
+### Guests
+
+A guest has no account for a report to land on, so where accounts are configured (a public
+city) a guest carries nothing of their own to anybody else:
+
+- **No typed name.** The client picks one off `shared/guest-names.json` ("Roti Canai 42") and
+  the server refuses anything that is not on that menu. `name` is a reportable surface, and
+  this closes it.
+- **No words, voice or drawing.** A guest joins with `muted` set, so the same single gate that
+  enforces a moderator's mute refuses every verb in `MUTED`. The 15-second sweep only revisits
+  accounts, so nothing lifts it. They can still hear voice; the client does not offer a mic.
+- **A share of the room, not all of it.** Guests may hold at most `GUEST_SEATS` places in a
+  room (default 60% of `maxPlayers`). Filling a room used to cost a hundred accounts; with
+  guests it would cost a script and none, and the per-address cap cannot stop that because
+  its key is forgeable. An account always finds a seat.
+- **Everything else is open**: walking, sitting, cards, courts, vehicles, emotes.
+
+Adding a verb that carries a player's words to somebody else means adding it to `MUTED`.
+That was already true for mutes; it now also decides what an unbannable visitor can do.
+
+Without accounts configured the server is a developer's machine: guests type their own
+names and chat freely, which is how the test suite enters the city.
+
+## Where new players give up
+
+`server/funnel.mjs` counts seven steps into `funnel_events`. The browser reports the ones
+that happen before a socket exists (`page_load`, `play_tapped`, `auth_shown`,
+`account_created`) through `POST /event`; the server writes `entered_city`, `first_sit` and
+`first_game` itself at the moment it makes them true, so a client cannot claim them. Rows
+carry a random per-browser id (`lepak-device` in local storage), never an IP address.
+
+```sql
+select * from funnel_daily where day = current_date order by devices desc;
+select * from funnel_retention order by cohort desc limit 14;
+```
+
+Read the first top to bottom: the biggest drop between two adjacent steps is the thing to
+fix next. Apply `supabase/migrations/20260918000000_funnel_events.sql` before deploying the
+realtime server; until then every count logs a warning and is dropped, and nothing else is
+affected. The privacy policy describes this counting — keep the two in step.
 
 ## Lepak Coin shop
 

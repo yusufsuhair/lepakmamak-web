@@ -403,6 +403,16 @@ button.multiplayer-status:focus-visible { outline: 2px solid #dfff87; outline-of
 .online-player-profile:focus-visible { outline: 2px solid #6d8b54; outline-offset: 3px; border-radius: 3px; }
 .online-player-dot { width: 8px; height: 8px; border-radius: 50%; background: #438c56; flex-shrink: 0; }
 button.multiplayer-status { pointer-events: auto; min-height: 44px; }
+/* .secondary is drawn for the pale account card. On the title it sits over the dark city. */
+#login { display: block; width: 249px; max-width: 100%; color: var(--cream); border-color: #fff8e766; background: #142f2c99; font-weight: 700; }
+#login[hidden] { display: none; }
+/* The HUD lets taps through to the world; each button has to ask for its own. */
+#guest-upgrade { pointer-events: auto; min-height: 44px; padding: 8px 12px; border: 1px solid #dafa8e80; border-radius: 4px; background: #17372ed9; color: var(--lime); font: 700 10px 'Oxanium', sans-serif; letter-spacing: .06em; cursor: pointer; white-space: nowrap; }
+#guest-upgrade[hidden], #voice-mic[hidden] { display: none; }
+/* The voice control floats over the character, who is always centred on a phone. Kept
+   under 150px wide here, the chip in the left column can never sit beneath it. */
+@media (max-width: 600px) { .guest-upgrade-lead { display: none; } }
+#guest-upgrade:focus-visible { outline: 2px solid #dfff87; outline-offset: 3px; }
 
 #item-shop { width: min(560px, calc(100% - 28px)); max-height: calc(100dvh - 32px); overflow:auto; border:0; border-radius:14px; padding:24px; background:#f5efdb; color:#254b3b; }
 #item-shop::backdrop { background:#102b24bb; }
