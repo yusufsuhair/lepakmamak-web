@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.43.0",
+    "date": "2026-09-19",
+    "title": "A More Grounded City",
+    "notes": [
+      "Chairs, tables, players, pets and cars now rest on soft shadows, so nothing looks like it is floating above the ground.",
+      "The difference is clearest on phones, at night and in the rain, where shadows used to disappear completely.",
+      "On High graphics, wet roads and shiny metal now pick up the colour of the sky above them.",
+      "The KLCC lift cabin now travels up and down with you instead of leaving you in an empty shaft."
+    ]
+  },
+  {
     "version": "1.42.0",
     "date": "2026-09-17",
     "title": "LepakMamak Is On Air",

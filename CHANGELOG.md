@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.43.0 — 2026-09-19
+
 - Added soft contact shadows under chairs, tables, players, pedestrians, street animals, pets and vehicles. Real shadows are off on every touch device and on Low/Lowest quality, and rain or night starves the sun even on High, so furniture and characters floated. Two instanced draws and about 300 triangles at spawn; floor heights are arithmetic (Mamak Maju plaza, shoplot arcades, Rembayung, elevated decks), with no raycasts at runtime (measured 0.005 ms per update). Strength adapts: about 0.45 with no real shadow or a weak sun, about 0.18 beside a strong one. Hidden while seated, swimming, riding or on the LRT, and fades with jump height.
 - Added sky reflections on High quality: the shared sky probe now also feeds `scene.environment` at 0.3 intensity with the hemisphere light scaled to 0.88, so brightness at spawn stays within ±5% by day, in rain and at night. Wet roads and metal now answer the sky. A material's own envMap still wins, Low/Lowest render exactly as before, and draw calls are unchanged.
 - Fixed the dev-only `window.__lepak` diagnostics so `scene` and `camera` are non-enumerable. Since `4aa4eea`, specs returning the whole object serialised the scene graph at 5–8 s per read against 5 s polls, which turned six `game.spec.ts` movement tests red and made `rain-toggle.spec.ts` intermittent. Gameplay was never affected.
