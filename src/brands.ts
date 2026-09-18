@@ -8,8 +8,9 @@ import {GM_DAY_SUN, GM_NIGHT_SUN, onSkyChange, paintSky, skyPalette, skyState, t
  *                                          lights every colour of a fascia; dimmer by day
  *   'Night glow menu ...' / 'Night glow shelves'   pictures that are their own emission map
  *   'Night wash'                           additive pools of light, drawn only at night
- *   '... glass', 'Satin metal'             reflect a small painted street under the current sky,
- *                                          never scene.environment, so no other asset changes
+ *   '... glass', 'Satin metal'             reflect a small painted street under the current sky as
+ *                                          their own envMap, which wins over the scene.environment
+ *                                          sky-ibl.ts sets for everything else on High graphics quality
  * Night is a flag, so an outlet that streams in after dark still lights up. */
 const GLOW: [prefix: string, day: number, night: number][] = [
   ['Night glow LED', 1.1, 2.6], ['Night glow sign', .3, 1.2], ['Night glow menu', .6, 1.35], ['Night glow shelves', .16, .8],

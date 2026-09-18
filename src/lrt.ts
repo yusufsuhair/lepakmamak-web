@@ -27,7 +27,8 @@ export const lrtStatus:{viaduct:AssetState;station:AssetState;train:AssetState;n
 // Night: emissive maps hold head/tail lamps and displays (lit all day: saturated red/amber or pure
 // white texels) and saloon light, stairwell glow and roof LEDs (night only); the platform wash is
 // additive light shown only at night. Glossy paint and glass reflect a small painted sky of their
-// own, never scene.environment.
+// own as their own envMap, which wins over the scene.environment sky-ibl.ts sets for everything
+// else on High graphics quality.
 const nightUniform={value:0};const glows:THREE.MeshStandardMaterial[]=[];const washes:THREE.Material[]=[];
 const envs:Record<'day'|'night',THREE.Texture|null>={day:null,night:null};
 function sky(stops:[number,string][]){const c=document.createElement('canvas');c.width=128;c.height=64;const ctx=c.getContext('2d')!;const g=ctx.createLinearGradient(0,0,0,64);

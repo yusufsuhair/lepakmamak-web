@@ -6,8 +6,9 @@ import {onSkyProbe} from './weather';
 
 /** The Blender KL skyline (scripts/blender/build_skyline.py): The Exchange 106, Merdeka 118, Menara KL
  * and the four city towers. Each GLB replaces its procedural stand-in, keeping the game's canvas name
- * signs. Like the KLCC set, glass and metal reflect the shared sky probe (weather.ts onSkyProbe), never
- * scene.environment. At night each facade's emissive mask becomes lit windows (a hash of bay and storey)
+ * signs. Like the KLCC set, glass and metal reflect the shared sky probe (weather.ts onSkyProbe) as their
+ * own envMap, which wins over the scene.environment sky-ibl.ts sets for everything else on High graphics
+ * quality. At night each facade's emissive mask becomes lit windows (a hash of bay and storey)
  * and floodlit frames, the crowns, spires and Menara KL glow, and the aviation lights come on. */
 export const SKYLINE_ASSETS = ['LM_ENV_TRX', 'LM_ENV_Merdeka118', 'LM_ENV_KLTower', 'LM_ENV_TowerUOB', 'LM_ENV_TowerHSBC', 'LM_ENV_TowerDAP', 'LM_ENV_TowerMahkota'] as const;
 export type SkylineAsset = typeof SKYLINE_ASSETS[number];
