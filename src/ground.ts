@@ -242,8 +242,9 @@ const SURFACE: Record<Kind, string> = {
   tn = mix(gTN(gGrassN, gf.uv / 4.), gTN(gPaverN, gf.uv / 4.), paved);
   tn = mix(tn, vec3(0., 0., 1.), soilAmt * (1. - paved) * .5);
   rough = mix(.95, .85, paved);
-  // the concrete channel in the slot between a north-south road and its kerb
-  float channel = step(abs(abs(gNear(vGPos.x, G_X)) - 8.54), .05);
+  // the concrete channel in the slot between a north-south road and its kerb; the raised KLCC
+  // lawn wears this surface too and buries the road, so it has no slot
+  float channel = step(abs(abs(gNear(vGPos.x, G_X)) - 8.54), .05) * step(vGPos.y, 0.);
   alb = mix(alb, texture2D(gConcrete, gf.uv / 2.).rgb * .55, channel);
   // past the south edge the slab is seabed under the sea
   float seabed = smoothstep(156.2, 156.4, vGPos.z);

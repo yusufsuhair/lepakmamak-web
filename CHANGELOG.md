@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button. A hidden chat also stops holding a blank band in the dialog (the default on phones): it collapses to the tab's row, and the game list gets the space.
+- Changed the KLCC Park lawn and promenade from flat-coloured boxes to the city's photographic ground: world-space grass and herringbone pavers, paved by the ground mask, soaked by rain. No new assets, no vertex moved, and two draws became one (`klcc-park`). The lawn box stays because it is what buries the x=0 road and its kerbs between the towers.
 
 ## 1.44.0 — 2026-09-19
 

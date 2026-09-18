@@ -727,9 +727,14 @@ export function createWorld(scene: THREE.Scene): World {
       for (const side of [-1, 1]) for (let i = 0; i < 6; i++) box(group, x - 6 + i * 2.4, .009, z + side * 11, 1.3, .014, 3, groundMaterial('lines'));
     }
   }
-  // KLCC park and podium.
-  box(group, 0, .07, -114, 124, .24, 66, '#b1bb83');
-  box(group, 0, .21, -99, 104, .18, 14, '#ded5bd');
+  // KLCC park and podium. The raised lawn (it is what hides the x=0 road here) and the promenade
+  // wear the city slab's grass and pavers, in their own batch: the slab batch's extents are
+  // pinned by tests/ground.spec.ts. The ground mask, painted last, paves the promenade.
+  const klccPark = new THREE.Group(); klccPark.name = 'klcc-park'; group.add(klccPark);
+  const promenade = {x: 0, z: -99, w: 104, d: 14};
+  box(klccPark, 0, .07, -114, 124, .24, 66, groundMaterial('slab'));
+  box(klccPark, promenade.x, .21, promenade.z, promenade.w, .18, promenade.d, groundMaterial('slab'));
+  batchShopFallback(klccPark);
   box(group, 0, .3, -104, 80, .18, 9, '#8db5af');
   box(group, 0, .42, -104, 76, .12, 6.5, '#75b3b1');
   // Podiums, towers and skybridge share one group so the Blender set
@@ -1546,7 +1551,7 @@ export function createWorld(scene: THREE.Scene): World {
     const startZ = i < 6 ? -40 + Math.floor(i / 2) * 44 : -89;
     scene.add(person.group); setObjectShadows(person.group,false); cullCrowd(person.group,100); pedestrians.push({ person, startX, startZ, phase: i * 1.7, axis: i < 6 ? 'z' : 'x', range: i < 6 ? 14 : 7 });
   }
-  paintGroundMask(mapBuildings, chairs);
+  paintGroundMask([...mapBuildings, promenade], chairs);
   return { group, solids, mapBuildings, traffic, pedestrians, chairs, klccLifts, mamakProcedural, mamakStreetFallback, shopFallbacks, shoplots: shoplotSite, foliage:foliageStatus, rembayung, petronas };
 }
 

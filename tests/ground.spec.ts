@@ -54,11 +54,16 @@ test('city ground keeps its surfaces, compiles its shaders and meets the sea wit
   furniture.getObjectByName('furniture')?.traverse((o:any)=>{if(!o.isMesh)return;names.add(o.material.name);
    if(o.material.name==='Hedge leaves'&&new THREE.Box3().setFromObject(o).max.z>156)hedgeOnSeaSide++;
    if(o.material.name==='Armour granite'&&o.castShadow)armourCasts++;});
+  const park=world.group.getObjectByName('klcc-park');const parkBox=new THREE.Box3().setFromObject(park);
   return {apron:extent('ground-apron'),slab:extent('ground-slab'),roads:extent('ground-asphalt'),kerbInMouth,textures:textures.every(Boolean),
+   park:{meshes:park.children.map((m:any)=>m.material.name),max:[parkBox.max.x,parkBox.max.y,parkBox.max.z].map(v=>Math.round(v*1e4)/1e4)},
    seawall:names.has('Seawall concrete'),armour:names.has('Armour granite'),hedge:names.has('Hedge leaves'),hedgeOnSeaSide,armourCasts};
  });
  expect(result.apron).toEqual([170,-.13,170]);        // the beach's sea sits on these tops (src/beach.ts)
  expect(result.slab).toEqual([159,-.05,159]);
+ // The raised KLCC lawn and promenade wear the slab's surface as one draw of their own, outside the
+ // slab batch pinned above, at the heights they always had (the lawn buries the x=0 road and its kerbs).
+ expect(result.park).toEqual({meshes:['ground-slab'],max:[62,.3,-81]});
  expect(result.roads).toEqual([156,.0365,156]);
  expect(result.kerbInMouth).toBe(0);
  expect(result.textures).toBe(true);
