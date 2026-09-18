@@ -44,6 +44,10 @@ export function createPets(scene: THREE.Scene, solids: Solid[]) {
   }
   return {
     begin() { seen.clear(); },
+    // Every active follower's visual group, for contact-shadows.ts: it only needs a position and
+    // the pose bounce already stashed on userData.poseYOffset by animateAnimal, not the rest of
+    // the animation rig. A callback rather than a returned array, so nothing allocates per frame.
+    forEach(fn: (group: THREE.Group) => void) { for (const pet of followers.values()) fn(pet.animal.group); },
     update(id: string, x: number, y: number, z: number, yaw: number, equipment: string, dt: number, time: number, petName = '', petBreed = '') {
       const items = equipment.split(',');
       const savedBreed = petStyle(petBreed);
