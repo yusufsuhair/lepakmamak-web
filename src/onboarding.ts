@@ -1,10 +1,9 @@
 import './onboarding.css';
 
-// A one-time "how to play" card. Most new players never find the mamak table games,
-// because nothing on screen says: walk to a chair, sit, open the table, press READY.
-const KEY = 'lepakmamak-onboarded';
-const seen = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
-const remember = () => { try { localStorage.setItem(KEY, '1'); } catch { /* Storage is optional. */ } };
+// The "how to play" write-up, opened from Settings. It used to be shown over the city on every
+// first visit, and most new players still never found the table games it described: six
+// paragraphs before you have moved are not read. first-steps.ts now leads a new player
+// through the same steps one at a time, and this stays as the reference for whoever wants it.
 
 export function createOnboarding(touch: boolean, releaseInput: () => void = () => {}, openPets?: () => void) {
   const move = touch ? 'Drag the MOVE stick' : 'Use W A S D';
@@ -20,7 +19,6 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
   dialog.id = 'cara-main'; dialog.setAttribute('aria-labelledby', 'cara-main-title');
   dialog.innerHTML = `<header><small>CARA MAIN · HOW TO PLAY</small><h2 id="cara-main-title">Jom lepak & main</h2></header>
     <ol>${steps.map(([icon, title, body]) => `<li><span aria-hidden="true">${icon}</span><div><b>${title}</b><p>${body}</p></div></li>`).join('')}</ol>
-    <label id="cara-main-skip"><input type="checkbox" id="cara-main-skip-check">Do not show again</label>
     <button type="button" id="cara-main-done" class="primary">Faham, jom!</button>`;
   document.body.append(dialog);
   if (openPets) {
@@ -29,12 +27,7 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
     dialog.querySelectorAll('li')[4].querySelector('div')!.append(action);
   }
   const done = dialog.querySelector<HTMLButtonElement>('#cara-main-done')!;
-  const skip = dialog.querySelector<HTMLInputElement>('#cara-main-skip-check')!;
-  // The card used to remember itself the moment it closed, however that happened — Escape, a
-  // backdrop tap, or the button — so a player who dismissed it without reading never saw it
-  // again. It now only stays gone once they tick the box themselves.
   done.onclick = () => dialog.close();
-  dialog.addEventListener('close', () => { if (skip.checked) remember(); });
 
   const button = document.createElement('button');
   button.type = 'button'; button.id = 'open-cara-main'; button.className = 'secondary';
@@ -42,5 +35,5 @@ export function createOnboarding(touch: boolean, releaseInput: () => void = () =
 
   const open = () => { if (dialog.open) return; releaseInput(); dialog.showModal(); done.focus(); };
   button.onclick = open;
-  return { dialog, button, open, showOnce() { if (seen()) return false; open(); return true; } };
+  return { dialog, button, open };
 }

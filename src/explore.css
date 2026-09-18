@@ -20,4 +20,5 @@
 [data-explore-panel][hidden]{display:none}
 @media(min-width:701px){.explore-card:nth-child(2) .explore-photo{aspect-ratio:1.05}}
 
-#interaction.explore-target{outline:3px solid #ddf69a;outline-offset:4px;box-shadow:0 0 0 7px #173c3277}
+/* The thing to tap next: the action button near a lift or a chair, or a table's name during a first visit. */
+#interaction.explore-target,.table-label.first-step{outline:3px solid #ddf69a;outline-offset:4px;box-shadow:0 0 0 7px #173c3277}

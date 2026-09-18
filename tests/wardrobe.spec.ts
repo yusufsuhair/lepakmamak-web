@@ -8,7 +8,6 @@ test('clothes are picked in the character screen and survive a reload', async ({
   await page.locator('#auth-guest').click();
   await page.locator('#guest-name').fill('Tester');
   await page.getByRole('button', { name: 'Enter as guest', exact: true }).click();
-  await page.getByRole('button', {name: 'Faham, jom!', exact: true}).click();
   // One screen: the wardrobe is a pair of tabs in the inventory, not a dialog behind it.
   const open = async () => {
     await page.getByRole('button', { name: 'Open inventory' }).click();

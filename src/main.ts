@@ -26,6 +26,7 @@ import {createNetStatus} from './netstatus';
 import {createSpeakingList} from './speaking';
 import {createWhatsNew} from './changelog';
 import {createOnboarding} from './onboarding';
+import {createFirstSteps} from './first-steps';
 import {createExplore} from './explore';
 import {createRefresher,shouldOfferConnectionRestart} from './refresh';
 import {createRipples} from './ripple';
@@ -856,11 +857,13 @@ async function init() {
     if (entryLoadingTimer !== null) { clearTimeout(entryLoadingTimer); entryLoadingTimer = null; }
     entryOverlayDismissed = true;
     hideLoading();
-    if (!onboarding.showOnce()) explore.showHint();
+    // A first visit is led to a chair instead (first-steps.ts); the city mentions the rest of
+    // itself once that is done.
+    if (!firstSteps.active) explore.showHint();
   }
   function completeEntryLoading() {
     if (entryLoadingTimer !== null) clearTimeout(entryLoadingTimer);
-    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); if (!onboarding.showOnce()) explore.showHint(); }, 320);
+    entryLoadingTimer = window.setTimeout(() => { entryLoadingTimer = null; hideLoading(); if (!firstSteps.active) explore.showHint(); }, 320);
   }
   function beginEntryLoading() {
     connectedOnceThisEntry = false; connectionAttempts = 0; entryOverlayDismissed = false;
@@ -2494,7 +2497,10 @@ async function init() {
     map:()=>setMap(true),
     enableSound:()=>{if(audioVolume('sfx')===0){const volume=$<HTMLInputElement>('sfx-volume');volume.value='0.5';volume.dispatchEvent(new Event('input'));}const toggle=$<HTMLInputElement>('sound-toggle');toggle.checked=true;toggle.dispatchEvent(new Event('change'));},
   });
-  onboarding.dialog.addEventListener('close',()=>explore.showHint());
+  // The first steps usually end by opening a table's games, and the hint will not show over an
+  // open dialog. So it waits for that dialog to close rather than asking once and giving up.
+  const firstSteps=createFirstSteps({point:explore.point,touch,done:()=>{const open=document.querySelector<HTMLDialogElement>('dialog[open]');if(open)open.addEventListener('close',()=>explore.showHint(),{once:true});else explore.showHint();}});
+  onboarding.dialog.addEventListener('close',()=>{if(!firstSteps.active)explore.showHint();});
   const defaultMapZoom=.8,minMapZoom=.5,maxMapZoom=2.2,mapZoomStep=.2;
   let mapZoom=defaultMapZoom;
   let cityMapPanX=0,cityMapPanZ=0,parkMapPanX=0,parkMapPanZ=0;
@@ -3104,6 +3110,7 @@ async function init() {
     if(!promptBlocked && (pressedTableId||ownTableId))nearestLabel=tableLabels.find(entry=>entry.table.id===(pressedTableId||ownTableId))||nearestLabel;
     for(const {table,button} of tableLabels){
       const active=nearestLabel?.table.id===table.id;
+      button.classList.toggle('first-step',firstSteps.tableId(seatedChairId)===table.id);
       button.hidden=!active;
       if(!active)continue;
       if(pressedTableId===table.id)continue; // Keep the target still until the tap finishes.
@@ -3182,6 +3189,7 @@ async function init() {
       animals: streetAnimals.animals, petsForEach: pets.forEach, traffic: world.traffic,
     });
     beach.update(simTime,pos);
+    if(firstSteps.active&&started&&!riding&&!passengerOf&&!park.active&&deckY<1)firstSteps.update({position:pos,seatedChairId:seated?seatedChairId:null,tableOpen:tableSocial.opened,taken:chairOccupied,reach:interactionReach});
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
       experienced:!started?[]:[...(skyDining?['wet-deck']:[]),...(klccLiftRide?.phase==='top'?['15']:[]),...(!riding&&!seated&&deckY<1&&insidePickleball(pos)&&networkConnected?['21']:[]),...(!riding&&deckY<1&&pos.x>=95&&pos.x<=153&&pos.z>=134&&pos.z<=152?['pantai-senja']:[]),...(started&&audioEnabled&&audioContext?.state==='running'&&audioVolume('sfx')>0&&!masjidSong.paused&&(masjidGain?.gain.value??0)>.01?['17']:[])]});
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);

@@ -16,7 +16,10 @@ export const EXPLORE_TUTORIALS = [
   {id:'clothes',number:'04',signal:'LOOK',image:'/tutorial/clothes.jpg',alt:'Character screen showing clothing colour choices',title:'Change your clothes',description:'Build a look and see every change on your character instantly.',steps:['Open Character with the hanger at the top right.','Choose Body, Hair, Tops, Bottoms or Tudung.','Tap a style or colour. Your look saves automatically.']},
   {id:'games',number:'05',signal:'READY',image:'/tutorial/games.jpg',alt:'Poker Kampung table lobby with two seated players and the READY control',title:'Play games at a table',description:'Sit with your geng, choose a game and ready up together.',steps:['Find an empty chair and choose Sit.','Open the table name, then choose Poker, UNO, Lukis Lah! or Werewolf.','Choose READY. The game starts when enough seated players are ready.'],locations:['Mamak Maju · game tables','Pantai Senja · game tables','Wet Deck · game tables','ZUS Coffee · social seating']},
 ] as const;
-type Place = typeof EXPLORE_PLACES[number];
+/** Anything the guide can lead a player to: a place off the list above, or a first step. */
+/** `lit` lights the action button when the player is close: true when that button is the thing to tap. */
+export type GuideTarget = {id:string;name:string;hint:string;marker:string;target:{x:number;y:number;z:number};lit?:boolean};
+export const FIRST_STEPS = 'first-steps';
 const HINT_KEY='lepak-explore-hint-v1', VISITED_KEY='lepak-experienced-v1';
 const read=(key:string)=>{try{return localStorage.getItem(key);}catch{return null;}};
 const write=(key:string,value:string)=>{try{localStorage.setItem(key,value);}catch{/* Optional on private browsers. */}};
@@ -37,7 +40,7 @@ export function createExplore(options:{releaseInput:()=>void;canOpen:()=>boolean
   sound.onclick=options.enableSound;
   guide.addEventListener('keydown',event=>event.stopPropagation());
   teaser.addEventListener('keydown',event=>event.stopPropagation());
-  let active:Place|undefined,shown=false;
+  let active:GuideTarget|undefined,shown=false,waved:(()=>void)|undefined;
   const title=dialog.querySelector<HTMLElement>('#explore-title')!,subtitle=dialog.querySelector<HTMLElement>('#explore-subtitle')!;
   const showTab=(name:'places'|'tutorial')=>{
     for(const tab of dialog.querySelectorAll<HTMLButtonElement>('[data-explore-tab]'))tab.setAttribute('aria-selected',String(tab.dataset.exploreTab===name));
@@ -70,18 +73,27 @@ export function createExplore(options:{releaseInput:()=>void;canOpen:()=>boolean
   for(const visit of dialog.querySelectorAll<HTMLButtonElement>('[data-visit]'))visit.onclick=()=>{const error=options.visit(visit.dataset.visit!);if(error===null){record('visit',visit.dataset.visit);close();}else{const message=dialog.querySelector<HTMLElement>('#explore-error')!;message.textContent=error;message.hidden=false;message.scrollIntoView({block:'nearest'});}};
   dialog.querySelector<HTMLButtonElement>('#explore-map')!.onclick=()=>{close();options.map();};
   const interaction=document.querySelector('#interaction');
-  const clear=()=>{active=undefined;guide.hidden=marker.hidden=true;interaction?.classList.remove('explore-target');};
-  guide.querySelector<HTMLButtonElement>('[data-dismiss]')!.onclick=clear;
+  const clear=()=>{active=undefined;waved=undefined;guide.hidden=marker.hidden=true;interaction?.classList.remove('explore-target');};
+  const lead=(next:GuideTarget)=>{active=next;guide.querySelector('strong')!.textContent=next.name;guide.querySelector('p')!.textContent=next.hint;};
+  guide.querySelector<HTMLButtonElement>('[data-dismiss]')!.onclick=()=>{const told=waved;clear();told?.();};
   const projected=new Vector3();
   return {
     get opened(){return dialog.open;},
     showHint(){if(!shown&&!read(HINT_KEY)&&options.canOpen()){shown=true;teaser.hidden=false;}},
     reset(){clear();close();teaser.hidden=true;},
-    arrive(id:string){clear();active=EXPLORE_PLACES.find(p=>p.id===id);if(!active)return;guide.querySelector('strong')!.textContent=active.name;guide.querySelector('p')!.textContent=active.hint;},
+    arrive(id:string){clear();const place=EXPLORE_PLACES.find(p=>p.id===id);if(place)lead(place);},
+    // The first minute borrows this guide (see first-steps.ts). A place the player chose to
+    // visit always wins: pointing is refused while one is showing, and resumes when it clears.
+    point(next:GuideTarget|null,dismissed?:()=>void){
+      if(active&&active.id!==FIRST_STEPS)return;
+      if(!next){if(active)clear();return;}
+      if(active!==next)lead(next);
+      waved=dismissed;
+    },
     update(state:{visible:boolean;position:{x:number;z:number};camera:Camera;experienced:readonly string[];audioEnabled:boolean;online:boolean}) {
       for(const id of state.experienced){if(!visited.includes(id)){visited.push(id);write(VISITED_KEY,JSON.stringify(visited));record('experience',id);}if(active?.id===id)clear();}
       guide.hidden=marker.hidden=!active||!state.visible;
-      interaction?.classList.toggle('explore-target',!!active&&state.visible&&(active.id==='wet-deck'||active.id==='15')&&Math.hypot(state.position.x-active.target.x,state.position.z-active.target.z)<3);
+      interaction?.classList.toggle('explore-target',!!active&&state.visible&&(active.id==='wet-deck'||active.id==='15'||active.lit===true)&&Math.hypot(state.position.x-active.target.x,state.position.z-active.target.z)<3);
       if(!active||!state.visible)return;
       sound.hidden=active.id!=='17'||state.audioEnabled;
       guide.querySelector('p')!.textContent=active.id==='21'&&!state.online?'Reconnect to the city to play pickleball online.':active.hint;
