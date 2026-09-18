@@ -34,7 +34,8 @@ import {districtFor} from '../shared/districts.mjs';
 import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {horizontalDistance,remoteIsVisible,remoteNeedsSnap} from './remote-visibility';
-import {setupWeather} from './weather';
+import {setupWeather, skyState} from './weather';
+import {createContactShadows} from './contact-shadows';
 import {setKlccNight} from './klcc';
 import {setSkylineNight} from './skyline';
 import {createClouds} from './clouds';
@@ -320,6 +321,9 @@ async function init() {
   if(import.meta.env.DEV) Object.defineProperty(window,'__lepakClouds',{get:()=>clouds.status});
   const world = createWorld(scene);
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakFoliage',{get:()=>({...world.foliage})});
+  // Soft ground decals under furniture and every moving actor: real shadows are off on touch and
+  // on 'low'/'lowest' quality, and rain/night starve the sun even where they are on (src/weather.ts).
+  const contactShadows = createContactShadows(scene, world.chairs, tableLocations);
   // Detailed venue models stream in on approach; their fallbacks and every collision are live
   // from the start, and fog begins at 145 m, so the swap lands before the detail is legible.
   // Low tiers keep the complete procedural station at spawn and stream its 244k-triangle skin
@@ -3145,6 +3149,16 @@ async function init() {
     if (started) pets.update('self', pos.x, (lrtId != null ? railHeight : deckY) + .12, pos.z, yaw, player.group.userData.accessoryKey || '', dt, elapsed, localPetName, localPetBreed);
     for (const [id, remote] of remotePlayers) if (remote.group.visible) pets.update(id, remote.group.position.x, remote.group.position.y, remote.group.position.z, remote.yaw, remote.person.group.userData.accessoryKey || '', dt, elapsed, remote.petName, remote.petBreed);
     pets.end();
+    contactShadows.update(dt, {
+      shadowsOn: renderer.shadowMap.enabled, sunIntensity: skyState()?.lightIntensity ?? 2.7, viewer: pos,
+      local: {
+        x: pos.x, z: pos.z, floor: deckY, jump: jumpHeight,
+        hidden: !started || seated || riding || !!beachResting || (skyDining && inSkyPool(pos)) || lrtId != null,
+        vehicle: started && riding && !passengerOf ? {group: vehicle === 'car' ? car.group : bike.group, bike: vehicle !== 'car'} : null,
+      },
+      remotePlayers: remotePlayers.values(), roomPlayers, pedestrians: world.pedestrians,
+      animals: streetAnimals.animals, pets: pets.list(), traffic: world.traffic,
+    });
     beach.update(simTime,pos);
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
       experienced:!started?[]:[...(skyDining?['wet-deck']:[]),...(klccLiftRide?.phase==='top'?['15']:[]),...(!riding&&!seated&&deckY<1&&insidePickleball(pos)&&networkConnected?['21']:[]),...(!riding&&deckY<1&&pos.x>=95&&pos.x<=153&&pos.z>=134&&pos.z<=152?['pantai-senja']:[]),...(started&&audioEnabled&&audioContext?.state==='running'&&audioVolume('sfx')>0&&!masjidSong.paused&&(masjidGain?.gain.value??0)>.01?['17']:[])]});
