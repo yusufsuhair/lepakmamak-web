@@ -316,6 +316,8 @@ function createKlccLift(parent: THREE.Object3D, x: number, z: number, id: string
     box(cabin, 0, 1.25, side * 1.17, .1, 2.5, .1, metal);
   }
   sign(cabin, 'LIFT · KLCC', 0, 1.25, -1.2, 1.95, .32, '#245848', '#f8e8ad', Math.PI);
+  // Its own keepUnbatched batch: the city-wide merge would otherwise freeze the cabin at y=0 and leave it empty.
+  batchShopFallback(cabin);
   return { id, x, z, topY, cabin };
 }
 
