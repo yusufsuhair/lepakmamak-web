@@ -35,6 +35,7 @@ import {createGmAura,gmHover} from './gm-aura';
 import teleports from '../shared/teleports.json';
 import {horizontalDistance,remoteIsVisible,remoteNeedsSnap} from './remote-visibility';
 import {setupWeather} from './weather';
+import {setupSkyIbl, setSkyIblQuality} from './sky-ibl';
 import {setKlccNight} from './klcc';
 import {setSkylineNight} from './skyline';
 import {createClouds} from './clouds';
@@ -289,6 +290,9 @@ async function init() {
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
   const ambient=new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8);scene.add(ambient);
+  // Subscribes to the shared sky probe now, before the first render, so a texture is ready the moment
+  // applyQuality() decides whether it becomes scene.environment (sky-ibl.ts, High quality only).
+  setupSkyIbl(scene);
   // The shadow pass was 64% of all draw calls with a 180 m box around the player. A 110 m box pushed
   // 30 m ahead of the camera covers what is on screen (fog starts at 145) and sharpens the shadows.
   const SHADOW_REACH = 55, SHADOW_AHEAD = 30;
@@ -2133,6 +2137,9 @@ async function init() {
     const reduced=graphicsQuality!=='high',shadowSize=graphicsQuality==='high'?2048:1024;
     renderer.setPixelRatio(Math.min(devicePixelRatio,graphicsQuality==='lowest'?.75:reduced?(touch?1:1):1.6));
     setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
+    // Sky IBL only at High: three diffs material.envMap||scene.environment itself and recompiles just the
+    // materials that need it, so this needs no traversal of its own alongside setShadows' above.
+    setSkyIblQuality(scene,weatherUI,!reduced);
     if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose();sun.shadow.map=null;}
     $<HTMLSelectElement>('graphics-quality').value = graphicsQuality;
     netStatus.quality(graphicsQuality);

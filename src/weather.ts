@@ -125,7 +125,9 @@ function publishSky(next: SkyPalette) {
 const smooth = THREE.MathUtils.smoothstep;
 /** Paint the sky dome (clouds.ts) into an equirectangular canvas, row 0 straight up: zenith to the milky
  * horizon, the glow band under the sun's azimuth, the aureole and sun, and a ground that is the horizon
- * darkened toward the nadir. Used as a local envMap, never scene.environment. */
+ * darkened toward the nadir. Used as klcc.ts/skyline.ts's own per-material envMap and, on High graphics
+ * quality, as scene.environment (sky-ibl.ts) — the shared fallback for materials with none of their own;
+ * either way a material's own envMap still wins. */
 export function paintSky(ctx: CanvasRenderingContext2D, width: number, height: number, sky: Readonly<SkyPalette>) {
   const c = new THREE.Color(), rowOf = (elevation: number) => (90 - elevation) / 180;
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -169,6 +171,9 @@ export function lightOffset(direction: THREE.Vector3, target = new THREE.Vector3
 export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, ambient: THREE.HemisphereLight, endpoint: string, setRain: (value: boolean) => void, send: (message: object) => boolean, setNight: (value: boolean) => void = () => {}, setClouds: (value: CloudWeather) => void = () => {}) {
   let report: {available:boolean;condition:string;source:string;observedAt?:number} = {available:false,condition:'sunny',source:'Weather unavailable · time-only fallback'};
   let clockOffset=0, gm=false;
+  // sky-ibl.ts cuts this to HEMI_SCALE while scene.environment is live (High quality only), so the IBL
+  // it adds on top does not double the ambient the hemisphere already supplies; 1 the rest of the time.
+  let hemisphereScale=1;
   let override={condition:'live',daylight:'live'};
   let preview: WeatherPreview = {condition:'live',time:''};
   // Where the shadow-casting light sits relative to the player; main.ts adds the player position each frame.
@@ -211,7 +216,7 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
     const sky=skyPalette(clock?klSunDirection(skyNow):override.daylight==='night'?GM_NIGHT_SUN:GM_DAY_SUN,look,moon.direction,moon.lit);
     (scene.background as THREE.Color).copy(sky.horizon);const fog=scene.fog as THREE.Fog;fog.color.copy(sky.horizon);fog.near=sky.fogNear;fog.far=sky.fogFar;
     sun.intensity=sky.lightIntensity;sun.color.copy(sky.light);
-    ambient.intensity=sky.ambientIntensity;ambient.color.copy(sky.ambientSky);
+    ambient.intensity=sky.ambientIntensity*hemisphereScale;ambient.color.copy(sky.ambientSky);
     // Once twilight has cooled (sun below -4°) the shadow-casting light is moonlight, from wherever the moon is.
     lightOffset(sky.sun.y<-.07?moon.direction:sky.sun,sunOffset);
     setNight(night);
@@ -223,5 +228,5 @@ export function setupWeather(scene: THREE.Scene, sun: THREE.DirectionalLight, am
   }
   async function refresh(){try{const sent=Date.now();const response=await fetch(`${endpoint}/weather`,{signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const value=await response.json();if(Number.isFinite(value.serverTime))clockOffset=value.serverTime+(Date.now()-sent)/2-Date.now();if(typeof value.available==='boolean'&&['sunny','cloudy','rain','haze','fog'].includes(value.condition))report=value;}catch{}apply();}
   apply();void refresh();setInterval(()=>void refresh(),10*60000);setInterval(apply,30000);
-  return {sunOffset,preview(value:WeatherPreview){if(!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)|| (value.time!==''&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)))return;preview={...value};apply();},role(value:boolean){gm=value;controls.hidden=!value;},override(value:{condition:string;daylight:string}){if(!value||!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)||!['live','day','night'].includes(value.daylight))return;override=value;weatherSelect.value=value.condition;daySelect.value=value.daylight;status.textContent='Room weather updated.';apply();}};
+  return {sunOffset,preview(value:WeatherPreview){if(!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)|| (value.time!==''&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)))return;preview={...value};apply();},role(value:boolean){gm=value;controls.hidden=!value;},override(value:{condition:string;daylight:string}){if(!value||!['live','sunny','cloudy','rain','haze','fog'].includes(value.condition)||!['live','day','night'].includes(value.daylight))return;override=value;weatherSelect.value=value.condition;daySelect.value=value.daylight;status.textContent='Room weather updated.';apply();},setHemisphereScale(factor:number){hemisphereScale=factor;apply();}};
 }
