@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button. A hidden chat also stops holding a blank band in the dialog (the default on phones): it collapses to the tab's row, and the game list gets the space.
+
 ## 1.44.0 — 2026-09-19
 
 - Added one-tap guest entry for public builds (`VITE_ALLOW_GUESTS=true` with `ALLOW_GUESTS=true` on the realtime server). The title's main button puts a new visitor straight into the city; accounts stay one button away on the title and one chip away in the HUD. A public guest is given a name off a Malaysian food menu rather than typing one, joins muted at the same single gate a moderator's mute uses, may listen to voice but is not offered a microphone, is refused a typed name by the server, and shares at most `GUEST_SEATS` places per room (default 60%) so a script cannot fill the city without accounts. Both switches are set in this release.
@@ -94,8 +96,6 @@
 - Expanded city traffic to twelve vehicles with distinct Ferrari-style and Lamborghini-style supercars plus an open-wheel F1 car with wings, cockpit and halo details.
 
 ## Unreleased
-
-- Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button.
 
 - Switched the admin console from Cloudflare Access to server-validated Supabase Auth with an exact Yusuf email allowlist, Google/email sign-in, SSR session cookies, and an admin custom domain deployment.
 

@@ -905,6 +905,10 @@ body:has(#loading:not([hidden]),#pause:not([hidden]),#auth-panel:not([hidden]),#
    sits in the header row beside the fullscreen control, and the heading reserves room for both. */
 #table-social #city-chat #chat-visibility-toggle { top: 4px; bottom: auto; left: auto; right: 54px; }
 #table-social #city-chat #chat-heading { padding-right: 106px; }
+/* A hidden chat is only visibility:hidden, so docked it still held a blank band the height of
+   the whole panel. The body is squashed rather than display:none so the log keeps its box: it
+   goes on following new messages, and reopens at the latest one instead of scrolled to the top. */
+#table-social #city-chat.chat-hidden #chat-body { height: 0; padding-block: 0; border-block-width: 0; overflow: hidden; }
 #table-social #chat-messages { max-height: 150px; }
 /* The narrow floating HUD chat stacks name above area to save width; the table dialog has
    plenty of it, and the stacked layout left the area tag orphaned under the name with a
