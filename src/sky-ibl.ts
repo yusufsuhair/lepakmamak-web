@@ -14,8 +14,9 @@ import {onSkyProbe} from './weather';
  * cache is keyed by texture identity, so this reuses their conversion rather than running a second one. */
 
 // Full-strength probe roughly doubled the ambient the HemisphereLight already supplies (measured by
-// sampling mean screenshot luminance at spawn — see tests/sky-ibl.spec.ts and the commit body). .4 keeps
-// IBL visible as sky-tinted sheen without pushing overall brightness past the ±5% budget; the hemisphere
+// sampling mean screenshot luminance at spawn — see tests/sky-ibl.spec.ts and the commit body). .3 keeps
+// IBL visible as sky-tinted sheen without pushing overall brightness past the ±5% budget (.4 with a .82
+// hemisphere measured −5.9% at night); the hemisphere
 // is cut to HEMI_SCALE alongside it to give back the diffuse half IBL now supplies on top of it, so
 // day/night brightness at spawn stays where it was before this feature.
 export const ENV_INTENSITY = .3;
