@@ -17,6 +17,11 @@ test('KLCC lift can return from the rooftop and shows the travel countdown',asyn
   await expect(page.locator('#interaction')).toHaveText('Naik lif KLCC');
   await page.locator('#interaction').click();
   await expect.poll(()=>page.evaluate(()=>(window as any).__lepak.klccLift?.phase)).toBe('top');
+  // The cabin's meshes must ride up with it; if the city batch swallows them, the rider floats in an empty shaft.
+  await expect.poll(()=>page.evaluate(()=>{
+    const cabin=(window as any).__lepak.scene.getObjectByName('klcc-west-lift-cabin');
+    return cabin.children.length?Math.min(...cabin.children.map((mesh:any)=>mesh.matrixWorld.elements[13])):null;
+  })).toBeGreaterThan(70);
   await expect(page.locator('#klcc-lift-status')).toContainText('STOP');
   await expect(page.locator('#klcc-lift-status button')).toBeVisible();
   await page.locator('#klcc-lift-status button').click();
