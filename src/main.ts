@@ -323,7 +323,7 @@ async function init() {
   if(import.meta.env.DEV)Object.defineProperty(window,'__lepakFoliage',{get:()=>({...world.foliage})});
   // Soft ground decals under furniture and every moving actor: real shadows are off on touch and
   // on 'low'/'lowest' quality, and rain/night starve the sun even where they are on (src/weather.ts).
-  const contactShadows = createContactShadows(scene, world.chairs, tableLocations);
+  const contactShadows = createContactShadows(scene, camera, world.chairs, tableLocations);
   // Detailed venue models stream in on approach; their fallbacks and every collision are live
   // from the start, and fog begins at 145 m, so the swap lands before the detail is legible.
   // Low tiers keep the complete procedural station at spawn and stream its 244k-triangle skin
@@ -3155,9 +3155,10 @@ async function init() {
         x: pos.x, z: pos.z, floor: deckY, jump: jumpHeight,
         hidden: !started || seated || riding || !!beachResting || (skyDining && inSkyPool(pos)) || lrtId != null,
         vehicle: started && riding && !passengerOf ? {group: vehicle === 'car' ? car.group : bike.group, bike: vehicle !== 'car'} : null,
+        excludeGroups: [player.group, bike.group, car.group, personalCar.group],
       },
       remotePlayers: remotePlayers.values(), roomPlayers, pedestrians: world.pedestrians,
-      animals: streetAnimals.animals, pets: pets.list(), traffic: world.traffic,
+      animals: streetAnimals.animals, petsForEach: pets.forEach, traffic: world.traffic,
     });
     beach.update(simTime,pos);
     explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
