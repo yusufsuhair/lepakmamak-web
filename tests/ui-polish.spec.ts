@@ -32,8 +32,7 @@ test('mobile game chrome stays inside the viewport', async ({ browser }) => {
     await page.locator('#guest-name').fill('UI Check');
     await page.getByRole('button', { name: 'Enter as guest', exact: true }).tap();
     await expect(page.locator('#hud')).toBeVisible();
-    const selectors = ['#minimap-wrap', '#hud-more', '#city-chat', '#speedometer', '.touch-actions'];
-    for (const selector of selectors) {
+    const inside = async (selector: string) => {
       const rect = await page.locator(selector).evaluate(element => {
         const box = element.getBoundingClientRect();
         return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
@@ -42,7 +41,12 @@ test('mobile game chrome stays inside the viewport', async ({ browser }) => {
       expect(rect.right, selector).toBeLessThanOrEqual(391);
       expect(rect.top, selector).toBeGreaterThanOrEqual(-1);
       expect(rect.bottom, selector).toBeLessThanOrEqual(845);
-    }
+    };
+    // A phone starts with the chat tucked off-canvas on purpose; its tab is the chrome on screen.
+    for (const selector of ['#minimap-wrap', '#hud-more', '#chat-visibility-toggle', '#speedometer', '.touch-actions']) await inside(selector);
+    // Opened, the panel and the tab that now hangs off its right edge both have to fit.
+    await page.getByRole('button', { name: 'Show city chat' }).tap();
+    for (const selector of ['#city-chat', '#chat-visibility-toggle']) await inside(selector);
   } finally {
     await context.close();
   }

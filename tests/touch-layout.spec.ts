@@ -25,6 +25,14 @@ test(`hands own the bottom corners on ${label}`,async({browser})=>{
  const page=await context.newPage();
  try{
   await enter(page);
+  // A phone starts with the chat tucked off-canvas behind its tab, so the tab is the part that
+  // has to be on screen. The panel is measured once it is opened, as a tablet shows it.
+  const show=page.getByRole('button',{name:'Show city chat'});
+  if(await show.count()){
+   const tab=await box(page,'#chat-visibility-toggle');
+   expect(tab.left).toBeGreaterThanOrEqual(-1);expect(tab.right).toBeLessThanOrEqual(width+1);
+   await show.tap();
+  }
   const chat=await box(page,'#city-chat');
   const stick=await box(page,'.touch-stick, #touch-controls > div:first-child');
   const speed=await box(page,'#speedometer');
