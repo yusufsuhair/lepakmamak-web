@@ -4,6 +4,8 @@
 
 - Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button. A hidden chat also stops holding a blank band in the dialog (the default on phones): it collapses to the tab's row, and the game list gets the space.
 - Changed the KLCC Park lawn and promenade from flat-coloured boxes to the city's photographic ground: world-space grass and herringbone pavers, paved by the ground mask, soaked by rain. No new assets, no vertex moved, and two draws became one (`klcc-park`). The lawn box stays because it is what buries the x=0 road and its kerbs between the towers.
+- Fixed the ⋮ doing nothing on a phone held sideways. The landscape layout folds the top-right controls behind it, but never let it take a tap, so the tap fell through to the city and settings, the shop, the wardrobe and camera reset were out of reach.
+- Fixed the "Ada lagi!" hint covering the ⋮ on the narrowest phones (320px), where tapping ⋮ dismissed the hint instead. On a phone it now hangs below the ⋮ row, and steps aside while the ⋮ tray is open instead of covering its buttons.
 
 ## 1.44.0 — 2026-09-19
 

@@ -122,8 +122,10 @@ kbd { font: 500 10px 'Oxanium'; display: inline-flex; align-items: center; justi
 .district strong { display: block; font-size: 12px; font-weight: 600; }
 .district small { display: block; margin-top: 0; font-size: 9px; color: #f1ecd8; letter-spacing: .1em; text-transform: uppercase; }
 .hud-right { display: flex; align-items: center; gap: 20px; }
-/* The ⋮ only exists on a phone; a wider screen shows the row itself. */
-#hud-more { display: none; }
+/* The ⋮ only exists on a phone; a wider screen shows the row itself. The HUD lets taps through
+   to the world, so the ⋮ asks for its own here, once, for every layout that shows it: the
+   sideways-phone fold in ui-polish.css showed it without this and a tap fell through to the city. */
+#hud-more { display: none; pointer-events: auto; }
 .multiplayer-status { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid #fff8e72e; border-radius: 4px; background: #17372e7a; font-size: 8px; letter-spacing: .12em; color: #e3ecd5; white-space: nowrap; }
 .multiplayer-status i { width: 6px; height: 6px; border-radius: 50%; background: #9eb09c; box-shadow: 0 0 0 3px #9eb09c2b; }
 .multiplayer-status b { color: var(--lime); font-weight: 700; letter-spacing: .04em; }

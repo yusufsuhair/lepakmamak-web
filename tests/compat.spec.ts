@@ -12,20 +12,28 @@ for (const viewport of [{width:1280,height:800},{width:320,height:740},{width:84
   // until the test times out, which is why this file passed or hung at random.
   await expect(page.locator('#hud')).toBeVisible();
   // On a phone every top-right control lives behind the ⋮ until it is opened, so open it
-  // before reaching for any of them.
-  const narrow = viewport.width <= 600;
-  const openTray = async () => { if (narrow && await page.locator('#menu').isHidden()) await page.locator('#hud-more').click(); };
+  // before reaching for any of them. That is any phone, held either way: sideways the short
+  // edge decides, so 844x390 has the ⋮ too.
+  const openTray = async () => { if (await page.locator('#hud-more').isVisible() && await page.locator('#menu').isHidden()) await page.locator('#hud-more').click(); };
+  // The "Ada lagi!" teaser opens as the loading screen lifts. At 320px it used to grow up over
+  // the ⋮, and this passed only when the click beat it; wait, so the ⋮ must work beside it.
+  await expect(page.locator('#explore-teaser')).toBeVisible();
   await openTray();
   await expect(page.locator('.game-brand')).toHaveCount(0);
   await expect(page.locator('#camera-in,#camera-out')).toHaveCount(0);
   expect(await page.locator('#multiplayer-status-text').evaluate(el=>getComputedStyle(el).clipPath)).toBe('inset(50%)');
   const minimap=await page.locator('#minimap').boundingBox();expect(minimap!.x).toBeLessThan(viewport.width/2);
-  // The camera starts at its widest (17); the wheel and a pinch zoom in from there.
-  await page.evaluate(()=>{ document.querySelector('canvas')!.dispatchEvent(new WheelEvent('wheel',{deltaY:-200,bubbles:true,cancelable:true})); });
+  // The camera starts at its widest (17); the wheel and a pinch zoom in from there. The world is
+  // named: the loading screen's teh tarik canvas comes first in the document now.
+  await page.evaluate(()=>{ document.querySelector('#world')!.dispatchEvent(new WheelEvent('wheel',{deltaY:-200,bubbles:true,cancelable:true})); });
   expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBeLessThan(17);
   await openTray();
   await page.getByRole('button',{name:'Centre camera',exact:true}).click();
   expect(await page.evaluate(()=> (window as any).__lepak.cameraZoom)).toBe(17);
+  // A phone starts with the chat tucked away behind its tab; open it so it can be measured. First:
+  // a tap anywhere outside the tray shuts it.
+  const showChat=page.getByRole('button',{name:'Show city chat'});
+  if (await showChat.count()) await showChat.click();
   await openTray();
   for (const selector of ['#menu','#camera-reset','#chat-heading']) {
    const box=await page.locator(selector).boundingBox();
