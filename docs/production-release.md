@@ -29,3 +29,9 @@ Frontend updated to `1991e1b` on 2026-09-19, deployed at the user's explicit req
 - Gate: typecheck and production build inside `npm run deploy`, and 39 focused tests (uno, chat-layers, chat-modal-layers, chat-fullscreen-mobile, casual-games-ui, chat-in-game, chat-collapse, table-social) on the code rebased onto `2ae58ef`. The full suite was not run.
 - Pages deployment `b066cf35`. lepakmamak.my and lepakmamak.pages.dev both serve `assets/index-IHtC8Ueo.js` and `assets/index-CX--r7TS.css`, and the served stylesheet carries the three new `#table-social #city-chat` rules.
 - Not done: the dialog was not opened on production itself, because that takes a seat in the live city and writes funnel rows. The layout was measured at 390 px and 1280 px against the dev server only.
+
+Frontend updated to `3800464` on 2026-09-19, deployed at the user's explicit request: the KLCC Park lawn and promenade changed from flat-coloured boxes to the city's photographic ground (world-space grass and herringbone pavers, paved by the ground mask, soaked by rain). No new assets, no vertex moved, one draw call fewer. Frontend-only with no version bump; Railway stays on `acb5a5a` (`1.44.0`).
+
+- Gate: typecheck and production build inside `npm run deploy`, and `tests/ground.spec.ts`, `tests/klcc-towers.spec.ts`, `tests/klcc-lift.spec.ts` and `tests/game.spec.ts` (10 tests) on the code rebased onto `4135552`, run twice as main advanced during the branch's life. The full suite was not run.
+- Pages deployment `1b75c872`. lepakmamak.my, lepakmamak.pages.dev and the deployment's own preview URL all serve `assets/index-2JIBtDbI.js`.
+- Known and not addressed here: the park's floor height is not known to `deckY`/`floorHeightAt`, so player feet sit slightly buried on the raised lawn and promenade and contact shadows there are drawn under the lawn. Pre-existing before this change; tracked as a separate follow-up, not a regression from it.
