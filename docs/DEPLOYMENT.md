@@ -9,23 +9,21 @@ first. CLI login alone must never select a deployment target for this project.
 
 Create a new Supabase project. Copy its URL and public publishable key into your
 frontend env, and its server-only service-role key into Railway/admin secrets.
-Apply **all** files in `supabase/migrations/` in filename order, not just the shop
-migrations. They create wallet RPCs, chat history, social profiles/Wall, friends,
-messages, moderation, pets, analytics and the public `social-wall` bucket.
-
-With the Supabase CLI installed:
+Follow [database setup for a fresh fork](../supabase/README.md). The CLI applies
+all migrations in order and records their versions; do not paste individual SQL
+files into the dashboard.
 
 ```sh
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase db push --dry-run
-supabase db push
+npm run db:plan
+npm run db:push
+npm run db:status
 ```
 
-Check the linked target before every push. These commands are for a new project;
-back up an existing database and review its migration history first. A local
-Supabase stack uses Docker: `supabase start`, then `supabase db reset` against that
-local stack only. Obtain its keys with `supabase status`.
+Check the linked project before pushing. The guide covers hosted setup, optional
+local Supabase, environment keys, upgrades and recovery from migration errors.
+No player data, default accounts or secrets are seeded.
 
 In hosted Auth settings, set your frontend Site URL and exact redirect URLs for
 local, development and production clients. Configure SMTP and test signup,

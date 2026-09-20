@@ -29,6 +29,13 @@ or stored in the browser; account-only features are unavailable. The frontend ca
 also run alone for offline exploration. Production builds retain local assets
 unless you explicitly configure your own CDN.
 
+## Accounts and database (optional)
+
+The guest setup above needs no database. For a fresh Supabase project, follow
+[the database setup guide](supabase/README.md): link your own project, preview
+with `npm run db:plan`, then apply everything with `npm run db:push`. You never
+need to run the individual SQL files manually.
+
 ## Documentation
 
 - [Configuration](docs/CONFIGURATION.md): all environments, secrets, GM roles and feature switches.

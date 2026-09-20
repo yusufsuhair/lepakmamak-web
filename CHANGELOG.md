@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a fresh-fork database guide, native Supabase CLI shortcuts and an isolated database smoke check in CI. No manual SQL ordering or seed accounts are required.
+
 - Prepared self-hosting and open-source documentation, ISC license, asset notices, contribution/security policy and CI checks.
 - Replaced hardcoded operator GM email with server-only `GM_USER_IDS`; configured origin allowlists and Checkout return domains per installation.
 - Added private env templates, local guest setup, explicit Cloudflare/Railway deploy targets, Docker/Railway config, optional R2 hosting and generated deployment CSP.

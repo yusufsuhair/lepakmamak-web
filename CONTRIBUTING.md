@@ -20,6 +20,10 @@ existing gameplay tests for your change; `npm test` runs the full Playwright gam
 suite plus admin tests. Do not reuse another checkout's dev server. Some legacy
 live/manual scripts are intentionally outside that suite.
 
+For database changes, follow the [local Supabase setup](supabase/README.md), then
+run `npm run db:local` and `npm run test:db`. CI also checks every migration on
+a fresh database. Add new migrations instead of rewriting applied versions.
+
 Opt-in integration scripts (`tests/online-smoke.mjs`,
 `scripts/verify-live-profile.mjs`) create/delete temporary users. They require
 `.env.test.local` containing `TEST_BASE_URL`, `VITE_MULTIPLAYER_URL`,

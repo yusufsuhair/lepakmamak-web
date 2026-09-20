@@ -20,6 +20,21 @@ jobs:
       - run: npm run build
       - run: npm --prefix admin test
       - run: npm --prefix admin run build
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.111.0
+      - run: supabase db start
+      - run: npm run db:local
+      - run: npm run test:db
+      - run: supabase stop --no-backup
+        if: always()
   secrets:
     runs-on: ubuntu-latest
     steps:

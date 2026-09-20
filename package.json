@@ -21,7 +21,13 @@
     "deploy:dev": "node scripts/deploy-pages.mjs --dev",
     "deploy:health": "node scripts/deploy-pages.mjs --health",
     "test:config": "node --test tests/config.test.mjs tests/unity-origin.test.mjs",
-    "test:secrets": "gitleaks git . --redact --log-opts=--all"
+    "test:secrets": "gitleaks git . --redact --log-opts=--all",
+    "db:start": "supabase start",
+    "db:local": "supabase migration up --local",
+    "db:plan": "supabase db push --linked --dry-run",
+    "db:push": "supabase db push --linked",
+    "db:status": "supabase migration list --linked",
+    "test:db": "docker exec -i supabase_db_lepakmamak psql -X -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/smoke.sql"
   },
   "keywords": [],
   "author": "",
