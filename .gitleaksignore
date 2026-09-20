@@ -1,0 +1,5 @@
+# Reviewed in docs/OPEN_SOURCE.md: localStorage names and a public Supabase publishable key.
+773e0c19c9da45e8e8b224e6a031a0bcf41f1225:src/explore.ts:generic-api-key:13
+5b2084c3599033da5c62a146af45a32623cf7179:.env.production:generic-api-key:3
+# Same localStorage literals in an exported source tree (no commit metadata).
+src/explore.ts:generic-api-key:23

@@ -1,18 +1,14 @@
 // Explicit integration check against the configured Supabase project. Temporary users are deleted.
 import { chromium, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import WebSocket from 'ws';
-const env = Object.fromEntries(readFileSync('.env.production', 'utf8').trim().split('\n').map(line => { const i = line.indexOf('='); return [line.slice(0, i), line.slice(i + 1)]; }));
-const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
-const keys = JSON.parse(execFileSync('supabase', ['projects', 'api-keys', '--project-ref', ref, '--output', 'json'], { encoding: 'utf8' }));
-const admin = createClient(env.VITE_SUPABASE_URL, keys.find(k => k.name === 'service_role').api_key, { auth: { persistSession: false, autoRefreshToken: false } });
+import {env} from '../scripts/live-test-env.mjs';
+const admin = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
 const users = new Set();
 const room = `test-${randomUUID().slice(0, 12)}`;
-const base = process.env.TEST_BASE_URL || 'http://localhost:4173';
+const base = env.TEST_BASE_URL;
 const sockets = [];
 const errors = [];
 try {

@@ -6,7 +6,7 @@ Status: approved, not yet implemented
 ## Purpose
 
 A private operations console at `admin.lepakmamak.my` for the single admin account
-(`yusufmohdsuhair@gmail.com`) to moderate user content and administer in-game currency.
+(`admin@example.com`) to moderate user content and administer in-game currency.
 
 The immediate driver: the Lepak Wall now accepts player photo uploads, explicit-image
 screening is deployed but **inactive** until `OPENAI_API_KEY` is set on Railway, and the
@@ -40,7 +40,7 @@ balance arithmetic has exactly one implementation.
 ## Authentication
 
 Cloudflare Access sits in front of the entire subdomain, with a Google SSO policy
-allowlisting only `yusufmohdsuhair@gmail.com`. Unauthorised requests are rejected at the
+allowlisting only `admin@example.com`. Unauthorised requests are rejected at the
 edge and never reach the application, so there is no login page, session store, or
 password path to implement or get wrong.
 

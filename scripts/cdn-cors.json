@@ -3,20 +3,25 @@
     {
       "allowed": {
         "origins": [
-          "https://lepakmamak.my",
-          "https://www.lepakmamak.my",
-          "https://dev.lepakmamak.my",
-          "https://lepakmamak.pages.dev",
-          "https://lepakmamak-dev.pages.dev",
-          "capacitor://localhost",
-          "https://localhost",
+          "https://game.example.com",
+          "https://your-pages-project.pages.dev",
           "http://localhost:4173",
           "http://127.0.0.1:4173"
         ],
-        "methods": ["GET", "HEAD"],
-        "headers": ["Range"]
+        "methods": [
+          "GET",
+          "HEAD"
+        ],
+        "headers": [
+          "Range"
+        ]
       },
-      "exposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges", "ETag"],
+      "exposeHeaders": [
+        "Content-Length",
+        "Content-Range",
+        "Accept-Ranges",
+        "ETag"
+      ],
       "maxAgeSeconds": 86400
     }
   ]

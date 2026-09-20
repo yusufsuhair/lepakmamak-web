@@ -16,7 +16,7 @@
 - `wrangler` must be `3.99.0` or later.
 - `compatibility_flags` must include `nodejs_compat`; `compatibility_date` must be `2024-09-23` or later.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It must never appear in a client component, a `NEXT_PUBLIC_*` variable, or the repo.
-- Admin identity is exactly `yusufmohdsuhair@gmail.com`. Nothing else is authorised.
+- Admin identity is exactly `admin@example.com`. Nothing else is authorised.
 - Access JWT header is `Cf-Access-Jwt-Assertion`; JWKS is `https://<team>.cloudflareaccess.com/cdn-cgi/access/certs`; issuer is `https://<team>.cloudflareaccess.com`.
 - Every destructive action writes one `admin_audit_log` row before returning success.
 - Tests live in the existing root `tests/` directory and run with `npm test`.
@@ -181,7 +181,7 @@ import {test,expect} from '@playwright/test';
 import {SignJWT,exportJWK,generateKeyPair,createLocalJWKSet} from 'jose';
 import {verifyAccessJwt,AccessDenied,requireAdmin} from '../admin/src/lib/access';
 
-const TEAM='lepakmamak', AUD='aud-tag-123', EMAIL='yusufmohdsuhair@gmail.com';
+const TEAM='lepakmamak', AUD='aud-tag-123', EMAIL='admin@example.com';
 const ISS=`https://${TEAM}.cloudflareaccess.com`;
 
 async function harness(){
@@ -355,10 +355,10 @@ function fakeClient(error:any=null){
 
 test('an audit entry is written with actor, action and target',async()=>{
  const {rows,client}=fakeClient();
- await recordAudit(client,{actor:'yusufmohdsuhair@gmail.com',action:'wall.delete',targetTable:'social_posts',targetId:'post-1',detail:{author:'Aina'}});
+ await recordAudit(client,{actor:'admin@example.com',action:'wall.delete',targetTable:'social_posts',targetId:'post-1',detail:{author:'Aina'}});
  expect(rows).toHaveLength(1);
  expect(rows[0].table).toBe('admin_audit_log');
- expect(rows[0].value).toMatchObject({actor:'yusufmohdsuhair@gmail.com',action:'wall.delete',target_table:'social_posts',target_id:'post-1',detail:{author:'Aina'}});
+ expect(rows[0].value).toMatchObject({actor:'admin@example.com',action:'wall.delete',target_table:'social_posts',target_id:'post-1',detail:{author:'Aina'}});
 });
 
 test('a failed audit write throws so the caller cannot report success',async()=>{
@@ -562,13 +562,13 @@ export default async function WallPage() {
 - [ ] **Step 6: Verify the page renders locally**
 
 Create `admin/.dev.vars` (already gitignored by Task 1) with the two values. The project URL
-is `https://sbzvvhzibqpozqvojzhe.supabase.co`; the service-role key comes from the Supabase
+is `https://your-project.supabase.co`; the service-role key comes from the Supabase
 dashboard under Project Settings → API → `service_role`. Do not paste the key into any
 committed file, and do not echo it into the terminal.
 
 ```
 NEXTJS_ENV=development
-SUPABASE_URL=https://sbzvvhzibqpozqvojzhe.supabase.co
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<paste from the Supabase dashboard>
 ```
 
@@ -627,22 +627,22 @@ function deleteHarness(post:any){
 
 test('deleting a post removes its row, its stored file and writes an audit entry',async()=>{
  const h=deleteHarness({id:'p1',user_id:'u1',author_name:'Aina',media_path:'u1/x.png'});
- await deleteWallPost(h.client,'p1','yusufmohdsuhair@gmail.com');
+ await deleteWallPost(h.client,'p1','admin@example.com');
  expect(h.wasDeleted()).toBe(true);
  expect(h.removed).toEqual(['u1/x.png']);
- expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'yusufmohdsuhair@gmail.com'});
+ expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'admin@example.com'});
 });
 
 test('a text-only post deletes without touching storage',async()=>{
  const h=deleteHarness({id:'p2',user_id:'u1',author_name:'Aina',media_path:null});
- await deleteWallPost(h.client,'p2','yusufmohdsuhair@gmail.com');
+ await deleteWallPost(h.client,'p2','admin@example.com');
  expect(h.wasDeleted()).toBe(true);
  expect(h.removed).toEqual([]);
 });
 
 test('deleting a post that does not exist throws and writes no audit entry',async()=>{
  const h=deleteHarness(null);
- await expect(deleteWallPost(h.client,'nope','yusufmohdsuhair@gmail.com')).rejects.toThrow();
+ await expect(deleteWallPost(h.client,'nope','admin@example.com')).rejects.toThrow();
  expect(h.audits).toEqual([]);
 });
 ```
@@ -759,7 +759,7 @@ git commit -m "feat: delete any Wall post from the admin console"
 
 Zero Trust → Access → Applications → Add a self-hosted application.
 - Application domain: `admin.lepakmamak.my`
-- Policy: Allow, include → Emails → `yusufmohdsuhair@gmail.com`
+- Policy: Allow, include → Emails → `admin@example.com`
 - Identity provider: Google
 - After saving, open Configure → Additional settings and copy the **Application Audience (AUD) tag**.
 - Note the team domain, i.e. the `<team>` in `<team>.cloudflareaccess.com`.
@@ -772,7 +772,7 @@ npx wrangler secret put SUPABASE_URL
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 npx wrangler secret put CF_ACCESS_TEAM_DOMAIN     # the <team> value, no protocol
 npx wrangler secret put CF_ACCESS_AUD             # the AUD tag from step 1
-npx wrangler secret put ADMIN_EMAIL               # yusufmohdsuhair@gmail.com
+npx wrangler secret put ADMIN_EMAIL               # admin@example.com
 ```
 
 - [ ] **Step 3: Deploy**

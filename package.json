@@ -9,7 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "playwright test && npm --prefix admin test",
     "start": "node server/index.mjs",
-    "deploy": "node scripts/cdn.mjs --check && npm run build && wrangler pages deploy dist --project-name lepakmamak --branch main",
+    "deploy": "node scripts/deploy-pages.mjs",
     "deploy:realtime": "node scripts/deploy-realtime.mjs",
     "preversion": "npm run build && npm test",
     "release:patch": "npm version patch -m \"chore(release): v%s\"",
@@ -18,8 +18,10 @@
     "app:ios": "npm run build && cap sync ios && cap run ios",
     "app:android": "npm run build && cap sync android && cap run android",
     "deploy:realtime:dev": "node scripts/deploy-realtime.mjs --dev",
-    "deploy:dev": "node scripts/deploy-dev.mjs",
-    "deploy:health": "wrangler pages deploy health --project-name lepakmamak-health --branch main"
+    "deploy:dev": "node scripts/deploy-pages.mjs --dev",
+    "deploy:health": "node scripts/deploy-pages.mjs --health",
+    "test:config": "node --test tests/config.test.mjs tests/unity-origin.test.mjs",
+    "test:secrets": "gitleaks git . --redact --log-opts=--all"
   },
   "keywords": [],
   "author": "",
@@ -44,5 +46,8 @@
     "vite": "^8.2.2",
     "wrangler": "^4.129.1"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

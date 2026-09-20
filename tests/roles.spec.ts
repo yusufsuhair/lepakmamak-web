@@ -1,10 +1,12 @@
 import {test,expect} from '@playwright/test';
 import {isGameMaster} from '../server/roles.mjs';
-test('Game Master badge requires the exact verified auth email, never client metadata',()=>{
- expect(isGameMaster({email:'yusufmohdsuhair@gmail.com',email_confirmed_at:'2026-01-01'})).toBe(true);
- expect(isGameMaster({email:'YusufMohdSuhair@gmail.com',email_confirmed_at:'2026-01-01'})).toBe(true);
- expect(isGameMaster({email:'yusufmohdsuhair@gmail.com'})).toBe(false);
- expect(isGameMaster({email:'someone@example.com',email_confirmed_at:'2026-01-01',user_metadata:{gameMaster:true,email:'yusufmohdsuhair@gmail.com'}})).toBe(false);
+test('GM privileges require an allowlisted verified Auth ID, never client metadata',()=>{
+ const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', user={id,email:'gm@example.com',email_confirmed_at:'2026-01-01'};
+ expect(isGameMaster(user,'')).toBe(false);
+ expect(isGameMaster(user,` ${id} , bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb `)).toBe(true);
+ expect(isGameMaster({...user,email_confirmed_at:null},id)).toBe(false);
+ expect(isGameMaster({...user,is_anonymous:true},id)).toBe(false);
+ expect(isGameMaster({...user,id:'other',user_metadata:{id,gameMaster:true}},id)).toBe(false);
 });
 test('Game Master banner renders and shimmers while respecting reduced motion',async({page})=>{
  await page.goto('/');

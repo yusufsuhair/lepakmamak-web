@@ -1,6 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {createServer} from 'node:http';
 
+const previousGms = process.env.GM_USER_IDS;
+test.beforeEach(() => { process.env.GM_USER_IDS = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; });
+test.afterEach(() => { if (previousGms === undefined) delete process.env.GM_USER_IDS; else process.env.GM_USER_IDS = previousGms; });
+
 test('Wall server owns identity, filters text, stores media and protects deletion',async()=>{
  const rows:any[]=[{id:'11111111-1111-4111-8111-111111111111',user_id:'u2',author_name:'Friend',body:'hello',media_path:null,media_type:null,media_mime:null,created_at:'2026-09-08T12:00:00Z'}];
  const likeRows:{post_id:string;user_id:string}[]=[],replyRows:any[]=[];
@@ -9,7 +13,7 @@ test('Wall server owns identity, filters text, stores media and protects deletio
   const users:any={
   valid:{id:ownId,is_anonymous:false,user_metadata:{display_name:'Real Name',profile:{bio:'Mamak fan'}}},
   other:{id:friendId,is_anonymous:false,user_metadata:{display_name:'Friend'}},
-  admin:{id:adminId,is_anonymous:false,email_confirmed_at:'2026-09-01T00:00:00Z',email:'yusufmohdsuhair@gmail.com',user_metadata:{display_name:'Yusuf'}},
+  admin:{id:adminId,is_anonymous:false,email_confirmed_at:'2026-09-01T00:00:00Z',email:'gm@example.com',user_metadata:{display_name:'Yusuf'}},
   singer:{id:singerId,is_anonymous:false,user_metadata:{display_name:'Singer'}},
   photo:{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef',is_anonymous:false,user_metadata:{display_name:'Photo'}},
   nokey:{id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',is_anonymous:false,user_metadata:{display_name:'No Key'}},

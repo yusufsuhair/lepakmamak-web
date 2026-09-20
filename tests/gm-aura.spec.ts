@@ -22,16 +22,12 @@ test('the bob repeats on its period, so it never drifts out of phase',()=>{
  }
 });
 
-test('only the Game Master account gets any of it',()=>{
- const confirmed='2026-09-01T00:00:00Z';
- expect(isGameMaster({email:'yusufmohdsuhair@gmail.com',email_confirmed_at:confirmed})).toBe(true);
- // Case and padding are normalised, so the real account is not locked out by its own typing.
- expect(isGameMaster({email:' YusufMohdSuhair@Gmail.com ',email_confirmed_at:confirmed})).toBe(true);
- // Everyone else, however close the address looks.
- expect(isGameMaster({email:'someone@example.com',email_confirmed_at:confirmed})).toBe(false);
- expect(isGameMaster({email:'yusufmohdsuhair@gmail.com.evil.test',email_confirmed_at:confirmed})).toBe(false);
- // An unconfirmed address is not proof of anything.
- expect(isGameMaster({email:'yusufmohdsuhair@gmail.com',email_confirmed_at:null})).toBe(false);
+test('only a configured verified Game Master gets the aura',()=>{
+ const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', user={id,email_confirmed_at:'2026-09-01T00:00:00Z'};
+ expect(isGameMaster(user,id)).toBe(true);
+ expect(isGameMaster(user,'')).toBe(false);
+ expect(isGameMaster({...user,id:'other'},id)).toBe(false);
+ expect(isGameMaster({...user,email_confirmed_at:null},id)).toBe(false);
 });
 
 test('the aura is wings over a seal, and adds no light to a two-light scene',async({page})=>{

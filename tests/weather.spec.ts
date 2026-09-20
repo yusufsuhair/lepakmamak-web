@@ -24,6 +24,6 @@ test('original map uses live weather and requires account entry',async({page})=>
  // runs against. What production has to keep is the gate itself.
  const auth=readFileSync('src/auth.ts','utf8');
  expect(auth).toContain('import.meta.env.DEV || import.meta.env.VITE_ALLOW_GUESTS');
- // Production must not opt in, or the account-only gate is decorative.
- expect(readFileSync('.env.production','utf8')).not.toContain('VITE_ALLOW_GUESTS');
+ // Operators opt into production guests through their private build settings.
+ expect(auth).toContain("import.meta.env.VITE_ALLOW_GUESTS === 'true'");
 });

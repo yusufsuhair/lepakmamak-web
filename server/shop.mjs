@@ -110,7 +110,9 @@ export function createShop(onEquip = () => {}, services = {}) {
         if (!stripe) { reply(503, { error: 'Stripe Checkout is not available.' }); return true; }
         const pack = currencyPacks.find(candidate => candidate.id === input.packId);
         if (!pack) { reply(400, { error: 'Unknown Lepak Coin pack.' }); return true; }
-        const origin = requestOrigin && origins.has(requestOrigin) ? requestOrigin : 'https://lepakmamak.my';
+        const origin = requestOrigin && origins.has(requestOrigin) && /^https?:\/\//.test(requestOrigin)
+          ? requestOrigin : [...origins].find(value => /^https?:\/\//.test(value));
+        if (!origin) { reply(503, { error: 'A web checkout origin is not configured.' }); return true; }
         const checkout = await stripe.checkout.sessions.create({
           mode: 'payment',
           integration_identifier: `lepakmamak_${crypto.randomBytes(8).toString('hex').slice(0, 8).replace(/[0-9]/g, 'a')}`,

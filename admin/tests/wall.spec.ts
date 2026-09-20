@@ -50,16 +50,16 @@ function deleteHarness(post:any, opts:{auditFails?:boolean;storageFails?:boolean
 
 test('deleting a post removes its row, its stored file and writes an audit entry',async()=>{
  const h=deleteHarness({id:'p1',user_id:'u1',author_name:'Aina',media_path:'u1/x.png'});
- await deleteWallPost(h.client,'p1','yusufmohdsuhair@gmail.com');
+ await deleteWallPost(h.client,'p1','admin@example.com');
  expect(h.wasDeleted()).toBe(true);
  expect(h.deletedId()).toBe('p1');
  expect(h.removed).toEqual(['u1/x.png']);
- expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'yusufmohdsuhair@gmail.com'});
+ expect(h.audits[0]).toMatchObject({action:'wall.delete',target_table:'social_posts',target_id:'p1',actor:'admin@example.com'});
 });
 
 test('a text-only post deletes without touching storage',async()=>{
  const h=deleteHarness({id:'p2',user_id:'u1',author_name:'Aina',media_path:null});
- await deleteWallPost(h.client,'p2','yusufmohdsuhair@gmail.com');
+ await deleteWallPost(h.client,'p2','admin@example.com');
  expect(h.wasDeleted()).toBe(true);
  expect(h.deletedId()).toBe('p2');
  expect(h.removed).toEqual([]);
@@ -67,20 +67,20 @@ test('a text-only post deletes without touching storage',async()=>{
 
 test('deleting a post that does not exist throws and writes no audit entry',async()=>{
  const h=deleteHarness(null);
- await expect(deleteWallPost(h.client,'nope','yusufmohdsuhair@gmail.com')).rejects.toThrow();
+ await expect(deleteWallPost(h.client,'nope','admin@example.com')).rejects.toThrow();
  expect(h.audits).toEqual([]);
 });
 
 test('when the audit write fails, the post row is not deleted',async()=>{
  const h=deleteHarness({id:'p4',user_id:'u1',author_name:'Aina',media_path:'u1/y.png'},{auditFails:true});
- await expect(deleteWallPost(h.client,'p4','yusufmohdsuhair@gmail.com')).rejects.toThrow();
+ await expect(deleteWallPost(h.client,'p4','admin@example.com')).rejects.toThrow();
  expect(h.wasDeleted()).toBe(false);
  expect(h.removed).toEqual([]);
 });
 
 test('a storage removal failure throws naming the orphaned path, after the row is deleted and audited',async()=>{
  const h=deleteHarness({id:'p5',user_id:'u1',author_name:'Aina',media_path:'u1/z.png'},{storageFails:true});
- await expect(deleteWallPost(h.client,'p5','yusufmohdsuhair@gmail.com')).rejects.toThrow(/u1\/z\.png/);
+ await expect(deleteWallPost(h.client,'p5','admin@example.com')).rejects.toThrow(/u1\/z\.png/);
  expect(h.wasDeleted()).toBe(true);
  expect(h.audits.length).toBe(1);
 });

@@ -1,4 +1,4 @@
-const ENDPOINT='https://lepak-city-realtime-production.up.railway.app/health/public';
+const {endpoint: ENDPOINT} = await fetch('./config.json').then(response => response.json());
 const $=id=>document.getElementById(id);
 
 export function formatUptime(seconds){

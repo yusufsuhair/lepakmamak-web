@@ -8,5 +8,6 @@ export type CdnFile = keyof typeof manifest.files;
  * changes what an already-released client fetches. The dev server serves the public/ originals.
  */
 export function cdnUrl(file: CdnFile): string {
-  return import.meta.env.DEV ? `/${file}` : manifest.base + manifest.files[file].key;
+  const base = import.meta.env.VITE_CDN_BASE_URL?.trim();
+  return import.meta.env.DEV || !base ? `/${file}` : `${base.replace(/\/$/, '')}/${manifest.files[file].key}`;
 }

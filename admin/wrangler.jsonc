@@ -7,7 +7,7 @@
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
-    { "pattern": "admin.lepakmamak.my", "custom_domain": true }
+    { "pattern": "admin.example.com", "custom_domain": true }
   ],
   "assets": {
     "directory": ".open-next/assets",

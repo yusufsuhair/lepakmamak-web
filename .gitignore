@@ -8,7 +8,8 @@ playwright-report/
 .dev.vars
 .env
 .env.*
-!.env.production
+!.env.example
+!.env.*.example
 supabase/.temp/
 admin/node_modules
 admin/.next
@@ -19,3 +20,24 @@ admin/.dev.vars
 
 # Dev Supabase database password — never commit.
 .supabase-dev-password.local
+
+# Local tooling, credentials and generated audit/test evidence
+.dev.vars.*
+!.dev.vars.example
+*.local.jsonc
+*.local.json
+*.tsbuildinfo
+*.blend1
+*.log
+artifacts/
+graphify-out/
+test-results*/
+.claude/launch.json
+.claude/settings.json
+.codex/hooks.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore

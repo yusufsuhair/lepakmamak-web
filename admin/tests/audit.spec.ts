@@ -8,10 +8,10 @@ function fakeClient(error:any=null){
 
 test('an audit entry is written with actor, action and target',async()=>{
  const {rows,client}=fakeClient();
- await recordAudit(client,{actor:'yusufmohdsuhair@gmail.com',action:'wall.delete',targetTable:'social_posts',targetId:'post-1',detail:{author:'Aina'}});
+ await recordAudit(client,{actor:'admin@example.com',action:'wall.delete',targetTable:'social_posts',targetId:'post-1',detail:{author:'Aina'}});
  expect(rows).toHaveLength(1);
  expect(rows[0].table).toBe('admin_audit_log');
- expect(rows[0].value).toMatchObject({actor:'yusufmohdsuhair@gmail.com',action:'wall.delete',target_table:'social_posts',target_id:'post-1',detail:{author:'Aina'}});
+ expect(rows[0].value).toMatchObject({actor:'admin@example.com',action:'wall.delete',target_table:'social_posts',target_id:'post-1',detail:{author:'Aina'}});
 });
 
 test('a failed audit write throws so the caller cannot report success',async()=>{

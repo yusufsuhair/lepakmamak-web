@@ -1,0 +1,32 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  config-build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            admin/package-lock.json
+      - run: npm ci
+      - run: npm --prefix admin ci
+      - run: npm run test:config
+      - run: npm run build
+      - run: npm --prefix admin test
+      - run: npm --prefix admin run build
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false

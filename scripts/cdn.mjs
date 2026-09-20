@@ -1,4 +1,4 @@
-// Release assets too heavy for Pages are served from R2 at https://assets.lepakmamak.my.
+// Release assets too heavy for Pages are served from your configured R2 custom domain.
 // Every key carries a hash of its content, so a key is written once and a released URL never
 // changes under an old client. Nothing here overwrites or deletes an object: rollback is just
 // an older build, whose manifest still names objects that are still there.
@@ -9,7 +9,8 @@
 //   node scripts/cdn.mjs --check  verify only; every deploy script runs this before touching Pages
 //
 // Bucket CORS is scripts/cdn-cors.json:
-//   npx wrangler r2 bucket cors set lepakmamak-assets --file scripts/cdn-cors.json
+//   npx wrangler r2 bucket cors set YOUR_BUCKET --file scripts/cdn-cors.json
+import './deploy-env.mjs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -18,7 +19,7 @@ import {basename, extname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {brotliCompressSync, constants} from 'node:zlib';
 
-const BUCKET = 'lepakmamak-assets', BASE = 'https://assets.lepakmamak.my/', ORIGIN = 'https://dev.lepakmamak.my';
+const BUCKET = process.env.R2_BUCKET, BASE = process.env.VITE_CDN_BASE_URL?.replace(/\/?$/, '/'), ORIGIN = process.env.CDN_ORIGIN;
 const CACHE = 'public, max-age=31536000, immutable', MANIFEST = 'src/cdn-manifest.json';
 const TYPES = {'.mp3': 'audio/mpeg', '.glb': 'model/gltf-binary'};
 const FOLDERS = {'.mp3': 'audio', '.glb': 'models'};
@@ -82,13 +83,15 @@ async function verify(file, entry) {
 }
 
 async function main() {
+  if (!BUCKET || !BASE || !ORIGIN) throw new Error('Set R2_BUCKET, VITE_CDN_BASE_URL and CDN_ORIGIN in .env.deploy.local.');
+  if (new URL(BASE).protocol !== 'https:' || new URL(ORIGIN).origin !== ORIGIN) throw new Error('CDN needs an HTTPS base URL and an exact browser origin.');
   const check = process.argv.includes('--check');
   const old = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {files: {}};
   const files = {};
   let failed = false;
   for (const file of FILES) {
     const key = keyFor(file), encoding = ENCODINGS[extname(file)];
-    let entry = old.files[file]?.key === key ? old.files[file] : undefined;
+    let entry = old.base === BASE && old.files[file]?.key === key ? old.files[file] : undefined;
     if (!entry) {
       if (check) { console.error(`✗ ${file}: public/ no longer matches the manifest — run node scripts/cdn.mjs`); failed = true; continue; }
       const res = await head(key);

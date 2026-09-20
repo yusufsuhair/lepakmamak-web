@@ -1,6 +1,6 @@
 # Local Git and releases
 
-Work directly on `main`. This repository has no remote. Keep all commits and tags local until a remote is explicitly requested; do not push or add one automatically.
+Work directly on `main`. Keep commits and tags local until publishing is explicitly requested; a configured remote does not authorize a push.
 
 ## Source of truth
 
@@ -14,7 +14,7 @@ A release tag records the exact local source revision. It does not mean that ver
 
 ## Commit work
 
-Review `git status` and `git diff`, stage only the intended files, then commit with a descriptive message. Update the Unreleased section of `CHANGELOG.md` as features and fixes land. Keep credentials, dependencies, generated builds and test artifacts out of Git. `.env.production` contains public frontend configuration only; secrets must never be added there.
+Review `git status` and `git diff`, stage only the intended files, then commit with a descriptive message. Update the Unreleased section of `CHANGELOG.md` as features and fixes land. Keep credentials, dependencies, generated builds and test artifacts out of Git. Only env examples are tracked. Keep all actual environment files ignored; `VITE_*` values are public and must never contain secrets.
 
 ## Release locally
 

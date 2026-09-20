@@ -1,3 +1,5 @@
+> Historical deployment log, not setup instructions. For current setup and migration requirements use [DEPLOYMENT.md](DEPLOYMENT.md). Do not copy old resource IDs or settings into a fork.
+
 # Current development baseline
 
 Production is at `e9ced2c`: the original map, live weather and GM controls, restored Claude HUD and Wall features, mosque seating and location swap, map teleporting, overhead voice controls, automatic speaker activation with microphone, and the standalone equipment Inventory. Deployed with explicit user approval on 2026-09-09 to Railway, lepakmamak.my and both Pages domains.

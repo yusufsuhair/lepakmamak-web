@@ -25,7 +25,7 @@ function harness(rows:any[]=[],options:{auditFails?:boolean;writeFails?:boolean}
  }};
  return {client,audits,upserts,updates,deletes};
 }
-const actor='yusufmohdsuhair@gmail.com';
+const actor='admin@example.com';
 
 test('a mute is time-boxed, a ban is not, and both are audited before they take effect',async()=>{
  const h=harness();

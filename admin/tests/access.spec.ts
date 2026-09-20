@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair, type JWTVerifyGetKey } from "jose";
 import { AccessDenied, requireAdmin, verifyAccessJwt } from "../src/lib/access";
 
-const TEAM = "jolly-firefly-bf54", AUD = "aud-tag", EMAIL = "yusufmohdsuhair@gmail.com";
+const TEAM = "example-team", AUD = "aud-tag", EMAIL = "admin@example.com";
 
 async function harness() {
   const { publicKey, privateKey } = await generateKeyPair("RS256");

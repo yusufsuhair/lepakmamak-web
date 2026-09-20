@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Prepared self-hosting and open-source documentation, ISC license, asset notices, contribution/security policy and CI checks.
+- Replaced hardcoded operator GM email with server-only `GM_USER_IDS`; configured origin allowlists and Checkout return domains per installation.
+- Added private env templates, local guest setup, explicit Cloudflare/Railway deploy targets, Docker/Railway config, optional R2 hosting and generated deployment CSP.
+- Removed production env and machine-specific tool settings from tracking; preserved local copies. Existing deployments must follow `docs/DEPLOYMENT.md` migration steps before upgrading.
+
+
 - Fixed the table dialog scrolling sideways: the city chat's hide tab hung outside the dialog once the chat was docked in it, at every screen width. The tab now sits in the chat header beside the fullscreen button. A hidden chat also stops holding a blank band in the dialog (the default on phones): it collapses to the tab's row, and the game list gets the space.
 - Changed the KLCC Park lawn and promenade from flat-coloured boxes to the city's photographic ground: world-space grass and herringbone pavers, paved by the ground mask, soaked by rain. No new assets, no vertex moved, and two draws became one (`klcc-park`). The lawn box stays because it is what buries the x=0 road and its kerbs between the towers.
 - Fixed the ⋮ doing nothing on a phone held sideways. The landscape layout folds the top-right controls behind it, but never let it take a tap, so the tap fell through to the city and settings, the shop, the wardrobe and camera reset were out of reach.

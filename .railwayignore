@@ -12,3 +12,11 @@
 /.git
 /assets
 /docs
+
+/.env*
+/.dev.vars*
+/.claude
+/.codex
+/.github
+/artifacts
+/tests
