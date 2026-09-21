@@ -5,6 +5,9 @@ import currencyPacks from '../shared/currency-packs.json' with { type: 'json' };
 import crypto from 'node:crypto';
 import { origins } from '../shared/origins.mjs';
 
+import {createIap, nativePacks, transactionHash} from './iap.mjs';
+import {createRateLimiter, clientKey} from './limits.mjs';
+
 const PET_SKUS = new Set(['pet-companion', 'pet-ginger', 'pet-cream']);
 
 export function createShop(onEquip = () => {}, services = {}) {
@@ -14,6 +17,9 @@ export function createShop(onEquip = () => {}, services = {}) {
   const stripe = services.stripe || (process.env.STRIPE_SECRET_KEY
     ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-07-29.dahlia' })
     : null);
+  const iap = services.iap || createIap();
+  const iapLimit = createRateLimiter({limit: 20, windowMs: 60000});
+  const iapTotal = createRateLimiter({limit: 300, windowMs: 60000});
   const webhookSecret = services.webhookSecret ?? process.env.STRIPE_WEBHOOK_SECRET;
   const check = result => { if (result.error) throw Error('Database operation failed'); return result.data; };
   const inventory = async userId => db ? check(await db.from('shop_inventory').select('sku,equipped').eq('user_id', userId)) : [];
@@ -64,6 +70,7 @@ export function createShop(onEquip = () => {}, services = {}) {
     }
     if (request.method === 'OPTIONS') { response.writeHead(origins.has(requestOrigin) ? 204 : 403); response.end(); return true; }
     if (requestOrigin && !origins.has(requestOrigin)) { reply(403, { error: 'Origin not allowed' }); return true; }
+    if (url.pathname === '/shop/iap/verify' && (!iapTotal('all') || !iapLimit('ip:' + clientKey(request)))) { reply(429, {error: 'Please retry shortly.'}); return true; }
     if (url.pathname === '/shop/webhook' && request.method === 'POST') {
       if (!stripe || !webhookSecret || !db) { reply(503, { error: 'Payments are not configured.' }); return true; }
       try {
@@ -77,7 +84,7 @@ export function createShop(onEquip = () => {}, services = {}) {
       } catch { reply(400, { error: 'Invalid webhook.' }); }
       return true;
     }
-    if (url.pathname === '/shop/catalog' && request.method === 'GET') { reply(200, { items: catalog, packs: currencyPacks, available: !!db, paymentsAvailable: !!db && !!stripe }); return true; }
+    if (url.pathname === '/shop/catalog' && request.method === 'GET') { reply(200, { items: catalog, packs: nativePacks, available: !!db, paymentsAvailable: !!db && !!stripe, applePaymentsAvailable: !!db && iap.applePaymentsAvailable, googlePaymentsAvailable: !!db && iap.googlePaymentsAvailable }); return true; }
     if (!db) { reply(503, { error: 'The shop is not available yet.' }); return true; }
 
     try {
@@ -90,6 +97,22 @@ export function createShop(onEquip = () => {}, services = {}) {
       }
       if (request.method !== 'POST') { reply(405, { error: 'Method not allowed' }); return true; }
       const input = await readBody(request);
+
+      if (url.pathname === '/shop/iap/verify') {
+        if (!iapLimit('user:' + userId)) { reply(429, {error: 'Please retry shortly.'}); return true; }
+        try {
+          const {environment} = await iap.verify(input, userId);
+          const result = check(await db.rpc('game_wallet_credit_iap', {p_user_id: userId, p_store: input.store,
+            p_environment: environment, p_transaction_hash: transactionHash(input.transactionId), p_product_id: input.productId}));
+          if (result?.fulfilled !== true) throw Error('Store fulfillment did not commit.');
+          reply(200, {fulfilled: true, store: input.store, productId: input.productId, transactionId: input.transactionId,
+            inventory: {items: await publicInventory(userId), ...(await wallet(userId))}});
+        } catch (error) {
+          const status = [202, 400, 503].includes(error.status) ? error.status : 503;
+          reply(status, {error: status === 503 ? 'Purchase verification unavailable. Please retry.' : error.message});
+        }
+        return true;
+      }
 
       if (url.pathname === '/shop/buy') {
         const item = catalog.find(candidate => candidate.id === input.sku);
