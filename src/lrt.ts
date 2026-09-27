@@ -6,6 +6,7 @@ import {box,material} from './world';
 import {stations,trackPoint,trackLength,trainState,railHeight} from '../shared/lrt.mjs';
 import type {Solid} from './physics';
 import {cdnUrl,type CdnFile} from './cdn';
+import {spatialInstances} from './web-assets';
 import './lrt.css';
 
 function batchStatic(group:THREE.Group,dynamic:THREE.Object3D[]=[]){
@@ -74,8 +75,10 @@ function lrtAsset(name:string){return new GLTFLoader().setMeshoptDecoder(Meshopt
 // Drop every placeholder mesh but keep the canvas labels (station names, destinations).
 function swapIn(group:THREE.Object3D,model:THREE.Object3D){for(const child of [...group.children])if(!child.userData.label)child.removeFromParent();group.add(model);}
 function instanced(node:THREE.Object3D,matrices:THREE.Matrix4[]){const out:THREE.InstancedMesh[]=[];node.updateMatrixWorld(true);
- node.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;const mesh=new THREE.InstancedMesh(obj.geometry,obj.material,matrices.length);const local=obj.matrixWorld.clone();
-  matrices.forEach((m,i)=>mesh.setMatrixAt(i,m.clone().multiply(local)));mesh.receiveShadow=true;mesh.castShadow=obj.castShadow;out.push(mesh);});return out;}
+ node.traverse(obj=>{if(!(obj instanceof THREE.Mesh))return;
+  for(const mesh of spatialInstances(obj.geometry,obj.material,matrices.map(m=>m.clone().multiply(obj.matrixWorld)))){
+   mesh.receiveShadow=true;mesh.castShadow=obj.castShadow;out.push(mesh);
+  }});return out;}
 function label(parent:THREE.Group,text:string,x:number,y:number,z:number,w:number,h:number){
  const c=document.createElement('canvas');c.width=768;c.height=128;const ctx=c.getContext('2d')!;
  ctx.fillStyle='#082f50';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 44px sans-serif';ctx.fillText(text,384,64,740);

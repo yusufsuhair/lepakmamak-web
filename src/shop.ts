@@ -65,6 +65,9 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   }
   function endTry() { trying = ''; tryPanel.hidden = true; fitting?.stop(); }
   function draw() {
+    // Entry refreshes inventory with the dialog closed. Never start hidden WebGL previews,
+    // including when a request finishes after Close has already disposed them.
+    if (!dialog.open) return;
     // A guest has no wallet and no checkout: show the rack and the try-on, not disabled money.
     dialog.querySelector<HTMLElement>('.shop-wallet')!.hidden = !session;
     dialog.querySelector<HTMLElement>('.coin-topup')!.hidden = !session;
@@ -170,5 +173,5 @@ export function setupShop(onEquip: (items: string[]) => void, endpoint?: string,
   // When the shop closes (the button, Escape, logging out), a try ends with it.
   dialog.addEventListener('close', () => { endTry(); clearPetPreviews(); });
   dialog.addEventListener('keydown', event => event.stopPropagation());
-  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open(filter = 'all') { category = filter; endTry(); draw(); if (!dialog.open) dialog.showModal(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
+  return { async inventory(){const data=await request('inventory');applyState(data);return {items:[...owned],balance};},async equip(sku:string,value:boolean){const data=await request('equip',{sku,equipped:value});applyState(data);return {items:[...owned],balance};}, open(filter = 'all') { category = filter; endTry(); if (!dialog.open) dialog.showModal(); draw(); void refresh(); }, enter: refresh, close() { dialog.close(); owned = []; balance = 0; ready = false; onEquip([]); } };
 }

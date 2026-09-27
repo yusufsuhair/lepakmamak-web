@@ -1,4 +1,41 @@
 import {test,expect} from '@playwright/test';
+
+test('spatial instances preserve every placement and cull streets outside the camera',async({page})=>{
+ await page.route('**/instance-budget',r=>r.fulfill({contentType:'text/html',body:'<canvas></canvas>'}));
+ await page.goto('/instance-budget');
+ const result=await page.evaluate(async()=>{
+  const THREE=await import('/node_modules/.vite/deps/three.js');
+  const {spatialInstances}=await import('/src/web-assets.ts');
+  const scene=new THREE.Scene(),geometry=new THREE.BoxGeometry(),material=new THREE.MeshBasicMaterial();
+  const matrices=[-130,0,130].flatMap(x=>Array.from({length:20},(_,i)=>new THREE.Matrix4().makeTranslation(x+i*.1,0,0)));
+  const meshes=spatialInstances(geometry,material,matrices),positions:number[]=[];
+  for(const mesh of meshes){scene.add(mesh);const matrix=new THREE.Matrix4();for(let i=0;i<mesh.count;i++){mesh.getMatrixAt(i,matrix);positions.push(matrix.elements[12]);}}
+  const camera=new THREE.PerspectiveCamera(50,1,.1,40);camera.position.set(1,3,12);camera.lookAt(1,0,0);
+  const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('canvas')!});renderer.setSize(128,128);renderer.render(scene,camera);
+  const result={positions:positions.sort((a,b)=>a-b),expected:matrices.map(m=>m.elements[12]).sort((a,b)=>a-b),triangles:renderer.info.render.triangles,calls:renderer.info.render.calls};
+  geometry.dispose();material.dispose();renderer.dispose();return result;
+ });
+ expect(result.positions).toHaveLength(60);
+ result.positions.forEach((x,i)=>expect(x).toBeCloseTo(result.expected[i],4));
+ expect(result.calls).toBe(1);expect(result.triangles).toBe(20*12);
+});
+
+test('hidden scene branches catch up before their first visible frame',async({page})=>{
+ await page.goto('/');await page.waitForFunction(()=>!!(window as any).__lepak);
+ const result=await page.evaluate(async()=>{
+  const THREE=await import('/node_modules/.vite/deps/three.js');
+  const scene=(window as any).__lepak.scene,group=new THREE.Group(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());
+  const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+  group.position.x=37;mesh.position.x=4;mesh.updateMatrix();mesh.matrixAutoUpdate=false;group.add(mesh);group.visible=false;scene.add(group);
+  await frame();await frame();const hidden=mesh.matrixWorld.elements[12];
+  group.visible=true;await frame();await frame();const visible=mesh.matrixWorld.elements[12];
+  group.visible=false;group.position.x=73;await frame();await frame();group.visible=true;await frame();await frame();
+  const returned=mesh.matrixWorld.elements[12];group.removeFromParent();mesh.geometry.dispose();mesh.material.dispose();
+  return {hidden,visible,returned};
+ });
+ expect(result).toEqual({hidden:0,visible:41,returned:77});
+});
+
 test('graphics quality switches shadows and persists across reload',async({page})=>{
  await page.addInitScript(()=>localStorage.setItem('lepak-graphics','low'));
  await page.goto('/');await page.getByRole('button',{name:"Jom, let's go"}).click();await page.locator('#auth-guest').click();await page.locator('#guest-name').fill('Tester');await page.getByRole('button',{name:'Enter as guest',exact:true}).click();await page.locator('#menu').click();

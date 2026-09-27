@@ -223,7 +223,13 @@ async function realFloorHeight(page: Page, x: number, z: number, probeRadius = 0
     raycaster.far = 60; raycaster.camera = (window as any).__lepak.camera;   // sprites need a camera to raycast at all
     // LM_SKY_Atmosphere (src/clouds.ts) is a big dome around the whole scene, not a floor: it dips
     // below ground level at some angles and would otherwise win as the "lowest" hit.
-    const candidates = (window as any).__lepakScene.children.filter((o: any) => o.name !== 'contact-shadows-static' && o.name !== 'contact-shadows-dynamic' && o.name !== 'LM_SKY_Atmosphere');
+    // Raycaster ignores visibility: skip hidden fallback models, whose transforms need not
+    // update while they are offscreen. This check measures the floor actually being rendered.
+    const candidates: any[] = [];
+    for (const root of (window as any).__lepakScene.children) {
+      if (['contact-shadows-static', 'contact-shadows-dynamic', 'LM_SKY_Atmosphere'].includes(root.name)) continue;
+      root.traverseVisible((object: any) => { if (object.isMesh) candidates.push(object); });
+    }
     // The base city slab/apron (src/ground.ts) exists everywhere, including *underneath* a more
     // specific floor, so a lower, more specific hit should win over it -- but when nothing more
     // specific exists, the topmost (nearest, i.e. hits[0], since intersectObjects sorts nearest
@@ -241,7 +247,7 @@ async function realFloorHeight(page: Page, x: number, z: number, probeRadius = 0
     const readings: number[] = [];
     for (const a of angles) {
       raycaster.set(new THREE.Vector3(x + Math.sin(a) * probeRadius, 50, z + Math.cos(a) * probeRadius), new THREE.Vector3(0, -1, 0));
-      const hits = raycaster.intersectObjects(candidates, true).filter((h: any) => !h.object.isSprite);
+      const hits = raycaster.intersectObjects(candidates, false);
       if (!hits.length) continue;
       const specific = hits.filter((h: any) => !isBaseGround(h));
       readings.push(specific.length ? Math.min(...specific.map((h: any) => h.point.y)) : hits[0].point.y);

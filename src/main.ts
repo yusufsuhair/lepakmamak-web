@@ -292,6 +292,9 @@ async function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
+  // Update visible branches before rendering; hidden rigs/venues need no per-frame matrix work.
+  // getWorldPosition/updateWorldMatrix still refresh hidden objects when gameplay needs them.
+  scene.matrixWorldAutoUpdate = false;
   const ambient=new THREE.HemisphereLight('#f6edcf', '#758b75', 1.8);scene.add(ambient);
   // Subscribes to the shared sky probe now, before the first render, so a texture is ready the moment
   // applyQuality() decides whether it becomes scene.environment (sky-ibl.ts, High quality only).
@@ -2803,6 +2806,8 @@ async function init() {
       const viewer = {x: pos.x, z: pos.z};
       const remoteDistance = (remote: RemotePlayer) => horizontalDistance(remote.target, viewer);
       const ranked = [...remotePlayers.values()].sort((a, b) => remoteDistance(a) - remoteDistance(b));
+      const detailLimit = graphicsQuality === 'high' ? DETAIL_LIMIT : graphicsQuality === 'low' ? 12 : 6;
+      const detailCeiling = graphicsQuality === 'high' ? DETAIL_CEILING : graphicsQuality === 'low' ? 16 : 8;
       let detailed = 0;
       for (const remote of ranked) {
         const distance = remoteDistance(remote);
@@ -2810,8 +2815,8 @@ async function init() {
         setObjectShadows(remote.group,distance<25);
         const shown = remoteIsVisible(remote.target, viewer, VISIBLE_RANGE);
         remote.group.visible = shown;
-        // Standing next to someone must never show a capsule, so close range ignores the budget.
-        remote.detail = shown && detailed < DETAIL_CEILING && (distance < CLOSE_RANGE || (distance < DETAIL_RANGE && detailed < DETAIL_LIMIT));
+        // Nearby players take priority, within the quality tier's hard ceiling.
+        remote.detail = shown && detailed < detailCeiling && (distance < CLOSE_RANGE || (distance < DETAIL_RANGE && detailed < detailLimit));
         if (remote.detail) detailed++;
         // A rider still shows their vehicle however far away: there are few of them, and a
         // capsule where a car should be reads as a bug rather than as distance.
@@ -2976,11 +2981,13 @@ async function init() {
       if (Math.abs(heading - Math.PI - compassAngle) > .01) { compassAngle = heading - Math.PI; compass.style.transform = `rotate(${compassAngle}rad)`; }
       const distance = (lrtId!=null?Math.max(22,zoom):zoom) + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
+      // A conservative footprint covers rotated solids too; avoid scanning the city at every ray step.
+      const cameraSolids = world.solids.filter(s => Math.abs(s.x - pos.x) < distance + .35 + s.hx + s.hz && Math.abs(s.z - pos.z) < distance + .35 + s.hx + s.hz);
       // Shorten the camera arm when a building would obscure the player.
       for (let step = 1.5; !skyDining && lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
         const cameraRayY=deckY+(riding?2:1.6)+step*cameraPitch;
-        if (world.solids.some(s => (s.cameraTop===undefined||cameraRayY<=s.cameraTop)&&overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
+        if (cameraSolids.some(s => (s.cameraTop===undefined||cameraRayY<=s.cameraTop)&&overlaps(p, .35, s))) { cameraDistance = Math.max(1.2, step - .65); break; }
       }
       target.set(pos.x, (lrtId!=null?railHeight+2:riding ? 2 : 1.6) + deckY, pos.z);
       desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * (lrtId!=null?Math.max(.55,cameraPitch):cameraPitch)), pos.z - Math.cos(heading) * cameraDistance);
@@ -3136,7 +3143,7 @@ async function init() {
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     // Your mic/speaker controls float over your own head, and a taller nameplate (Game Master, geng)
     // lifts them into your speech bubble. Treat them as a placed bubble so speech stacks above them.
-    const voiceRect = voicePanel && !voicePanel.hidden && !voiceInTable ? voicePanel.getBoundingClientRect() : null;
+    const voiceRect = speechBubbles.size && voicePanel && !voicePanel.hidden && !voiceInTable ? voicePanel.getBoundingClientRect() : null;
     if (voiceRect) placedBubbles.push({ left: voiceRect.left, right: voiceRect.right, top: voiceRect.top, bottom: voiceRect.bottom });
     for (const [id, bubble] of speechBubbles) {
       const afk = id.startsWith('afk:');
@@ -3198,7 +3205,10 @@ async function init() {
       riding && vehicle==='car' ? {group:car.group,controls:{speed,
         steering:THREE.MathUtils.clamp(Number(keys.has('KeyA')||keys.has('ArrowLeft'))-Number(keys.has('KeyD')||keys.has('ArrowRight'))-stickX,-1,1),
         braking:keys.has('Space')}} : undefined,simTime,.12);
-    if(!tableSocial.boardOpen||time-lastSceneRender>=1000/15){renderer.render(scene, camera);lastSceneRender=time;}
+    if(!tableSocial.boardOpen||time-lastSceneRender>=1000/15){
+      scene.traverseVisible(object => object.updateWorldMatrix(false, false, true));
+      renderer.render(scene, camera);lastSceneRender=time;
+    }
     requestAnimationFrame(frame);
   }
   // Read-only diagnostics support browser smoke tests without modifying gameplay state.

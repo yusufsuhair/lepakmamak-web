@@ -33,6 +33,23 @@ async function mount(page:Page,width:number,signedIn=true){
 }
 const painted=(page:Page)=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 
+test('a refresh finishing after Close does not restart hidden pet previews',async({page})=>{
+ await mount(page,390);
+ await page.evaluate(()=>{void (window as any).shop.enter();(window as any).shop.close();});
+ await expect(page.locator('#item-shop')).not.toBeVisible();
+ await page.evaluate(()=>(window as any).shop.enter());
+ await painted(page);
+ const reads=await page.evaluate(async()=>{
+  const original=Element.prototype.getBoundingClientRect;let reads=0;
+  Element.prototype.getBoundingClientRect=function(){if(this.matches('#item-shop canvas'))reads++;return original.call(this);};
+  try{for(let i=0;i<8;i++)await new Promise<void>(r=>requestAnimationFrame(()=>r()));return reads;}
+  finally{Element.prototype.getBoundingClientRect=original;}
+ });
+ expect(reads).toBe(0);
+ await page.evaluate(()=>(window as any).shop.open('pets'));
+ await expect(page.locator('#item-shop .shop-pet-art canvas')).toBeVisible();
+});
+
 for(const width of [1280,390])test(`Try dresses a private copy of your character and sends nothing at ${width}px`,async({page})=>{
  const {frames,requests}=await mount(page,width);
  const settled=requests.length,panel=page.locator('.shop-try'),canvas=panel.locator('canvas'),cap=page.getByRole('button',{name:'Try Lepak Cap'});

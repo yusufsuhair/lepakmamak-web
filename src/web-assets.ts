@@ -95,6 +95,25 @@ export function webAssetVariant(point: WebAssetPlacement, count: number) {
   return Math.floor((seed - Math.floor(seed)) * count);
 }
 
+/** Keep static instances in 64 m cells so native frustum culling can reject offscreen streets. */
+export function spatialInstances(geometry: THREE.BufferGeometry, material: THREE.Material | THREE.Material[], matrices: THREE.Matrix4[]) {
+  const cells = new Map<string, THREE.Matrix4[]>();
+  let minX = Infinity, minZ = Infinity;
+  for (const matrix of matrices) { minX = Math.min(minX, matrix.elements[12]); minZ = Math.min(minZ, matrix.elements[14]); }
+  for (const matrix of matrices) {
+    const key = `${Math.floor((matrix.elements[12] - minX) / 64)},${Math.floor((matrix.elements[14] - minZ) / 64)}`;
+    const cell = cells.get(key) ?? [];
+    cell.push(matrix); cells.set(key, cell);
+  }
+  return [...cells.values()].map(cell => {
+    const mesh = new THREE.InstancedMesh(geometry, material, cell.length);
+    cell.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+    mesh.computeBoundingBox(); mesh.computeBoundingSphere();
+    mesh.matrixAutoUpdate = false; // Identity local transform; placements live in instanceMatrix.
+    return mesh;
+  });
+}
+
 /** Prepare a complete reusable model without attaching partial results to the live world.
  * Top-level nodes tagged `lm_variant` are alternative models: each placement gets one of them. */
 export async function loadInstancedWebAsset(url: string, placements: WebAssetPlacement[], name: string) {
@@ -112,17 +131,16 @@ export async function loadInstancedWebAsset(url: string, placements: WebAssetPla
     const points = variant < 0 ? placements : placements.filter(point => webAssetVariant(point, variants.length) === variant);
     if (!points.length) { object.geometry.dispose(); return; }
     const geometry = object.geometry.clone().applyMatrix4(object.matrixWorld);
-    const mesh = new THREE.InstancedMesh(geometry, object.material, points.length);
-    mesh.name = object.name;
-    points.forEach((point, index) => {
+    const matrices = points.map(point => {
       position.set(point.x, point.y, point.z); scale.setScalar(point.scale);
       quaternion.setFromAxisAngle(up, point.yaw);
-      mesh.setMatrixAt(index, matrix.compose(position, quaternion, scale));
+      return matrix.compose(position, quaternion, scale).clone();
     });
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingBox(); mesh.computeBoundingSphere();
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    group.add(mesh);
+    for (const mesh of spatialInstances(geometry, object.material, matrices)) {
+      mesh.name = object.name;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      group.add(mesh);
+    }
     object.geometry.dispose();
   });
   if (!group.children.length) throw new Error(`Empty web asset: ${name}`);
