@@ -1,4 +1,5 @@
 import {createPets} from './pets';
+import {FrameBudget, graphicsPixelRatio, initialGraphicsQuality, type GraphicsQuality} from './graphics-quality';
 import {setupPetStudio} from './pet-studio';
 import { createMusicPlayer, type MusicSource } from './music-player';
 import { createRadio, RADIO_STATIONS } from './radio';
@@ -283,12 +284,19 @@ async function init() {
   // Decide touch capability before creating WebGL. Phones should not pay for MSAA or a
   // shadow pass during the expensive first frame; the quality menu can opt back in later.
   const touch = matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  let graphicsQuality: GraphicsQuality = touch ? 'lowest' : 'high';
+  try {
+    graphicsQuality = initialGraphicsQuality(touch, localStorage.getItem('lepak-graphics'), sessionStorage.getItem('lepak-high-session') === '1');
+    localStorage.setItem('lepak-graphics', graphicsQuality);
+  } catch {}
+  const frameBudget = new FrameBudget(touch);
+  let autoReduced = false;
   let renderer: THREE.WebGLRenderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: !touch, powerPreference: 'high-performance' }); }
   catch { fail('This game needs WebGL. Try a recent browser with hardware acceleration enabled.'); return; }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, touch ? 1 : 1.6));
+  renderer.setPixelRatio(graphicsPixelRatio(graphicsQuality, touch, devicePixelRatio));
   renderer.setSize(innerWidth, innerHeight);
-  renderer.shadowMap.enabled = !touch; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.enabled = graphicsQuality === 'high'; renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
   canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics connection was interrupted. Reload to return to the city. Reload to reconnect to the city.'); });
   const scene = new THREE.Scene(); scene.background = new THREE.Color('#d6decd'); scene.fog = new THREE.Fog('#d6decd', 145, 440);
@@ -2142,25 +2150,17 @@ async function init() {
   function setShadows(enabled: boolean) {
     if (renderer.shadowMap.enabled === enabled) return;
     renderer.shadowMap.enabled = enabled;
+    const materials = new Set<THREE.Material>();
     scene.traverse(obj => { if (obj instanceof THREE.Mesh) {
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-      mats.forEach(m => m.needsUpdate = true);
+      mats.forEach(m => materials.add(m));
     } });
+    materials.forEach(material => material.needsUpdate = true);
   }
-  type GraphicsQuality='lowest'|'low'|'high';
-  let graphicsQuality:GraphicsQuality = touch ? 'low' : 'high';
-  let autoReduced = false, slowSeconds = 0;
-  try {
-    const saved = localStorage.getItem('lepak-graphics');
-    const highThisSession=sessionStorage.getItem('lepak-high-session')==='1';
-    if(saved==='lowest')graphicsQuality='lowest';
-    if (saved === 'low' || saved === 'smooth') graphicsQuality = 'low';
-    if ((saved === 'high' || saved === 'detailed')&&(!touch||highThisSession)) graphicsQuality = 'high';
-    localStorage.setItem('lepak-graphics', graphicsQuality);
-  } catch { /* Storage is optional. */ }
   function applyQuality() {
     const reduced=graphicsQuality!=='high',shadowSize=graphicsQuality==='high'?2048:1024;
-    renderer.setPixelRatio(Math.min(devicePixelRatio,graphicsQuality==='lowest'?.75:reduced?(touch?1:1):1.6));
+    const pixelRatio = graphicsPixelRatio(graphicsQuality, touch, devicePixelRatio);
+    if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
     // Sky IBL only at High: three diffs material.envMap||scene.environment itself and recompiles just the
     // materials that need it, so this needs no traversal of its own alongside setShadows' above.
@@ -2170,7 +2170,7 @@ async function init() {
     netStatus.quality(graphicsQuality);
   }
   $('graphics-quality').onchange = () => {
-    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value as GraphicsQuality; slowSeconds = 0; autoReduced = false;
+    graphicsQuality = $<HTMLSelectElement>('graphics-quality').value as GraphicsQuality; frameBudget.reset(); autoReduced = false;
     try { localStorage.setItem('lepak-graphics', graphicsQuality);if(graphicsQuality==='high')sessionStorage.setItem('lepak-high-session','1'); } catch { /* Storage is optional. */ }
     applyQuality();
   };
@@ -2735,9 +2735,14 @@ async function init() {
     if(started&&!document.hidden){recentFrameTimes.push(frameSeconds*1000);if(recentFrameTimes.length>300)recentFrameTimes.shift();}
     const dt = Math.min(frameSeconds, .04); lastTime = time; elapsed += dt;
     const active = started;
-    if (started && !document.hidden && graphicsQuality !== 'lowest' && frameSeconds < .5) {
-      slowSeconds = frameSeconds > .033 ? slowSeconds + frameSeconds : Math.max(0, slowSeconds - frameSeconds);
-      if (slowSeconds > 2) { graphicsQuality = graphicsQuality==='high'?'low':'lowest'; autoReduced = true; slowSeconds = 0; applyQuality(); }
+    if (frameBudget.observe(frameSeconds, started && !paused && !document.hidden && !tableSocial.boardOpen)) {
+      if (graphicsQuality !== 'lowest') {
+        graphicsQuality = graphicsQuality === 'high' ? 'low' : 'lowest';
+        autoReduced = true; applyQuality();
+      } else if (touch && renderer.getPixelRatio() > .5) {
+        renderer.setPixelRatio(Math.max(.5, Math.round((renderer.getPixelRatio() - .1) * 100) / 100));
+        autoReduced = true;
+      }
     }
     park.update(pos,camera,lrtNow(),started&&!paused&&!cityMap.open&&!tableSocial.opened);
     lrt.update(lrtNow(),pos,lrtId);

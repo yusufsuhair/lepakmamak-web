@@ -55,7 +55,8 @@ test('graphics quality switches shadows and persists across reload',async({page}
 test('touch ignores high saved by an earlier browser session',async({browser})=>{
  const context=await browser.newContext({hasTouch:true,viewport:{width:390,height:844}}),page=await context.newPage();
  await page.addInitScript(()=>localStorage.setItem('lepak-graphics','high'));await page.goto('/');
- await expect(page.locator('#graphics-quality')).toHaveValue('low');
+ await expect(page.locator('#graphics-quality')).toHaveValue('lowest');
+ expect(await page.evaluate(()=>(window as any).__lepak)).toMatchObject({shadows:false,pixelRatio:.75});
  await page.locator('#graphics-quality').evaluate((select:HTMLSelectElement)=>{select.value='high';select.dispatchEvent(new Event('change'));});
  await page.reload();await expect(page.locator('#graphics-quality')).toHaveValue('high');await context.close();
 });
@@ -65,4 +66,42 @@ for(const [old,current] of [['smooth','low'],['detailed','high'],['auto','high']
  await page.goto('/');
  await expect(page.locator('#graphics-quality')).toHaveValue(current);
  expect(await page.evaluate(()=>localStorage.getItem('lepak-graphics'))).toBe(current);
+});
+
+test('slow phone frames reduce only the render buffer and pause stops adaptation', async ({browser}) => {
+ const context = await browser.newContext({hasTouch:true, viewport:{width:390,height:844}});
+ const page = await context.newPage();
+ page.setDefaultTimeout(15000);
+ await page.addInitScript(() => localStorage.setItem('lepakmamak-onboarded','1'));
+ await page.goto('/');
+ await page.getByRole('button',{name:"Jom, let's go"}).click();
+ await page.locator('#auth-guest').click();
+ await page.locator('#guest-name').fill('Tester');
+ await page.getByRole('button',{name:'Enter as guest',exact:true}).click();
+ await page.getByRole('button',{name:'More controls'}).click();
+ await page.locator('#menu').click();
+ await page.evaluate(() => {
+   const raf = window.requestAnimationFrame.bind(window);
+   window.requestAnimationFrame = callback => {
+     const start = performance.now();
+     return raf(function delay(time) {
+       if (time - start < 32) raf(delay);
+       else callback(time);
+     });
+   };
+ });
+ await page.waitForTimeout(3500);
+ expect(await page.evaluate(()=>(window as any).__lepak.pixelRatio)).toBe(.75);
+ await page.locator('#resume').click();
+ await expect.poll(() => page.evaluate(()=>(window as any).__lepak.pixelRatio), {timeout:20000}).toBe(.5);
+ expect(await page.evaluate(() => {
+   const canvas = document.querySelector<HTMLCanvasElement>('#world')!;
+   return {quality:(window as any).__lepak.graphicsQuality, reduced:(window as any).__lepak.autoReduced,
+     width:canvas.width, cssWidth:canvas.getBoundingClientRect().width, viewport:innerWidth};
+ })).toEqual({quality:'lowest',reduced:true,width:195,cssWidth:390,viewport:390});
+ if (!(await page.locator('#menu').isVisible())) await page.getByRole('button',{name:'More controls'}).click();
+ await page.locator('#menu').click();
+ await page.locator('#graphics-quality').selectOption('low');
+ expect(await page.evaluate(()=>(window as any).__lepak.pixelRatio)).toBe(.75);
+ await context.close();
 });
