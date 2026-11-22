@@ -58,8 +58,8 @@ export function createSkyDining(scene:THREE.Scene){
  const blue=lit('#51aaff',1.5),pink=lit('#e73dff',1.3),gold=lit('#ffe0a0',1.1);
  const glass=new THREE.MeshStandardMaterial({color:'#9dd5ed',transparent:true,opacity:.18,roughness:.15,depthWrite:false,side:THREE.DoubleSide});
  function label(text:string,x:number,y:number,z:number,w:number){
-  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=128;const c=canvas.getContext('2d')!;
-  c.fillStyle='#11182e';c.fillRect(0,0,1024,128);c.fillStyle='#f9e5bd';c.font='600 62px sans-serif';c.textAlign='center';c.fillText(text,512,86,990);
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=64;const c=canvas.getContext('2d')!;
+  c.fillStyle='#11182e';c.fillRect(0,0,512,64);c.fillStyle='#f9e5bd';c.font='600 31px sans-serif';c.textAlign='center';c.fillText(text,256,43,495);
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,w/8),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));mesh.position.set(x,y,z);root.add(mesh);return mesh;
  }
@@ -105,20 +105,23 @@ export function createSkyDining(scene:THREE.Scene){
   box(venue,x,1.06,z,.18,.24,.18,pink);
   for(const chair of chairs.filter(c=>c.tableId===table.id)){const seat=new THREE.Group();seat.position.set(chair.x-SKY.x,0,chair.z-SKY.z);seat.rotation.y=chair.yaw;venue.add(seat);box(seat,0,.5,0,.85,.18,.85,'#493657');box(seat,0,.96,-.38,.9,.85,.15,'#574268');for(const dx of [-.32,.32])for(const dz of [-.32,.32])box(seat,dx,.25,dz,.06,.5,.06,'#b8a180');}
  }
- const dj=createPerson('#24304c');dj.group.position.set(-14,0,6.5);root.add(dj.group);cullCrowd(dj.group,120);box(venue,-14,1,5.5,3.3,.28,1.2,'#171827');obstacle(-14,5.5,3.3,1.2);
+ // Rooftop guests sit 44 m above the street behind a 1.6 m parapet, so they are invisible from the ground.
+ const rooftopCrowd=new THREE.Group();rooftopCrowd.name='sky-dining-crowd';rooftopCrowd.visible=false;root.add(rooftopCrowd);
+ const dj=createPerson('#24304c');dj.group.position.set(-14,0,6.5);rooftopCrowd.add(dj.group);cullCrowd(dj.group,120);box(venue,-14,1,5.5,3.3,.28,1.2,'#171827');obstacle(-14,5.5,3.3,1.2);
  for(const x of [-14.8,-13.2]){const disc=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.04,24),material('#58a9c8'));disc.position.set(x,1.17,5.5);venue.add(disc);}
  for(const x of [-16.3,-11.7])box(venue,x,.8,5.5,.7,1.6,.65,'#171b28');
- const swimmers=Array.from({length:4},(_,i)=>{const p=createPerson(['#496d91','#784c97','#397b80','#864f73'][i]);root.add(p.group);cullCrowd(p.group,120);return p;});
- for(const [x,z,color] of [[-6,5,'#86633c'],[5,6,'#527c85'],[-6,12,'#714971'],[5,12,'#386879']] as const){const p=createPerson(color);p.group.position.set(x,0,z);root.add(p.group);cullCrowd(p.group,120);}
+ const swimmers=Array.from({length:4},(_,i)=>{const p=createPerson(['#496d91','#784c97','#397b80','#864f73'][i]);rooftopCrowd.add(p.group);cullCrowd(p.group,120);return p;});
+ for(const [x,z,color] of [[-6,5,'#86633c'],[5,6,'#527c85'],[-6,12,'#714971'],[5,12,'#386879']] as const){const p=createPerson(color);p.group.position.set(x,0,z);rooftopCrowd.add(p.group);cullCrowd(p.group,120);}
  // A lift vestibule sits on the existing hotel, with a visible street-level entrance.
  box(venue,14,1.6,12,3.8,3.2,3,'#242d47');obstacle(14,13,3.8,1);
  label('LIFT ↓',14,2.6,10.45,3).rotation.y=Math.PI;for(const side of [1,-1])label('POOL · STEPS ↓',0,.65,-5.3+side*.01,4).rotation.y=side>0?0:Math.PI;
  box(venue,SKY.entry.x-SKY.x,1.6-SKY.y,SKY.entry.z-SKY.z,3.4,3.2,1.5,'#28314a');
  const streetLabel=label('WET DECK ↑',SKY.entry.x-SKY.x,3.7-SKY.y,SKY.entry.z-SKY.z+.8,5);streetLabel.name='Street lift sign';
- root.traverse(o=>{o.userData.keepUnbatched=true;});
+ root.traverse(o=>{o.userData.keepUnbatched=true;if(o instanceof THREE.Mesh)o.castShadow=false;});
  batchShopFallback(venue);
+ venue.traverse(o=>{if(o instanceof THREE.Mesh)o.castShadow=false;});
  void nearLoader(venue,170,320).loadAsync(cdnUrl('assets/models/environment/LM_ENV_SkyDining.glb')).then(gltf=>{
-  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;o.castShadow=false;}});
+  gltf.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;o.castShadow=false;o.receiveShadow=true;const m=o.material as THREE.MeshStandardMaterial;if(m.transparent){m.depthWrite=false;}});
   for(const child of [...venue.children])if(!(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshBasicMaterial))child.removeFromParent();
   dressVenue(gltf.scene);venue.add(gltf.scene);
   // The Blender basin and lounge roof replace the procedural floor and roof slab.
@@ -126,6 +129,8 @@ export function createSkyDining(scene:THREE.Scene){
  }).catch(error=>console.warn('[SKY DINING] keeping procedural venue',error));
  return {root,solids,update(time:number,reduced:boolean,visiting=false){
   for(const o of overhead)o.visible=!visiting;
+  rooftopCrowd.visible=visiting;
+  if(!visiting)return;
   pool.uTime.value=reduced?0:time;if(scene.background instanceof THREE.Color)pool.uSky.value.copy(scene.background);
   swimmers.forEach((p,i)=>{const t=reduced?i:time*.13+i*Math.PI/2;p.group.position.set(Math.sin(t)*(5-i*.4),-1.15,-10+Math.cos(t)*2);p.group.rotation.y=t+Math.PI/2;swimPose(p,reduced?0:time+i);});
   dj.leftArm.rotation.x=-1.2;dj.rightArm.rotation.x=-1.2+(reduced?0:Math.sin(time*2)*.15);

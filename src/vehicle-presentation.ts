@@ -14,9 +14,24 @@ let sky: THREE.Texture | null = null;
 // freeze after entering, then a hitch every 20 s of moving.
 onSkyProbe(texture => { sky = texture; for (const material of materialSets) material.envMap = texture; });
 export function currentVehicleEnvironment(): THREE.Texture | null { return sky; }
+let vehicleHighQuality = true;
 export function trackVehicleMaterial(material: THREE.MeshStandardMaterial) {
   materialSets.add(material);
   material.envMap = currentVehicleEnvironment();
+  if (material instanceof THREE.MeshPhysicalMaterial && material.clearcoat > 0) {
+    material.userData.authoredClearcoat = material.clearcoat;
+    if (!vehicleHighQuality) material.clearcoat = 0;
+  }
+}
+export function setVehicleQuality(high: boolean) {
+  if (vehicleHighQuality === high) return;
+  vehicleHighQuality = high;
+  for (const material of materialSets) {
+    if (material instanceof THREE.MeshPhysicalMaterial && material.userData.authoredClearcoat) {
+      material.clearcoat = high ? material.userData.authoredClearcoat : 0;
+      material.needsUpdate = true;
+    }
+  }
 }
 interface Level {
   root: THREE.Group;
@@ -90,7 +105,7 @@ function visibleVehicles(scene: THREE.Scene, visit: (group: THREE.Group) => void
 
 /** Motion is visual only; authoritative physics, collision and owner cars are untouched. */
 export function updateVehiclePresentation(scene: THREE.Scene, camera: THREE.Camera, dt: number, night: boolean,
-  controlled?: {group: THREE.Group; controls: VehicleControls}, time = performance.now() / 1000, groundOffset = 0) {
+  controlled?: {group: THREE.Group; controls: VehicleControls}, time = performance.now() / 1000, groundOffset = 0, realtimeHeadlights = true) {
   const step = Math.max(.001, Math.min(dt, .08));
   camera.getWorldPosition(cameraPosition);
   let closest: THREE.Object3D | undefined, closestDistance=30*30;
@@ -141,7 +156,8 @@ export function updateVehiclePresentation(scene: THREE.Scene, camera: THREE.Came
   // Two shadow-free beams are reused by the closest car; distant LED lenses remain
   // visible without multiplying expensive realtime lights across the entire fleet.
   let beams=headlightPools.get(scene);
-  if (!beams && closest) {
+  const headlightsActive = realtimeHeadlights && night && !!closest;
+  if (!beams && headlightsActive) {
     beams=[-1,1].map(() => {
       const light=new THREE.SpotLight('#e1efff',0,25,.42,.65,1.6);
       light.name='Vehicle headlight pool';scene.add(light,light.target);return light;
@@ -149,8 +165,9 @@ export function updateVehiclePresentation(scene: THREE.Scene, camera: THREE.Came
     headlightPools.set(scene,beams);
   }
   beams?.forEach((beam,i) => {
-    beam.intensity=night && closest ? 55 : 0;
-    if (!closest) return;
+    beam.visible = headlightsActive;
+    beam.intensity = headlightsActive ? 55 : 0;
+    if (!headlightsActive || !closest) return;
     const footprint=closest.userData.vehicleFootprint;
     const halfLength=(footprint?.length ?? 4)/2-.15;
     beam.position.set((i?1:-1)*(footprint?.width ?? 1.8)*.28,.75,halfLength).applyMatrix4(closest.matrixWorld);

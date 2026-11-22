@@ -47,8 +47,8 @@ function coatTexture(breed:PetBreed){
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;coatTextures.set(breed.coatId,texture);return texture;
 }
 
+const catMaterialCache=new Map<string,THREE.Material>();
 function materialShade(mesh:THREE.Mesh,breed:PetBreed,source:THREE.Material){
-  const next=source.clone() as THREE.MeshStandardMaterial;
   const name=mesh.name.toLowerCase();
   let shade='';
   if(name.includes('eye-glint'))shade='#fffdf0';
@@ -61,8 +61,14 @@ function materialShade(mesh:THREE.Mesh,breed:PetBreed,source:THREE.Material){
   else if(breed.pattern==='bicolor'&&name.includes('chest'))shade=breed.belly;
   else if(breed.pattern==='point'&&(name.includes('ear-shell')||name.includes('tail-segment')||name.includes('leg-shin')||name.includes('head-shell')))shade=breed.stripe;
   else shade=breed.fur;
+  const textured=shade===breed.fur&&!name.includes('eye')&&!name.includes('ear');
+  const key=`${source.uuid}:${textured?breed.coatId:shade}:${textured?1:0}`;
+  const cached=catMaterialCache.get(key);
+  if(cached)return cached;
+  const next=source.clone() as THREE.MeshStandardMaterial;
   if(next.color&&shade)next.color.set(shade);
-  if(next.isMeshStandardMaterial&&shade===breed.fur&&!name.includes('eye')&&!name.includes('ear')){next.color.set('#ffffff');next.map=coatTexture(breed);next.roughness=.9;}
+  if(next.isMeshStandardMaterial&&textured){next.color.set('#ffffff');next.map=coatTexture(breed);next.roughness=.9;}
+  catMaterialCache.set(key,next);
   return next;
 }
 
@@ -74,10 +80,13 @@ function attachCatModel(animal:Animal,template:THREE.Group,breed:PetBreed){
     if(!(object instanceof THREE.Mesh))return;
     const source=Array.isArray(object.material)?object.material:[object.material];
     const copies=source.map(item=>{const copy=materialShade(object,breed,item);materials.add(copy);return copy;});
-    object.material=Array.isArray(object.material)?copies:copies[0];object.castShadow=true;object.receiveShadow=true;
+    object.material=Array.isArray(object.material)?copies:copies[0];
+    // Street cats and pet followers already receive soft contact shadows (contact-shadows.ts);
+    // casting 33 real shadow meshes per cat adds >130 shadow-pass draw calls for tiny actors.
+    object.castShadow=false;object.receiveShadow=false;
   });
   const body=visual.getObjectByName('pet-body'),head=visual.getObjectByName('pet-head'),tail=visual.getObjectByName('pet-tail-base');
-  if(!body||!head||!tail){visual.traverse(object=>{if(object instanceof THREE.Mesh)for(const item of Array.isArray(object.material)?object.material:[object.material])item.dispose();});return;}
+  if(!body||!head||!tail)return;
   const legs=['pet-leg-fl','pet-leg-fr','pet-leg-bl','pet-leg-br'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
   const ears=['pet-ear-l','pet-ear-r'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
   const eyes=['pet-eye-l','pet-eye-r'].map(name=>visual.getObjectByName(name)).filter((part):part is THREE.Object3D=>!!part);
@@ -92,7 +101,7 @@ function attachCatModel(animal:Animal,template:THREE.Group,breed:PetBreed){
   if(short){body.position.y-=.17;head.position.y-=.17;tail.position.y-=.17;}
   visual.traverse(object=>{if(object.name.includes('pet-ruff')||object.name.includes('pet-fluff'))object.visible=fluffy;if(object.name.includes('ear-tuft'))object.visible=large;});
   for(const part of [body,head,tail,...legs,...ears,...eyes]){part.userData.restPosition=part.position.clone();part.userData.restRotation=part.rotation.clone();part.userData.restScale=part.scale.clone();}
-  animal.body.visible=false;animal.group.add(visual);animal.anchor=body;animal.parts={visual,body,head,legs,tail,ears,eyes};animal.breed=breed.id;animal.group.userData.catModel='blender';animal.group.userData.catMaterials=materials;
+  animal.body.visible=false;animal.group.add(visual);animal.anchor=body;animal.parts={visual,body,head,legs,tail,ears,eyes};animal.breed=breed.id;animal.group.userData.catModel='blender';animal.group.userData.catMaterials=[];
 }
 
 /** Reset and pose either the Blender rig or the synchronous fallback. */
@@ -163,8 +172,10 @@ export function createStreetAnimals(scene:THREE.Scene,solids:Solid[]){
    const walking=action==='walk',angle=walking?cycle/18*Math.PI*2:0;
    pet.group.position.set(pet.x+Math.sin(angle)*pet.routeRadius,.12+(pet.group.userData.poseYOffset||0),pet.z+Math.cos(angle)*pet.routeRadius);
    pet.group.rotation.y=walking?Math.PI/2+angle:Math.sin(time*.8+i)*.3;
-   if(pet.cat)animateAnimal(pet,action,time,pet.phase);else{pet.body.rotation.z=action==='play'?Math.sin(time*3)*.8:0;pet.body.position.y=action==='play'?Math.abs(Math.sin(time*3))*.12:walking?Math.abs(Math.sin(time*7))*.025:0;pet.head.rotation.x=action==='play'?Math.sin(time*4)*.25:Math.sin(time*1.8+i)*.08;pet.tail.rotation.z=Math.sin(time*9)*.65;pet.legs.forEach((leg,j)=>leg.rotation.x=walking?Math.sin(time*7+(j===0||j===3?0:Math.PI))*.45:action==='play'?Math.sin(time*5+j)*.3:0);}
    const distance=Math.hypot(listener.x-pet.group.position.x,listener.z-pet.group.position.z);pet.group.visible=distance<68;
+   if(pet.group.visible){
+    if(pet.cat)animateAnimal(pet,action,time,pet.phase);else{pet.body.rotation.z=action==='play'?Math.sin(time*3)*.8:0;pet.body.position.y=action==='play'?Math.abs(Math.sin(time*3))*.12:walking?Math.abs(Math.sin(time*7))*.025:0;pet.head.rotation.x=action==='play'?Math.sin(time*4)*.25:Math.sin(time*1.8+i)*.08;pet.tail.rotation.z=Math.sin(time*9)*.65;pet.legs.forEach((leg,j)=>leg.rotation.x=walking?Math.sin(time*7+(j===0||j===3?0:Math.PI))*.45:action==='play'?Math.sin(time*5+j)*.3:0);}
+   }
    if(distance<14*range&&time>pet.nextSound&&time-lastSound>2.5){pet.nextSound=time+9+i;lastSound=time;const audibleDistance=distance/range;sound(pet.cat,Math.pow(1-audibleDistance/14,2),Math.max(-1,Math.min(1,(pet.group.position.x-listener.x)/(14*range))));}
   }
  }};

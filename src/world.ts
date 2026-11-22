@@ -35,10 +35,15 @@ const materials = new Map<string, THREE.MeshStandardMaterial>();
 const cube = new THREE.BoxGeometry(1, 1, 1);
 const cylinder = new THREE.CylinderGeometry(1, 1, 1, 12);
 const sphere = new THREE.IcosahedronGeometry(1, 1);
-export function material(color: string, roughness = 0.82) {
-  const key = `${color}:${roughness}`;
-  if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness }));
+export function material(color: string, roughness = 0.82, doubleSide = false) {
+  const key = `${color}:${roughness}:${doubleSide ? 2 : 0}`;
+  if (!materials.has(key)) materials.set(key, new THREE.MeshStandardMaterial({ color, roughness, side: doubleSide ? THREE.DoubleSide : THREE.FrontSide }));
   return materials.get(key)!;
+}
+/** Freeze a static object subtree so the render loop skips per-frame matrix composition and multiplication. */
+export function freezeStatic(root: THREE.Object3D) {
+  root.updateMatrixWorld(true);
+  root.traverse(object => { object.matrixAutoUpdate = false; });
 }
 export function box(parent: THREE.Object3D, x: number, y: number, z: number, w: number, h: number, d: number, color: string | THREE.Material) {
   const mesh = new THREE.Mesh(cube, typeof color === 'string' ? material(color) : color);
@@ -73,11 +78,11 @@ const driveThroughAsset = () => driveThroughModel ??= new GLTFLoader().setMeshop
 function sign(parent: THREE.Object3D, text: string, x: number, y: number, z: number, w: number, h: number, bg = '#183f36', fg = '#fff6d5', rotation = 0) {
   const key = text + bg + fg;
   if (!textMaterials.has(key)) {
-    const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 256;
-    const ctx = canvas.getContext('2d')!; ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 256);
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+    const ctx = canvas.getContext('2d')!; ctx.fillStyle = bg; ctx.fillRect(0, 0, 512, 128);
     ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `700 ${text.length > 24 ? 49 : text.length > 17 ? 60 : 85}px "Oxanium", sans-serif`;
-    ctx.fillText(text, 512, 136, 960);
+    ctx.font = `700 ${text.length > 24 ? 25 : text.length > 17 ? 30 : 42}px "Oxanium", sans-serif`;
+    ctx.fillText(text, 256, 68, 480);
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     textMaterials.set(key, new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
   }
@@ -220,29 +225,31 @@ export function createIceCreamBike() {
   box(rider, 0, 1.76, .225, .22, .12, .06, '#202c2b');
   group.userData.wheels = wheels;
   const yellow = '#ffd735', blue = '#2263bb';
+  const body = new THREE.Group(); body.name = 'ice-cream-body'; group.add(body);
   // Rear freezer, insulated lid and stainless mounting rack.
-  box(group, 0, 1.13, -.98, 1.5, .12, 1.05, '#bdcbd1');
-  box(group, 0, 1.62, -.98, 1.4, .9, 1, yellow);
-  box(group, 0, 2.1, -.98, 1.47, .12, 1.07, '#fff6df');
-  box(group, 0, 1.97, -1.495, .35, .08, .04, blue);
-  sign(group, 'MATKOOL', 0, 1.74, -1.49, 1.27, .34, blue, '#ffffff', Math.PI);
-  sign(group, 'AIS KRIM', 0, 1.39, -1.49, 1.27, .22, yellow, blue, Math.PI);
+  box(body, 0, 1.13, -.98, 1.5, .12, 1.05, '#bdcbd1');
+  box(body, 0, 1.62, -.98, 1.4, .9, 1, yellow);
+  box(body, 0, 2.1, -.98, 1.47, .12, 1.07, '#fff6df');
+  box(body, 0, 1.97, -1.495, .35, .08, .04, blue);
+  sign(body, 'MATKOOL', 0, 1.74, -1.49, 1.27, .34, blue, '#ffffff', Math.PI);
+  sign(body, 'AIS KRIM', 0, 1.39, -1.49, 1.27, .22, yellow, blue, Math.PI);
   for (const side of [-1, 1]) {
-    sign(group, 'MATKOOL', side * .706, 1.8, -.98, .93, .28, blue, '#ffffff', side * Math.PI / 2);
+    sign(body, 'MATKOOL', side * .706, 1.8, -.98, .93, .28, blue, '#ffffff', side * Math.PI / 2);
     // Colourful ice lolly illustrations on both freezer panels.
     for (let i = 0; i < 3; i++) {
-      box(group, side * .715, 1.48, -1.26 + i * .28, .025, .24, .14, ['#f26b85', '#81d4d2', '#aa673c'][i]);
-      box(group, side * .715, 1.31, -1.26 + i * .28, .025, .11, .035, '#e7bf83');
+      box(body, side * .715, 1.48, -1.26 + i * .28, .025, .24, .14, ['#f26b85', '#81d4d2', '#aa673c'][i]);
+      box(body, side * .715, 1.31, -1.26 + i * .28, .025, .11, .035, '#e7bf83');
     }
   }
-  tube(group, .62, 2.03, -.85, .035, 3.1, '#c5d5dc');
+  tube(body, .62, 2.03, -.85, .035, 3.1, '#c5d5dc');
   for (let i = 0; i < 8; i++) {
-    const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.48, .48, 1, 1, true, i * Math.PI / 4, Math.PI / 4), material(i % 2 ? blue : yellow));
-    canopy.material.side = THREE.DoubleSide;
-    canopy.position.set(.2, 3.55, -.65); canopy.castShadow = true; group.add(canopy);
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.48, .48, 1, 1, true, i * Math.PI / 4, Math.PI / 4), material(i % 2 ? blue : yellow, .82, true));
+    canopy.position.set(.2, 3.55, -.65); canopy.castShadow = true; body.add(canopy);
   }
-  ball(group, .2, 3.82, -.65, .085, yellow);
-  sign(group, 'RAHIM · AIS KRIM', 0, 2.23, -1.5, 1.45, .22, blue, '#ffffff', Math.PI);
+  ball(body, .2, 3.82, -.65, .085, yellow);
+  sign(body, 'RAHIM · AIS KRIM', 0, 2.23, -1.5, 1.45, .22, blue, '#ffffff', Math.PI);
+  batchShopFallback(body);
+  setObjectShadows(rider, false);
   // The canopy is decorative and above the player's head; this is the walkable body envelope.
   setVehicleFootprint(group, 1.9, 3.5);
   return group;
@@ -1475,7 +1482,7 @@ export function createWorld(scene: THREE.Scene): World {
   for (let i = 0; i < 18; i++) {
     const geo = new THREE.BufferGeometry(); const y = 6.6 - Math.sin(i / 17 * Math.PI) * 1.1;
     geo.setAttribute('position', new THREE.Float32BufferAttribute([-.35, 0, 0, .35, 0, 0, 0, -.6, 0], 3)); geo.computeVertexNormals();
-    const mat = material(['#e4b64d', '#b95240', '#578c76'][i % 3]); mat.side = THREE.DoubleSide;
+    const mat = material(['#e4b64d', '#b95240', '#578c76'][i % 3], .82, true);
     const mesh = new THREE.Mesh(geo, mat); mesh.position.set(-46 + i * 1.9, y, 49); furniture.add(mesh);
   }
   // Boundary hedges: world limits are enforced in physics.
@@ -1502,6 +1509,7 @@ export function createWorld(scene: THREE.Scene): World {
     // Remove the complete procedural group after the atomic load so no canvas/flat duplicate remains.
     for (const child of [...furniture.children]) child.removeFromParent();
     furniture.add(gltf.scene);
+    freezeStatic(furniture);
   }).catch(error => console.warn('[FURNITURE] keeping procedural street furniture', error));
 
   // Batch the static city by material to avoid thousands of draw calls.
@@ -1524,9 +1532,10 @@ export function createWorld(scene: THREE.Scene): World {
   for (const mesh of sources) mesh.removeFromParent();
   for (const [mat, geometries] of batches) {
     const merged = mergeGeometries(geometries); if (!merged) continue;
-    const mesh = new THREE.Mesh(merged, mat); mesh.castShadow = !(mat instanceof THREE.MeshBasicMaterial); mesh.receiveShadow = true; group.add(mesh);
+    const mesh = new THREE.Mesh(merged, mat); mesh.castShadow = !(mat instanceof THREE.MeshBasicMaterial); mesh.receiveShadow = true; mesh.matrixAutoUpdate = false; group.add(mesh);
     for (const g of geometries) g.dispose();
   }
+  freezeStatic(group);
 
   const traffic: TrafficCar[] = [];
   for (const seed of fleetSeeds) {
@@ -1644,6 +1653,7 @@ export function createStreetLights(scene: THREE.Scene, solids?: Solid[]) {
   lamps.forEach(lamp => solids?.push({x: lamp.x, z: lamp.z, hx: .22, hz: .22}));
   group.add(poles, heads, lit, bulbs, glows);
   scene.add(group);
+  freezeStatic(group);
 
   // Night is only the default. A lamp somebody switched keeps its own answer, and that is
   // what `overrides` holds — sparse, so a room that nobody has touched costs nothing.

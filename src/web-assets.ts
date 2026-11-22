@@ -144,6 +144,7 @@ export async function loadInstancedWebAsset(url: string, placements: WebAssetPla
     object.geometry.dispose();
   });
   if (!group.children.length) throw new Error(`Empty web asset: ${name}`);
+  group.matrixAutoUpdate = false;
   group.userData.instances = placements.length;
   return group;
 }
@@ -170,5 +171,7 @@ export async function loadWebAsset(url: string, scene: THREE.Scene, position: TH
     object.frustumCulled = true;
   });
   scene.add(asset);
+  asset.updateMatrixWorld(true);
+  asset.traverse(object => { object.matrixAutoUpdate = false; });
   return asset;
 }

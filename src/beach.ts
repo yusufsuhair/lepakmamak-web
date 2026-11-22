@@ -81,7 +81,7 @@ export function createBeach(scene:THREE.Scene,world:World){
   }
   const indices:number[]=[];for(let i=0;i<16;i++){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,b,c,b,d,c);}
   const hammockGeometry=new THREE.BufferGeometry();hammockGeometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));hammockGeometry.setIndex(indices);hammockGeometry.computeVertexNormals();
-  const hammockMaterial=material('#d77991');hammockMaterial.side=THREE.DoubleSide;const hammock=new THREE.Mesh(hammockGeometry,hammockMaterial);hammock.castShadow=true;props.add(hammock);
+  const hammockMaterial=material('#d77991',.82,true);const hammock=new THREE.Mesh(hammockGeometry,hammockMaterial);hammock.castShadow=true;props.add(hammock);
   const ropeGeometry=new THREE.BufferGeometry();ropeGeometry.setAttribute('position',new THREE.Float32BufferAttribute([left,2.4,spot.z,left,1.45,spot.z,right,2.4,spot.z,right,1.45,spot.z],3));props.add(new THREE.LineSegments(ropeGeometry,new THREE.LineBasicMaterial({color:'#d5bd8e'})));
  }
  for(const t of tables.filter(t=>t.id.startsWith('pantai-'))){

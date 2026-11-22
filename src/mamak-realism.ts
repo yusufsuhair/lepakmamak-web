@@ -36,6 +36,7 @@ export async function loadMamakRealism(scene:THREE.Scene,renderer:THREE.WebGLRen
       const m=source as THREE.MeshStandardMaterial;if(m.name.startsWith('MR |')){m.envMap=probe.texture;m.envMapIntensity=.65;}
     }});
     asset.name='LM_ENV_MamakMaju';asset.position.set(-29,0,30);scene.add(asset);
+    asset.updateMatrixWorld(true);asset.traverse(o=>{o.matrixAutoUpdate=false;});
     Object.assign(mamakRealismStatus,{state:'ready',triangles,draws,textures:textures.size});return asset;
   }catch(error){
     if(asset)disposeWebAsset(asset);

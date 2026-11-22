@@ -1,10 +1,33 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Authored from Yusuf's Frozen Berry reference: long low bonnet, rounded shoulders,
 // four-point lamps, black air curtains, glass roof and a full-width rear light bar.
 export const frozenBerry='#c6a1b2';
+function mergeStatic(root:THREE.Group){
+ root.updateMatrixWorld(true);
+ const inverse=root.matrixWorld.clone().invert();
+ const batches=new Map<THREE.Material,THREE.BufferGeometry[]>();
+ const sources:THREE.Mesh[]=[];
+ root.traverse(object=>{
+  if(!(object instanceof THREE.Mesh)||Array.isArray(object.material))return;
+  const geometry=object.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,object.matrixWorld));
+  if(!geometry.getAttribute('uv'))geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(geometry.getAttribute('position').count*2),2));
+  const nonIndexed=geometry.index?geometry.toNonIndexed():geometry;
+  if(geometry!==nonIndexed)geometry.dispose();
+  if(!batches.has(object.material))batches.set(object.material,[]);
+  batches.get(object.material)!.push(nonIndexed);sources.push(object);
+ });
+ for(const source of sources){source.geometry.dispose();source.removeFromParent();}
+ for(const [mat,geometries] of batches){
+  const merged=mergeGeometries(geometries);
+  if(merged){const mesh=new THREE.Mesh(merged,mat);mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);}
+  for(const g of geometries)g.dispose();
+ }
+}
 export function createTaycan(){
- const group=new THREE.Group(),wheels:THREE.Group[]=[];
+ const group=new THREE.Group(),body=new THREE.Group(),wheels:THREE.Group[]=[];
+ group.add(body);
  const plateNumber='VRG9405';
  group.userData.model='taycan';group.userData.displayName='Porsche Taycan · Frozen Berry';group.userData.ownerLabel='Yusuf Suhair';group.userData.plate=plateNumber;
  const paint=new THREE.MeshPhysicalMaterial({color:frozenBerry,metalness:.48,roughness:.28,clearcoat:1,clearcoatRoughness:.17});
@@ -13,7 +36,7 @@ export function createTaycan(){
  const rim=new THREE.MeshStandardMaterial({color:'#797b80',metalness:.8,roughness:.26});
  const white=new THREE.MeshStandardMaterial({color:'#edffff',emissive:'#bddfff',emissiveIntensity:.8});
  const red=new THREE.MeshStandardMaterial({color:'#e23553',emissive:'#da1636',emissiveIntensity:.6});
- function block(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,parent:THREE.Object3D=group){
+ function block(x:number,y:number,z:number,w:number,h:number,d:number,mat:THREE.Material,parent:THREE.Object3D=body){
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
  }
  // Rounded cross-sections joined along the length, rather than a box-shaped sedan.
@@ -32,7 +55,7 @@ export function createTaycan(){
    for(let i=0;i<segments;i++){const a=r*segments+i,b=r*segments+(i+1)%segments;indices.push(center,...(r===0?[a,b]:[b,a]));}
   }
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
-  const mesh=new THREE.Mesh(geometry,mat);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh;
+  const mesh=new THREE.Mesh(geometry,mat);mesh.castShadow=true;mesh.receiveShadow=true;body.add(mesh);return mesh;
  }
  shell([[-2.2,.76,.42,.87],[-2.05,.93,.36,.98],[-1.5,1.02,.36,1.08],[-.7,.97,.35,1.06],[.5,.97,.35,1.03],[1.4,1.02,.36,1.03],[1.95,.93,.4,.84],[2.2,.76,.45,.76]],paint);
  shell([[-1.6,.64,.98,1.03],[-1.03,.77,.99,1.42],[-.65,.75,1.01,1.56],[.05,.71,1.01,1.57],[.45,.69,1.01,1.48],[.95,.71,.97,1.04]],glass);
@@ -53,22 +76,26 @@ export function createTaycan(){
     const a=i*Math.PI/5;const spoke=block(side*.158,Math.sin(a)*.17,Math.cos(a)*.17,.025,.022,.28,rim,axle);spoke.rotation.x=-a;
    }
    block(side*.17,0,0,.025,.095,.095,rim,axle);
+   mergeStatic(axle);
   }
  }
  block(0,.43,2.1,1.6,.06,.16,black);
  block(0,.57,2.15,1.05,.16,.08,black);
  block(0,.82,-2.16,1.5,.035,.035,red);
  block(0,.43,-2.13,1.55,.16,.1,black);
- const badge=new THREE.Mesh(new THREE.CircleGeometry(.045,5),new THREE.MeshStandardMaterial({color:'#bfaa5a',metalness:.55,roughness:.35}));badge.rotation.x=-Math.PI/2;badge.position.set(0,.873,1.8);group.add(badge);
+ const badge=new THREE.Mesh(new THREE.CircleGeometry(.045,5),new THREE.MeshStandardMaterial({color:'#bfaa5a',metalness:.55,roughness:.35}));badge.rotation.x=-Math.PI/2;badge.position.set(0,.873,1.8);body.add(badge);
+ mergeStatic(body);
+ const plateCanvas=document.createElement('canvas');plateCanvas.width=384;plateCanvas.height=96;const plateCtx=plateCanvas.getContext('2d')!;
+ plateCtx.fillStyle='#090b0e';plateCtx.fillRect(0,0,384,96);plateCtx.fillStyle='#ffffff';plateCtx.font='700 46px Arial';plateCtx.textAlign='center';plateCtx.textBaseline='middle';plateCtx.fillText(plateNumber,192,48);
+ const plateTexture=new THREE.CanvasTexture(plateCanvas);plateTexture.colorSpace=THREE.SRGBColorSpace;
+ const plateMaterial=new THREE.MeshBasicMaterial({map:plateTexture});
+ const plateGeo=new THREE.PlaneGeometry(.82,.205);
  function plate(text:string,z:number,y:number,flip=false){
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const ctx=canvas.getContext('2d')!;
-  ctx.fillStyle='#090b0e';ctx.fillRect(0,0,768,192);ctx.fillStyle='#ffffff';ctx.font='700 92px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,96);
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.82,.205),new THREE.MeshBasicMaterial({map:texture}));mesh.userData.text=text;mesh.userData.plateBackground='#090b0e';mesh.userData.plateForeground='#ffffff';mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
+  const mesh=new THREE.Mesh(plateGeo,plateMaterial);mesh.userData.text=text;mesh.userData.plateBackground='#090b0e';mesh.userData.plateForeground='#ffffff';mesh.position.set(0,y,z);mesh.rotation.y=flip?Math.PI:0;group.add(mesh);
  }
  plate(plateNumber,2.22,.67);plate(plateNumber,-2.21,.67,true);
- const ownerCanvas=document.createElement('canvas');ownerCanvas.width=1024;ownerCanvas.height=192;const ownerCtx=ownerCanvas.getContext('2d')!;
- ownerCtx.fillStyle='#202730';ownerCtx.fillRect(0,0,ownerCanvas.width,ownerCanvas.height);ownerCtx.fillStyle='#ffffff';ownerCtx.textAlign='center';ownerCtx.textBaseline='middle';ownerCtx.font='600 112px Arial';ownerCtx.fillText('Yusuf Suhair',ownerCanvas.width/2,ownerCanvas.height/2);
+ const ownerCanvas=document.createElement('canvas');ownerCanvas.width=512;ownerCanvas.height=96;const ownerCtx=ownerCanvas.getContext('2d')!;
+ ownerCtx.fillStyle='#202730';ownerCtx.fillRect(0,0,ownerCanvas.width,ownerCanvas.height);ownerCtx.fillStyle='#ffffff';ownerCtx.textAlign='center';ownerCtx.textBaseline='middle';ownerCtx.font='600 56px Arial';ownerCtx.fillText('Yusuf Suhair',ownerCanvas.width/2,ownerCanvas.height/2);
  const ownerTag=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(ownerCanvas),depthTest:true,depthWrite:false,toneMapped:false}));
  ownerTag.name='owner-label';ownerTag.userData.text='Yusuf Suhair';ownerTag.position.set(0,2.08,0);ownerTag.scale.set(1.95,.365,1);group.add(ownerTag);
  return{group,wheels};

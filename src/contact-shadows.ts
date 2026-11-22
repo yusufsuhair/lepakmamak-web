@@ -148,6 +148,7 @@ export function createContactShadows(scene: THREE.Scene, shoplotLots: readonly S
     // One instanced mesh spans the whole map; a single frustum box around it would keep it in
     // view (or fully culled) far too eagerly either way, so per-instance range is handled below.
     mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
   }
   staticMesh.name = 'contact-shadows-static'; dynamicMesh.name = 'contact-shadows-dynamic';
 

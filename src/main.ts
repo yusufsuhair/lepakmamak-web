@@ -17,7 +17,7 @@ import {setupChatSound} from './chat-sound';
 import {setupUiSounds} from './ui-sound';
 import {audioVolume, setAudioVolume} from './audio-preferences';
 import {setupVehicleRadio} from './vehicle-radio';
-import {updateVehiclePresentation} from './vehicle-presentation';
+import {setVehicleQuality, updateVehiclePresentation} from './vehicle-presentation';
 import {setupLocationArrival} from './location-arrival';
 import {setupInventory} from './inventory';
 import {SALOMA,salomaGround} from './bridge';
@@ -75,7 +75,7 @@ import * as THREE from 'three';
 import {createLrt,setLrtNight} from './lrt';
 import {stations as lrtStations,trainState,riderPoint,seatOffset,clampCoach,railHeight,arrivalIn} from '../shared/lrt.mjs';
 import { nearestLamp } from './lamps';
-import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setCrowdRadius, setObjectShadows, type CarStyle, type KlccLift, updateStreaming} from './world';
+import {createWorld, createStreetLights, createPerson, createBike, createDriveableCar, createIceCreamBike, applyAccessories, applyAppearance, carStyles, vehicleSolid, setCrowdRadius, setObjectShadows, cullBeyond, type CarStyle, type KlccLift, updateStreaming} from './world';
 import { configureMamakLighting, disposeWebAsset, gltfLoader, type MamakLighting, type WebAssetState } from './web-assets';
 import { installMamakStreets } from './mamak-streets';
 import { loadMamakShops } from './mamak-shops';
@@ -538,7 +538,7 @@ async function init() {
   const rembayungBuskers=createBuskers(scene,world.solids,rembayungBuskingSpot);
   const iceCreamBike = createIceCreamBike(); iceCreamBike.position.set(-11, .09, 44); iceCreamBike.rotation.y = Math.PI; scene.add(iceCreamBike);
   const iceCreamSolid = {...vehicleSolid(iceCreamBike), id: 'matkool-bike'}; world.solids.push(iceCreamSolid);
-  const rembayungIceCream=createIceCreamBike();rembayungIceCream.position.set(-108,.09,138);rembayungIceCream.rotation.y=Math.PI/2;scene.add(rembayungIceCream);
+  const rembayungIceCream=createIceCreamBike();rembayungIceCream.position.set(-108,.09,138);rembayungIceCream.rotation.y=Math.PI/2;scene.add(rembayungIceCream);cullBeyond(rembayungIceCream,100,{x:-108,z:138});
   world.solids.push({...vehicleSolid(rembayungIceCream), id: 'matkool-bike'});
   const streetAnimals = createStreetAnimals(scene, world.solids);
   const player = createPerson(); scene.add(player.group);
@@ -2162,6 +2162,8 @@ async function init() {
     const pixelRatio = graphicsPixelRatio(graphicsQuality, touch, devicePixelRatio);
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     setShadows(!reduced);setCrowdRadius(graphicsQuality==='high'?1:graphicsQuality==='low'?.5:0);
+    setVehicleQuality(!reduced);
+    if (graphicsQuality === 'lowest') for (const pet of streetAnimals.animals) pet.group.visible = false;
     // Sky IBL only at High: three diffs material.envMap||scene.environment itself and recompiles just the
     // materials that need it, so this needs no traversal of its own alongside setShadows' above.
     setSkyIblQuality(scene,weatherUI,!reduced);
@@ -2728,8 +2730,42 @@ async function init() {
   }
 
   const desiredCamera = new THREE.Vector3(); const target = new THREE.Vector3();
+  const inputVec = new THREE.Vector2();
+  const anchorVec = new THREE.Vector3();
+  const villageSpeakerVec = new THREE.Vector3();
+  const frameSolids: Solid[] = [];
+  const cameraSolids: Solid[] = [];
+  const roomPlayerById = new Map<string, typeof roomPlayers[number]>();
+  const cachedActionButton = document.getElementById('interaction') as HTMLButtonElement | null;
+  const cachedInteractionText = document.getElementById('interaction-text');
+  const cachedVoicePanel = document.getElementById('voice-panel') as HTMLElement | null;
+  const dialogs = document.getElementsByTagName('dialog');
+  function anyDialogOpen() {
+    for (let i = 0; i < dialogs.length; i++) if (dialogs[i].open) return true;
+    return false;
+  }
+  // Traverse only visible branches and skip frozen static subtrees (matrixAutoUpdate === false)
+  // unless an ancestor moved, while still catching up hidden-then-shown dynamic branches.
+  function updateVisibleMatrices(object: THREE.Object3D, parentDirty: boolean) {
+    if (!object.visible) return;
+    let dirty = parentDirty;
+    if (object.matrixAutoUpdate) {
+      object.updateMatrix();
+      dirty = true;
+    }
+    if (dirty || object.matrixWorldNeedsUpdate) {
+      if (object.parent === null) object.matrixWorld.copy(object.matrix);
+      else object.matrixWorld.multiplyMatrices(object.parent.matrixWorld, object.matrix);
+      object.matrixWorldNeedsUpdate = false;
+      dirty = true;
+    }
+    const children = object.children;
+    for (let i = 0; i < children.length; i++) updateVisibleMatrices(children[i], dirty);
+  }
   let hudTimer = 0, lastTime = performance.now(), lastSceneRender = 0;
   function frame(time: number) {
+    roomPlayerById.clear();
+    for (let i = 0; i < roomPlayers.length; i++) roomPlayerById.set(roomPlayers[i].id, roomPlayers[i]);
     const frameSeconds = (time - lastTime) / 1000;
     if (!document.hidden) netStatus.frame(frameSeconds);
     if(started&&!document.hidden){recentFrameTimes.push(frameSeconds*1000);if(recentFrameTimes.length>300)recentFrameTimes.shift();}
@@ -2777,13 +2813,15 @@ async function init() {
         if(item.owner===networkPlayerId&&riding&&vehicle==='car'&&fleetId===item.id)continue;
         const trafficDistance=Math.hypot(item.x-pos.x,item.z-pos.z);
         setObjectShadows(item.group,trafficDistance<35);
-        item.group.visible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:graphicsQuality==='low'?90:60);
-        item.model.driver.visible=item.npc;
+        const trafficVisible=!item.owner&&trafficDistance<(graphicsQuality==='high'?150:graphicsQuality==='low'?90:60);
+        item.group.visible=trafficVisible;
+        // Drivers behind tinted glass are unreadable past ~22-35 m; hiding them saves 12 meshes per distant car.
+        item.model.driver.visible=item.npc&&trafficVisible&&trafficDistance<(graphicsQuality==='high'?35:22);
         const dx=item.x-item.group.position.x,dz=item.z-item.group.position.z,distance=Math.hypot(dx,dz),blend=1-Math.exp(-14*dt);
         if(distance>20)item.group.position.set(item.x,.12,item.z);
         else { item.group.position.x+=dx*blend; item.group.position.y=.12; item.group.position.z+=dz*blend; }
         item.group.rotation.y=item.yaw;
-        for(const wheel of item.model.wheels)wheel.rotation.x+=Math.min(distance,1)*dt*14/.36;
+        if(trafficVisible)for(const wheel of item.model.wheels)wheel.rotation.x+=Math.min(distance,1)*dt*14/.36;
       }
       for(let i=angryDrivers.length-1;i>=0;i--){
         const actor=angryDrivers[i],npc=actor.person,left=actor.until-simTime;
@@ -2866,11 +2904,21 @@ async function init() {
       const turn = isDancing()||explore.opened?0:THREE.MathUtils.clamp(Number(keys.has('KeyA') || keys.has('ArrowLeft')) - Number(keys.has('KeyD') || keys.has('ArrowRight')) - stickX, -1, 1);
       // Far traffic cannot collide with the player. Keep the broad phase cheap on phones.
       // ponytail: 48 m broad phase; use a spatial hash if the fleet grows materially.
-      const dynamicSolids: Solid[] = world.traffic.filter(c=>!(c.owner===networkPlayerId&&riding)&&(!passengerOf||c.owner!==passengerOf)&&((c.x-pos.x)**2+(c.z-pos.z)**2<48**2)).map(c => vehicleSolid(c.group,c.x,c.z,c.yaw));
-      const solids = [...world.solids, ...dynamicSolids];
-      if(skyDining){solids.length=0;solids.push(...sky.solids);}
-      if (!skyDining && (!riding || vehicle !== 'bike')) solids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
-      if (!skyDining && (!riding || vehicle !== 'car'||car!==personalCar)) solids.push(vehicleSolid(personalCar.group));
+      frameSolids.length = 0;
+      if (skyDining) {
+        for (let i = 0; i < sky.solids.length; i++) frameSolids.push(sky.solids[i]);
+      } else {
+        for (let i = 0; i < world.solids.length; i++) frameSolids.push(world.solids[i]);
+        for (let i = 0; i < world.traffic.length; i++) {
+          const c = world.traffic[i];
+          if (!(c.owner === networkPlayerId && riding) && (!passengerOf || c.owner !== passengerOf) && ((c.x - pos.x) ** 2 + (c.z - pos.z) ** 2 < 48 ** 2)) {
+            frameSolids.push(vehicleSolid(c.group, c.x, c.z, c.yaw));
+          }
+        }
+        if (!riding || vehicle !== 'bike') frameSolids.push({ x: bike.group.position.x, z: bike.group.position.z, hx: .5, hz: 1.15 });
+        if (!riding || vehicle !== 'car' || car !== personalCar) frameSolids.push(vehicleSolid(personalCar.group));
+      }
+      const solids = frameSolids;
       if(klccLiftRide?.phase === 'moving'){
         walkSpeed=0;
       } else {
@@ -2931,7 +2979,7 @@ async function init() {
           jumpVelocity -= 18 * dt; jumpHeight = Math.max(0, jumpHeight + jumpVelocity * dt);
           if (jumpHeight === 0) { jumpVelocity = 0; movementSound('land'); footstepDistance = 0; }
         }
-        const input = new THREE.Vector2(-turn, forward); if (input.length() > 1) input.normalize();
+        inputVec.set(-turn, forward); const input = inputVec; if (input.length() > 1) input.normalize();
         const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stickX, stickY) > .85; const maxSpeed = skyDining&&inSkyPool(pos)?2.5:park.driving ? 15 : running ? 7 : 3.7;
         walkSpeed = THREE.MathUtils.damp(walkSpeed, input.length() * maxSpeed, 14, dt);
         const previousX = pos.x, previousZ = pos.z;
@@ -2987,7 +3035,13 @@ async function init() {
       const distance = (lrtId!=null?Math.max(22,zoom):zoom) + (riding ? Math.abs(speed) * .07 : 0);
       let cameraDistance = distance;
       // A conservative footprint covers rotated solids too; avoid scanning the city at every ray step.
-      const cameraSolids = world.solids.filter(s => Math.abs(s.x - pos.x) < distance + .35 + s.hx + s.hz && Math.abs(s.z - pos.z) < distance + .35 + s.hx + s.hz);
+      cameraSolids.length = 0;
+      const camPad = distance + .35;
+      for (let i = 0; i < world.solids.length; i++) {
+        const s = world.solids[i];
+        const reach = camPad + s.hx + s.hz;
+        if (Math.abs(s.x - pos.x) < reach && Math.abs(s.z - pos.z) < reach) cameraSolids.push(s);
+      }
       // Shorten the camera arm when a building would obscure the player.
       for (let step = 1.5; !skyDining && lrtId==null && !park.active && !klccLiftRide && step < distance; step += .65) {
         const p = { x: pos.x - Math.sin(heading) * step, z: pos.z - Math.cos(heading) * step };
@@ -2997,7 +3051,9 @@ async function init() {
       target.set(pos.x, (lrtId!=null?railHeight+2:riding ? 2 : 1.6) + deckY, pos.z);
       desiredCamera.set(pos.x - Math.sin(heading) * cameraDistance, Math.max(.75, target.y + cameraDistance * (lrtId!=null?Math.max(.55,cameraPitch):cameraPitch)), pos.z - Math.cos(heading) * cameraDistance);
       camera.position.lerp(desiredCamera, 1 - Math.exp(-9 * dt)); camera.lookAt(target);
-      const shadowX = pos.x + Math.sin(heading) * SHADOW_AHEAD, shadowZ = pos.z + Math.cos(heading) * SHADOW_AHEAD;
+      const texel = (SHADOW_REACH * 2) / sun.shadow.mapSize.x;
+      const shadowX = Math.round((pos.x + Math.sin(heading) * SHADOW_AHEAD) / texel) * texel;
+      const shadowZ = Math.round((pos.z + Math.cos(heading) * SHADOW_AHEAD) / texel) * texel;
       sun.position.set(shadowX + weatherUI.sunOffset.x, weatherUI.sunOffset.y, shadowZ + weatherUI.sunOffset.z); sun.target.position.set(shadowX, 0, shadowZ);
       if (rainEnabled) {
         rain.position.set(pos.x, 0, pos.z);
@@ -3023,11 +3079,11 @@ async function init() {
     hudTimer += dt;
     if (active && hudTimer > .1) { hudTimer = 0; updateHud(); }
     const danceNow=Date.now();
-    const selfDance=roomPlayers.find(p=>p.id===networkPlayerId)?.danceUntil||0;
+    const selfDance=roomPlayerById.get(networkPlayerId)?.danceUntil||0;
     dancePose(player,selfDance-danceNow,10-(selfDance-danceNow)/1000,reducedMotion);
-    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const until=roomPlayers.find(p=>p.id===remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
+    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const until=roomPlayerById.get(remote.id)?.danceUntil||0;dancePose(remote.person,until-danceNow,10-(until-danceNow)/1000,reducedMotion);}
     supermanPose(bike.riderRig,isSuperman(),elapsed,reducedMotion);
-    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayers.find(p=>p.id===remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
+    for(const remote of remotePlayers.values()){if(!remote.detail)continue;const state=roomPlayerById.get(remote.id);supermanPose(remote.bike.riderRig,!!state?.riding&&!state.passengerOf&&state.vehicle==='bike'&&Number(state.supermanUntil)>danceNow,elapsed,reducedMotion);}
     danceAudio.update(roomPlayers,pos,audioContext,citySoundsGain,started&&audioEnabled,soundRange);
     sky.update(elapsed,reducedMotion,skyDining);
     clouds.update(elapsed,camera,reducedMotion,graphicsQuality!=='high');
@@ -3067,7 +3123,7 @@ async function init() {
       lamboGain.gain.setTargetAtTime(level, audioContext.currentTime, .18);setNearbyLoop(lamboSong,level>.001);
     }
     if (localName) localName.position.set(pos.x, (lrtId!=null?railHeight+.85:deckY) + 3.34 + jumpHeight + (passengerOf ? .3 : 0) - (seated ? .34 : 0), pos.z);
-    if (localName) updateGameMasterTag(localName, !!roomPlayers.find(p => p.id === networkPlayerId)?.gameMaster, elapsed, reducedMotion);
+    if (localName) updateGameMasterTag(localName, !!roomPlayerById.get(networkPlayerId)?.gameMaster, elapsed, reducedMotion);
     for (const remote of roomPlayers) {
       const entity = remotePlayers.get(remote.id);
       if (entity?.label) {
@@ -3079,39 +3135,48 @@ async function init() {
     voiceRadius.visible=started&&voice.micActive&&!voice.partyOnly;
     if(voiceRadius.visible){voiceRadius.position.set(pos.x,deckY+.08,pos.z);voiceRadius.material.opacity=reducedMotion ? .65 : .6+Math.sin(elapsed*3)*.12;}
     camera.updateMatrixWorld();
-    const actionButton = document.getElementById('interaction') as HTMLButtonElement | null;
+    const actionButton = cachedActionButton ?? (document.getElementById('interaction') as HTMLButtonElement | null);
+    const voicePanel = cachedVoicePanel ?? (document.getElementById('voice-panel') as HTMLElement | null);
+    const voiceInTable=!!voicePanel?.closest('#table-social');
+    // Batch DOM reads before style writes to avoid forced synchronous layout inside requestAnimationFrame.
+    const voiceRect = speechBubbles.size && voicePanel && !voicePanel.hidden && !voiceInTable ? voicePanel.getBoundingClientRect() : null;
+    const bubbleSizes = speechBubbles.size ? new Map<string, {w: number; h: number}>() : null;
+    if (bubbleSizes) {
+      for (const [id, bubble] of speechBubbles) {
+        if (!bubble.element.hidden) bubbleSizes.set(id, {w: bubble.element.offsetWidth, h: bubble.element.offsetHeight});
+      }
+    }
     const action = objectAction();
     if(actionButton && !interactionPointerDown && performance.now()>=interactionPressUntil){
     actionButton.dataset.carId=action&&'carId' in action?action.carId||'':'';
     actionButton.dataset.playerId=action&&'playerId' in action?action.playerId||'':'';
     actionButton.hidden = !started || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open || !action || jumpHeight > 0;
     if (action && !actionButton.hidden) {
-      const anchor = new THREE.Vector3(action.point.x, action.height, action.point.z).project(camera);
+      const anchor = anchorVec.set(action.point.x, action.height, action.point.z).project(camera);
       actionButton.hidden = anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x) > 1 || Math.abs(anchor.y) > 1;
-      actionButton.style.left = `${Math.max(60, Math.min(innerWidth - 60, (anchor.x + 1) * innerWidth / 2))}px`;
-      actionButton.style.top = `${Math.max(50, Math.min(innerHeight - 70, (1 - anchor.y) * innerHeight / 2))}px`;
+      if (!actionButton.hidden) {
+        actionButton.style.left = `${Math.round(Math.max(60, Math.min(innerWidth - 60, (anchor.x + 1) * innerWidth / 2)))}px`;
+        actionButton.style.top = `${Math.round(Math.max(50, Math.min(innerHeight - 70, (1 - anchor.y) * innerHeight / 2)))}px`;
+      }
       actionButton.disabled = action.disabled;
-      const interactionText = document.getElementById('interaction-text');
-      if (interactionText) interactionText.textContent = action.label;
+      const interactionText = cachedInteractionText ?? document.getElementById('interaction-text');
+      if (interactionText && interactionText.textContent !== action.label) interactionText.textContent = action.label;
     }
     }
-    const voicePanel = document.getElementById('voice-panel') as HTMLElement | null;
-    const voiceInTable=!!voicePanel?.closest('#table-social');
     if (voicePanel) voicePanel.hidden = !started || !localName || paused || cityMap.open || wall.opened || profile.open || onlinePlayersDialog.open;
     if(localName && voicePanel && !voicePanel.hidden && !voiceInTable){
-      camera.updateMatrixWorld();
       // A missing Geng leaves the name-tag row empty; use that space for the voice controls
       // instead of making them float above an invisible badge.
-      const anchor=localName.position.clone().add(new THREE.Vector3(0,geng ? .35 : .05,0)).project(camera);
+      const anchor=anchorVec.copy(localName.position).setY(localName.position.y + (geng ? .35 : .05)).project(camera);
       voicePanel.hidden=anchor.z < -1 || anchor.z > 1 || Math.abs(anchor.x)>1;
-      voicePanel.style.left=`${Math.max(60,Math.min(innerWidth-60,(anchor.x+1)*innerWidth/2))}px`;
-      voicePanel.style.top=`${Math.max(105,Math.min(innerHeight-65,(1-anchor.y)*innerHeight/2))}px`;
+      if (!voicePanel.hidden) {
+        voicePanel.style.left=`${Math.round(Math.max(60,Math.min(innerWidth-60,(anchor.x+1)*innerWidth/2)))}px`;
+        voicePanel.style.top=`${Math.round(Math.max(105,Math.min(innerHeight-65,(1-anchor.y)*innerHeight/2)))}px`;
+      }
     }else if(voiceInTable&&voicePanel){
       voicePanel.style.removeProperty('left');voicePanel.style.removeProperty('top');
     }
 
-
-    camera.updateMatrixWorld();
     streetStalls.update(pos,camera,started&&!paused&&!cityMap.open&&!wall.opened&&!tableSocial.opened&&!riding&&!seated);
     setAfkBubble('self', started ? afkNote : '');
     // Keep the nearest table action attached to its world position.
@@ -3126,11 +3191,11 @@ async function init() {
       button.hidden=!active;
       if(!active)continue;
       if(pressedTableId===table.id)continue; // Keep the target still until the tap finishes.
-      const tableAnchor=new THREE.Vector3(table.x,(table.y||0)+2.8,table.z).project(camera);
+      const tableAnchor=anchorVec.set(table.x,(table.y||0)+2.8,table.z).project(camera);
       button.hidden=tableAnchor.z < -1 || tableAnchor.z > 1 || Math.abs(tableAnchor.x)>1 || Math.abs(tableAnchor.y)>1;
       if(button.hidden)continue;
-      button.style.left=`${THREE.MathUtils.clamp((tableAnchor.x+1)*innerWidth/2,Math.min(160,innerWidth*.36)+8,innerWidth-Math.min(160,innerWidth*.36)-8)}px`;
-      button.style.top=`${(1-tableAnchor.y)*innerHeight/2}px`;
+      button.style.left=`${Math.round(THREE.MathUtils.clamp((tableAnchor.x+1)*innerWidth/2,Math.min(160,innerWidth*.36)+8,innerWidth-Math.min(160,innerWidth*.36)-8))}px`;
+      button.style.top=`${Math.round((1-tableAnchor.y)*innerHeight/2)}px`;
       const state=roomTables.find(t=>t.id===table.id);
       const name=state?.name||table.name;
       // Who is actually sitting here, by name — the table already knows, it just never said.
@@ -3148,7 +3213,6 @@ async function init() {
     const placedBubbles: { left: number; right: number; top: number; bottom: number }[] = [];
     // Your mic/speaker controls float over your own head, and a taller nameplate (Game Master, geng)
     // lifts them into your speech bubble. Treat them as a placed bubble so speech stacks above them.
-    const voiceRect = speechBubbles.size && voicePanel && !voicePanel.hidden && !voiceInTable ? voicePanel.getBoundingClientRect() : null;
     if (voiceRect) placedBubbles.push({ left: voiceRect.left, right: voiceRect.right, top: voiceRect.top, bottom: voiceRect.bottom });
     for (const [id, bubble] of speechBubbles) {
       const afk = id.startsWith('afk:');
@@ -3157,7 +3221,7 @@ async function init() {
       const villageName = villageNpc ? speakerId.slice(8) : '';
       // Residents are parented to the village group, so their own position is village-local and
       // projected near the world origin: off camera, which hid every "Tegur" bubble.
-      const villageSpeaker = villageNpc ? village.people.find(person => person.resident.name === villageName)?.rig.group.getWorldPosition(new THREE.Vector3()) : undefined;
+      const villageSpeaker = villageNpc ? village.people.find(person => person.resident.name === villageName)?.rig.group.getWorldPosition(villageSpeakerVec) : undefined;
       const speaker = villageSpeaker || (speakerId === 'self' || speakerId === networkPlayerId ? (lrtId==null && riding && !passengerOf ? (vehicle === 'car' ? car.group.position : bike.group.position) : player.group.position) : remotePlayers.get(speakerId)?.group.position);
       const remaining = bubble.expiresAt - time;
       if (!speaker || remaining <= 0 || (!networkConnected && !afk && !villageNpc)) {
@@ -3166,7 +3230,9 @@ async function init() {
       speechPosition.set(speaker.x, speaker.y + (afk ? 4.5 : villageNpc ? 3.25 : 3.8), speaker.z).project(camera);
       bubble.element.hidden = !started || speechPosition.z < -1 || speechPosition.z > 1 || Math.abs(speechPosition.x) > 1 || Math.abs(speechPosition.y) > 1;
       if (!bubble.element.hidden) {
-        const width = bubble.element.offsetWidth, height = bubble.element.offsetHeight;
+        const cachedSize = bubbleSizes?.get(id);
+        const width = cachedSize ? cachedSize.w : bubble.element.offsetWidth;
+        const height = cachedSize ? cachedSize.h : bubble.element.offsetHeight;
         const x = THREE.MathUtils.clamp((speechPosition.x * .5 + .5) * innerWidth, width / 2 + 8, innerWidth - width / 2 - 8);
         let y = (-speechPosition.y * .5 + .5) * innerHeight;
         // Stack nearby speakers upward so each message remains readable.
@@ -3181,8 +3247,8 @@ async function init() {
         // No room above the controls at the top edge: read it just below them instead.
         if (voiceRect && x + width / 2 > voiceRect.left && x - width / 2 < voiceRect.right && y > voiceRect.top - 10 && y - height < voiceRect.bottom + 10) y = voiceRect.bottom + 10 + height;
         placedBubbles.push({ left: x - width / 2, right: x + width / 2, top: y - height, bottom: y });
-        bubble.element.style.left = `${x}px`;
-        bubble.element.style.top = `${y}px`;
+        bubble.element.style.left = `${Math.round(x)}px`;
+        bubble.element.style.top = `${Math.round(y)}px`;
         bubble.element.style.opacity = String(Math.min(1, remaining / 500));
       }
     }
@@ -3202,16 +3268,16 @@ async function init() {
     });
     beach.update(simTime,pos);
     if(firstSteps.active&&started&&!riding&&!passengerOf&&!park.active&&deckY<1)firstSteps.update({position:pos,seatedChairId:seated?seatedChairId:null,tableOpen:tableSocial.opened,taken:chairOccupied,reach:interactionReach});
-    explore.update({visible:started&&!paused&&!document.querySelector('dialog[open]')&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
+    explore.update({visible:started&&!paused&&!anyDialogOpen()&&!!$('loading').hidden,position:pos,camera,audioEnabled:audioEnabled&&audioVolume('sfx')>0,online:networkConnected,
       experienced:!started?[]:[...(skyDining?['wet-deck']:[]),...(klccLiftRide?.phase==='top'?['15']:[]),...(!riding&&!seated&&deckY<1&&insidePickleball(pos)&&networkConnected?['21']:[]),...(!riding&&deckY<1&&pos.x>=95&&pos.x<=153&&pos.z>=134&&pos.z<=152?['pantai-senja']:[]),...(started&&audioEnabled&&audioContext?.state==='running'&&audioVolume('sfx')>0&&!masjidSong.paused&&(masjidGain?.gain.value??0)>.01?['17']:[])]});
     pickleball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected);
     basketball.update(pos,started&&!paused&&!riding&&!seated,dt,networkConnected,networkPlayerId);
     updateVehiclePresentation(scene,camera,dt,mamakNight,
       riding && vehicle==='car' ? {group:car.group,controls:{speed,
         steering:THREE.MathUtils.clamp(Number(keys.has('KeyA')||keys.has('ArrowLeft'))-Number(keys.has('KeyD')||keys.has('ArrowRight'))-stickX,-1,1),
-        braking:keys.has('Space')}} : undefined,simTime,.12);
+        braking:keys.has('Space')}} : undefined,simTime,.12,graphicsQuality==='high');
     if(!tableSocial.boardOpen||time-lastSceneRender>=1000/15){
-      scene.traverseVisible(object => object.updateWorldMatrix(false, false, true));
+      updateVisibleMatrices(scene, false);
       renderer.render(scene, camera);lastSceneRender=time;
     }
     requestAnimationFrame(frame);
