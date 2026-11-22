@@ -33,11 +33,24 @@
   </head>
   <body>
     <div id="app">
-      <main>
-        <h1>LepakMamak — Free Malaysian Multiplayer Browser Game</h1>
-        <p>Your mamak. Your geng. Your cerita. Explore a miniature Kuala Lumpur, meet friends at the mamak, and hang out with live text and voice chat.</p>
-        <p>Personalise your character, ride around the city, and lepak together on desktop or mobile. Free to play in your browser.</p>
-        <noscript><p>Enable JavaScript to enter LepakMamak and play with your friends.</p></noscript>
+      <main id="boot-loading" role="status" aria-live="polite" aria-busy="true">
+        <div class="loading-card">
+          <div class="loading-model-wrap" aria-hidden="true">
+            <img class="boot-icon" src="/icon-80.png" width="54" height="54" alt="" />
+          </div>
+          <div class="loading-spinner" aria-hidden="true"><i></i><i></i><i></i></div>
+          <strong>LEPAK<span>MAMAK.</span></strong>
+          <p>Getting the city ready</p>
+          <div class="loading-progress" aria-hidden="true"><i></i></div>
+          <div class="loading-meta"><span>WORLD</span><span>4%</span></div>
+          <small>Loading the city…</small>
+          <noscript><p>Enable JavaScript to enter LepakMamak and play with your friends.</p></noscript>
+        </div>
+        <div class="sr-only">
+          <h1>LepakMamak — Free Malaysian Multiplayer Browser Game</h1>
+          <p>Your mamak. Your geng. Your cerita. Explore a miniature Kuala Lumpur, meet friends at the mamak, and hang out with live text and voice chat.</p>
+          <p>Personalise your character, ride around the city, and lepak together on desktop or mobile. Free to play in your browser.</p>
+        </div>
       </main>
     </div>
     <script type="module" src="/src/main.ts"></script>
